@@ -19,11 +19,11 @@
 
 
 /* INTERNAL API FUNCTIONS. */
-    BaseType_t xNetworkInterfaceInitialise( void );
-    BaseType_t xNetworkInterfaceOutput( NetworkBufferDescriptor_t * const pxNetworkBuffer,
+   BaseType_t xNetworkInterfaceInitialise( const MACAddress_t * phyDev );
+   BaseType_t xNetworkInterfaceOutput( NetworkBufferDescriptor_t * const pxNetworkBuffer,
                                         BaseType_t xReleaseAfterSend );
-    BaseType_t xNetworkInterfaceDisconnect(void);
-    esp_err_t xNetworkInterfaceInput( void * netif, void * buffer, uint16_t len, void * eb );
+   BaseType_t xNetworkInterfaceDisconnect(void);
+   esp_err_t xNetworkInterfaceInput( void * buffer, uint16_t len, void * eb );
 
 /* The following function is defined only when BufferAllocation_1.c is linked in the project. */
     void vNetworkInterfaceAllocateRAMToBuffers( NetworkBufferDescriptor_t pxNetworkBuffers[ NUM_NETWORK_BUFFER_DESCRIPTORS ] );

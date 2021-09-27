@@ -2,10 +2,45 @@
 #define CONFIG_SENSOR_H
 
 
+
+
+/*********** Miscelaneous ***********************/
+
+typedef enum FRAMES_PROCESSING
+{
+	eReleaseBuffer = 0,   /* Processing the frame did not find anything to do - just release the buffer. */
+	eProcessBuffer,       /* An Ethernet frame has a valid address - continue process its contents. */
+	eReturnEthernetFrame, /* The Ethernet frame contains an ARP826 packet that can be returned to its source. */
+	eFrameConsumed        /* Processing the Ethernet packet contents resulted in the payload being sent to the stack. */
+} eFrameProcessingResult_t;
+
+
+
+
+/*-----------------------------------------------------------*/
+/* Utility macros for marking casts as recognized during     */
+/* static analysis.                                          */
+/*-----------------------------------------------------------*/
+ 	 #define portINLINE    inline
+
+    #define CAST_PTR_TO_TYPE_PTR( TYPE, pointer )                ( vCastPointerTo_ ## TYPE( ( void * ) ( pointer ) ) )
+    #define CAST_CONST_PTR_TO_CONST_TYPE_PTR( TYPE, pointer )    ( vCastConstPointerTo_ ## TYPE( ( const void * ) ( pointer ) ) )
+
+/*-----------------------------------------------------------*/
+/* Utility macros for declaring cast utility functions in    */
+/* order to centralize typecasting for static analysis.      */
+/*-----------------------------------------------------------*/
+    #define DECL_CAST_PTR_FUNC_FOR_TYPE( TYPE )          TYPE * vCastPointerTo_ ## TYPE( void * pvArgument )
+    #define DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( TYPE )    const TYPE * vCastConstPointerTo_ ## TYPE( const void * pvArgument )
+
+	#define ETH_P_RINA      					0xD1F0
+	#define ETH_P_BATMAN						0x4305
+
+
 /*********  Define WiFi Parameters *************/
 
-	#define ESP_WIFI_SSID      					"WS02"
-	#define ESP_WIFI_PASS      					"Esdla2025"
+	#define ESP_WIFI_SSID      					"irati"//"WS02"
+	#define ESP_WIFI_PASS      					"irati2017"//"Esdla2025"
 	#define ESP_MAXIMUM_RETRY  					( 3 )
     /*TAG for Debugging*/
 	#define TAG_WIFI							"NetInterface"
@@ -14,17 +49,23 @@
 /*********  Define BUFFERS Parameters *************/
 
 	#define NUM_NETWORK_BUFFER_DESCRIPTORS 		( 6 )
+	#define TAG_NETBUFFER						"NetBuffer"
+
+	#define USE_LINKED_RX_MESSAGES				( 0 )
+	#define BUFFER_PADDING    					( 0 )
+
 
 
 /*********   Configure ARP Parameters  ************/
 
 	//Length of ARP cache. Define 2 because it is a Point-to-Point.
-	#define ARP_CACHE_ENTRIES 					( 2 )
+	#define ARP_CACHE_ENTRIES 					( 4 )
 
 	#define MAX_ARP_AGE 						( 5 )
 	#define MAX_ARP_RETRANSMISSIONS 			( 5 )
 
 	#define MAC_ADDRESS_LENGTH_BYTES 			( 6 )
+
 
 	/*TAG for Debugging*/
 	#define TAG_ARP 							"ARP"
@@ -33,7 +74,12 @@
 
 /*********   Configure IPCP Parameters  ************/
 
-	#define IPCP_ADDRESS_LENGTH_BYTES 			( 4 )
+
+/* A FreeRTOS queue is used to send events from application tasks to the RINA
+ * stack. EVENT_QUEUE_LENGTH sets the maximum number of events that can
+ * be queued for processing at any one time.  The event queue must be a minimum of
+ * 5 greater than the total number of network buffers. */
+    #define EVENT_QUEUE_LENGTH          ( NUM_NETWORK_BUFFER_DESCRIPTORS + 5 )
 
 	/** @brief Maximum time the IPCP task is allowed to remain in the Blocked state.*/
  	#define MAX_IPCP_TASK_SLEEP_TIME    ( pdMS_TO_TICKS( 10000UL ) )
@@ -41,8 +87,24 @@
 	/** @brief Maximun length of chars for an String_t (Application Name) */
 	#define MAX_LENGTH_STRING  					( 255 )
 
+	/** @brief Time delay between repeated attempts to initialise the network hardware. */
+ 	#define INITIALISATION_RETRY_DELAY    ( pdMS_TO_TICKS( 3000U ) )
+
+
+
 	/*TAG for Debugging*/
-	#define TAG_ICP 							"IPCP"
+	#define TAG_IPCP 							"IPCP"
+
+
+	#define IPCP_TASK_PRIORITY                   ( configMAX_PRIORITIES - 2 )
+
+	#define IPCP_TASK_STACK_SIZE_WORDS           ( configMINIMAL_STACK_SIZE * 5 )
+
+
+
+/*********   Configure Shim Parameters  ************/
+	/*TAG for Debugging*/
+	#define TAG_SHIM 							"SHIM_WIFI"
 
 
 #endif

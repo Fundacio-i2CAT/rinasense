@@ -18,6 +18,8 @@
 #include "NetworkInterface.h"
 #include "configSensor.h"
 
+#include "IPCP.h" //temporal
+
 
 /* ESP includes.*/
 #include "esp_log.h"
@@ -26,6 +28,8 @@
 #include "esp_event_base.h"
 #include "netif/wlanif.h"
 #include "esp_private/wifi.h"
+
+
 //#include "nvs_flash.h"
 
 
@@ -53,7 +57,8 @@ static EventGroupHandle_t s_wifi_event_group;
 // Retry trying to connect initialization
 static int s_retry_num = 0;
 
-esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
+
+esp_err_t xNetworkInterfaceInput( void * buffer, uint16_t len, void * eb );
 
 //NetworkBufferDescriptor_t * pxNetworkBuffer;
 
@@ -85,7 +90,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
  *  Mac address variable in the ShimIPCP.h
  *  Return a Boolean pdTrue or pdFalse
  * */
-BaseType_t xNetworkInterfaceInitialise( void )
+BaseType_t xNetworkInterfaceInitialise( const MACAddress_t * pxPhyDev )
 {
 
 	s_wifi_event_group = xEventGroupCreate();
@@ -154,6 +159,7 @@ BaseType_t xNetworkInterfaceInitialise( void )
 	ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
 	vEventGroupDelete(s_wifi_event_group);
 
+	ESP_ERROR_CHECK(esp_wifi_internal_reg_rxcb(ESP_IF_WIFI_STA, xNetworkInterfaceInput ));
 
 	if( xInterfaceState == INTERFACE_UP )
 	{
@@ -161,16 +167,16 @@ BaseType_t xNetworkInterfaceInitialise( void )
 		{
 			//Wifi_Interface: WIFI_STA or WIFI_AP. This case WIFI_STA
 			esp_wifi_get_mac( ESP_IF_WIFI_STA, ucMACAddress );
-			//Function from Shim_IPCP to update Source MACAddress.
-			RINA_vARPUpdateMACAddress( ucMACAddress );
+						//Function from Shim_IPCP to update Source MACAddress.
+			vARPUpdateMACAddress( ucMACAddress, pxPhyDev ); //Maybe change the method name.
 			xMACAdrInitialized = pdTRUE;
-			ESP_LOGI(TAG_WIFI,"MACAddressRINA: updated");
+			//ESP_LOGI(TAG_WIFI,"MACAddressRINA updated");
 		}
 
 		return pdTRUE;
 	}
 
-	return pdFALSE;
+	return pdTRUE;
 }
 
 
@@ -187,16 +193,21 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t * const pxNetworkBu
 
     if( xInterfaceState == INTERFACE_DOWN )
     {
-        ESP_LOGD( TAG_WIFI, "Interface down" );
+        ESP_LOGI( TAG_WIFI, "Interface down" );
         ret = ESP_FAIL;
     }
     else
     {
-        ret = esp_wifi_80211_tx( ESP_IF_WIFI_STA, pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength, true );
+
+        ret = esp_wifi_internal_tx( ESP_IF_WIFI_STA, pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength);
 
         if( ret != ESP_OK )
         {
             ESP_LOGE( TAG_WIFI, "Failed to tx buffer %p, len %d, err %d", pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength, ret );
+        }
+        else
+        {
+        	ESP_LOGI(TAG_WIFI, "Packet Sended");//
         }
     }
 
@@ -222,17 +233,18 @@ BaseType_t xNetworkInterfaceDisconnect(void)
 	return ret == ESP_OK ? pdTRUE : pdFALSE;
 }
 
-esp_err_t xNetworkInterfaceInput( void * netif, void * buffer, uint16_t len, void * eb )
+
+
+esp_err_t xNetworkInterfaceInput( void * buffer, uint16_t len, void * eb )
 {
     NetworkBufferDescriptor_t * pxNetworkBuffer;
     RINAStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
     const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS( 250 );
 
 
-
     if( eConsiderFrameForProcessing( buffer ) != eProcessBuffer )
     {
-        ESP_LOGD( TAG_WIFI, "Dropping packet" );
+
         esp_wifi_internal_free_rx_buffer( eb );
         return ESP_OK;
     }
@@ -241,6 +253,7 @@ esp_err_t xNetworkInterfaceInput( void * netif, void * buffer, uint16_t len, voi
 
     if( pxNetworkBuffer != NULL )
     {
+
         /* Set the packet size, in case a larger buffer was returned. */
         pxNetworkBuffer->xDataLength = len;
 
@@ -248,7 +261,8 @@ esp_err_t xNetworkInterfaceInput( void * netif, void * buffer, uint16_t len, voi
         memcpy( pxNetworkBuffer->pucEthernetBuffer, buffer, len );
         xRxEvent.pvData = ( void * ) pxNetworkBuffer;
 
-        if( xSendEventStructToIPCPTask( &xRxEvent, xDescriptorWaitTime ) == pdFAIL )
+
+       if( xSendEventStructToIPCPTask( &xRxEvent, xDescriptorWaitTime ) == pdFAIL )
         {
             ESP_LOGE( TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len );
             vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
@@ -258,11 +272,27 @@ esp_err_t xNetworkInterfaceInput( void * netif, void * buffer, uint16_t len, voi
         esp_wifi_internal_free_rx_buffer( eb );
         return ESP_OK;
     }
+
     else
     {
         ESP_LOGE( TAG_WIFI, "Failed to get buffer descriptor" );
         return ESP_FAIL;
     }
+
 }
 
+void vNetworkNotifyIFDown()
+{
+    RINAStackEvent_t xRxEvent = { eNetworkDownEvent, NULL };
 
+    if( xInterfaceState != INTERFACE_DOWN )
+    {
+        xInterfaceState = INTERFACE_DOWN;
+        xSendEventStructToIPCPTask( &xRxEvent, 0 );
+    }
+}
+
+void vNetworkNotifyIFUp()
+{
+    xInterfaceState = INTERFACE_UP;
+}

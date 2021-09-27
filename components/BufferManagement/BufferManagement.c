@@ -15,6 +15,8 @@
 #include "BufferManagement.h"
 #include "configSensor.h"
 
+#include "esp_log.h"
+
 /* The obtained network buffer must be large enough to hold a packet that might
  * replace the packet that was requested to be sent. */
 #if ipconfigUSE_TCP == 1
@@ -67,9 +69,10 @@ BaseType_t xNetworkBuffersInitialise( void )
 
     /* Only initialise the buffers and their associated kernel objects if they
      * have not been initialised before. */
+
     if( xNetworkBufferSemaphore == NULL )
     {
-        #if ( configSUPPORT_STATIC_ALLOCATION == 1 )
+        #if ( SUPPORT_STATIC_ALLOCATION == 1 )
             {
                 static StaticSemaphore_t xNetworkBufferSemaphoreBuffer;
                 xNetworkBufferSemaphore = xSemaphoreCreateCountingStatic(
@@ -79,7 +82,7 @@ BaseType_t xNetworkBuffersInitialise( void )
             }
         #else
             {
-                xNetworkBufferSemaphore = xSemaphoreCreateCounting( NUM_NETWORK_BUFFER_DESCRIPTORS, ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS );
+                xNetworkBufferSemaphore = xSemaphoreCreateCounting( NUM_NETWORK_BUFFER_DESCRIPTORS, NUM_NETWORK_BUFFER_DESCRIPTORS );
             }
         #endif /* configSUPPORT_STATIC_ALLOCATION */
 
@@ -87,7 +90,7 @@ BaseType_t xNetworkBuffersInitialise( void )
 
         if( xNetworkBufferSemaphore != NULL )
         {
-            #if ( configQUEUE_REGISTRY_SIZE > 0 )
+            #if ( QUEUE_REGISTRY_SIZE > 0 )
                 {
                     vQueueAddToRegistry( xNetworkBufferSemaphore, "NetBufSem" );
                 }
@@ -130,6 +133,8 @@ BaseType_t xNetworkBuffersInitialise( void )
     {
         xReturn = pdPASS;
     }
+
+    ESP_LOGD(TAG_NETBUFFER, "Initialized Buffers");
 
     return xReturn;
 }

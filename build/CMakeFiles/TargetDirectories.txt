@@ -640,6 +640,13 @@ C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/IPCP/CMakeFiles/
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/IPCP/CMakeFiles/rebuild_cache.dir
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/IPCP/CMakeFiles/list_install_components.dir
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/IPCP/CMakeFiles/install/strip.dir
+C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/__idf_configRINA.dir
+C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/install/local.dir
+C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/install.dir
+C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/edit_cache.dir
+C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/rebuild_cache.dir
+C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/list_install_components.dir
+C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/install/strip.dir
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/ShimIPCP/CMakeFiles/__idf_ShimIPCP.dir
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/ShimIPCP/CMakeFiles/install/local.dir
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/ShimIPCP/CMakeFiles/install.dir
@@ -668,13 +675,6 @@ C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/ARP826/CMakeFile
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/ARP826/CMakeFiles/rebuild_cache.dir
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/ARP826/CMakeFiles/list_install_components.dir
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/ARP826/CMakeFiles/install/strip.dir
-C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/__idf_configRINA.dir
-C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/install/local.dir
-C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/install.dir
-C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/edit_cache.dir
-C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/rebuild_cache.dir
-C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/list_install_components.dir
-C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/configRINA/CMakeFiles/install/strip.dir
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/main/CMakeFiles/install/local.dir
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/main/CMakeFiles/install.dir
 C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/build/esp-idf/main/CMakeFiles/edit_cache.dir
