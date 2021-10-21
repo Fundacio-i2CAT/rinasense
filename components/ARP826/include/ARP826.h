@@ -17,7 +17,7 @@
 /*-----------------------------------------------------------*/
 
 
-#include "configSensor.h"
+#include "common.h"
 #include "IPCP.h"
 
 
@@ -61,6 +61,10 @@ typedef struct xMAC_ADDRESS
 {
 	uint8_t ucBytes[ MAC_ADDRESS_LENGTH_BYTES ]; /**< Byte array of the MAC address */
 }MACAddress_t;
+
+
+
+
 
 //enum MAC Address
 typedef enum {
@@ -117,6 +121,8 @@ typedef struct xARP_PACKET
 extern DECL_CAST_PTR_FUNC_FOR_TYPE( ARPPacket_t );
 extern DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( ARPPacket_t );
 
+extern DECL_CAST_PTR_FUNC_FOR_TYPE( MACAddress_t );
+extern DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( MACAddress_t );
 
 /**
  * Structure for one row in the ARP cache table.
@@ -151,19 +157,6 @@ typedef struct RINA_ARP_HANDLE
 #define ARP_HARDWARE_TYPE_ETHERNET       ( 0x0001U )
 #define ARP_REQUEST                      ( 0x0100U )
 #define ARP_REPLY                        ( 0x0200U )
-
-
-
-
-#if ( ipconfigUSE_ARP_REMOVE_ENTRY != 0 )
-
-/*
- * In some rare cases, it might be useful to remove a ARP cache entry of a
- * known MAC address to make sure it gets refreshed.
- */
-uint32_t ulARPRemoveCacheEntryByMac( const MACAddress_t * pxMACAddress );
-
-#endif /* ipconfigUSE_ARP_REMOVE_ENTRY != 0 */
 
 
 /************** ARP and Ethernet events handle *************************/

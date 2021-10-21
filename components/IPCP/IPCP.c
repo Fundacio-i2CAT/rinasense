@@ -200,6 +200,7 @@ static void prvIPCPTask( void * pvParameters )
     	        	 * pointer to the received buffer is located in the pvData member
     	        	 * of the received event structure. */
     	        	prvHandleEthernetPacket( CAST_PTR_TO_TYPE_PTR( NetworkBufferDescriptor_t, xReceivedEvent.pvData ) );
+
     	        	break;
 
     	        case eNetworkTxEvent:
@@ -212,8 +213,15 @@ static void prvIPCPTask( void * pvParameters )
 
     	        	( void ) xNetworkInterfaceOutput( pxDescriptor, pdTRUE );
     	        }
+    	        	break;
 
-    	        break;
+    	        case eShimEnrollEvent:
+
+    	        	xShimWiFiCreate((MACAddress_t *) xReceivedEvent.pvData );
+
+
+
+    	        	break;
 
     	        case eNoEvent:
     	        	/* xQueueReceive() returned because of a normal time-out. */
@@ -465,6 +473,7 @@ BaseType_t xSendEventStructToIPCPTask( const RINAStackEvent_t * pxEvent,
 
 void prvHandleEthernetPacket( NetworkBufferDescriptor_t * pxBuffer )
 {
+
     #if ( USE_LINKED_RX_MESSAGES == 0 )
         {
             /* When ipconfigUSE_LINKED_RX_MESSAGES is not set to 0 then only one
@@ -475,6 +484,7 @@ void prvHandleEthernetPacket( NetworkBufferDescriptor_t * pxBuffer )
         }
     #else /* configUSE_LINKED_RX_MESSAGES */
         {
+        	ESP_LOGI( TAG_IPCP, "Packet to network stack 2 %p, len %d", pxBuffer, pxBuffer->xDataLength );
             NetworkBufferDescriptor_t * pxNextBuffer;
 
             /* An optimisation that is useful when there is high network traffic.
@@ -508,51 +518,30 @@ void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer
 {
     const EthernetHeader_t * pxEthernetHeader;
     eFrameProcessingResult_t eReturned = eReleaseBuffer;
+    uint16_t usFrameType;
+
 
     configASSERT( pxNetworkBuffer != NULL );
 
-    ESP_LOGI(TAG_IPCP, "Processing Ethernet Packet");
 
     /* Interpret the Ethernet frame. */
     if( pxNetworkBuffer->xDataLength >= sizeof( EthernetHeader_t ) )
     {
-    	ESP_LOGI(TAG_IPCP, "Interprete Packet");
-
-    	//eReturned = eConsiderFrameForProcessing( pxNetworkBuffer->pucEthernetBuffer );
-
-    	//ESP_LOGI(TAG_IPCP, "eProccessBuffer: %i", eReturned);
 
         /* Map the buffer onto the Ethernet Header struct for easy access to the fields. */
     	pxEthernetHeader = vCastPointerTo_EthernetPacket_t(pxNetworkBuffer->pucEthernetBuffer);
         //pxEthernetHeader = CAST_CONST_PTR_TO_CONST_TYPE_PTR( EthernetHeader_t, pxNetworkBuffer->pucEthernetBuffer );
 
-        /* The condition "eReturned == eProcessBuffer" must be true. */
-       /*#if ( ipconfigETHERNET_DRIVER_FILTERS_FRAME_TYPES == 0 )
-        	if( eReturned == eProcessBuffer )
-        #endif*/
-       //{
-        	ESP_LOGI(TAG_IPCP, "eProccessBuffer");
-            ESP_LOGI(TAG_ARP,"MAC Ethernet Dest: %02x:%02x:%02x:%02x:%02x:%02x", pxEthernetHeader->xDestinationAddress.ucBytes[0],
-            		pxEthernetHeader->xDestinationAddress.ucBytes[1],
-        			pxEthernetHeader->xDestinationAddress.ucBytes[2],
-        			pxEthernetHeader->xDestinationAddress.ucBytes[3],
-        			pxEthernetHeader->xDestinationAddress.ucBytes[4],
-        			pxEthernetHeader->xDestinationAddress.ucBytes[5]);
+        usFrameType = FreeRTOS_ntohs( pxEthernetHeader->usFrameType );
 
-            ESP_LOGI(TAG_ARP,"MAC Ethernet Source: %02x:%02x:%02x:%02x:%02x:%02x", pxEthernetHeader->xSourceAddress.ucBytes[0],
-            		pxEthernetHeader->xSourceAddress.ucBytes[1],
-        			pxEthernetHeader->xSourceAddress.ucBytes[2],
-        			pxEthernetHeader->xSourceAddress.ucBytes[3],
-        			pxEthernetHeader->xSourceAddress.ucBytes[4],
-        			pxEthernetHeader->xSourceAddress.ucBytes[5]);
-            ESP_LOGI(TAG_ARP,"Ethernet Type: %04x", pxEthernetHeader->usFrameType);
+
             /* Interpret the received Ethernet packet. */
-            switch( pxEthernetHeader->usFrameType )
+            switch(  usFrameType )
             {
-                case ETH_P_BATMAN:
+                case ETH_P_ARP:
 
                     /* The Ethernet frame contains an ARP packet. */
-                	ESP_LOGI(TAG_IPCP, "Case BATMAN");
+                	ESP_LOGI(TAG_IPCP, "Case ARP");
                     if( pxNetworkBuffer->xDataLength >= sizeof( ARPPacket_t ) )
                     {
                         eReturned = eARPProcessPacket( CAST_PTR_TO_TYPE_PTR( ARPPacket_t, pxNetworkBuffer->pucEthernetBuffer ) );
@@ -564,9 +553,9 @@ void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer
 
                     break;
 #if 0
-                case ipIPv4_FRAME_TYPE:
+                case ETH_P_RINA:
 
-                    /* The Ethernet frame contains an IP packet. */
+                    /* The Ethernet frame contains an SDU packet. */
                     if( pxNetworkBuffer->xDataLength >= sizeof( IPPacket_t ) )
 
 
@@ -606,10 +595,15 @@ void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer
 
             /* The frame is in use somewhere, don't release the buffer
              * yet. */
+        	ESP_LOGI(TAG_SHIM,"Frame COnsumed");
             break;
 
         case eReleaseBuffer:
+        	ESP_LOGI(TAG_SHIM,"Releasing Buffer");
+        	break;
         case eProcessBuffer:
+        	ESP_LOGI(TAG_SHIM,"Process Buffer");
+        	break;
         default:
 
             /* The frame is not being used anywhere, and the
@@ -623,10 +617,9 @@ void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer
 
 eFrameProcessingResult_t eConsiderFrameForProcessing( const uint8_t * const pucEthernetBuffer )
 {
-    eFrameProcessingResult_t eReturn;
+    eFrameProcessingResult_t     eReturn = eReleaseBuffer;
     const EthernetHeader_t * pxEthernetHeader;
     uint16_t usFrameType;
-
 
 
     /* Map the buffer onto Ethernet Header struct for easy access to fields. */
@@ -635,49 +628,13 @@ eFrameProcessingResult_t eConsiderFrameForProcessing( const uint8_t * const pucE
     usFrameType = pxEthernetHeader->usFrameType;
     usFrameType = FreeRTOS_ntohs( usFrameType );
 
-    ESP_LOGI(TAG_ARP,"MAC Ethernet Dest: %02x:%02x:%02x:%02x:%02x:%02x", pxEthernetHeader->xDestinationAddress.ucBytes[0],
-    		pxEthernetHeader->xDestinationAddress.ucBytes[1],
-			pxEthernetHeader->xDestinationAddress.ucBytes[2],
-			pxEthernetHeader->xDestinationAddress.ucBytes[3],
-			pxEthernetHeader->xDestinationAddress.ucBytes[4],
-			pxEthernetHeader->xDestinationAddress.ucBytes[5]);
 
-    ESP_LOGI(TAG_ARP,"MAC Ethernet Source: %02x:%02x:%02x:%02x:%02x:%02x", pxEthernetHeader->xSourceAddress.ucBytes[0],
-    		pxEthernetHeader->xSourceAddress.ucBytes[1],
-			pxEthernetHeader->xSourceAddress.ucBytes[2],
-			pxEthernetHeader->xSourceAddress.ucBytes[3],
-			pxEthernetHeader->xSourceAddress.ucBytes[4],
-			pxEthernetHeader->xSourceAddress.ucBytes[5]);
-    /*
-    ESP_LOGI(TAG_ARP,"MAC Local: %02x:%02x:%02x:%02x:%02x:%02x", xlocalMAC->ucBytes[0],
-      		xlocalMAC->ucBytes[1],
-  			xlocalMAC->ucBytes[2],
-  			xlocalMAC->ucBytes[3],
-  			xlocalMAC->ucBytes[4],
-  			xlocalMAC->ucBytes[5]);*/
-    ESP_LOGI(TAG_ARP,"Ethernet Type: %04x", usFrameType);
-
-    if( memcmp( xlocalMACAddress.ucBytes, pxEthernetHeader->xDestinationAddress.ucBytes, sizeof( MACAddress_t ) ) == 0 )
+    //Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
+    if (usFrameType == ETH_P_ARP || usFrameType == ETH_P_RINA)
     {
-        /* The packet was directed to this node - process it. */
-    	ESP_LOGI(TAG_IPCP,"Process!"); //test
 
-        eReturn = eProcessBuffer;
-    }
-    else if( memcmp( xBroadcastMACAddress.ucBytes, pxEthernetHeader->xDestinationAddress.ucBytes, sizeof( MACAddress_t ) ) == 0
-    		&& usFrameType == ETH_P_BATMAN)
-    {
-        /* The packet was a broadcast - process it. */
-    	ESP_LOGI(TAG_IPCP,"Process!"); //test
+    	eReturn = eProcessBuffer;
 
-        eReturn = eProcessBuffer;
-    }
-    else
-    {
-        /* The packet was not a broadcast, or for this node, just release
-         * the buffer without taking any other action. */
-    	ESP_LOGI(TAG_IPCP,"No Process!");
-        eReturn = eReleaseBuffer;
     }
 
 
@@ -742,7 +699,6 @@ static void prvProcessNetworkDownEvent( void )
     /* Stop the ARP timer while there is no network. */
     xARPTimer.bActive = pdFALSE_UNSIGNED;
 
-
     /* Per the ARP Cache Validation section of https://tools.ietf.org/html/rfc1122,
      * treat network down as a "delivery problem" and flush the ARP cache for this
      * interface. */
@@ -760,6 +716,9 @@ static void prvProcessNetworkDownEvent( void )
         vTaskDelay( INITIALISATION_RETRY_DELAY );
         //FreeRTOS_NetworkDown();
     }
+    vTaskDelay( INITIALISATION_RETRY_DELAY );
+
+
 
 }
 /*-----------------------------------------------------------*/

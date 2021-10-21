@@ -6,13 +6,7 @@
 
 /*********** Miscelaneous ***********************/
 
-typedef enum FRAMES_PROCESSING
-{
-	eReleaseBuffer = 0,   /* Processing the frame did not find anything to do - just release the buffer. */
-	eProcessBuffer,       /* An Ethernet frame has a valid address - continue process its contents. */
-	eReturnEthernetFrame, /* The Ethernet frame contains an ARP826 packet that can be returned to its source. */
-	eFrameConsumed        /* Processing the Ethernet packet contents resulted in the payload being sent to the stack. */
-} eFrameProcessingResult_t;
+
 
 
 
@@ -21,7 +15,16 @@ typedef enum FRAMES_PROCESSING
 /* Utility macros for marking casts as recognized during     */
 /* static analysis.                                          */
 /*-----------------------------------------------------------*/
- 	 #define portINLINE    inline
+
+	#define offsetof(s,m) (size_t)&(((s *)0)->m
+
+	#define container_of(ptr, type, member)                        \
+	({                                                          \
+		const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
+		(type *)( (char *)__mptr - offsetof(type,member) );        \
+	})
+
+ 	#define portINLINE    inline
 
     #define CAST_PTR_TO_TYPE_PTR( TYPE, pointer )                ( vCastPointerTo_ ## TYPE( ( void * ) ( pointer ) ) )
     #define CAST_CONST_PTR_TO_CONST_TYPE_PTR( TYPE, pointer )    ( vCastConstPointerTo_ ## TYPE( ( const void * ) ( pointer ) ) )
@@ -33,8 +36,8 @@ typedef enum FRAMES_PROCESSING
     #define DECL_CAST_PTR_FUNC_FOR_TYPE( TYPE )          TYPE * vCastPointerTo_ ## TYPE( void * pvArgument )
     #define DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( TYPE )    const TYPE * vCastConstPointerTo_ ## TYPE( const void * pvArgument )
 
-	#define ETH_P_RINA      					0xD1F0
-	#define ETH_P_BATMAN						0x4305
+	#define ETH_P_RINA      				0xD1F0
+	#define ETH_P_ARP						0x4305
 
 
 /*********  Define WiFi Parameters *************/
@@ -53,7 +56,7 @@ typedef enum FRAMES_PROCESSING
 
 	#define USE_LINKED_RX_MESSAGES				( 0 )
 	#define BUFFER_PADDING    					( 0 )
-
+	#define MTU									( 1500 )
 
 
 /*********   Configure ARP Parameters  ************/

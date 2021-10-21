@@ -18,39 +18,12 @@
 
 #include "IPCP.h"
 #include "ARP826.h"
+#include "du.h"
 
 
 
 typedef int32_t  portId_t;
 
-/* Represents the configuration of the EFCP */
-/*
-typedef struct  xEFCP_CONFIG{
-	 // The data transfer constants
-	struct dt_cons * dt_cons;
-
-	size_t *		pci_offset_table;
-
-	 // FIXME: Left here for phase 2
-	//struct policy * unknown_flow;
-
-	// List of qos_cubes supported by the EFCP config
-	//struct list_head qos_cubes;
-
-}efcpConfig_t;
-*/
-
-/*
-typedef struct xSDU {
-	//Configuration of EFCP (Policies, QoS, etc)
-	efcpConfig_t *		cfg;
-
-	struct pci pci;
-
-	NetworkBufferDescriptor_t * pxNetworkBuffer;
-
-}sdu_t;
-*/
 
 /* Flow states */
 typedef enum xFLOW_STATES
@@ -77,8 +50,7 @@ typedef struct xSHIM_WIFI_FLOW
 } shimFlow_t;
 
 
-
-typedef struct xSHIM_IPCP_INSTANCE_DATA
+struct ipcpInstanceData_t
 {
 
 	//list_head       list;
@@ -88,10 +60,9 @@ typedef struct xSHIM_IPCP_INSTANCE_DATA
 	name_t *         		pxName;
 	name_t *          		pxDifName;
 	string_t 				xIntefaceName;
-	//struct packet_type *   	eth_vlan_packet_type;
-	//struct net_device *    	dev;
+
 	MACAddress_t  *    		pxPhyDev;
-	flowSpec_t *     		pxFspec;
+	struct flowSpec_t *     		pxFspec;
 
 	/* The IPC Process using the shim-eth-vlan */
 	name_t *          		pxAppName;
@@ -114,18 +85,7 @@ typedef struct xSHIM_IPCP_INSTANCE_DATA
 	/* Flow control between this IPCP and the associated netdev. */
 	unsigned int 			ucTxBusy;
 
-}shimInstanceData_t;
-
-
-
-typedef struct  xIPCP_INSTANCE
-{
-		ipcpInstanceId_t         xId;
-        ipcpInstanceType_t		 xType;
-        shimInstanceData_t * 	 pxData;
-
-        //struct ipcp_instance_ops *  ops;
-}ipcpInstance_t;
+};
 
 BaseType_t xShimEnrollToDIF( const MACAddress_t * pxPhyDev );
 
@@ -140,7 +100,7 @@ BaseType_t xShimFlowAllocateRequest(portId_t xId,
 
 		const name_t * pxSourceInfo,
 		const name_t * pxDestinationInfo,
-		shimInstanceData_t * pxData);
+		struct ipcpInstanceData_t * pxData);
 
 
 /*-------------------------------------------*/
@@ -148,7 +108,7 @@ BaseType_t xShimFlowAllocateRequest(portId_t xId,
  * Primitive invoked by the application to discard all state regarding this flow.
  * - Port_id change to eNULL.
  * */
-BaseType_t xShimFlowDeallocate(shimInstanceData_t * pxData, portId_t xId);
+BaseType_t xShimFlowDeallocate(struct ipcpInstanceData_t * pxData, portId_t xId);
 
 
 /*-------------------------------------------*/
@@ -162,7 +122,7 @@ BaseType_t xShimFlowDeallocate(shimInstanceData_t * pxData, portId_t xId);
  * */
 
 
-BaseType_t xShimApplicationRegister(shimInstanceData_t *  pxData,name_t * pxName, const name_t * pxDafName);
+BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *  pxData,name_t * pxName, const name_t * pxDafName);
 /*-------------------------------------------*/
 /* applicationUnregister (naming-info)
  * Primitive invoked before all other functions:
@@ -172,7 +132,7 @@ BaseType_t xShimApplicationRegister(shimInstanceData_t *  pxData,name_t * pxName
  * in the cache ARP.
  * Return a pdTrue if Success or pdFalse Failure.
  * */
-BaseType_t xShimApplicationUnregister(shimInstanceData_t *  pxData ,name_t * pxName);
+BaseType_t xShimApplicationUnregister(struct ipcpInstanceData_t *  pxData ,name_t * pxName);
 
 
 /*-------------------------------------------*/
@@ -227,6 +187,9 @@ void vShimGHADestroy( gha_t * pxGha );
 
 BaseType_t xShimWiFiInit( void );
 
-//BaseType_t Shim_xSDUWrite(ipcpInstanceData_t * data, portId_t id, sdu_t * du, BaseType_t blocking);
+BaseType_t xShimWiFiCreate( MACAddress_t * pxPhyDev );
+
+BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, du_t * pxDu, BaseType_t uxBlocking);
+
 
 #endif /* SHIM_IPCP_H__*/

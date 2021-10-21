@@ -69,8 +69,10 @@ C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/spiffs/libspiffs.a
 C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/ulp/libulp.a
 C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/wifi_provisioning/libwifi_provisioning.a
 C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/configSensor/libconfigSensor.a
-C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/IPCP/libIPCP.a
 C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/configRINA/libconfigRINA.a
+C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/EFCP/libEFCP.a
+C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/RMT/libRMT.a
+C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/IPCP/libIPCP.a
 C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/ShimIPCP/libShimIPCP.a
 C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/BufferManagement/libBufferManagement.a
 C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/NetworkInterface/libNetworkInterface.a

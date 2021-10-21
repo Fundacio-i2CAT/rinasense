@@ -17,6 +17,8 @@
 #include "NetworkInterface.h"
 #include "ShimIPCP.h"
 #include "configSensor.h"
+#include "common.h"
+#include "IPCP.h"
 
 #include "esp_log.h"
 
@@ -60,6 +62,7 @@ static ARPCacheRow_t xARPCache[ ARP_CACHE_ENTRIES ];
 /** @brief Grow up an address GPA filling with 0x00 until the required GPA length*/
 BaseType_t xARPAddressGPAGrow(gpa_t * pxGpa, size_t xlength, uint8_t ucFiller);
 
+/** @brief Shrink an address GPA shrinking with 0x00 until the required GPA length*/
 BaseType_t xARPAddressGPAShrink(gpa_t * pxGpa, uint8_t ucFiller);
 
 /*-----------------------------------------------------------*/
@@ -95,7 +98,6 @@ BaseType_t xARPAddressGPAGrow(gpa_t * pxGpa, size_t uxLength, uint8_t ucFiller)
 		return pdFALSE;
 	}
 
-
 	if (uxLength == 0 || uxLength < pxGpa->uxLength) {
 		ESP_LOGE(TAG_ARP,"Can't grow the GPA, bad length");
 		return pdFALSE;
@@ -111,7 +113,7 @@ BaseType_t xARPAddressGPAGrow(gpa_t * pxGpa, size_t uxLength, uint8_t ucFiller)
 	ESP_LOGD(TAG_ARP,"Growing GPA to %zd with filler 0x%02X", uxLength, ucFiller);
 	new_address = pvPortMalloc(uxLength);
 	if (!new_address)
-		return -1;
+		return pdFALSE;
 
 	memcpy(new_address, pxGpa->ucAddress, pxGpa->uxLength);
 	memset(new_address + pxGpa->uxLength, ucFiller, uxLength - pxGpa->uxLength);
@@ -121,7 +123,7 @@ BaseType_t xARPAddressGPAGrow(gpa_t * pxGpa, size_t uxLength, uint8_t ucFiller)
 
 	ESP_LOGD(TAG_ARP, "GPA is now %zd characters long", pxGpa->uxLength);
 
-	return 0;
+	return pdTRUE;
 
 }
 
@@ -326,71 +328,72 @@ void vARPRefreshCacheEntry( const gpa_t * pxGpa, const gha_t * pxMACAddress )
  */
 BaseType_t vARPSendRequest( const gpa_t * pxTpa, const gpa_t * pxSpa, const gha_t * pxSha )
 {
-    NetworkBufferDescriptor_t * pxNetworkBuffer;
-    size_t 	xMaxLen;
-    size_t 	xBufferSize;
+	NetworkBufferDescriptor_t * pxNetworkBuffer;
+	size_t 	xMaxLen;
+	size_t 	xBufferSize;
 
 
-    xMaxLen = MAX(pxSpa->uxLength,pxTpa->uxLength);
+	xMaxLen = MAX(pxSpa->uxLength,pxTpa->uxLength);
 
 
-    if (xARPAddressGPAGrow(pxSpa, xMaxLen, 0x00)) {
-    	ESP_LOGI(TAG_ARP,"Failed to grow SPA\n");
-    	return pdFALSE;
-    }
+	if (!xARPAddressGPAGrow(pxSpa, xMaxLen, 0x00)) {
+		ESP_LOGI(TAG_ARP,"Failed to grow SPA\n");
+		return pdFALSE;
+	}
 
-    if (xARPAddressGPAGrow(pxTpa, xMaxLen, 0x00)) {
-    	ESP_LOGI(TAG_ARP,"Failed to grow TPA\n");
-
-    	return pdFALSE;
-    }
-
-
-    xBufferSize = sizeof( ARPPacket_t )+(xMaxLen + sizeof(pxSha->xAddress)) * 2;
-    /* This is called from the context of the IPCP event task, so a block time
-         * must not be used. */
-    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, ( TickType_t ) 0U );//sizeof length ARPPacket
+	if (!xARPAddressGPAGrow(pxTpa, xMaxLen, 0x00)) {
+		ESP_LOGI(TAG_ARP,"Failed to grow TPA\n");
+		return pdFALSE;
+	}
 
 
-    if( pxNetworkBuffer != NULL )
-    {
-        pxNetworkBuffer->ulGpa = pxTpa->ucAddress;
+	xBufferSize = sizeof( ARPPacket_t )+(xMaxLen + sizeof(pxSha->xAddress)) * 2;
+	/* This is called from the context of the IPCP event task, so a block time
+	 * must not be used. */
+	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, ( TickType_t ) 0U );//sizeof length ARPPacket
 
-        prvARPGeneratePacket( pxNetworkBuffer, pxSha, pxSpa , pxTpa, ARP_REQUEST );
 
-        /*if(!xNetworkInterfaceOutput( pxNetworkBuffer, pdTRUE))
-        {
-        	ESP_LOGI(TAG_WIFI,"Packet ARP not sended\n");
-        	return -1;
-        }*/
+	if( pxNetworkBuffer != NULL )
+	{
+		pxNetworkBuffer->ulGpa = pxTpa->ucAddress;
 
-       if( xIsCallingFromIPCPTask() != pdFALSE )
-        {
+		prvARPGeneratePacket( pxNetworkBuffer, pxSha, pxSpa , pxTpa, ARP_REQUEST );
 
-            /* Only the IPCP-task is allowed to call this function directly. */
-            ( void ) xNetworkInterfaceOutput( pxNetworkBuffer, pdTRUE );
-        }
-        else
-        {
-            RINAStackEvent_t xSendEvent;
 
-            /* Send a message to the IPCP-task to send this ARP packet. */
-            xSendEvent.eEventType = eNetworkTxEvent;
-            xSendEvent.pvData = pxNetworkBuffer;
+		if( xIsCallingFromIPCPTask() != pdFALSE )
+		{
 
-            if( xSendEventStructToIPCPTask( &xSendEvent, ( TickType_t ) portMAX_DELAY ) == pdFAIL )
-            {
-                /* Failed to send the message, so release the network buffer. */
-                vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
-                return pdFALSE;
-            }
-        }
-    }
-    else
-    {
-    	ESP_LOGI(TAG_SHIM,"BufferNetwork Null\n");
-    }
-    return pdTRUE;
+			/* Only the IPCP-task is allowed to call this function directly. */
+			( void ) xNetworkInterfaceOutput( pxNetworkBuffer, pdTRUE );
+
+		}
+		else
+		{
+			RINAStackEvent_t xSendEvent;
+
+			/* Send a message to the IPCP-task to send this ARP packet. */
+			xSendEvent.eEventType = eNetworkTxEvent;
+			xSendEvent.pvData = pxNetworkBuffer;
+
+
+			if( xSendEventStructToIPCPTask( &xSendEvent, ( TickType_t ) portMAX_DELAY ) == pdFAIL )
+			{
+				/* Failed to send the message, so release the network buffer. */
+				vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
+				return pdFALSE;
+			}
+			ESP_LOGI(TAG_SHIM,"send by event\n");
+
+		}
+	}
+	else
+	{
+		ESP_LOGI(TAG_SHIM,"BufferNetwork Null\n");
+		return pdFALSE;
+
+	}
+	return pdTRUE;
+
 }
 
 gha_t * pxARPCreateGHAUnknown(eGHAType_t xType)
@@ -433,7 +436,7 @@ static void prvARPGeneratePacket( NetworkBufferDescriptor_t * const pxNetworkBuf
 
 	ARPPacket_t * pxARPPacket;
 	gha_t * pxTha = pvPortMalloc(sizeof(*pxTha));
-	unsigned char * ucArpPtr;
+	unsigned char * pucArpPtr;
 	size_t	uxLength;
 
 	pxTha = pxARPCreateGHAUnknown(MAC_ADDR_802_3);
@@ -465,28 +468,28 @@ static void prvARPGeneratePacket( NetworkBufferDescriptor_t * const pxNetworkBuf
 	pxARPPacket->xARPHeader.ucHALength  = sizeof(pxSha->xAddress.ucBytes);
 	pxARPPacket->xARPHeader.ucPALength  = pxSpa->uxLength;
 	pxARPPacket->xARPHeader.usOperation  = usPtype;
-	pxARPPacket->xEthernetHeader.usFrameType = FreeRTOS_htons(ETH_P_BATMAN);
+	pxARPPacket->xEthernetHeader.usFrameType = FreeRTOS_htons(ETH_P_ARP);
 
 	memcpy(pxARPPacket->xEthernetHeader.xSourceAddress.ucBytes,pxSha->xAddress.ucBytes, sizeof(pxSha->xAddress));
 	memcpy(pxARPPacket->xEthernetHeader.xDestinationAddress.ucBytes,pxTha->xAddress.ucBytes, sizeof(pxTha->xAddress));
 
 
-	ucArpPtr = (unsigned char *)(pxARPPacket + 1);
+	pucArpPtr = (unsigned char *)(pxARPPacket + 1);
 
-    memcpy(ucArpPtr, pxSha->xAddress.ucBytes, sizeof(pxSha->xAddress));
-    ucArpPtr += sizeof(pxSha->xAddress);
+    memcpy(pucArpPtr, pxSha->xAddress.ucBytes, sizeof(pxSha->xAddress));
+    pucArpPtr += sizeof(pxSha->xAddress);
 
 
-    memcpy(ucArpPtr, pxSpa->ucAddress, pxSpa->uxLength);
-    ucArpPtr += pxSpa->uxLength;
+    memcpy(pucArpPtr, pxSpa->ucAddress, pxSpa->uxLength);
+    pucArpPtr += pxSpa->uxLength;
 
         /* THA */
-	memcpy(ucArpPtr, pxTha->xAddress.ucBytes, sizeof(pxTha->xAddress));
-	ucArpPtr += sizeof(pxTha->xAddress);
+	memcpy(pucArpPtr, pxTha->xAddress.ucBytes, sizeof(pxTha->xAddress));
+	pucArpPtr += sizeof(pxTha->xAddress);
 
 	/* TPA */
-    memcpy(ucArpPtr, pxTpa->ucAddress, pxTpa->uxLength);
-    ucArpPtr += pxTpa->uxLength;
+    memcpy(pucArpPtr, pxTpa->ucAddress, pxTpa->uxLength);
+    pucArpPtr += pxTpa->uxLength;
 
 	pxNetworkBuffer->xDataLength = uxLength;
 
@@ -560,18 +563,13 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
     ARPHeader_t * pxARPHeader;
 	rinarpHandle_t * pxHandle;
 
-	ESP_LOGI(TAG_ARP, "Processing ARP Packet");
-
     uint16_t            usOperation;
-
     uint16_t            usHtype;
     uint16_t            usPtype;
     uint8_t             ucHlen;
     uint8_t             ucPlen;
     uint16_t            usOper;
-
     uint8_t *           ucPtr;
-
     uint8_t *           ucSpa; /* Source protocol address pointer */
     uint8_t *           ucTpa; /* Target protocol address pointer */
     uint8_t *           ucSha; /* Source protocol address pointer */
@@ -582,8 +580,6 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
     gpa_t *        pxTmpTpa;
     gha_t *        pxTmpTha;
 
-
-    ESP_LOGI(TAG_ARP,"Processing ARP");
 
     //Get ARPHeader from the ARPFrame
     pxARPHeader = &( pxARPFrame->xARPHeader );
@@ -596,13 +592,6 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
     ucPlen  = pxARPHeader->ucPALength;
     usOper  = FreeRTOS_ntohs(pxARPHeader->usOperation);
 
-    ESP_LOGI(TAG_ARP,"Decoded ARP header:");
-    ESP_LOGI(TAG_ARP,"  Hardware type           = 0x%04X", usHtype);
-    ESP_LOGI(TAG_ARP,"  Protocol type           = 0x%04X", usPtype);
-    ESP_LOGI(TAG_ARP,"  Hardware address length = %d",     ucHlen);
-    ESP_LOGI(TAG_ARP,"  Protocol address length = %d",     ucPlen);
-    ESP_LOGI(TAG_ARP,"  Operation               = 0x%04X", usOper);
-
     if (pxARPHeader->usHType != FreeRTOS_htons(ARP_HARDWARE_TYPE_ETHERNET)) {
     	 ESP_LOGE(TAG_ARP,"Unhandled ARP hardware type 0x%04X", pxARPHeader->usHType);
             return eReturn;
@@ -612,9 +601,10 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
             return eReturn;
     }
 
-    usOperation = FreeRTOS_ntohs(pxARPHeader->usOperation);
+    usOperation = pxARPHeader->usOperation;
+    //usOperation = FreeRTOS_ntohs(pxARPHeader->usOperation);
     if (usOperation != ARP_REPLY && usOperation != ARP_REQUEST) {
-    	 ESP_LOGI(TAG_ARP,"Unhandled ARP operation 0x%04X", usOperation);
+    	 ESP_LOGE(TAG_ARP,"Unhandled ARP operation 0x%04X", usOperation);
             return eReturn;
     }
 
@@ -625,10 +615,14 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
     ucTha = ucPtr; ucPtr += pxARPHeader->ucHALength;
     ucTpa = ucPtr; ucPtr += pxARPHeader->ucPALength;
 
+
+    vARPPrintCache();
+
     pxTmpSpa = pxShimCreateGPA(ucSpa, ucPlen);
     pxTmpSha = pxShimCreateGHA( MAC_ADDR_802_3, ucSha);
     pxTmpTpa = pxShimCreateGPA( ucTpa, ucPlen);
     pxTmpTha = pxShimCreateGHA( MAC_ADDR_802_3, ucTha);
+
 
     if (xARPAddressGPAShrink(pxTmpSpa, 0x00)) {
     	ESP_LOGE(TAG_ARP,"Problems parsing the source GPA");
@@ -652,12 +646,11 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
     {
     case ARP_REQUEST:
 
-
     	//rinarpHandle_t * handle;
-
     	//handle = pvPortMalloc(sizeof(*handle));
-
     	//Check Cache by Address
+
+    	ESP_LOGE(TAG_ARP,"ARP_REQUEST ptype 0x%04X",usOperation);
 
         if (eARPLookupGPA(pxTmpSpa) == eARPCacheMiss)
         {
@@ -675,18 +668,15 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
 
         //vARPAddCacheEntry( handle );
 
-
     	// The request is for the address of this IoT node.  Add the
     	// entry into the ARP cache, or refresh the entry if it
     	// already exists.
-    	vARPRefreshCacheEntry( ucSha, ucSpa );
+    	vARPRefreshCacheEntry( pxTmpSha, pxTmpSpa );
 
     	// Generate a reply payload in the same buffer.
     	pxARPHeader->usOperation = ( uint16_t ) ARP_REPLY;
 
-
     	eReturn = eReturnEthernetFrame;
-
 
     	break;
 
@@ -694,10 +684,15 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
 
     	pxHandle = pvPortMalloc(sizeof(*pxHandle));
 
-    	pxHandle->pxHa = ucSha;
-    	pxHandle->pxPa = ucSpa;
-    	//vARPRefreshCacheEntry( &( pxARPHeader->xSha ), ulSpa );
+    	pxHandle->pxHa = pxTmpSha;
+    	pxHandle->pxPa = pxTmpSpa;
+
+
     	vARPAddCacheEntry( pxHandle );
+
+    	vARPPrintCache();//test
+
+    	eReturn = eProcessBuffer;
 
     	break;
 
@@ -872,6 +867,8 @@ BaseType_t xARPRemove(const gpa_t * pxPa, const gha_t * pxha)
 
 BaseType_t xARPResolveGPA(const gpa_t * pxTpa, const gpa_t * pxSpa, const gha_t * pxSha)
 {
+
+
 	if (!xShimIsGPAOK(pxTpa) || !xShimIsGHAOK(pxSha) || !xShimIsGPAOK(pxSpa))
 	{
 		ESP_LOGE(TAG_ARP, "Parameters are not correct, won't resolve GPA");
@@ -879,7 +876,7 @@ BaseType_t xARPResolveGPA(const gpa_t * pxTpa, const gpa_t * pxSpa, const gha_t 
 	}
 
 
-	return vARPSendRequest( pxTpa, pxSha, pxSha );
+	return vARPSendRequest( pxTpa, pxSpa, pxSha );
 
 }
 
