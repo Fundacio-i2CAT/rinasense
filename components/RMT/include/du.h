@@ -14,19 +14,20 @@
 #include "common.h"
 #include "pci.h"
 
-
-typedef struct xDU {
+struct du_t {
 
 	//Configuration of EFCP (Policies, QoS, etc)
-	efcpConfig_t *					pxCfg;
-	pci_t 							xPci;
+	efcpConfig_t *		        	pxCfg;
+	pci_t	* 						pxPci;
 	NetworkBufferDescriptor_t * 	pxNetworkBuffer;
 
-}du_t;
+};
 
-BaseType_t xDuDestroy(du_t * pxDu);
+BaseType_t xDuDestroy(struct du_t * pxDu);
 
-BaseType_t xDuDecap(du_t * pxDu);
+BaseType_t xDuDecap(struct du_t * pxDu);
+ssize_t xDuDataLen(const  struct du_t * pxDu);
+
 
 #endif /* COMPONENTS_RMT_INCLUDE_DU_H_ */
 

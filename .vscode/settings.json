@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "map": "c",
+        "*.ipp": "c",
+        "string.h": "c",
+        "freertos.h": "c"
+    }
+}

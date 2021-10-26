@@ -9,6 +9,6 @@
 #define COMPONENTS_EFCP_INCLUDE_DTP_H_
 
 
-BaseType_t xDtpReceive( dtp_t * pxInstance, du_t * pxDu);
+BaseType_t xDtpReceive( dtp_t * pxInstance, struct du_t * pxDu);
 
 #endif /* COMPONENTS_EFCP_INCLUDE_DTP_H_ */

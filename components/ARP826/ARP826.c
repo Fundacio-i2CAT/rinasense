@@ -569,7 +569,8 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
     uint8_t             ucHlen;
     uint8_t             ucPlen;
     uint16_t            usOper;
-    uint8_t *           ucPtr;
+
+	uint8_t *           ucPtr; /* Pointer last byte of the ARP header*/
     uint8_t *           ucSpa; /* Source protocol address pointer */
     uint8_t *           ucTpa; /* Target protocol address pointer */
     uint8_t *           ucSha; /* Source protocol address pointer */

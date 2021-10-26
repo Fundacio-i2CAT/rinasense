@@ -746,7 +746,7 @@ static BaseType_t prvShimFlowDestroy(struct ipcpInstanceData_t * xData, shimFlow
 }
 
 
-BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, du_t * pxDu, BaseType_t uxBlocking)
+BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, struct du_t * pxDu, BaseType_t uxBlocking)
 {
 
 	shimFlow_t *   					pxFlow;

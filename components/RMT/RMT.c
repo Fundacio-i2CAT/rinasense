@@ -13,7 +13,7 @@
 #include "du.h"
 #include "IPCP.h"
 #include "pci.h"
-#include "EFCP.h"
+//#include "EFCP.h"
 
 /** @brief RMT Array PortId Created.
  *  */
@@ -23,11 +23,11 @@ static portTableEntry_t xPortIdTable[ 2 ];
 pci_t * vCastPointerTo_pci_t(void * pvArgument);
 
 /* @brief Called when a SDU arrived into the RMT from the Shim DIF */
-BaseType_t xRMTReceive ( rmt_t * pxRmt, du_t * pxDu, portId_t xFrom );
+BaseType_t xRMTReceive ( rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom );
 
 
 /* @brief Called when a SDU arrived into the RMT from the EFCP Container*/
-static int xRMTN1PortWriteDu(rmt_t * pxRmt, rmtN1Port_t * pxN1Port, du_t * pxDu);
+static int xRMTN1PortWriteDu(rmt_t * pxRmt, rmtN1Port_t * pxN1Port, struct du_t * pxDu);
 
 /* @brief Create an N-1 Port in the RMT Component*/
 static rmtN1Port_t * pxRmtN1PortCreate(portId_t xId, ipcpInstance_t * pxN1Ipcp);
@@ -192,15 +192,15 @@ BaseType_t  xRMTPduIsAddressedToMe(rmt_t * pxRmt, address_t xAddress)
 
 }
 
-static BaseType_t xRmtProcessDtPdu(rmt_t * pxRmt, portId_t xPortId, du_t * pxDu);
+static BaseType_t xRmtProcessDtPdu(rmt_t * pxRmt, portId_t xPortId, struct du_t * pxDu);
 
-static BaseType_t xRmtProcessDtPdu(rmt_t * pxRmt, portId_t xPortId, du_t * pxDu)
+static BaseType_t xRmtProcessDtPdu(rmt_t * pxRmt, portId_t xPortId, struct du_t * pxDu)
 {
 	address_t xDstAddrTmp;
 	cepId_t xCepTmp;
 	pduType_t xPduTypeTmp;
 
-	xDstAddrTmp = pxDu->xPci.xDestination;
+	xDstAddrTmp = pxDu->pxPci->xDestination;
 
 	if (!is_address_ok(xDstAddrTmp)) {
 		ESP_LOGE(TAG_RMT,"PDU has wrong destination address");
@@ -208,7 +208,7 @@ static BaseType_t xRmtProcessDtPdu(rmt_t * pxRmt, portId_t xPortId, du_t * pxDu)
 		return pdFALSE;
 	}
 
-	xPduTypeTmp = pxDu->xPci.xType;
+	xPduTypeTmp = pxDu->pxPci->xType;
 
 	if (xPduTypeTmp == PDU_TYPE_MGMT) {
 		ESP_LOGE(TAG_RMT,"MGMT should not be here");
@@ -216,7 +216,8 @@ static BaseType_t xRmtProcessDtPdu(rmt_t * pxRmt, portId_t xPortId, du_t * pxDu)
 		return pdFALSE;
 	}
 
-	xCepTmp = pxDu->xPci.connectionId_t.xDestination;
+	xCepTmp = pxDu->pxPci->connectionId_t.xDestination;
+
 	if (!is_cep_id_ok(xCepTmp)) {
 		ESP_LOGE(TAG_RMT,"Wrong CEP-id in PDU");
 		xDuDestroy(pxDu);
@@ -234,7 +235,7 @@ static BaseType_t xRmtProcessDtPdu(rmt_t * pxRmt, portId_t xPortId, du_t * pxDu)
 }
 
 
-BaseType_t xRMTReceive (rmt_t * pxRmt, du_t * pxDu, portId_t xFrom)
+BaseType_t xRMTReceive (rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom)
 {
 
 	pduType_t 		xPduType;
@@ -243,7 +244,6 @@ BaseType_t xRMTReceive (rmt_t * pxRmt, du_t * pxDu, portId_t xFrom)
 	rmtN1Port_t * 	pxN1Port;
 	size_t			uxBytes;
 
-	pci_t * 		pxPciTmp;
 
 	if (!pxRmt)
 	{
@@ -286,7 +286,6 @@ BaseType_t xRMTReceive (rmt_t * pxRmt, du_t * pxDu, portId_t xFrom)
 	/* end SDU Protection */
 
 
-
 	if (unlikely(xDuDecap(pxDu)))
 	{ /*Decap PDU */
 		ESP_LOGE(TAG_RMT,"Could not decap PDU");
@@ -294,11 +293,11 @@ BaseType_t xRMTReceive (rmt_t * pxRmt, du_t * pxDu, portId_t xFrom)
 		return pdFALSE;
 	}
 
-	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucEthernetBuffer);
 
-	xPduType = pxPciTmp->xType;
-	xDstAddr = pxPciTmp->xDestination;
-	xQosId = pxPciTmp->connectionId_t.xQosId;
+
+	xPduType = pxDu->pxPci->xType;
+	xDstAddr = pxDu->pxPci->xDestination;
+	xQosId = pxDu->pxPci->connectionId_t.xQosId;
 
 	if (!pdu_type_is_ok(xPduType) ||
 			!is_address_ok(xDstAddr)  ||
@@ -355,7 +354,7 @@ BaseType_t xRMTReceive (rmt_t * pxRmt, du_t * pxDu, portId_t xFrom)
 
 static BaseType_t xRMTN1PortWriteDu(rmt_t * pxRmt,
 			     rmtN1Port_t * pxN1Port,
-			    du_t * pxDu)
+			    struct du_t * pxDu)
 {
 	BaseType_t ret;
 	ssize_t bytes = pxDu->pxNetworkBuffer->xDataLength;

@@ -109,21 +109,21 @@ typedef struct xPCI {
 
 typedef struct xPCI{
 
-	uint8_t 	ucVersion;
+	uint8_t 	ucVersion; 		/**< Version  0 + 1 = 1 */
 
- 	address_t   xDestination;
- 	address_t   xSource;
+ 	address_t   xDestination; 	/**< Destination Address  1 + 1 = 2 */
+ 	address_t   xSource;		/**< Source Address  2 + 1 = 3 */
 
  	struct {
- 		qosId_t xQosId;
- 		cepId_t xDestination;
- 		cepId_t xSource;
+ 		qosId_t xQosId;			/**< QoS Id  3 + 1 = 4 */
+ 		cepId_t xDestination;	/**< Cep Id Dest 4 + 1 = 5 */
+ 		cepId_t xSource;	    /**< Cep Id Source  5 + 1 = 6 */
  	} connectionId_t;
 
- 	pduType_t  xType;
- 	pduFlags_t xFlags;
- 	uint16_t   xPduLen;
- 	seqNum_t   xSequenceNumber;
+ 	pduType_t  xType;			 /**< Pdu Type  6 + 1 = 7 */
+ 	pduFlags_t xFlags;			 /**< Pdu Flags  7 + 1 = 8 */
+ 	uint16_t   xPduLen;			 /**< Pdu Length  8 + 2 = 10 */
+ 	seqNum_t   xSequenceNumber;  /**< Pdu Length  10 + 4 = 14 */
 
 
  	/*struct {
@@ -137,5 +137,8 @@ typedef struct xPCI{
  		u_int32_t time_frame;
  	} control;*/
  }pci_t;
+
+pduType_t xPciType(const pci_t *pci);
+cepId_t xPciCepSource(const pci_t *pci);
 
 #endif /* COMPONENTS_RMT_INCLUDE_PCI_H_ */

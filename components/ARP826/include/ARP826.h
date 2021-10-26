@@ -63,9 +63,6 @@ typedef struct xMAC_ADDRESS
 }MACAddress_t;
 
 
-
-
-
 //enum MAC Address
 typedef enum {
         MAC_ADDR_802_3

@@ -25,52 +25,75 @@
 #define TAG_EFCP "EFCP"
 
 
+struct efcp_t * pxEfcpImapFind(efcpImap_t * pxMap, cepId_t xCepIdKey)
+{
+        efcpImapRow_t * pxEntry;
+        BaseType_t x = 0;
 
-BaseType_t xEfcpContainerReceive(efcpContainer_t * pxContainer,
-                           cepId_t                xCepId,
-                            du_t *             pxDu)
+        configASSERT(pxMap);
+
+        for( x = 0; x < EFCP_IMAP_ENTRIES; x++ ) //lookup in the MAP for the EFCP Instance based on cepIdKey
+	{
+		//Comparison between Cache MACAddress and the MacAddress looking up for.
+		if( pxMap->xEfcpImapTable[x].xCepIdKey == xCepIdKey)
+		{
+                        pxEntry->xCepIdKey = pxMap->xEfcpImapTable[x].xCepIdKey;
+                        pxEntry->xEfcpValue = pxMap->xEfcpImapTable[x].xEfcpValue;
+			ESP_LOGD(TAG_EFCP, "EFCP Instance founded");
+        
+			break;
+		}
+        }
+        return pxEntry->xEfcpValue;
+}
+
+
+BaseType_t xEfcpContainerReceive(efcpContainer_t * pxEfcpContainer, cepId_t  xCepId, struct du_t * pxDu)
 {
 
         efcp_t *           pxEfcp;
-        int                ret = 0;
-        pduType_t          pxPduType;
-#if 0
-        if (!is_cep_id_ok(cep_id)) {
-                LOG_ERR("Bad cep-id, cannot write into container");
-                du_destroy(du);
-                return -1;
+        BaseType_t         ret = pdTRUE;
+        pduType_t          xPduType;
+        
+        if (!is_cep_id_ok(xCepId)) {
+                ESP_LOGE(TAG_EFCP, "Bad cep-id, cannot write into container");
+                xDuDestroy(pxDu);
+                return pdFALSE;
         }
 
-        spin_lock_bh(&container->lock);
-        efcp = efcp_imap_find(container->instances, cep_id);
-        if (!efcp) {
-                spin_unlock_bh(&container->lock);
-                LOG_ERR("Cannot find the requested instance cep-id: %d",
-                        cep_id);
-                /* FIXME: It should call unknown_flow policy of EFCP */
-                du_destroy(du);
-                return -1;
-        }
-        if (efcp->state == EFCP_DEALLOCATED) {
-                spin_unlock_bh(&container->lock);
-                du_destroy(du);
-                LOG_DBG("EFCP already deallocated");
-                return 0;
-        }
-        atomic_inc(&efcp->pending_ops);
 
-        pdu_type = pci_type(&du->pci);
-        if (pdu_type == PDU_TYPE_DT &&
-        		efcp->connection->destination_cep_id < 0) {
+        pxEfcp = pxEfcpImapFind(pxEfcpContainer->xEfcpInstances, xCepId);
+        if (!pxEfcp) {
+                //spin_unlock_bh(&container->lock);
+                ESP_LOGE(TAG_EFCP,"Cannot find the requested instance cep-id: %d",
+                        xCepId);
+                xDuDestroy(pxDu);
+                return pdFALSE;
+        }
+        if (pxEfcp->xState == eEfcpDeallocated) {
+                //spin_unlock_bh(&container->lock);
+                xDuDestroy(pxDu);
+                ESP_LOGI(TAG_EFCP,"EFCP already deallocated");
+                return pdTRUE;
+        }
+      
+        //atomic_inc(&efcp->pending_ops);
+       
+
+        xPduType = pxDu->pxPci->xType; // Check this
+        if (xPduType == PDU_TYPE_DT &&
+        		pxEfcp->pxConnection->xDestinationCepId < 0) 
+        {
         	/* Check that the destination cep-id is set to avoid races,
         	 * otherwise set it*/
-        	efcp->connection->destination_cep_id = pci_cep_source(&du->pci);
+        	pxEfcp->pxConnection->xDestinationCepId = pxDu->pxPci->connectionId_t.xDestination;
         }
-        spin_unlock_bh(&container->lock);
+        
+        //spin_unlock_bh(&container->lock);
 
-        ret = efcp_receive(efcp, du);
-
-        spin_lock_bh(&container->lock);
+        ret = xEfcpReceive(pxEfcp, pxDu);
+#if 0
+        //spin_lock_bh(&container->lock);
         if (atomic_dec_and_test(&efcp->pending_ops) &&
         		efcp->state == EFCP_DEALLOCATED) {
                 spin_unlock_bh(&container->lock);
@@ -81,32 +104,30 @@ BaseType_t xEfcpContainerReceive(efcpContainer_t * pxContainer,
 
         return ret;
 #endif
-        return pdTRUE;
+        return ret;
 }
 
-BaseType_t xEfcpReceive(efcp_t * pxEfcp, du_t *  pxDu);
 
-BaseType_t xEfcpReceive(efcp_t * pxEfcp, du_t *  pxDu)
+
+BaseType_t xEfcpReceive(efcp_t * pxEfcp,  struct du_t *  pxDu)
 {
-        pduType_t    xPduType;
-    	pci_t * 	 pxPciTmp;
+        pduType_t        xPduType;
+            
+    	
 
-    	/* Cast to PCI type structure*/
-    	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucEthernetBuffer);
-
-        xPduType = pxPciTmp->xType;
+        xPduType = pxDu->pxPci->xType;
 
         /* Verify the type of PDU*/
         if (pdu_type_is_control(xPduType))
         {
-                if (!pxEfcp->pxDtp || !pxEfcp->pxDtp)//efcp->dtp->dtcp
+                if (!pxEfcp->pxDtp || !pxEfcp->pxDtp->pxDtcp)
                 {
                         ESP_LOGE( TAG_EFCP, "No DTCP instance available");
                         xDuDestroy(pxDu);
                         return pdFALSE;
                 }
 
-               /* if (dtcp_common_rcv_control(pxEfcp->pxDtp, pxDu)) //efcp->dtp->dtcp
+               /* if (dtcp_common_rcv_control(pxEfcp->pxDtp.>pxDtcp, pxDu))
                         return pdFALSE;*/
 
                 return pdTRUE;

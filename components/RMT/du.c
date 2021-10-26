@@ -7,7 +7,11 @@
 
 
 
+
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 /* FreeRTOS includes. */
 #include "freertos/FreeRTOS.h"
@@ -15,13 +19,15 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 
+#include "esp_log.h"
+
 #include "RMT.h"
 #include "du.h"
 #include "pci.h"
 #include "IPCP.h"
 #include "BufferManagement.h"
 
-BaseType_t xDuDestroy(du_t * pxDu)
+BaseType_t xDuDestroy(struct du_t * pxDu)
 {
 	/*If there is an NetworkBuffer then release and */
 	if (pxDu->pxNetworkBuffer)
@@ -33,35 +39,58 @@ BaseType_t xDuDestroy(du_t * pxDu)
 }
 
 
-BaseType_t xDuDecap(du_t * pxDu)
+
+BaseType_t xDuDecap(struct du_t * pxDu)
 {
 	pduType_t xType;
+	pci_t * pxPciTmp;
 	size_t uxPciLen;
+	NetworkBufferDescriptor_t * pxNewBuffer;
+	uint8_t * pucPtr;
+	size_t xBufferSize;
+	   
 
-	pxDu->xPci.pucH = pxDu->pxNetworkBuffer->pucEthernetBuffer;
-	xType = pci_type(&pxDu->xPci);
+	/* Extract PCI from buffer*/
+	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucEthernetBuffer);
+	
+	xType = pxPciTmp->xType;
 	if (unlikely(!pdu_type_is_ok(xType))) {
-		LOG_ERR("Could not decap DU. Type is not ok");
-		return -1;
+		ESP_LOGE(TAG_RMT, "Could not decap DU. Type is not ok");
+		return pdFALSE;
 	}
 
+	uxPciLen = (size_t )(14); /* PCI defined static for this initial stage = 14Bytes*/
+
+	xBufferSize = pxDu->pxNetworkBuffer->xDataLength - uxPciLen - pxPciTmp->xPduLen;
+
+	pxNewBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, ( TickType_t ) 0U );
+	pxNewBuffer->xDataLength = xBufferSize;
+
+	pucPtr = (uint8_t *)pxPciTmp + 14;
+
+	memcpy(pxNewBuffer, pucPtr,xBufferSize);
 
 
-	xPciLen = pci_calculate_size(pxDu->cfg, xType);
-	if (uxPciLen <= 0) {
-		LOG_ERR("Could not decap DU. PCI len is < 0");
-		return -1;
-	}
+	pxDu->pxPci->ucVersion = pxPciTmp->ucVersion;
+	pxDu->pxPci->xSource = pxPciTmp->xSource;
+	pxDu->pxPci->xDestination = pxPciTmp->xDestination;
+	pxDu->pxPci->xFlags = pxPciTmp->xFlags;
+	pxDu->pxPci->xPduLen = pxPciTmp->xPduLen;
+	pxDu->pxPci->xSequenceNumber = pxPciTmp->xSequenceNumber;
+	pxDu->pxPci->xType = pxPciTmp->xType;
+	pxDu->pxPci->connectionId_t = pxPciTmp->connectionId_t;
 
-	/* Make up for tail padding introduced at lower layers. */
-	if (pxDu->skb->len > pci_length(&du->pci)) {
-		du_tail_shrink(pxDu, pxDu->skb->len - pci_length(&pxDu->pci));
-	}
+	vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
+	pxDu->pxNetworkBuffer = pxNewBuffer;
 
-	skb_pull(pxDu->skb, uxPciLen);
-	pxDu->pci.len = uxPciLen;
+	return pdTRUE;
+}
 
-	return 0;
+ssize_t xDuDataLen(const struct du_t * pxDu)
+{
+	if (pxDu->pxPci->xPduLen != pxDu->pxNetworkBuffer->xDataLength) /* up direction */
+		return pxDu->pxNetworkBuffer->xDataLength;
+	return (pxDu->pxNetworkBuffer->xDataLength - pxDu->pxPci->xPduLen); /* down direction */
 }
 
 

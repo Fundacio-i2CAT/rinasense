@@ -6,17 +6,29 @@
  */
 
 
-#include "configSensor.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
+
+
 
 
 
 #ifndef COMPONENTS_IPCP_INCLUDE_COMMON_H_
 #define COMPONENTS_IPCP_INCLUDE_COMMON_H_
 
+#include "configSensor.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+
+#define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
+#define container_of(ptr, type, member) ({         \
+    const typeof( ((type *)0)->member ) *__mptr = (ptr); \
+    (type *)( (char *)__mptr - offsetof(type,member) );})
+
+
 typedef char* string_t;
+typedef unsigned int  uint_t;
+typedef unsigned int  timeout_t;
+
 
 typedef struct xName_info
 {
@@ -126,32 +138,20 @@ typedef struct  xEFCP_CONFIG{
 
 }efcpConfig_t;
 
-typedef struct xDTP_CONFIG
-{
-#if 0
-	bool                 dtcp_present;
+typedef struct xDTP_CONFIG {
+        BaseType_t                 xDtcpPresent;
         /* Sequence number rollover threshold */
-        int                  seq_num_ro_th;
-        //timeout_t            initial_a_timer;
-        bool                 partial_delivery;
-        bool                 incomplete_delivery;
-        bool                 in_order_delivery;
-        //seq_num_t            max_sdu_gap;
-#endif
-        policy_t *      pxDtpPs;
+        int                  seqNumRoTh;
+        timeout_t            xInitialATimer;
+        BaseType_t                  xPartialDelivery;
+        BaseType_t                  xIncompleteDelivery;
+        BaseType_t                  xInOrderDelivery;
+        seqNum_t            xMaxSduGap;
 
+        struct policy *      dtp_ps;
 }dtpConfig_t;
 
-/* This is the DTCP configurations from connection policies */
-typedef struct xDTCP_CONFIG
-{
-        BaseType_t                    xFlowCtrl;
-        struct dtcp_fctrl_config *  fctrl_cfg;
-        bool                        rtx_ctrl;
-        struct dtcp_rxctrl_config * rxctrl_cfg;
-        policy_t *             lost_control_pdu;
-        policy_t *             dtcp_ps;
-        policy_t *             rtt_estimator;
-}dtcpConfig_t;
+
+
 
 #endif /* COMPONENTS_IPCP_INCLUDE_COMMON_H_ */

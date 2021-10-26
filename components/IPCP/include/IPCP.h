@@ -250,18 +250,6 @@ typedef struct  xIPCP_INSTANCE {
         struct ipcpInstanceOps_t *  	 pxOps;
 }ipcpInstance_t;
 
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * The software timer struct for various IPCP functions
  */
