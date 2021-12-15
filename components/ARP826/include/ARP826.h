@@ -21,46 +21,6 @@
 #include "IPCP.h"
 
 
-/* Endian related definitions. */
-//#if ( ipconfigBYTE_ORDER == pdFREERTOS_LITTLE_ENDIAN )
-
-/* FreeRTOS_htons / FreeRTOS_htonl: some platforms might have built-in versions
- * using a single instruction so allow these versions to be overridden. */
-//#ifndef FreeRTOS_htons
-#define FreeRTOS_htons( usIn )    ( ( uint16_t ) ( ( ( usIn ) << 8U ) | ( ( usIn ) >> 8U ) ) )
-//#endif
-
-#ifndef FreeRTOS_htonl
-#define FreeRTOS_htonl( ulIn )                          \
-		(                                                               \
-				( uint32_t )                                                \
-				(                                                           \
-						( ( ( ( uint32_t ) ( ulIn ) ) ) << 24 ) |               \
-						( ( ( ( uint32_t ) ( ulIn ) ) & 0x0000ff00UL ) << 8 ) | \
-						( ( ( ( uint32_t ) ( ulIn ) ) & 0x00ff0000UL ) >> 8 ) | \
-						( ( ( ( uint32_t ) ( ulIn ) ) ) >> 24 )                 \
-				)                                                           \
-		)
-#endif /* ifndef FreeRTOS_htonl */
-
-//#else /* ipconfigBYTE_ORDER */
-
-//#define FreeRTOS_htons( x )    ( ( uint16_t ) ( x ) )
-//#define FreeRTOS_htonl( x )    ( ( uint32_t ) ( x ) )
-
-//#endif /* ipconfigBYTE_ORDER == pdFREERTOS_LITTLE_ENDIAN */
-
-#define FreeRTOS_ntohs( x )    FreeRTOS_htons( x )
-#define FreeRTOS_ntohl( x )    FreeRTOS_htonl( x )
-
-
-
-
-//Structure MAC ADDRESS
-typedef struct xMAC_ADDRESS
-{
-	uint8_t ucBytes[ MAC_ADDRESS_LENGTH_BYTES ]; /**< Byte array of the MAC address */
-}MACAddress_t;
 
 
 //enum MAC Address
@@ -139,11 +99,11 @@ typedef enum
 	eCantSendPacket    /* 2 There is no IPCP address, or an ARP is still in progress, so the packet cannot be sent. */
 } eARPLookupResult_t;
 
-typedef struct RINA_ARP_HANDLE
+struct rinarpHandle_t
 {
 	gpa_t * 	pxPa;
 	gha_t * 	pxHa;
-}rinarpHandle_t;
+};
 
 /* Ethernet frame types. */
 #define ARP_FRAME_TYPE                   ( 0x0608U )
@@ -178,7 +138,7 @@ void vARPUpdateMACAddress( const uint8_t ucMACAddress[ MAC_ADDRESS_LENGTH_BYTES 
 void RINA_vARPMapping( uint32_t ulIPCPAddress );
 
 // Adds a mapping of application name to MAC address in the ARP cache.
-int vARPSendRequest( const gpa_t * tpa, const gpa_t * spa, const gha_t * sha );
+int vARPSendRequest( gpa_t * tpa, gpa_t * spa, gha_t * sha );
 
 // Remove all ARP entry in the ARP cache.
 void vARPRemoveAll( void);
@@ -193,7 +153,7 @@ void vARPRemoveCacheEntry( const gpa_t * ulIPCPAddress, const gha_t * pxMACAddre
 
 BaseType_t  xARPRemove(const gpa_t * pxPa, const gha_t * pxHa);
 
-rinarpHandle_t * pxARPAdd(gpa_t * pxPa, gha_t * pxHa);
+struct rinarpHandle_t * pxARPAdd(gpa_t * pxPa, gha_t * pxHa);
 
 BaseType_t xARPResolveGPA(const gpa_t * tpa, const gpa_t * spa, const gha_t * sha);
 

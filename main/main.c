@@ -7,6 +7,7 @@
 #include "ShimIPCP.h"
 #include "configSensor.h"
 #include "IPCP.h"
+#include "normalIPCP.h"
 
 #include "esp_wifi.h"
 #include "esp_system.h"
@@ -29,8 +30,26 @@ void app_main(void)
 	//ESP_LOGI(TAG_WIFI, "ESP_WIFI_MODE_STA");
 	//ESP_LOGI(TAG_WIFI, "Enrolling to DIF");
 
+	/*name_t * pxName;
+	ipcProcessId_t xId = 1;
+ 	ipcpInstance_t *pxNormalInstance;
+	
+	pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
+	pxName = pvPortMalloc(sizeof(*pxName));
 
-	//Shim_WiFiInit(  );
+	pxName->pcEntityInstance = "1";
+	pxName->pcEntityName = "2";
+	pxName->pcProcessInstance = "1";
+	pxName->pcProcessName = "ar1.mobile";
+
+
+	printf("pxNAME:%p\n",pxName);
+	pxNormalInstance = pxNormalCreate(pxName, xId);
+
+	xNormalFlowBinding(pxNormalInstance->pxData, xId, xId);*/
+
+	//xShimWiFiInit(  );
+
 	RINA_IPCPInit( );
 
 

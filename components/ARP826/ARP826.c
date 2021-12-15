@@ -53,7 +53,7 @@ BaseType_t xARPResolveGPA(const gpa_t * pxSpa, const gpa_t * pxTpa, const gha_t 
 gha_t * pxARPCreateGHAUnknown(eGHAType_t xType);
 
 /* @brief Add an entry into the ARP Cache*/
-void vARPAddCacheEntry( rinarpHandle_t * pxHandle);
+void vARPAddCacheEntry( struct rinarpHandle_t * pxHandle);
 
 /** @brief The ARP cache.
  * Array of ARPCacheRows. The type ARPCacheRow_t has been set at ARP.h */
@@ -326,7 +326,7 @@ void vARPRefreshCacheEntry( const gpa_t * pxGpa, const gha_t * pxMACAddress )
  * @param[in] ulIPCPAddress: 32-bit representation of the IPCP-address whose mapping
  *                         is being updated.
  */
-BaseType_t vARPSendRequest( const gpa_t * pxTpa, const gpa_t * pxSpa, const gha_t * pxSha )
+BaseType_t vARPSendRequest( gpa_t * pxTpa, gpa_t * pxSpa, gha_t * pxSha )
 {
 	NetworkBufferDescriptor_t * pxNetworkBuffer;
 	size_t 	xMaxLen;
@@ -561,14 +561,14 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
 
     eFrameProcessingResult_t eReturn = eReleaseBuffer;
     ARPHeader_t * pxARPHeader;
-	rinarpHandle_t * pxHandle;
+	struct rinarpHandle_t * pxHandle;
 
     uint16_t            usOperation;
     uint16_t            usHtype;
     uint16_t            usPtype;
     uint8_t             ucHlen;
     uint8_t             ucPlen;
-    uint16_t            usOper;
+    //uint16_t            usOper;
 
 	uint8_t *           ucPtr; /* Pointer last byte of the ARP header*/
     uint8_t *           ucSpa; /* Source protocol address pointer */
@@ -591,7 +591,7 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
     usPtype = FreeRTOS_ntohs(pxARPHeader->usPType);
     ucHlen  = pxARPHeader->ucHALength;
     ucPlen  = pxARPHeader->ucPALength;
-    usOper  = FreeRTOS_ntohs(pxARPHeader->usOperation);
+    //usOper  = FreeRTOS_ntohs(pxARPHeader->usOperation);
 
     if (pxARPHeader->usHType != FreeRTOS_htons(ARP_HARDWARE_TYPE_ETHERNET)) {
     	 ESP_LOGE(TAG_ARP,"Unhandled ARP hardware type 0x%04X", pxARPHeader->usHType);
@@ -617,12 +617,12 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
     ucTpa = ucPtr; ucPtr += pxARPHeader->ucPALength;
 
 
-    vARPPrintCache();
+    //vARPPrintCache();
 
     pxTmpSpa = pxShimCreateGPA(ucSpa, ucPlen);
-    pxTmpSha = pxShimCreateGHA( MAC_ADDR_802_3, ucSha);
+    pxTmpSha = pxShimCreateGHA( MAC_ADDR_802_3, (MACAddress_t * )ucSha);
     pxTmpTpa = pxShimCreateGPA( ucTpa, ucPlen);
-    pxTmpTha = pxShimCreateGHA( MAC_ADDR_802_3, ucTha);
+    pxTmpTha = pxShimCreateGHA( MAC_ADDR_802_3, (MACAddress_t * )ucTha);
 
 
     if (xARPAddressGPAShrink(pxTmpSpa, 0x00)) {
@@ -672,7 +672,7 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
     	// The request is for the address of this IoT node.  Add the
     	// entry into the ARP cache, or refresh the entry if it
     	// already exists.
-    	vARPRefreshCacheEntry( pxTmpSha, pxTmpSpa );
+    	vARPRefreshCacheEntry( pxTmpSpa, pxTmpSha );
 
     	// Generate a reply payload in the same buffer.
     	pxARPHeader->usOperation = ( uint16_t ) ARP_REPLY;
@@ -691,7 +691,7 @@ eFrameProcessingResult_t eARPProcessPacket( ARPPacket_t * const pxARPFrame )
 
     	vARPAddCacheEntry( pxHandle );
 
-    	vARPPrintCache();//test
+    	//vARPPrintCache();//test
 
     	eReturn = eProcessBuffer;
 
@@ -810,10 +810,10 @@ ARPPacket_t * vCastPointerTo_ARPPacket_t(void * pvArgument)
  * @return Enum saying whether to release or to process the packet.
  */
 
-rinarpHandle_t * pxARPAdd(gpa_t * pxPa, gha_t * pxHa)
+struct rinarpHandle_t * pxARPAdd(gpa_t * pxPa, gha_t * pxHa)
 {
 
-	rinarpHandle_t * pxHandle;
+	struct rinarpHandle_t * pxHandle;
 
 	pxHandle = pvPortMalloc(sizeof(*pxHandle));
 
@@ -948,7 +948,7 @@ void vARPPrintMACAddress(const gha_t * pxGha)
 
 
 
-void vARPAddCacheEntry( rinarpHandle_t * pxHandle)
+void vARPAddCacheEntry( struct rinarpHandle_t * pxHandle)
 {
 	ARPCacheRow_t 	xCacheEntry;
 	BaseType_t x = 0;

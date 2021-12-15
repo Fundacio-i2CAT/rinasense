@@ -17,6 +17,7 @@
 #include "freertos/task.h"
 
 #include "IPCP.h"
+#include "factoryIPCP.h"
 #include "ARP826.h"
 #include "du.h"
 
@@ -45,47 +46,12 @@ typedef struct xSHIM_WIFI_FLOW
 	ePortidState_t 	ePortIdState;
 
 	rfifo_t * 		pxSduQueue;
+	ListItem_t		xFlowItem;
 
 
 } shimFlow_t;
 
 
-struct ipcpInstanceData_t
-{
-
-	//list_head       list;
-	ipcProcessId_t       xId;
-
-	/* IPC Process name */
-	name_t *         		pxName;
-	name_t *          		pxDifName;
-	string_t 				xIntefaceName;
-
-	MACAddress_t  *    		pxPhyDev;
-	struct flowSpec_t *     		pxFspec;
-
-	/* The IPC Process using the shim-eth-vlan */
-	name_t *          		pxAppName;
-	name_t *         		pxDafName;
-
-	/* Stores the state of flows indexed by port_id */
-	//spinlock_t             lock;
-	//struct list_head       flows;
-
-	/* FIXME: Remove it as soon as the kipcm_kfa gets removed */
-	//struct kfa *           kfa;
-
-	/* RINARP related */
-	rinarpHandle_t * 		pxAppHandle;
-	rinarpHandle_t * 		pxDafHandle;
-
-	/* To handle device notifications. */
-	//struct notifier_block ntfy;
-
-	/* Flow control between this IPCP and the associated netdev. */
-	unsigned int 			ucTxBusy;
-
-};
 
 BaseType_t xShimEnrollToDIF( const MACAddress_t * pxPhyDev );
 
@@ -101,6 +67,10 @@ BaseType_t xShimFlowAllocateRequest(portId_t xId,
 		const name_t * pxSourceInfo,
 		const name_t * pxDestinationInfo,
 		struct ipcpInstanceData_t * pxData);
+
+
+
+BaseType_t xShimFlowAllocateResponse(ipcpInstance_t * pxShimInstance);
 
 
 /*-------------------------------------------*/
@@ -187,9 +157,9 @@ void vShimGHADestroy( gha_t * pxGha );
 
 BaseType_t xShimWiFiInit( void );
 
-BaseType_t xShimWiFiCreate( MACAddress_t * pxPhyDev );
+BaseType_t xShimWiFiCreate( ipcpFactory_t * pxFactory, MACAddress_t * pxPhyDev );
 
-BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, du_t * pxDu, BaseType_t uxBlocking);
+BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, struct du_t * pxDu, BaseType_t uxBlocking);
 
 
 #endif /* SHIM_IPCP_H__*/

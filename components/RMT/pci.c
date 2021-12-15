@@ -17,9 +17,11 @@
 #include "RMT.h"
 #include "ConfigSensor.h"
 #include "common.h"
+#include "du.h"
 
+#include "efcpStructures.h"
 
-
+#if 0
 static efcpConfig_t * pxPciGetEfcpConfig(const pci_t * pxPci)
 {
 	struct du_t * pxPdu;
@@ -29,7 +31,7 @@ static efcpConfig_t * pxPciGetEfcpConfig(const pci_t * pxPci)
 	return pxPdu->pxCfg;
 }
 
-#if 0
+
 #define PCI_GETTER_NO_DTC(pci, pci_index, size, type)			\
 	{struct efcpConfig_t * cfg;					\
 	cfg = pxPciGetEfcpConfig(pci);				\
@@ -52,15 +54,27 @@ pduType_t xPciType(const pci_t * pxPci)
 { PCI_GETTER_NO_DTC(pxPci, PCI_BASE_TYPE, TYPE_SIZE, pduType_t); }
 
 
+#endif
 
-BaseType_t xPciIsOk(const struct pci_t * pxPci)
+
+BaseType_t xPciIsOk(const pci_t * pxPci)
 {
-	if (pxPci&& pxPci-> && pxPci->len > 0 && pdu_type_is_ok(pci_type(pxPci)))
+
+	if (pxPci && sizeof(pxPci) > 0 && pdu_type_is_ok(pxPci->xType))
 		return true;
 	return false;
 }
 
+#if 0
 cepId_t xPciCepSource(const pci_t * pxPci)
 { PCI_GETTER(pxPci, PCI_BASE_SRC_CEP, cep_id_length, cepId_t); }
-
 #endif
+
+BaseType_t is_address_ok(address_t address)
+{ return address != ADDRESS_WRONG ? pdTRUE : pdFALSE; }
+
+BaseType_t is_qos_id_ok(qosId_t id)
+{ return id != QOS_ID_WRONG ? pdTRUE :  pdFALSE; }
+
+BaseType_t is_cep_id_ok(cepId_t id)
+{ return id >= 0 ? true : false; }

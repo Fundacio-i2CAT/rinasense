@@ -23,11 +23,11 @@ static portTableEntry_t xPortIdTable[ 2 ];
 pci_t * vCastPointerTo_pci_t(void * pvArgument);
 
 /* @brief Called when a SDU arrived into the RMT from the Shim DIF */
-BaseType_t xRMTReceive ( rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom );
+BaseType_t xRmtReceive ( rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom );
 
 
 /* @brief Called when a SDU arrived into the RMT from the EFCP Container*/
-static int xRMTN1PortWriteDu(rmt_t * pxRmt, rmtN1Port_t * pxN1Port, struct du_t * pxDu);
+static int xRmtN1PortWriteDu(rmt_t * pxRmt, rmtN1Port_t * pxN1Port, struct du_t * pxDu);
 
 /* @brief Create an N-1 Port in the RMT Component*/
 static rmtN1Port_t * pxRmtN1PortCreate(portId_t xId, ipcpInstance_t * pxN1Ipcp);
@@ -157,9 +157,9 @@ BaseType_t xRmtAddressAdd(rmt_t * pxInstance, address_t xAddress)
 
 /* @brief Check if the Address defined in the PDU is stored in
  * the address list in the RMT.*/
-BaseType_t  xRMTPduIsAddressedToMe(rmt_t * pxRmt, address_t xAddress);
+BaseType_t  xRmtPduIsAddressedToMe(rmt_t * pxRmt, address_t xAddress);
 
-BaseType_t  xRMTPduIsAddressedToMe(rmt_t * pxRmt, address_t xAddress)
+BaseType_t  xRmtPduIsAddressedToMe(rmt_t * pxRmt, address_t xAddress)
 {
 
 	rmtAddress_t * pxAddr;
@@ -235,7 +235,7 @@ static BaseType_t xRmtProcessDtPdu(rmt_t * pxRmt, portId_t xPortId, struct du_t 
 }
 
 
-BaseType_t xRMTReceive (rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom)
+BaseType_t xRmtReceive (rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom)
 {
 
 	pduType_t 		xPduType;
@@ -310,7 +310,7 @@ BaseType_t xRMTReceive (rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom)
 	}
 
 	/* pdu is for me */
-	if (xRMTPduIsAddressedToMe(pxRmt, xDstAddr))
+	if (xRmtPduIsAddressedToMe(pxRmt, xDstAddr))
 	{
 		/* pdu is for me */
 		switch (xPduType)
@@ -352,7 +352,7 @@ BaseType_t xRMTReceive (rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom)
 
 
 
-static BaseType_t xRMTN1PortWriteDu(rmt_t * pxRmt,
+static BaseType_t xRmtN1PortWriteDu(rmt_t * pxRmt,
 			     rmtN1Port_t * pxN1Port,
 			    struct du_t * pxDu)
 {
@@ -392,7 +392,201 @@ static BaseType_t xRMTN1PortWriteDu(rmt_t * pxRmt,
 }
 
 
+BaseType_t xRmtSendPortId(rmt_t * pxRmtInstance,
+		     portId_t xPortId,
+		     struct du_t * pxDu)
+{
+	rmtN1Port_t * pxN1Port;
+	//rmtPs_t *ps;//???
+	int cases;
+	BaseType_t ret;
+	BaseType_t xMustEnqueue;
+
+	
+	/*ps = container_of(rcu_dereference(instance->base.ps),
+	  		  struct rmt_ps, base);
+
+	if (!ps || !ps->rmt_enqueue_policy) {
+		rcu_read_unlock();
+		LOG_ERR("PS or enqueue policy null, dropping pdu");
+		du_destroy(du);
+		return -1;
+	}*/
+	pxN1Port = xPortIdTable[0].pxPortN1;
+	//pxN1Port = n1pmap_find(instance, id);
+	if (!pxN1Port) {
+		
+		ESP_LOGE(TAG_RMT,"Could not find the N-1 port");
+		xDuDestroy(pxDu);
+		return pdFALSE;
+	}
+
+	//n1_port_lock(n1_port);
+
+	xMustEnqueue = pdFALSE;
+	if (pxN1Port->xStats.plen 				||
+		pxN1Port->uxBusy 					||
+		pxN1Port->eState == eN1_PORT_STATE_DISABLED) {
+		xMustEnqueue = pdTRUE;
+	}
+
+	//ret = ps->rmt_enqueue_policy(ps, n1_port, du, must_enqueue);
+	cases = 0; //Send Default policy, change later.
+	//rcu_read_unlock();
+	switch (cases) {
+	#if 0
+	case RMT_PS_ENQ_SCHED:
+		n1_port->stats.plen++;
+		tasklet_hi_schedule(&instance->egress_tasklet);
+		ret = 0;
+		break;
+	case RMT_PS_ENQ_DROP:
+		n1_port->stats.drop_pdus++;
+		LOG_ERR("PDU dropped while enqueing");
+		ret = 0;
+		break;
+	case RMT_PS_ENQ_ERR:
+		n1_port->stats.err_pdus++;
+		LOG_ERR("Some error occurred while enqueuing PDU");
+		ret = 0;
+		break;
+	#endif
+	case RMT_PS_ENQ_SEND:
+		if (xMustEnqueue) {
+			ESP_LOGE(TAG_RMT,"Wrong behaviour of the policy");
+			xDuDestroy(pxDu);
+			pxN1Port->xStats.errPdus++;
+			ESP_LOGI(TAG_RMT,"Policy should have enqueue, returned SEND");
+			ret = pdFALSE;
+			break;
+		}
+
+		pxN1Port->uxBusy = pdTRUE;
+		
+		
+		//n1_port_unlock(n1_port);
+		ESP_LOGI(TAG_RMT,"PDU ready to be sent, no need to enqueue");
+		ret = xRmtN1PortWriteDu(pxRmtInstance, pxN1Port, pxDu);
+		/*FIXME LB: This is just horrible, needs to be rethinked */
+		//N1_port_lock(n1_port);
+		pxN1Port->uxBusy = pdFALSE;
+		if (cases >= 0) 
+		{
+			stats_inc(tx, pxN1Port, ret);
+			ret = pdTRUE;
+		}
+		break;
+	default:
+		ESP_LOGE(TAG_RMT,"rmt_enqueu_policy returned wrong value");
+		break;
+		ret = pdTRUE;
+	}
+
+	//n1_port_unlock(n1_port);
+	//n1pmap_release(instance, n1_port);
+	return ret;
+}
+
+
+BaseType_t xRmtSend(rmt_t * pxRmtInstance,
+	     struct du_t * pxDu)
+{
+	int i;
+
+	if (!pxRmtInstance || !pxDu || !xPciIsOk(pxDu->pxPci)) {
+		ESP_LOGE(TAG_RMT,"Bogus input parameters passed");
+		xDuDestroy(pxDu);
+		return pdFALSE;
+	}
+
+#if 0
+	if (pff_nhop(instance->pff, &du->pci,
+		     &(instance->cache.pids),
+		     &(instance->cache.count))) {
+		LOG_ERR("Cannot get the NHOP for this PDU (saddr: %u daddr: %u type: %u)",
+				pci_source(&du->pci), pci_destination(&du->pci),
+				pci_type(&du->pci));
+
+		du_destroy(du); 
+		return -1;
+	}
+
+	if (pxRmtInstance. instance->cache.count == 0) {
+		ESP_LOGI(TAG_RMT, "No NHOP for this PDU ...");
+		xDuDestroy(pxDu);
+		return pdFALSE;
+	}
+
+	for (i = 0; i < instance->cache.count; i++) {
+		portId_t   pid;
+		struct du_t * pxDuTmp;
+
+		pid = instance->cache.pids[i];
+
+		if (i == instance->cache.count-1)
+			pxDuTmp = pxDu;
+		else
+			pxDuTmp = du_dup(pxDu);
+
+		if (rmt_send_port_id(instance, pid, pxDuTmp))
+			ESP_LOGE("Failed to send a PDU to port-id %d", pid);
+	}
+	#endif
+
+	if (xRmtSendPortId(pxRmtInstance, pxRmtInstance->pxN1Port->xPortId, pxDu))
+			ESP_LOGE(TAG_RMT,"Failed to send a PDU to port-id %d", pxRmtInstance->pxN1Port->xPortId);
+	return pdTRUE;
+}
+
+
 pci_t * vCastPointerTo_pci_t(void * pvArgument)
 {
 	return (void *) (pvArgument);
+}
+
+
+rmt_t * pxRmtCreate(struct efcpContainer_t * pxEfcpc)
+{
+	rmt_t * pxRmtTmp;
+	rmtN1Port_t * pxPortN1[2];
+
+	if (!pxEfcpc) {
+		ESP_LOGE(TAG_IPCP,"Bogus input parameters");
+		return NULL;
+	}
+
+	pxRmtTmp = pvPortMalloc(sizeof(*pxRmtTmp));
+	if (!pxRmtTmp)
+		return NULL;
+
+	vListInitialise(&pxRmtTmp->xAddresses);
+	
+	//tmp->parent = container_of(parent, struct ipcp_instance, robj);
+	pxRmtTmp->pxEfcpc = pxEfcpc;
+
+	/*tmp->pff = pff_create(&tmp->robj, tmp->parent);
+	if (!tmp->pff) {
+		rmt_destroy(tmp);
+		return NULL;
+	}*/
+	pxRmtTmp->pxN1Port = pxPortN1;
+	//tmp->n1_ports = n1pmap_create(&tmp->robj);
+	if (!pxRmtTmp->pxN1Port) {
+		ESP_LOGI(TAG_RMT,"Failed to create N-1 ports map");
+		//rmt_destroy(tmp);
+		return NULL;
+	}
+
+	/*if (pff_cache_init(&tmp->cache)) {
+		LOG_ERR("Failed to init pff cache");
+		rmt_destroy(tmp);
+		return NULL;
+	}
+
+	tasklet_init(&tmp->egress_tasklet,
+		     send_worker,
+		     (unsigned long) tmp);*/
+
+	ESP_LOGI(TAG_RMT,"Instance %pK initialized successfully", pxRmtTmp);
+	return pxRmtTmp;
 }

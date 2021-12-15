@@ -10,11 +10,13 @@
 
 
 #include "IPCP.h"
+#include "factoryIPCP.h"
 #include "ARP826.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
 #include "ShimIPCP.h"
 #include "configSensor.h"
+#include "normalIPCP.h"
 
 #include "ESP_log.h"
 
@@ -45,6 +47,9 @@ static volatile BaseType_t xNetworkDownEventPending = pdFALSE;
  * being called by a task (in which case it is ok to block) or by the IPCP task
  * itself (in which case it is not ok to block). */
 static TaskHandle_t xIPCPTaskHandle = NULL;
+
+
+static ipcpFactory_t * pxFactory;
 
 /**
  * @brief Utility function to cast pointer of a type to pointer of type NetworkBufferDescriptor_t.
@@ -113,6 +118,11 @@ static TickType_t prvCalculateSleepTime( void );
 static void prvProcessNetworkDownEvent( void );
 
 /*
+* Called to initialize the topology. Create the IPCPNormal, and the ShimWiFi, the bind.
+*/
+void RINA_Topology( void );
+
+/*
  * Called when new data is available from the network interface.
  */
 static void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer );
@@ -147,16 +157,26 @@ static void prvIPCPTask( void * pvParameters )
     TickType_t xNextIPCPSleep;
 
 
-
     /* Just to prevent compiler warnings about unused parameters. */
     ( void ) pvParameters;
 
+    /*Initialize IPCP Factory*/
+    pxFactory = pvPortMalloc(sizeof(pxFactory));
+    List_t xIPCP;
+    vListInitialise(&xIPCP);
+    pxFactory->xIPCPInstancesList = xIPCP;
+    ESP_LOGI(TAG_IPCP,"IPCP Factory in task init");
+    /*if(xFactoryIPCPInit(pxFactory)==pdTRUE)
+    {
+        ESP_LOGI(TAG_IPCP,"IPCP Factory in task init");
+    }*/
 
     /* Generate a dummy message to say that the network connection has gone
      *  down.  This will cause this task to initialise the network interface.  After
      *  this it is the responsibility of the network interface hardware driver to
      *  send this message if a previously connected network is disconnected. */
-    RINA_NetworkDown();
+    RINA_Topology();
+    //RINA_NetworkDown();
 
 
 
@@ -190,6 +210,8 @@ static void prvIPCPTask( void * pvParameters )
     	        {
     	        case eNetworkDownEvent:
     	        	/* Attempt to establish a connection. */
+                    vTaskDelay( INITIALISATION_RETRY_DELAY );
+                    ESP_LOGI(TAG_IPCP,"eNetworkDownEvent");
     	        	xNetworkUp = pdFALSE;
     	        	prvProcessNetworkDownEvent();
     	        	break;
@@ -217,11 +239,23 @@ static void prvIPCPTask( void * pvParameters )
 
     	        case eShimEnrollEvent:
 
-    	        	xShimWiFiCreate((MACAddress_t *) xReceivedEvent.pvData );
+    	        	xShimWiFiCreate(pxFactory, (MACAddress_t *) xReceivedEvent.pvData );
 
 
 
     	        	break;
+
+                case eShimFlowAllocatedEvent:
+                    
+                    ESP_LOGI(TAG_IPCP, "Testing FLow Allocated Event");
+
+                    xNormalTest(xFactoryIPCPFindInstance(pxFactory, eNormal));
+                    /*
+                    xNormalFlowBinding(struct ipcpInstanceData_t *pxUserData,
+                              portId_t xPid,
+                              ipcpInstance_t *pxN1Ipcp)*/
+
+                    break;
 
     	        case eNoEvent:
     	        	/* xQueueReceive() returned because of a normal time-out. */
@@ -315,6 +349,8 @@ BaseType_t RINA_IPCPInit(  )
 
         if( xNetworkBuffersInitialise() == pdPASS )
         {
+
+            
 
             /* Create the task that processes Ethernet and stack events. */
             #if ( configSUPPORT_STATIC_ALLOCATION == 1 )
@@ -595,13 +631,18 @@ void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer
 
             /* The frame is in use somewhere, don't release the buffer
              * yet. */
-        	ESP_LOGI(TAG_SHIM,"Frame COnsumed");
+        	ESP_LOGI(TAG_SHIM,"Frame Consumed");
             break;
 
         case eReleaseBuffer:
         	ESP_LOGI(TAG_SHIM,"Releasing Buffer");
         	break;
         case eProcessBuffer:
+            /*ARP process buffer, call to ShimAllocateResponse*/
+       
+            /* Finding an instance of eShimiFi and call the floww allocate Response using this instance*/     
+            xShimFlowAllocateResponse(xFactoryIPCPFindInstance(pxFactory, eShimWiFi));
+            
         	ESP_LOGI(TAG_SHIM,"Process Buffer");
         	break;
         default:
@@ -708,13 +749,13 @@ static void prvProcessNetworkDownEvent( void )
      * time).  Perform whatever hardware processing is necessary to bring it up
      * again, or wait for it to be available again.  This is hardware dependent. */
 
-    if( xShimWiFiInit(  ) != pdPASS )
+    if( xShimWiFiInit(  ) != pdTRUE )
     {
         /* Ideally the network interface initialisation function will only
          * return when the network is available.  In case this is not the case,
          * wait a while before retrying the initialisation. */
         vTaskDelay( INITIALISATION_RETRY_DELAY );
-        //FreeRTOS_NetworkDown();
+        RINA_NetworkDown();
     }
     vTaskDelay( INITIALISATION_RETRY_DELAY );
 
@@ -814,11 +855,31 @@ BaseType_t xIPCPIsNetworkTaskReady( void )
     return xIPCPTaskInitialised;
 }
 
+void RINA_Topology( void )
+
+{
+    static const RINAStackEvent_t xNormalIPCPevent = { eNetworkDownEvent, NULL };
+    const TickType_t xDontBlock = ( TickType_t ) 0;   
+
+    ESP_LOGI(TAG_IPCP,"Creating Topology" );
+
+    if(pxNormalCreate(pxFactory) == pdTRUE)
+    {
+        xSendEventStructToIPCPTask( &xNormalIPCPevent, xDontBlock );
+    }
+    else{
+        ESP_LOGI(TAG_IPCP, "Was not created properly");
+    }
+
+
+}
+
 void RINA_NetworkDown( void )
 {
     static const RINAStackEvent_t xNetworkDownEvent = { eNetworkDownEvent, NULL };
     const TickType_t xDontBlock = ( TickType_t ) 0;
 
+    ESP_LOGI(TAG_IPCP,"RINA_NetworkDown");
     /* Simply send the network task the appropriate event. */
     if( xSendEventStructToIPCPTask( &xNetworkDownEvent, xDontBlock ) != pdPASS )
     {
@@ -830,8 +891,6 @@ void RINA_NetworkDown( void )
         /* Message was sent so it is not pending. */
         xNetworkDownEventPending = pdFALSE;
     }
-
-
 
 }
 

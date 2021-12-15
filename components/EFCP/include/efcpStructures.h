@@ -23,6 +23,7 @@
 #include "du.h"
 #include "RMT.h"
 #include "common.h"
+#include "delim.h"
 
 
 
@@ -80,7 +81,7 @@ typedef struct xDTP_SV {
         //timeout_t    A;
         //timeout_t    tr;
         seqNum_t    xRcvLeftWindowEdge;
-        //BaseType_t         window_closed;
+        BaseType_t         xWindowClosed;
         
         /* Indicates that the next PDU sent should have the
         DRF set. */
@@ -234,7 +235,7 @@ typedef struct xDTCP_SV {
 }dtcpSv_t;
 
 /* This is the DTCP configurations from connection policies */
-typedef struct xDTCP_CONFIG
+struct dtcpConfig_t
 {
         BaseType_t                    xFlowCtrl;
         struct dtcp_fctrl_config *  fctrl_cfg;
@@ -243,7 +244,7 @@ typedef struct xDTCP_CONFIG
         policy_t *             lost_control_pdu;
         policy_t *             dtcp_ps;
         policy_t *             rtt_estimator;
-}dtcpConfig_t;
+};
 
 
 typedef struct xDTCP
@@ -255,7 +256,7 @@ typedef struct xDTCP
          */
         dtcpSv_t *       		pxSv; /* The state-vector */
 
-        dtcpConfig_t *   		pxCfg;
+        struct dtcpConfig_t *   		pxCfg;
         struct rmt_t *          pxRmt;
         //struct timer_list 	   rendezvous_rcv;
 
@@ -298,7 +299,7 @@ typedef struct xDTP
 
 }dtp_t;
 
-#define EFCP_IMAP_ENTRIES     	( 5 )
+
 
 
 typedef struct xConnection {
@@ -321,36 +322,34 @@ typedef struct xEFCP_IMAP_ROW
 {
 	cepId_t          xCepIdKey;
         struct efcp_t *  xEfcpValue;
+        uint8_t          ucValid; 
         //struct hlist_node hlist;
 }efcpImapRow_t;
 
-typedef struct xEFCP_IMAP
-{
-        efcpImapRow_t xEfcpImapTable[ EFCP_IMAP_ENTRIES ];
-}efcpImap_t;
 
-typedef struct xEFCP_CONTAINER {
+
+struct efcpContainer_t{
 	//struct rset *        rset;
-	efcpImap_t    *         xEfcpInstances;
+	efcpImapRow_t  *         pxEfcpImap;
 	//struct cidm *        cidm;
 	efcpConfig_t *          pxConfig;
 	struct rmt_t *          pxRmt;
 	//struct kfa *         kfa;
 	//spinlock_t           lock;
 	//wait_queue_head_t    del_wq;
-}efcpContainer_t;
+};
 
 
-typedef struct xEFCP {
+struct efcp_t {
 
         connection_t *          pxConnection;
-        //struct ipcp_instance *  user_ipcp;//IPCP NORMAL
+        ipcpInstance_t *        pxUserIpcp;//IPCP NORMAL
         dtp_t *                 pxDtp; // implement in EFCP Component
-        //struct delim *		delim; //delimiting module
-        efcpContainer_t * 	pcContainer;
+        delim_t *		pxDelim; //delimiting module
+        struct efcpContainer_t * 	pxContainer;
         eEfcpState_t            xState;
 
-}efcp_t;
+};
 
 
 #endif /* COMPONENTS_EFCP_INCLUDE_EFCPSTRUCTURES_H_ */

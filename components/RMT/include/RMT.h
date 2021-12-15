@@ -11,6 +11,12 @@
 
 #define TAG_RMT "RMT"
 
+/* rmt_enqueue_policy return values */
+#define RMT_PS_ENQ_SEND  0	/* PDU can be transmitted by the RMT */
+#define RMT_PS_ENQ_SCHED 1	/* PDU enqueued and RMT needs to schedule */
+#define RMT_PS_ENQ_ERR   2	/* Error */
+#define RMT_PS_ENQ_DROP  3	/* PDU dropped due to queue full occupation */
+
 #define stats_inc(name, n1_port, bytes)					\
         n1_port->xStats.name##Pdus++;					\
 	n1_port->xStats.name##Bytes += (unsigned int) bytes;		\
@@ -73,7 +79,7 @@ typedef struct xRMT
 	spinlock_t	      lock;*/
 	List_t      					xAddresses;
 	ipcpInstance_t * 				pxParent;
-	efcpContainer_t * 				pxEfcpc;
+	struct efcpContainer_t * 				pxEfcpc;
 	rmtN1Port_t * 					pxN1Port;
 	struct rmt_Config_t * 			pxRmtCfg;
 
@@ -88,7 +94,9 @@ typedef struct xPORT_TABLE_ENTRY
 
 
 pci_t * vCastPointerTo_pci_t(void * pvArgument);
-
+BaseType_t xRmtSend(rmt_t * pxRmtInstance,struct du_t * pxDu);
+rmt_t * pxRmtCreate( struct efcpContainer_t * pxEfcpc);
+BaseType_t xRmtN1PortBind(rmt_t * pxRmtInstance, portId_t xId, ipcpInstance_t * pxN1Ipcp);
 
 #endif /* COMPONENTS_RMT_INCLUDE_DU_H_ */
 

@@ -109,5 +109,9 @@
 	/*TAG for Debugging*/
 	#define TAG_SHIM 							"SHIM_WIFI"
 
+/*********   Configure EFCP PArameters **************/
+
+	#define EFCP_IMAP_ENTRIES     				( 5 )
+	#define TAG_EFCP 							"EFCP"
 
 #endif

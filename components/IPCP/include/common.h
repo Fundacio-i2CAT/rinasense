@@ -24,10 +24,30 @@
     const typeof( ((type *)0)->member ) *__mptr = (ptr); \
     (type *)( (char *)__mptr - offsetof(type,member) );})
 
+#define PORT_ID_WRONG -1
+#define CEP_ID_WRONG -1
+#define ADDRESS_WRONG -1
+#define QOS_ID_WRONG -1
+
+typedef int32_t  portId_t;
+
+typedef uint32_t seqNum_t;
+
+/* CEPIdLength field 1 Byte*/
+typedef uint8_t  cepId_t;
+
+/* QoSIdLength field 1 Byte*/
+typedef uint8_t  qosId_t;
+
+/* QoSIdLength field 1 Byte*/
+typedef uint8_t address_t;
+
 
 typedef char* string_t;
 typedef unsigned int  uint_t;
 typedef unsigned int  timeout_t;
+/* SeqNumLength field 4 Byte*/
+typedef uint32_t seqNum_t;;
 
 
 typedef struct xName_info
@@ -151,6 +171,67 @@ typedef struct xDTP_CONFIG {
         struct policy *      dtp_ps;
 }dtpConfig_t;
 
+/* Endian related definitions. */
+//#if ( ipconfigBYTE_ORDER == pdFREERTOS_LITTLE_ENDIAN )
+
+/* FreeRTOS_htons / FreeRTOS_htonl: some platforms might have built-in versions
+ * using a single instruction so allow these versions to be overridden. */
+//#ifndef FreeRTOS_htons
+#define FreeRTOS_htons( usIn )    ( ( uint16_t ) ( ( ( usIn ) << 8U ) | ( ( usIn ) >> 8U ) ) )
+//#endif
+
+#ifndef FreeRTOS_htonl
+#define FreeRTOS_htonl( ulIn )                          \
+		(                                                               \
+				( uint32_t )                                                \
+				(                                                           \
+						( ( ( ( uint32_t ) ( ulIn ) ) ) << 24 ) |               \
+						( ( ( ( uint32_t ) ( ulIn ) ) & 0x0000ff00UL ) << 8 ) | \
+						( ( ( ( uint32_t ) ( ulIn ) ) & 0x00ff0000UL ) >> 8 ) | \
+						( ( ( ( uint32_t ) ( ulIn ) ) ) >> 24 )                 \
+				)                                                           \
+		)
+#endif /* ifndef FreeRTOS_htonl */
+
+//#else /* ipconfigBYTE_ORDER */
+
+//#define FreeRTOS_htons( x )    ( ( uint16_t ) ( x ) )
+//#define FreeRTOS_htonl( x )    ( ( uint32_t ) ( x ) )
+
+//#endif /* ipconfigBYTE_ORDER == pdFREERTOS_LITTLE_ENDIAN */
+
+#define FreeRTOS_ntohs( x )    FreeRTOS_htons( x )
+#define FreeRTOS_ntohl( x )    FreeRTOS_htonl( x )
+
+
+
+
+//Structure MAC ADDRESS
+typedef struct xMAC_ADDRESS
+{
+	uint8_t ucBytes[ MAC_ADDRESS_LENGTH_BYTES ]; /**< Byte array of the MAC address */
+}MACAddress_t;
+
+cepId_t cep_id_bad(void);
+
+/* ALWAYS use this function to check if the id looks good */
+BaseType_t      is_port_id_ok(portId_t id);
+
+/* ALWAYS use this function to get a bad id */
+portId_t port_id_bad(void);
+
+/* ALWAYS use this function to check if the id looks good */
+BaseType_t    is_cep_id_ok(cepId_t id);
+
+/* ALWAYS use this function to get a bad id */
+cepId_t cep_id_bad(void);
+
+BaseType_t     is_address_ok(address_t address);
+
+address_t address_bad(void);
+
+/* ALWAYS use this function to check if the id looks good */
+BaseType_t is_qos_id_ok(qosId_t id);
 
 
 

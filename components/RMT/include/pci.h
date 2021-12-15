@@ -22,8 +22,6 @@ typedef uint8_t  qosId_t;
 /* QoSIdLength field 1 Byte*/
 typedef uint8_t address_t;
 
-/* SeqNumLength field 4 Byte*/
-typedef uint32_t seqNum_t;
 
 /* PDU-Flags field 1 Byte*/
 typedef uint8_t pduFlags_t;
@@ -65,15 +63,14 @@ typedef uint8_t pduType_t;
 #define QOS_ID_WRONG -1
 
 
+BaseType_t is_address_ok(address_t address);
 
-BaseType_t is_address_ok(address_t address)
-{ return address != ADDRESS_WRONG ? pdTRUE : pdFALSE; }
 
-BaseType_t is_qos_id_ok(qosId_t id)
-{ return id != QOS_ID_WRONG ? pdTRUE :  pdFALSE; }
+BaseType_t is_qos_id_ok(qosId_t id);
 
-BaseType_t is_cep_id_ok(cepId_t id)
-{ return id >= 0 ? true : false; }
+
+BaseType_t is_cep_id_ok(cepId_t id);
+
 
 #define pdu_type_is_ok(X)                                \
 	((X == PDU_TYPE_DT)         ? pdTRUE :             \
@@ -138,6 +135,7 @@ typedef struct xPCI{
  	} control;*/
  }pci_t;
 
+BaseType_t xPciIsOk(const pci_t * pxPci);
 pduType_t xPciType(const pci_t *pci);
 cepId_t xPciCepSource(const pci_t *pci);
 
