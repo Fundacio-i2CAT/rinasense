@@ -212,7 +212,6 @@ typedef struct xMAC_ADDRESS
 	uint8_t ucBytes[ MAC_ADDRESS_LENGTH_BYTES ]; /**< Byte array of the MAC address */
 }MACAddress_t;
 
-cepId_t cep_id_bad(void);
 
 /* ALWAYS use this function to check if the id looks good */
 BaseType_t      is_port_id_ok(portId_t id);
@@ -232,6 +231,7 @@ address_t address_bad(void);
 
 /* ALWAYS use this function to check if the id looks good */
 BaseType_t is_qos_id_ok(qosId_t id);
+
 
 
 

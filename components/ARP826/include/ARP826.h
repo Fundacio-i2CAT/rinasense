@@ -51,8 +51,8 @@ typedef struct xETH_HEADER
 }EthernetHeader_t;
 
 
-extern DECL_CAST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
-extern DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
+//DECL_CAST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
+//DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
 
 //Structure ARP Header
 typedef struct xARP_HEADER

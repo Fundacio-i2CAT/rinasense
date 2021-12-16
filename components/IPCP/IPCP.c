@@ -249,7 +249,7 @@ static void prvIPCPTask( void * pvParameters )
                     
                     ESP_LOGI(TAG_IPCP, "Testing FLow Allocated Event");
 
-                    xNormalTest(xFactoryIPCPFindInstance(pxFactory, eNormal));
+                    xNormalTest(xFactoryIPCPFindInstance(pxFactory, eNormal), xFactoryIPCPFindInstance(pxFactory, eShimWiFi));
                     /*
                     xNormalFlowBinding(struct ipcpInstanceData_t *pxUserData,
                               portId_t xPid,

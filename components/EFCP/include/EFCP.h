@@ -24,7 +24,6 @@ BaseType_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t 
 BaseType_t xEfcpConnectionDestroy(struct efcpContainer_t * pxContainer, cepId_t xId);
 
 cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
-                                ipcpInstance_t *  xUserIpcp,
                                 address_t               xSrcAddr,
                                 address_t               xDstAddr,
                                 portId_t               xPortId,

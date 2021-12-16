@@ -61,14 +61,14 @@ BaseType_t xDuDecap(struct du_t * pxDu)
 		return pdFALSE;
 	}
 
-	uxPciLen = (size_t )(14); /* PCI defined static for this initial stage = 14Bytes*/
+	uxPciLen = (size_t )(16); /* PCI defined static for this initial stage = 14Bytes*/
 
 	xBufferSize = pxDu->pxNetworkBuffer->xDataLength - uxPciLen - pxPciTmp->xPduLen;
 
 	pxNewBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, ( TickType_t ) 0U );
 	pxNewBuffer->xDataLength = xBufferSize;
 
-	pucPtr = (uint8_t *)pxPciTmp + 14;
+	pucPtr = (uint8_t *)pxPciTmp + 16;
 
 	memcpy(pxNewBuffer, pucPtr,xBufferSize);
 
@@ -108,11 +108,17 @@ BaseType_t xDuEncap(struct du_t * pxDu, pduType_t xType)
 	size_t xBufferSize;
 	pci_t * pxPciTmp;
 	
+    ESP_LOGI(TAG_DTP, " xDuEncap");
 
-	uxPciLen = (size_t )(14); /* PCI defined static for this initial stage = 14Bytes*/
+	uxPciLen = (size_t )(16); /* PCI defined static for this initial stage = 14Bytes*/
 	
 	/* New Size = Data Size more the PCI size defined by default. */
 	xBufferSize = pxDu->pxNetworkBuffer->xDataLength + uxPciLen;
+
+	ESP_LOGI(TAG_DTP, " xDuEncap: BufferSize: %d", pxDu->pxNetworkBuffer->xDataLength);
+	ESP_LOGI(TAG_DTP, " xDuEncap: NewBufferSize: %d", xBufferSize);
+	ESP_LOGI(TAG_DTP, " xDuEncap: BufferNet: %p",pxDu->pxNetworkBuffer);
+	ESP_LOGI(TAG_DTP, " xDuEncap: BufferNet PUC: %p",pxDu->pxNetworkBuffer->pucEthernetBuffer);
 
 	pxNewBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, ( TickType_t ) 0U );
 
@@ -122,15 +128,20 @@ BaseType_t xDuEncap(struct du_t * pxDu, pduType_t xType)
 		return pdFALSE;
 	}
 
-	pucDataPtr = (uint8_t *)pxNewBuffer + 14;
+	pucDataPtr = (uint8_t *)(pxNewBuffer->pucEthernetBuffer + 16);
 
 	memcpy(pucDataPtr, pxDu->pxNetworkBuffer->pucEthernetBuffer,
 		pxDu->pxNetworkBuffer->xDataLength);
 
 	vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
+
+	pxNewBuffer->xDataLength = xBufferSize;
+
 	pxDu->pxNetworkBuffer = pxNewBuffer;
 
 	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucEthernetBuffer);
+
+	//ESP_LOGI(TAG_DTP,"PciInfo: %x",pxPciTmp->ucVersion);
 
 	pxDu->pxPci = pxPciTmp;
 

@@ -23,6 +23,7 @@
 
 
 
+
 typedef int32_t  portId_t;
 
 
@@ -160,6 +161,9 @@ BaseType_t xShimWiFiInit( void );
 BaseType_t xShimWiFiCreate( ipcpFactory_t * pxFactory, MACAddress_t * pxPhyDev );
 
 BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, struct du_t * pxDu, BaseType_t uxBlocking);
+
+
+EthernetHeader_t * vCastConstPointerTo_EthernetHeader_t(const void * pvArgument);
 
 
 #endif /* SHIM_IPCP_H__*/

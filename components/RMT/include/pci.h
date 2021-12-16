@@ -59,17 +59,7 @@ typedef uint8_t pduType_t;
 /* Number of different PDU types */
 #define PDU_TYPES              12
 
-#define ADDRESS_WRONG -1
-#define QOS_ID_WRONG -1
 
-
-BaseType_t is_address_ok(address_t address);
-
-
-BaseType_t is_qos_id_ok(qosId_t id);
-
-
-BaseType_t is_cep_id_ok(cepId_t id);
 
 
 #define pdu_type_is_ok(X)                                \

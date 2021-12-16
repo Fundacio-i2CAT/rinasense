@@ -254,12 +254,12 @@ struct efcpContainer_t *pxEfcpContainerCreate(void)
 
         if (!xEfcpImapCreate( ))
         {
-                ESP_LOGE(TAG_IPCP, "Failed to init EFCP container instances");
+                ESP_LOGE(TAG_EFCP, "Failed to init EFCP container instances");
                 xEfcpContainerDestroy(pxContainer);
                 return NULL;
         }
 
-
+        ESP_LOGI(TAG_EFCP, "EFCP container instance %p created", pxContainer);
 
         return pxContainer;
 }
@@ -496,7 +496,6 @@ BaseType_t xEfcpConnectionDestroy(struct efcpContainer_t * pxContainer,
 
 
 cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
-                                ipcpInstance_t *  xUserIpcp,
                                 address_t               xSrcAddr,
                                 address_t               xDstAddr,
                                 portId_t               xPortId,
@@ -506,10 +505,13 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
                                 dtpConfig_t *     pxDtpCfg,
                                 struct dtcpConfig_t *    pxDtcpCfg)
 {
-        struct efcp_t *       pxEfcp;
-        connection_t * pxConnection;
-        cepId_t            xCepId;
-        struct dtcp_t *       pxDtcp;
+
+        ESP_LOGE(TAG_EFCP,"xEfcpConnectionCreate");
+
+        struct efcp_t           *pxEfcp;
+        connection_t            *pxConnection;
+        cepId_t                 xCepId;
+        struct dtcp_t           *pxDtcp;
         //struct cwq *        cwq;
         //struct rtxq *       rtxq;
         //uint_t              mfps, mfss;
@@ -524,6 +526,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
                 return cep_id_bad();
         }
 
+        ESP_LOGE(TAG_EFCP,"xEfcpConnectionCreate: ConnectionCreate");
         pxConnection =  pxConnectionCreate();
         if (!pxConnection)
                 return cep_id_bad();
@@ -536,13 +539,14 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
         pxConnection->xSourceCepId = xSrcCepId;
         pxConnection->xDestinationCepId = xDstCepId;
 
+        ESP_LOGE(TAG_EFCP,"xEfcpConnectionCreate: EfcpCreate");
         pxEfcp = pxEfcpCreate();
         if (!pxEfcp) {
                 xConnectionDestroy(pxConnection);
                 return cep_id_bad();
         }
 
-        pxEfcp->pxUserIpcp = xUserIpcp;
+       // pxEfcp->pxUserIpcp = xUserIpcp;
 
         //xCepId = cidm_allocate(container->cidm);
         //hardcode to test
@@ -554,6 +558,8 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
         }
 
         /* We must ensure that the DTP is instantiated, at least ... */
+
+        ESP_LOGE(TAG_EFCP,"xEfcpConnectionCreate: pxContainer");
         pxEfcp->pvContainer = pxContainer;
         pxConnection->xSourceCepId = xCepId;
         if (!is_candidate_connection_ok((const struct connection_t *) pxConnection)) {
@@ -691,10 +697,10 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
      
 
 
-        if (xEfcpImapAdd(xCepId, pxEfcp)) 
+        if (!xEfcpImapAdd(xCepId, pxEfcp)) 
         {
    
-                ESP_LOGE(TAG_EFCP,"Cannot add a new instance into container %pK",
+                ESP_LOGE(TAG_EFCP,"Cannot add a new instance into container %p",
                         pxContainer);
 
                 xEfcpDestroy(pxEfcp);
@@ -777,6 +783,7 @@ BaseType_t xEfcpImapAdd( cepId_t xCepId, struct efcp_t * pxEfcp )
 	efcpImapRow_t 	xImapEntry;
 	int x = 0;
 
+ 
         xImapEntry.ucValid = 1;
         xImapEntry.xCepIdKey = xCepId;
         xImapEntry.xEfcpValue = pxEfcp;
@@ -784,16 +791,18 @@ BaseType_t xEfcpImapAdd( cepId_t xCepId, struct efcp_t * pxEfcp )
 	for(x=0; x < EFCP_IMAP_ENTRIES; x++)
 
 	{
+                
 		if (xEfcpImapTable[ x ].ucValid == 0)
 		{
+
 			xEfcpImapTable[ x ].xCepIdKey = xImapEntry.xCepIdKey;
 			xEfcpImapTable[ x ].xEfcpValue = xImapEntry.xEfcpValue;
 			xEfcpImapTable[ x ].ucValid = xImapEntry.ucValid;
-			ESP_LOGD(TAG_EFCP, "EFCP Entry successful");
+			ESP_LOGI(TAG_EFCP, "EFCP Entry successful");
                         return pdTRUE;
 
 
-			break;
+			//break;
 		}
 
 	}

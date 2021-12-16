@@ -52,6 +52,7 @@ BaseType_t xDtpPduSend(dtp_t * pxDtp, rmt_t * pxRmt, struct du_t * pxDu)
 	struct efcpContainer_t * pxEfcpContainer;
 	cepId_t		destCepId;
 
+        ESP_LOGI(TAG_DTP,"xDtpPduSend");
 	/* Remote flow case */
 	if (pxDu->pxPci->xSource != pxDu->pxPci->xDestination) {
 		/*if (dtp->dtcp->sv->rendezvous_rcvr) {
@@ -86,6 +87,7 @@ BaseType_t xDtpPduSend(dtp_t * pxDtp, rmt_t * pxRmt, struct du_t * pxDu)
 
 BaseType_t xDtpWrite(dtp_t * pxDtpInstance, struct du_t * pxDu)
 {
+        ESP_LOGI(TAG_DTP, "xDtpWrite");
         dtcp_t *        pxDtcp;
         struct du_t *          pxTempDu;
         struct dtp_ps *   ps;
@@ -123,7 +125,10 @@ BaseType_t xDtpWrite(dtp_t * pxDtpInstance, struct du_t * pxDu)
         /* Probably needs to be revised */
 
 	sbytes = xDuLen(pxDu);
-	if (xDuEncap(pxDu, PDU_TYPE_DT)){
+
+        ESP_LOGI(TAG_DTP,"Calling DUEncap");
+        ESP_LOGI(TAG_DTP,"Sbytes: %d", sbytes);
+	if (!xDuEncap(pxDu, PDU_TYPE_DT)){
 		ESP_LOGE(TAG_DTP,"Could not encap PDU");
 		xDuDestroy(pxDu);
 	        return pdFALSE;
@@ -132,18 +137,24 @@ BaseType_t xDtpWrite(dtp_t * pxDtpInstance, struct du_t * pxDu)
 	
         xCsn = ++pxDtpInstance->pxDtpStateVector->xNextSeqNumberToSend;
 
-        pxDu->pxPci->ucVersion = FreeRTOS_htons(0x01);
+
+        pxDu->pxPci->ucVersion = 0x01;
         pxDu->pxPci->connectionId_t.xSource = pxTempEfcp->pxConnection->xSourceCepId;
         pxDu->pxPci->connectionId_t.xDestination = pxTempEfcp->pxConnection->xDestinationCepId;
         pxDu->pxPci->connectionId_t.xQosId = pxTempEfcp->pxConnection->xQosId;
         pxDu->pxPci->xDestination = pxTempEfcp->pxConnection->xDestinationAddress;
         pxDu->pxPci->xSource = pxTempEfcp->pxConnection->xSourceAddress;
-        pxDu->pxPci->xSequenceNumber = xCsn;
-        pxDu->pxPci->xFlags = 0;
-        pxDu->pxPci->xType = FreeRTOS_htons(PDU_TYPE_DT);
-        pxDu->pxPci->xPduLen = pxDu->pxNetworkBuffer->xDataLength;
         
-	if (!xPciIsOk(&pxDu->pxPci)) {
+        pxDu->pxPci->xFlags = 0;
+        pxDu->pxPci->xType = PDU_TYPE_DT;
+        pxDu->pxPci->xPduLen = pxDu->pxNetworkBuffer->xDataLength;
+        pxDu->pxPci->xSequenceNumber = xCsn;
+
+
+        ESP_LOGI(TAG_DTP,"PCI SequenceNumber: 0x%08x",pxDu->pxPci->xSequenceNumber);
+        ESP_LOGI(TAG_DTP,"PCI xPDULEN: 0x%04x",pxDu->pxPci->xPduLen);
+        
+	if (!xPciIsOk(pxDu->pxPci)) {
 		ESP_LOGE(TAG_DTP,"PCI is not ok");
 		xDuDestroy(pxDu);
 	        return pdFALSE;

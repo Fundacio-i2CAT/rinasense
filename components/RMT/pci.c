@@ -14,6 +14,8 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 
+#include "esp_log.h"
+
 #include "RMT.h"
 #include "ConfigSensor.h"
 #include "common.h"
@@ -57,7 +59,7 @@ pduType_t xPciType(const pci_t * pxPci)
 #endif
 
 
-BaseType_t xPciIsOk(const pci_t * pxPci)
+BaseType_t xPciIsOk(const pci_t *pxPci)
 {
 
 	if (pxPci && sizeof(pxPci) > 0 && pdu_type_is_ok(pxPci->xType))
@@ -70,11 +72,3 @@ cepId_t xPciCepSource(const pci_t * pxPci)
 { PCI_GETTER(pxPci, PCI_BASE_SRC_CEP, cep_id_length, cepId_t); }
 #endif
 
-BaseType_t is_address_ok(address_t address)
-{ return address != ADDRESS_WRONG ? pdTRUE : pdFALSE; }
-
-BaseType_t is_qos_id_ok(qosId_t id)
-{ return id != QOS_ID_WRONG ? pdTRUE :  pdFALSE; }
-
-BaseType_t is_cep_id_ok(cepId_t id)
-{ return id >= 0 ? true : false; }

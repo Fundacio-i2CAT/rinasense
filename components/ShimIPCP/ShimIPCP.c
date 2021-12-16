@@ -101,6 +101,14 @@ void vShimGPADestroy(gpa_t *pxGpa);
 /* @brief Destroy a generic hardware Address to clean up*/
 void vShimGHADestroy(gha_t *pxGha);
 
+
+
+EthernetHeader_t * vCastConstPointerTo_EthernetHeader_t(const void * pvArgument)
+{
+	return (const void *) (pvArgument);
+}
+
+
 /******************** SHIM IPCP EventHandler **********/
 
 /*-------------------------------------------*/
@@ -548,7 +556,7 @@ gpa_t *pxShimNameToGPA(const name_t *xLocalInfo)
 	gpa_t *pxGpa;
 	string_t xTmp;
 
-	//Concatenate the localInfo "ProcessName"+"-"+"ProcessInstance"
+	//Concatenate the localInfo "ProcessName"+"/"+"ProcessInstance"
 	xTmp = xShimNameToString(xLocalInfo);
 
 	if (!xTmp)
@@ -877,7 +885,7 @@ static BaseType_t prvShimFlowDestroy(struct ipcpInstanceData_t *xData, shimFlow_
 	return pdTRUE;
 }
 
-#if 0
+
 BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, struct du_t * pxDu, BaseType_t uxBlocking)
 {
 
@@ -916,18 +924,21 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, struc
 	}
 
 	//spin_lock_bh(&data->lock);
+	ESP_LOGI(TAG_SHIM,"SDUWrite: flow state check %d", pxFlow->ePortIdState);
 	if (pxFlow->ePortIdState != eALLOCATED) {
 		ESP_LOGE(TAG_SHIM,"Flow is not in the right state to call this");
 		xDuDestroy(pxDu);
 		return pdFALSE;
 	}
 
-	if (pxData->ucTxBusy) {
+	ESP_LOGI(TAG_SHIM,"SDUWrite: Data Busy %d",pxData->ucTxBusy);
+	/*if (pxData->ucTxBusy) {
 		//spin_unlock_bh(&data->lock);
 		return pdFAIL;
-	}
+	}*/
 	//spin_unlock_bh(&data->lock);
 
+	ESP_LOGI(TAG_SHIM,"SDUWrite: creating source GHA");
 	pxSrcHw = pxShimCreateGHA(MAC_ADDR_802_3,pxData->pxPhyDev);
 	if (!pxSrcHw) {
 		ESP_LOGE(TAG_SHIM,"Failed to get source HW addr");
@@ -942,6 +953,7 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, struc
 		return pdFALSE;
 	}
 
+	ESP_LOGI(TAG_SHIM,"SDUWrite: Encapsulate packet into Ethernet");
 	/* Get a Network Buffer with size total ethernet + PDU size*/
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor( uxHeadLen + uxLength, ( TickType_t ) 0U );
 
@@ -982,7 +994,7 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, struc
 
 
 }
-#endif
+
 
 static struct ipcpInstanceOps_t xShimWifiOps = {
 	.flowAllocateRequest = xShimFlowAllocateRequest, //ok
@@ -1007,7 +1019,7 @@ static struct ipcpInstanceOps_t xShimWifiOps = {
 	.connectionModify = NULL,		 //ok
 
 	.duEnqueue = NULL, //ok
-	.duWrite = NULL,   //xShimSDUWrite, //ok
+	.duWrite = xShimSDUWrite,   //xShimSDUWrite, //ok
 
 	.mgmtDuWrite = NULL, //ok
 	.mgmtDuPost = NULL,	 //ok
