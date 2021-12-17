@@ -61,7 +61,7 @@ BaseType_t xDuDecap(struct du_t * pxDu)
 		return pdFALSE;
 	}
 
-	uxPciLen = (size_t )(16); /* PCI defined static for this initial stage = 14Bytes*/
+	uxPciLen = (size_t )(16); /* PCI defined static for this initial stage = 16Bytes*/
 
 	xBufferSize = pxDu->pxNetworkBuffer->xDataLength - uxPciLen - pxPciTmp->xPduLen;
 
@@ -110,7 +110,7 @@ BaseType_t xDuEncap(struct du_t * pxDu, pduType_t xType)
 	
     ESP_LOGI(TAG_DTP, " xDuEncap");
 
-	uxPciLen = (size_t )(16); /* PCI defined static for this initial stage = 14Bytes*/
+	uxPciLen = (size_t )(14); /* PCI defined static for this initial stage = 16Bytes*/
 	
 	/* New Size = Data Size more the PCI size defined by default. */
 	xBufferSize = pxDu->pxNetworkBuffer->xDataLength + uxPciLen;
@@ -128,7 +128,7 @@ BaseType_t xDuEncap(struct du_t * pxDu, pduType_t xType)
 		return pdFALSE;
 	}
 
-	pucDataPtr = (uint8_t *)(pxNewBuffer->pucEthernetBuffer + 16);
+	pucDataPtr = (uint8_t *)(pxNewBuffer->pucEthernetBuffer + 14);
 
 	memcpy(pucDataPtr, pxDu->pxNetworkBuffer->pucEthernetBuffer,
 		pxDu->pxNetworkBuffer->xDataLength);

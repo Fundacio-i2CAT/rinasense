@@ -487,8 +487,8 @@ BaseType_t pxNormalCreate(ipcpFactory_t *pxFactory)
         xNormalFlowPrebind(pxNormalInstance->pxData, xPortId);
 
         address_t xSource = 10;
-        address_t xDest = 11;
-        qosId_t xQosId = 20;
+        address_t xDest = 3;
+        qosId_t xQosId = 1;
         dtpConfig_t *pxDtpCfg = pvPortMalloc(sizeof(*pxDtpCfg));
         struct dtcpConfig_t *pxDtcpCfg = pvPortMalloc(sizeof(*pxDtcpCfg));
 

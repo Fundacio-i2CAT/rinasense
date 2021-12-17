@@ -151,6 +151,15 @@ BaseType_t xDtpWrite(dtp_t * pxDtpInstance, struct du_t * pxDu)
         pxDu->pxPci->xSequenceNumber = xCsn;
 
 
+        ESP_LOGI(TAG_DTP,"------------ PCI -----------");
+        ESP_LOGI(TAG_DTP,"PCI Version: 0x%04x",pxDu->pxPci->ucVersion);
+        ESP_LOGI(TAG_DTP,"PCI SourceAddress: 0x%04x",pxDu->pxPci->xSource);
+        ESP_LOGI(TAG_DTP,"PCI DestinationAddress: 0x%04x",pxDu->pxPci->xDestination);
+        ESP_LOGI(TAG_DTP,"PCI QoS: 0x%04x",pxDu->pxPci->connectionId_t.xQosId);
+        ESP_LOGI(TAG_DTP,"PCI CEP Source: 0x%04x",pxDu->pxPci->connectionId_t.xSource);
+        ESP_LOGI(TAG_DTP,"PCI CEP Destination: 0x%04x",pxDu->pxPci->connectionId_t.xDestination);
+        ESP_LOGI(TAG_DTP,"PCI FLAG: 0x%04x",pxDu->pxPci->xFlags);
+        ESP_LOGI(TAG_DTP,"PCI Type: 0x%04x",pxDu->pxPci->xType);
         ESP_LOGI(TAG_DTP,"PCI SequenceNumber: 0x%08x",pxDu->pxPci->xSequenceNumber);
         ESP_LOGI(TAG_DTP,"PCI xPDULEN: 0x%04x",pxDu->pxPci->xPduLen);
         

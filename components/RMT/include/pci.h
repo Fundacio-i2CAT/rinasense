@@ -94,7 +94,7 @@ typedef struct xPCI {
 }pci_t;
 #endif
 
-typedef struct xPCI{
+typedef struct __attribute__((packed)){
 
 	uint8_t 	ucVersion; 		/**< Version  0 + 1 = 1 */
 
