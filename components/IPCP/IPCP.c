@@ -10,11 +10,13 @@
 
 
 #include "IPCP.h"
+#include "factoryIPCP.h"
 #include "ARP826.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
 #include "ShimIPCP.h"
 #include "configSensor.h"
+#include "normalIPCP.h"
 
 #include "ESP_log.h"
 
@@ -45,6 +47,9 @@ static volatile BaseType_t xNetworkDownEventPending = pdFALSE;
  * being called by a task (in which case it is ok to block) or by the IPCP task
  * itself (in which case it is not ok to block). */
 static TaskHandle_t xIPCPTaskHandle = NULL;
+
+
+static ipcpFactory_t * pxFactory;
 
 /**
  * @brief Utility function to cast pointer of a type to pointer of type NetworkBufferDescriptor_t.
@@ -113,6 +118,11 @@ static TickType_t prvCalculateSleepTime( void );
 static void prvProcessNetworkDownEvent( void );
 
 /*
+* Called to initialize the topology. Create the IPCPNormal, and the ShimWiFi, the bind.
+*/
+void RINA_Topology( void );
+
+/*
  * Called when new data is available from the network interface.
  */
 static void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer );
@@ -147,16 +157,26 @@ static void prvIPCPTask( void * pvParameters )
     TickType_t xNextIPCPSleep;
 
 
-
     /* Just to prevent compiler warnings about unused parameters. */
     ( void ) pvParameters;
 
+    /*Initialize IPCP Factory*/
+    pxFactory = pvPortMalloc(sizeof(pxFactory));
+    List_t xIPCP;
+    vListInitialise(&xIPCP);
+    pxFactory->xIPCPInstancesList = xIPCP;
+    ESP_LOGI(TAG_IPCP,"IPCP Factory in task init");
+    /*if(xFactoryIPCPInit(pxFactory)==pdTRUE)
+    {
+        ESP_LOGI(TAG_IPCP,"IPCP Factory in task init");
+    }*/
 
     /* Generate a dummy message to say that the network connection has gone
      *  down.  This will cause this task to initialise the network interface.  After
      *  this it is the responsibility of the network interface hardware driver to
      *  send this message if a previously connected network is disconnected. */
-    RINA_NetworkDown();
+    RINA_Topology();
+    //RINA_NetworkDown();
 
 
 
@@ -190,6 +210,8 @@ static void prvIPCPTask( void * pvParameters )
     	        {
     	        case eNetworkDownEvent:
     	        	/* Attempt to establish a connection. */
+                    vTaskDelay( INITIALISATION_RETRY_DELAY );
+                    ESP_LOGI(TAG_IPCP,"eNetworkDownEvent");
     	        	xNetworkUp = pdFALSE;
     	        	prvProcessNetworkDownEvent();
     	        	break;
@@ -200,6 +222,7 @@ static void prvIPCPTask( void * pvParameters )
     	        	 * pointer to the received buffer is located in the pvData member
     	        	 * of the received event structure. */
     	        	prvHandleEthernetPacket( CAST_PTR_TO_TYPE_PTR( NetworkBufferDescriptor_t, xReceivedEvent.pvData ) );
+
     	        	break;
 
     	        case eNetworkTxEvent:
@@ -212,8 +235,27 @@ static void prvIPCPTask( void * pvParameters )
 
     	        	( void ) xNetworkInterfaceOutput( pxDescriptor, pdTRUE );
     	        }
+    	        	break;
 
-    	        break;
+    	        case eShimEnrollEvent:
+
+    	        	xShimWiFiCreate(pxFactory, (MACAddress_t *) xReceivedEvent.pvData );
+
+
+
+    	        	break;
+
+                case eShimFlowAllocatedEvent:
+                    
+                    ESP_LOGI(TAG_IPCP, "Testing FLow Allocated Event");
+
+                    xNormalTest(xFactoryIPCPFindInstance(pxFactory, eNormal), xFactoryIPCPFindInstance(pxFactory, eShimWiFi));
+                    /*
+                    xNormalFlowBinding(struct ipcpInstanceData_t *pxUserData,
+                              portId_t xPid,
+                              ipcpInstance_t *pxN1Ipcp)*/
+
+                    break;
 
     	        case eNoEvent:
     	        	/* xQueueReceive() returned because of a normal time-out. */
@@ -307,6 +349,8 @@ BaseType_t RINA_IPCPInit(  )
 
         if( xNetworkBuffersInitialise() == pdPASS )
         {
+
+            
 
             /* Create the task that processes Ethernet and stack events. */
             #if ( configSUPPORT_STATIC_ALLOCATION == 1 )
@@ -465,6 +509,7 @@ BaseType_t xSendEventStructToIPCPTask( const RINAStackEvent_t * pxEvent,
 
 void prvHandleEthernetPacket( NetworkBufferDescriptor_t * pxBuffer )
 {
+
     #if ( USE_LINKED_RX_MESSAGES == 0 )
         {
             /* When ipconfigUSE_LINKED_RX_MESSAGES is not set to 0 then only one
@@ -475,6 +520,7 @@ void prvHandleEthernetPacket( NetworkBufferDescriptor_t * pxBuffer )
         }
     #else /* configUSE_LINKED_RX_MESSAGES */
         {
+        	ESP_LOGI( TAG_IPCP, "Packet to network stack 2 %p, len %d", pxBuffer, pxBuffer->xDataLength );
             NetworkBufferDescriptor_t * pxNextBuffer;
 
             /* An optimisation that is useful when there is high network traffic.
@@ -508,51 +554,30 @@ void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer
 {
     const EthernetHeader_t * pxEthernetHeader;
     eFrameProcessingResult_t eReturned = eReleaseBuffer;
+    uint16_t usFrameType;
+
 
     configASSERT( pxNetworkBuffer != NULL );
 
-    ESP_LOGI(TAG_IPCP, "Processing Ethernet Packet");
 
     /* Interpret the Ethernet frame. */
     if( pxNetworkBuffer->xDataLength >= sizeof( EthernetHeader_t ) )
     {
-    	ESP_LOGI(TAG_IPCP, "Interprete Packet");
-
-    	//eReturned = eConsiderFrameForProcessing( pxNetworkBuffer->pucEthernetBuffer );
-
-    	//ESP_LOGI(TAG_IPCP, "eProccessBuffer: %i", eReturned);
 
         /* Map the buffer onto the Ethernet Header struct for easy access to the fields. */
     	pxEthernetHeader = vCastPointerTo_EthernetPacket_t(pxNetworkBuffer->pucEthernetBuffer);
         //pxEthernetHeader = CAST_CONST_PTR_TO_CONST_TYPE_PTR( EthernetHeader_t, pxNetworkBuffer->pucEthernetBuffer );
 
-        /* The condition "eReturned == eProcessBuffer" must be true. */
-       /*#if ( ipconfigETHERNET_DRIVER_FILTERS_FRAME_TYPES == 0 )
-        	if( eReturned == eProcessBuffer )
-        #endif*/
-       //{
-        	ESP_LOGI(TAG_IPCP, "eProccessBuffer");
-            ESP_LOGI(TAG_ARP,"MAC Ethernet Dest: %02x:%02x:%02x:%02x:%02x:%02x", pxEthernetHeader->xDestinationAddress.ucBytes[0],
-            		pxEthernetHeader->xDestinationAddress.ucBytes[1],
-        			pxEthernetHeader->xDestinationAddress.ucBytes[2],
-        			pxEthernetHeader->xDestinationAddress.ucBytes[3],
-        			pxEthernetHeader->xDestinationAddress.ucBytes[4],
-        			pxEthernetHeader->xDestinationAddress.ucBytes[5]);
+        usFrameType = FreeRTOS_ntohs( pxEthernetHeader->usFrameType );
 
-            ESP_LOGI(TAG_ARP,"MAC Ethernet Source: %02x:%02x:%02x:%02x:%02x:%02x", pxEthernetHeader->xSourceAddress.ucBytes[0],
-            		pxEthernetHeader->xSourceAddress.ucBytes[1],
-        			pxEthernetHeader->xSourceAddress.ucBytes[2],
-        			pxEthernetHeader->xSourceAddress.ucBytes[3],
-        			pxEthernetHeader->xSourceAddress.ucBytes[4],
-        			pxEthernetHeader->xSourceAddress.ucBytes[5]);
-            ESP_LOGI(TAG_ARP,"Ethernet Type: %04x", pxEthernetHeader->usFrameType);
+
             /* Interpret the received Ethernet packet. */
-            switch( pxEthernetHeader->usFrameType )
+            switch(  usFrameType )
             {
-                case ETH_P_BATMAN:
+                case ETH_P_ARP:
 
                     /* The Ethernet frame contains an ARP packet. */
-                	ESP_LOGI(TAG_IPCP, "Case BATMAN");
+                	ESP_LOGI(TAG_IPCP, "Case ARP");
                     if( pxNetworkBuffer->xDataLength >= sizeof( ARPPacket_t ) )
                     {
                         eReturned = eARPProcessPacket( CAST_PTR_TO_TYPE_PTR( ARPPacket_t, pxNetworkBuffer->pucEthernetBuffer ) );
@@ -564,9 +589,9 @@ void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer
 
                     break;
 #if 0
-                case ipIPv4_FRAME_TYPE:
+                case ETH_P_RINA:
 
-                    /* The Ethernet frame contains an IP packet. */
+                    /* The Ethernet frame contains an SDU packet. */
                     if( pxNetworkBuffer->xDataLength >= sizeof( IPPacket_t ) )
 
 
@@ -606,10 +631,20 @@ void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer
 
             /* The frame is in use somewhere, don't release the buffer
              * yet. */
+        	ESP_LOGI(TAG_SHIM,"Frame Consumed");
             break;
 
         case eReleaseBuffer:
+        	ESP_LOGI(TAG_SHIM,"Releasing Buffer");
+        	break;
         case eProcessBuffer:
+            /*ARP process buffer, call to ShimAllocateResponse*/
+       
+            /* Finding an instance of eShimiFi and call the floww allocate Response using this instance*/     
+            xShimFlowAllocateResponse(xFactoryIPCPFindInstance(pxFactory, eShimWiFi));
+            
+        	ESP_LOGI(TAG_SHIM,"Process Buffer");
+        	break;
         default:
 
             /* The frame is not being used anywhere, and the
@@ -623,10 +658,9 @@ void prvProcessEthernetPacket( NetworkBufferDescriptor_t * const pxNetworkBuffer
 
 eFrameProcessingResult_t eConsiderFrameForProcessing( const uint8_t * const pucEthernetBuffer )
 {
-    eFrameProcessingResult_t eReturn;
+    eFrameProcessingResult_t     eReturn = eReleaseBuffer;
     const EthernetHeader_t * pxEthernetHeader;
     uint16_t usFrameType;
-
 
 
     /* Map the buffer onto Ethernet Header struct for easy access to fields. */
@@ -635,49 +669,13 @@ eFrameProcessingResult_t eConsiderFrameForProcessing( const uint8_t * const pucE
     usFrameType = pxEthernetHeader->usFrameType;
     usFrameType = FreeRTOS_ntohs( usFrameType );
 
-    ESP_LOGI(TAG_ARP,"MAC Ethernet Dest: %02x:%02x:%02x:%02x:%02x:%02x", pxEthernetHeader->xDestinationAddress.ucBytes[0],
-    		pxEthernetHeader->xDestinationAddress.ucBytes[1],
-			pxEthernetHeader->xDestinationAddress.ucBytes[2],
-			pxEthernetHeader->xDestinationAddress.ucBytes[3],
-			pxEthernetHeader->xDestinationAddress.ucBytes[4],
-			pxEthernetHeader->xDestinationAddress.ucBytes[5]);
 
-    ESP_LOGI(TAG_ARP,"MAC Ethernet Source: %02x:%02x:%02x:%02x:%02x:%02x", pxEthernetHeader->xSourceAddress.ucBytes[0],
-    		pxEthernetHeader->xSourceAddress.ucBytes[1],
-			pxEthernetHeader->xSourceAddress.ucBytes[2],
-			pxEthernetHeader->xSourceAddress.ucBytes[3],
-			pxEthernetHeader->xSourceAddress.ucBytes[4],
-			pxEthernetHeader->xSourceAddress.ucBytes[5]);
-    /*
-    ESP_LOGI(TAG_ARP,"MAC Local: %02x:%02x:%02x:%02x:%02x:%02x", xlocalMAC->ucBytes[0],
-      		xlocalMAC->ucBytes[1],
-  			xlocalMAC->ucBytes[2],
-  			xlocalMAC->ucBytes[3],
-  			xlocalMAC->ucBytes[4],
-  			xlocalMAC->ucBytes[5]);*/
-    ESP_LOGI(TAG_ARP,"Ethernet Type: %04x", usFrameType);
-
-    if( memcmp( xlocalMACAddress.ucBytes, pxEthernetHeader->xDestinationAddress.ucBytes, sizeof( MACAddress_t ) ) == 0 )
+    //Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
+    if (usFrameType == ETH_P_ARP || usFrameType == ETH_P_RINA)
     {
-        /* The packet was directed to this node - process it. */
-    	ESP_LOGI(TAG_IPCP,"Process!"); //test
 
-        eReturn = eProcessBuffer;
-    }
-    else if( memcmp( xBroadcastMACAddress.ucBytes, pxEthernetHeader->xDestinationAddress.ucBytes, sizeof( MACAddress_t ) ) == 0
-    		&& usFrameType == ETH_P_BATMAN)
-    {
-        /* The packet was a broadcast - process it. */
-    	ESP_LOGI(TAG_IPCP,"Process!"); //test
+    	eReturn = eProcessBuffer;
 
-        eReturn = eProcessBuffer;
-    }
-    else
-    {
-        /* The packet was not a broadcast, or for this node, just release
-         * the buffer without taking any other action. */
-    	ESP_LOGI(TAG_IPCP,"No Process!");
-        eReturn = eReleaseBuffer;
     }
 
 
@@ -742,7 +740,6 @@ static void prvProcessNetworkDownEvent( void )
     /* Stop the ARP timer while there is no network. */
     xARPTimer.bActive = pdFALSE_UNSIGNED;
 
-
     /* Per the ARP Cache Validation section of https://tools.ietf.org/html/rfc1122,
      * treat network down as a "delivery problem" and flush the ARP cache for this
      * interface. */
@@ -752,14 +749,17 @@ static void prvProcessNetworkDownEvent( void )
      * time).  Perform whatever hardware processing is necessary to bring it up
      * again, or wait for it to be available again.  This is hardware dependent. */
 
-    if( xShimWiFiInit(  ) != pdPASS )
+    if( xShimWiFiInit(  ) != pdTRUE )
     {
         /* Ideally the network interface initialisation function will only
          * return when the network is available.  In case this is not the case,
          * wait a while before retrying the initialisation. */
         vTaskDelay( INITIALISATION_RETRY_DELAY );
-        //FreeRTOS_NetworkDown();
+        RINA_NetworkDown();
     }
+    vTaskDelay( INITIALISATION_RETRY_DELAY );
+
+
 
 }
 /*-----------------------------------------------------------*/
@@ -855,11 +855,31 @@ BaseType_t xIPCPIsNetworkTaskReady( void )
     return xIPCPTaskInitialised;
 }
 
+void RINA_Topology( void )
+
+{
+    static const RINAStackEvent_t xNormalIPCPevent = { eNetworkDownEvent, NULL };
+    const TickType_t xDontBlock = ( TickType_t ) 0;   
+
+    ESP_LOGI(TAG_IPCP,"Creating Topology" );
+
+    if(pxNormalCreate(pxFactory) == pdTRUE)
+    {
+        xSendEventStructToIPCPTask( &xNormalIPCPevent, xDontBlock );
+    }
+    else{
+        ESP_LOGI(TAG_IPCP, "Was not created properly");
+    }
+
+
+}
+
 void RINA_NetworkDown( void )
 {
     static const RINAStackEvent_t xNetworkDownEvent = { eNetworkDownEvent, NULL };
     const TickType_t xDontBlock = ( TickType_t ) 0;
 
+    ESP_LOGI(TAG_IPCP,"RINA_NetworkDown");
     /* Simply send the network task the appropriate event. */
     if( xSendEventStructToIPCPTask( &xNetworkDownEvent, xDontBlock ) != pdPASS )
     {
@@ -871,8 +891,6 @@ void RINA_NetworkDown( void )
         /* Message was sent so it is not pending. */
         xNetworkDownEventPending = pdFALSE;
     }
-
-
 
 }
 

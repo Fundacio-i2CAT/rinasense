@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "map": "c",
+        "*.ipp": "c",
+        "string.h": "c",
+        "freertos.h": "c",
+        "common.h": "c",
+        "thread": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
+}

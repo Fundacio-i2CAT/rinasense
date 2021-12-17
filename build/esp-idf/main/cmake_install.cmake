@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/i2CAT/Documents/IDF_Projects/RINA_sensor/main
+# Install script for directory: C:/Users/i2CAT/Documents/VSTest/rina_freertos/main
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
