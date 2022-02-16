@@ -16,6 +16,7 @@
 #include "ShimIPCP.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
+#include "configRINA.h"
 #include "configSensor.h"
 
 #include "IPCP.h" //temporal
@@ -24,6 +25,7 @@
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
+#include "esp_system.h"
 #include "esp_event_base.h"
 #include "netif/wlanif.h"
 #include "esp_private/wifi.h"
@@ -100,6 +102,18 @@ static void event_handler(void *arg, esp_event_base_t event_base,
  *  Return a Boolean pdTrue or pdFalse
  * */
 BaseType_t xNetworkInterfaceInitialise(const MACAddress_t *pxPhyDev)
+{
+	ESP_LOGI(TAG_WIFI, "%s", __func__);
+	 uint8_t ucMACAddress[ MAC_ADDRESS_LENGTH_BYTES ];
+
+	esp_efuse_mac_get_default(ucMACAddress);
+	vARPUpdateMACAddress(ucMACAddress, pxPhyDev); 
+	return pdTRUE;
+
+}
+
+
+BaseType_t xNetworkInterfaceConnect( void )
 {
 	ESP_LOGI(TAG_WIFI, "%s", __func__);
 
@@ -204,7 +218,7 @@ BaseType_t xNetworkInterfaceInitialise(const MACAddress_t *pxPhyDev)
 			//Wifi_Interface: WIFI_STA or WIFI_AP. This case WIFI_STA
 			esp_wifi_get_mac(ESP_IF_WIFI_STA, ucMACAddress);
 			//Function from Shim_IPCP to update Source MACAddress.
-			vARPUpdateMACAddress(ucMACAddress, pxPhyDev); //Maybe change the method name.
+			//vARPUpdateMACAddress(ucMACAddress, pxPhyDev); //Maybe change the method name.
 			xMACAdrInitialized = pdTRUE;
 			//ESP_LOGI(TAG_WIFI,"MACAddressRINA updated");
 		}

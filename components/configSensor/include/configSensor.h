@@ -39,14 +39,19 @@
 	#define ETH_P_RINA      				0xD1F0
 	#define ETH_P_ARP						0x4305
 
+/********* Define BLE Parameters ****************/
+
+ 	#define SHIM_BLE_MODULE						( 0 )
 
 /*********  Define WiFi Parameters *************/
 
-	#define ESP_WIFI_SSID      					"irati"//"WS02"
-	#define ESP_WIFI_PASS      					"irati2017"//"Esdla2025"
+
 	#define ESP_MAXIMUM_RETRY  					( 3 )
     /*TAG for Debugging*/
 	#define TAG_WIFI							"NetInterface"
+
+		//Delimiter for Encode name
+	#define DELIMITER 								"/"
 
 
 /*********  Define BUFFERS Parameters *************/
@@ -96,7 +101,9 @@
 
 
 	/*TAG for Debugging*/
-	#define TAG_IPCP 							"IPCP"
+	#define TAG_IPCPNORMAL 							"IPCP_NORMAL"
+	#define TAG_IPCPMANAGER 						"IPCP_MANAGER"
+	#define TAG_IPCPFACTORY							"IPCP_FACTORY"
 
 
 	#define IPCP_TASK_PRIORITY                   ( configMAX_PRIORITIES - 2 )
@@ -113,5 +120,20 @@
 
 	#define EFCP_IMAP_ENTRIES     				( 5 )
 	#define TAG_EFCP 							"EFCP"
+
+	#define MAX_SDU_SIZE						( 1000 )
+
+	#define TAG_RINA 							"RINA_API"
+
+
+
+	#define FLOW_DEFAULT_RECEIVE_BLOCK_TIME 	portMAX_DELAY
+	#define FLOW_DEFAULT_SEND_BLOCK_TIME 		portMAX_DELAY
+
+	#define INSTANCES_IPCP_ENTRIES				( 5 )
+
+
+	#define MANAGEMENT_AE  						"Management"
+
 
 #endif

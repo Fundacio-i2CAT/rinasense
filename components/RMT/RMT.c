@@ -66,7 +66,7 @@ static rmtN1Port_t * pxRmtN1PortCreate(portId_t xId, ipcpInstance_t * pxN1Ipcp)
 }
 
 /* @brief Bind the N-1 Port with the RMT. SDUP and RMT Policies are not considered.�
- * It is called from the IPCP normal when a Flow is required to be binded. From the
+ * It is called from the IPCP normal when a Flow is required to be bounded. From the
  * IPCP normal is send the RMT instance, the portId from the Shim, and Shim Instance */
 BaseType_t xRmtN1PortBind(rmt_t * pxRmtInstance, portId_t xId, ipcpInstance_t * pxN1Ipcp);
 
@@ -557,7 +557,7 @@ rmt_t * pxRmtCreate(struct efcpContainer_t * pxEfcpc)
 	rmtN1Port_t * pxPortN1[2];
 
 	if (!pxEfcpc) {
-		ESP_LOGE(TAG_IPCP,"Bogus input parameters");
+		ESP_LOGE(TAG_RMT,"Bogus input parameters");
 		return NULL;
 	}
 

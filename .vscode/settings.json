@@ -7,5 +7,6 @@
         "common.h": "c",
         "thread": "c"
     },
-    "C_Cpp.errorSquiggles": "Disabled"
+    "C_Cpp.errorSquiggles": "Disabled",
+    "idf.adapterTargetName": "esp32"
 }

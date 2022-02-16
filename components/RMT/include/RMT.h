@@ -75,11 +75,16 @@ typedef struct xRMT_ADDRESS {
 
 typedef struct xRMT
 {
-	/* Maybe Spinlock is required
-	spinlock_t	      lock;*/
+	/* List of Address */
 	List_t      					xAddresses;
+
+	/* IPCP Instances Parent*/
 	ipcpInstance_t * 				pxParent;
-	struct efcpContainer_t * 				pxEfcpc;
+
+	/* EFCP Container associated with */
+	struct efcpContainer_t * 		pxEfcpc;
+
+	/* N-1 */
 	rmtN1Port_t * 					pxN1Port;
 	struct rmt_Config_t * 			pxRmtCfg;
 
@@ -97,6 +102,9 @@ pci_t * vCastPointerTo_pci_t(void * pvArgument);
 BaseType_t xRmtSend(rmt_t * pxRmtInstance,struct du_t * pxDu);
 rmt_t * pxRmtCreate( struct efcpContainer_t * pxEfcpc);
 BaseType_t xRmtN1PortBind(rmt_t * pxRmtInstance, portId_t xId, ipcpInstance_t * pxN1Ipcp);
+BaseType_t xRmtSendPortId(rmt_t * pxRmtInstance,
+		     portId_t xPortId,
+		     struct du_t * pxDu);
 
 #endif /* COMPONENTS_RMT_INCLUDE_DU_H_ */
 

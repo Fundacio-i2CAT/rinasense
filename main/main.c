@@ -1,13 +1,14 @@
 #include "freertos/FreeRTOS.h"
 #include <string.h>
 
-#include "ARP826.h"
-#include "BufferManagement.h"
-#include "NetworkInterface.h"
-#include "ShimIPCP.h"
-#include "configSensor.h"
+//#include "ARP826.h"
+//#include "BufferManagement.h"
+//#include "NetworkInterface.h"
+//#include "ShimIPCP.h"
+#include "configRINA.h"
 #include "IPCP.h"
-#include "normalIPCP.h"
+//#include "normalIPCP.h"
+#include "RINA_API.h"
 
 #include "esp_wifi.h"
 #include "esp_system.h"
@@ -30,27 +31,21 @@ void app_main(void)
 	//ESP_LOGI(TAG_WIFI, "ESP_WIFI_MODE_STA");
 	//ESP_LOGI(TAG_WIFI, "Enrolling to DIF");
 
-	/*name_t * pxName;
-	ipcProcessId_t xId = 1;
- 	ipcpInstance_t *pxNormalInstance;
 	
-	pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
-	pxName = pvPortMalloc(sizeof(*pxName));
-
-	pxName->pcEntityInstance = "1";
-	pxName->pcEntityName = "2";
-	pxName->pcProcessInstance = "1";
-	pxName->pcProcessName = "ar1.mobile";
-
-
-	printf("pxNAME:%p\n",pxName);
-	pxNormalInstance = pxNormalCreate(pxName, xId);
-
-	xNormalFlowBinding(pxNormalInstance->pxData, xId, xId);*/
-
-	//xShimWiFiInit(  );
 
 	RINA_IPCPInit( );
+
+	portId_t test = 0;
+	struct rinaFlowSpec_t *xFlowSpec = pvPortMalloc(sizeof(*xFlowSpec));
+	uint8_t Flags=1;
+
+	vTaskDelay(1000);
+
+
+
+	test = RINA_flow_alloc("Irati", "Test|1|Testing|1", "TestRemote", xFlowSpec, Flags);
+
+
 
 
 }

@@ -40,13 +40,25 @@ typedef enum xFLOW_STATES
 
 typedef struct xSHIM_WIFI_FLOW
 {
+	/* Harward Destination Address (MAC)*/
 	gha_t	*		pxDestHa;
+
+	/* Protocol Destination Address (Address RINA)*/
 	gpa_t	*		pxDestPa;
 
+	/* Port Id of???*/
 	portId_t 		xPortId;
+
+	/* State of the PortId */
 	ePortidState_t 	ePortIdState;
 
+	/* IPCP Instance who is going to use the Flow*/
+	ipcpInstance_t * pxUserIpcp;
+
+	/* Maybe this is not needed*/
 	rfifo_t * 		pxSduQueue;
+
+	/* Flow item to register in the List of Shim WiFi Flows */
 	ListItem_t		xFlowItem;
 
 
@@ -63,11 +75,11 @@ BaseType_t xShimEnrollToDIF( const MACAddress_t * pxPhyDev );
  * source and destination application (ePENDING),
  * - If stated is eNULL then RINA_xARPMapping is called.
  * */
-BaseType_t xShimFlowAllocateRequest(portId_t xId,
-
-		const name_t * pxSourceInfo,
-		const name_t * pxDestinationInfo,
-		struct ipcpInstanceData_t * pxData);
+BaseType_t xShimFlowAllocateRequest(portId_t xId, 
+									ipcpInstance_t * pxUserIpcp,
+									const name_t *pxSourceInfo,
+									const name_t *pxDestinationInfo,
+									struct ipcpInstanceData_t *pxData);
 
 
 
@@ -93,7 +105,7 @@ BaseType_t xShimFlowDeallocate(struct ipcpInstanceData_t * pxData, portId_t xId)
  * */
 
 
-BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *  pxData,name_t * pxName, const name_t * pxDafName);
+BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t * pxAppName, name_t * pxDafName);
 /*-------------------------------------------*/
 /* applicationUnregister (naming-info)
  * Primitive invoked before all other functions:
@@ -158,12 +170,15 @@ void vShimGHADestroy( gha_t * pxGha );
 
 BaseType_t xShimWiFiInit( void );
 
-BaseType_t xShimWiFiCreate( ipcpFactory_t * pxFactory, MACAddress_t * pxPhyDev );
+ipcpInstance_t * pxShimWiFiCreate( struct ipcpFactoryData_t * pxFactoryData, ipcProcessId_t xIpcpId);
 
 BaseType_t xShimSDUWrite(struct ipcpInstanceData_t * pxData, portId_t xId, struct du_t * pxDu, BaseType_t uxBlocking);
 
 
 EthernetHeader_t * vCastConstPointerTo_EthernetHeader_t(const void * pvArgument);
+
+
+BaseType_t xShimIPCPInitFactory( factories_t * pxFactoriesList);
 
 
 #endif /* SHIM_IPCP_H__*/

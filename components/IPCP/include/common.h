@@ -42,12 +42,15 @@ typedef uint8_t  qosId_t;
 /* QoSIdLength field 1 Byte*/
 typedef uint8_t address_t;
 
+typedef uint16_t ipcProcessId_t;
+
 
 typedef char* string_t;
 typedef unsigned int  uint_t;
 typedef unsigned int  timeout_t;
 /* SeqNumLength field 4 Byte*/
 typedef uint32_t seqNum_t;;
+
 
 
 typedef struct xName_info
@@ -140,23 +143,116 @@ typedef enum FRAMES_PROCESSING
 typedef struct xPOLICY {
         string_t *       pxName;
         string_t *       pxVersion;
-        //struct list_head params;//List_Freertos
+        List_t           xparameters;
 }policy_t;
+
+/* The structure is useful when the Data Transfers value are variable
+* when it is required to change the PCI fields. Now it is config by
+* default. Future improvements will consider this.*/
+typedef struct xDT_CONS {
+        /* The length of the address field in the DTP PCI, in bytes */
+        uint16_t address_length;
+
+        /* The length of the CEP-id field in the DTP PCI, in bytes */
+        uint16_t cep_id_length;
+
+        /* The length of the length field in the DTP PCI, in bytes */
+        uint16_t length_length;
+
+        /* The length of the Port-id field in the DTP PCI, in bytes */
+        uint16_t port_id_length;
+
+        /* The length of QoS-id field in the DTP PCI, in bytes */
+        uint16_t qos_id_length;
+
+        /* The length of the sequence number field in the DTP PCI, in bytes */
+        uint16_t seq_num_length;
+
+        /* The length of the sequence number field in the DTCP PCI, in bytes */
+        uint16_t ctrl_seq_num_length;
+
+        /* The maximum length allowed for a PDU in this DIF, in bytes */
+        uint32_t max_pdu_size;
+
+        /* The maximum size allowed for a SDU in this DIF, in bytes */
+        uint32_t max_sdu_size;
+
+        /*
+         * The maximum PDU lifetime in this DIF, in milliseconds. This is MPL
+         * in delta-T
+         */
+        uint32_t max_pdu_life;
+
+        /* Rate for rate based mechanism. */
+        uint16_t rate_length;
+
+        /* Time frame for rate based mechanism. */
+        uint16_t frame_length;
+
+        /*
+         * True if the PDUs in this DIF have CRC, TTL, and/or encryption.
+         * Since headers are encrypted, not just user data, if any flow uses
+         * encryption, all flows within the same DIF must do so and the same
+         * encryption algorithm must be used for every PDU; we cannot identify
+         * which flow owns a particular PDU until it has been decrypted.
+         */
+        bool dif_integrity;
+
+        uint32_t seq_rollover_thres;
+        bool dif_concat;
+        bool dif_frag;
+        uint32_t max_time_to_keep_ret_;
+        uint32_t max_time_to_ack_;
+
+}dtCons_t;
 
 /* Represents the configuration of the EFCP */
 typedef struct  xEFCP_CONFIG{
-	 // The data transfer constants
-	//struct dt_cons * dt_cons;
+	 
+        /* The data transfer constants. FUTURE IMPLEMENTATION */
+	dtCons_t * pxDtCons;
 
+        /* Useful when the dt sizes are variable. FUTURE IMPLEMENTATION*/
 	size_t *		uxPciOffsetTable;
 
-	 // FIXME: Left here for phase 2
-	//struct policy * unknown_flow;
+	/* Policy to implement. FUTURE IMPLEMENTATION*/
+	policy_t * pxUnknownFlow;
 
-	// List of qos_cubes supported by the EFCP config
-	//struct list_head qos_cubes;
+	/* List of qos_cubes supported by the EFCP config */
+	List_t xQosCubesList;
 
 }efcpConfig_t;
+
+typedef struct xRMT_CONFIG {
+	/* The PS name for the RMT */
+	policy_t * pxPolicySet;
+
+	/* The configuration of the PDU Forwarding Function subcomponent */
+	//struct pff_config * pff_conf;
+}rmtConfig_t;
+
+/* Represents a DIF configuration (policies, parameters, etc) */
+typedef struct xDIF_CONFIG {
+        /* List of configuration entries */
+       List_t    xIpcpConfigEntries;
+
+        /* the config of the efcp */
+        efcpConfig_t * pxEfcpConfig;
+
+        /* the config of the rmt */
+        rmtConfig_t * pxRmtConfig;
+
+        /* The address of the IPC Process*/
+        address_t           xAddress;
+        /*
+        struct fa_config * fa_config;
+        struct et_config * et_config;
+        struct nsm_config * nsm_config;
+        struct routing_config * routing_config;
+        struct resall_config * resall_config;
+        struct secman_config * secman_config;*/
+}difConfig_t;
+
 
 typedef struct xDTP_CONFIG {
         BaseType_t                 xDtcpPresent;
@@ -202,9 +298,26 @@ typedef struct xDTP_CONFIG {
 
 #define FreeRTOS_ntohs( x )    FreeRTOS_htons( x )
 #define FreeRTOS_ntohl( x )    FreeRTOS_htonl( x )
+ #define SOCKET_EVENT_BIT_COUNT         8
 
+ enum eFLOW_EVENT
+    {
+        eFLOW_RECEIVE = 0x0001,
+        eFLOW_SEND = 0x0002,
+        eFLOW_ACCEPT = 0x0004,
+        eFLOW_CONNECT = 0x0008,
+        eFLOW_BOUND = 0x0010,
+        eFLOW_CLOSED = 0x0020,
+        eSELECT_ALL = 0x000F,
 
+    };
 
+typedef struct xAUTH_POLICY{
+        string_t  xName;
+        uint8_t ucVersion;
+        uint8_t ucAbsSyntax;
+
+}authPolicy_t;
 
 //Structure MAC ADDRESS
 typedef struct xMAC_ADDRESS
@@ -232,7 +345,14 @@ address_t address_bad(void);
 /* ALWAYS use this function to check if the id looks good */
 BaseType_t is_qos_id_ok(qosId_t id);
 
+BaseType_t is_ipcp_id_ok(ipcProcessId_t id);
 
 
+name_t * xRinaNameCreate( void );
+
+BaseType_t xRinaNameFromString(const string_t xString, name_t * xName);
+void xRinaNameFree(name_t * xName);
+
+BaseType_t xRINAStringDup(const string_t * src,string_t ** dst);
 
 #endif /* COMPONENTS_IPCP_INCLUDE_COMMON_H_ */

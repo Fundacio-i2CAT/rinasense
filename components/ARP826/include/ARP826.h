@@ -43,7 +43,7 @@ typedef struct xGENERIC_HARDWARE_ADDRESS
 }gha_t;
 
 //Structure Ethernet Header
-typedef struct xETH_HEADER
+typedef struct __attribute__((packed))
 {
 	MACAddress_t xDestinationAddress; /**< Destination address  0 + 6 = 6  */
 	MACAddress_t xSourceAddress;      /**< Source address       6 + 6 = 12 */
@@ -55,7 +55,7 @@ typedef struct xETH_HEADER
 //DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
 
 //Structure ARP Header
-typedef struct xARP_HEADER
+typedef struct __attribute__((packed))
 {
 	uint16_t usHType;              /**< Network Link Protocol type                     0 +  2 =  2 */
 	uint16_t usPType;              /**< The internetwork protocol                      2 +  2 =  4 */
@@ -69,7 +69,7 @@ typedef struct xARP_HEADER
 }ARPHeader_t;
 
 //Structure ARP Packet
-typedef struct xARP_PACKET
+typedef struct __attribute__((packed))
 {
 	EthernetHeader_t xEthernetHeader; /**< The ethernet header of an ARP Packet  0 + 14 = 14 */
 	ARPHeader_t xARPHeader;           /**< The ARP header of an ARP Packet       14 + 28 = 42 */

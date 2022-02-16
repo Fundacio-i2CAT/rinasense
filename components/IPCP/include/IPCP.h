@@ -21,7 +21,7 @@
 
 typedef struct xQUEUE_FIFO
 {
-	QueueHandle_t * xQueue;
+	QueueHandle_t  xQueue;
 
 } rfifo_t;
 
@@ -39,6 +39,11 @@ typedef enum RINA_EVENTS
 	eEFCPTimerEvent,        /* 6: See if any IPCP socket needs attention. */
 	eEFCPAcceptEvent,       /* 7: Client API FreeRTOS_accept() waiting for client connections. */
 	eShimFlowAllocatedEvent, /* 8: A flow has been allocated on the shimWiFi*/
+    eStackFlowAllocateEvent, /*9: The Software stack IPCP has received a Flow allocate request. */
+    eStackAppRegistrationEvent, /*10: The Software stack IPCP has received a AppRegistration Event*/
+    eFactoryInitEvent,      /*11: The IPCP factories has been initialized. */
+    eShimAppRegisteredEvent, /* 12: The Normal IPCP has been registered into the Shim*/
+    eSendMgmtEvent, /* 13: Send Mgmt PDU */
 
 
 } eRINAEvent_t;
@@ -53,12 +58,7 @@ typedef struct xRINA_TASK_COMMANDS
 } RINAStackEvent_t;
 
 
-
-
-
-
-
-typedef uint16_t ipcProcessId_t;
+//typedef uint16_t ipcProcessId_t;
 
 typedef uint16_t ipcpInstanceId_t;
 
@@ -89,18 +89,18 @@ struct ipcpInstanceOps_t {
                                      struct ipcpInstance_t *      	pxUsrIpcp,
                                      name_t *         		pxSource,
                                      name_t *         		pxDest,
-                                     struct flowSpec_t *    		pxFlowSpec,
+                                     //struct flowSpec_t *    		pxFlowSpec,
                                      portId_t               xId);
-        BaseType_t  (* flowAllocateResponse)(struct ipcpInstanceData_t * pxData,
-                                        struct ipcpInstance_t *      pxDestUserIpcp,
-                                        portId_t                   xPortId,
-                                        int                         Result);
+        BaseType_t  (* flowAllocateResponse)(//struct ipcpInstanceData_t * pxData,
+                                        struct ipcpInstance_t *      pxDestUserIpcp//,
+                                        //portId_t                   xPortId,
+                                        /*int                         Result*/);
         BaseType_t  (* flowDeallocate)(struct ipcpInstanceData_t * 		pxData,
                                  portId_t                   xId);
 
         BaseType_t  (* applicationRegister)(struct ipcpInstanceData_t *   pxData,
-                                      const name_t *       pxSource,
-									  const  name_t *           dafName);
+                                            name_t *           pxSource,
+				                            name_t *           pxDafName);
         BaseType_t  (* applicationUnregister)(struct ipcpInstanceData_t *   pxData,
                 						const name_t *       pxSource);
 
@@ -119,13 +119,13 @@ struct ipcpInstanceOps_t {
                           BaseType_t                       uxBlocking);
 
         cepId_t (* connectionCreate)(struct ipcpInstanceData_t * pxData,
-        			       struct ipcpInstance_t *      pxUserIpcp,
+        			       //struct ipcpInstance_t *      pxUserIpcp,
                                        portId_t                   xPortId,
                                        address_t                   xSource,
                                        address_t                   xDest,
-                                       qosId_t                    xQosId
-                                      /* struct dtp_config *         dtp_config,
-                                       struct dtcp_config *        dtcp_config*/);
+                                       qosId_t                    xQosId,
+                                       dtpConfig_t *         dtp_config,
+                                       struct dtcpConfig_t *        dtcp_config);
 
         BaseType_t      (* connectionUpdate)(struct ipcpInstanceData_t * pxData,
                                        portId_t                   xPortId,
@@ -152,7 +152,7 @@ struct ipcpInstanceOps_t {
                                       struct dtcp_config *        dtcp_config*/);
 
         BaseType_t      (* flowPrebind)(struct ipcpInstanceData_t * pxData,
-                                  struct ipcpInstance_t *   	pxUserIpcp,
+                                  //struct ipcpInstance_t *   	pxUserIpcp,
                                   portId_t                   xPortId);
 
         BaseType_t      (* flowBindingIpcp)(struct ipcpInstanceData_t * pxUserData,
@@ -252,6 +252,7 @@ typedef struct  xIPCP_INSTANCE {
         ipcpInstanceType_t		 xType;
         struct ipcpInstanceData_t * 	 pxData;
         struct ipcpInstanceOps_t *  	 pxOps;
+        ListItem_t               xInstanceItem;
 }ipcpInstance_t;
 
 /**
