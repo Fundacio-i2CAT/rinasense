@@ -128,5 +128,6 @@ typedef struct __attribute__((packed)){
 BaseType_t xPciIsOk(const pci_t * pxPci);
 pduType_t xPciType(const pci_t *pci);
 cepId_t xPciCepSource(const pci_t *pci);
+void vPciPrint(const pci_t * pxPciTmp);
 
 #endif /* COMPONENTS_RMT_INCLUDE_PCI_H_ */

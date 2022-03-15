@@ -21,7 +21,7 @@
 
 #include "EFCP.h"
 #include "du.h"
-#include "RMT.h"
+#include "Rmt.h"
 #include "common.h"
 #include "delim.h"
 

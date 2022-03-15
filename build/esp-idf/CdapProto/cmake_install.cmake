@@ -1,8 +1,8 @@
-# Install script for directory: C:/Users/i2CAT/Documents/VSTest/rina_freertos/components/CdapProto
+# Install script for directory: C:/Users/i2CAT/Documents/VSTest/RINA_freertos/components/CdapProto
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/app-template")
+  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/RINA_sensor")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 

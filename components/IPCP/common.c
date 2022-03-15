@@ -70,6 +70,31 @@ name_t *xRinaNameCreate(void)
         return result;
 }
 
+
+void vRINANameFini(name_t * n)
+{
+        configASSERT(n);
+
+        if (n->pcProcessName) {
+                vPortFree(n->pcProcessName);
+                n->pcProcessName = NULL;
+        }
+        if (n->pcProcessInstance) {
+                vPortFree(n->pcProcessInstance);
+                n->pcProcessInstance = NULL;
+        }
+        if (n->pcEntityName) {
+                vPortFree(n->pcEntityName);
+                n->pcEntityName = NULL;
+        }
+        if (n->pcEntityInstance) {
+                vPortFree(n->pcEntityInstance);
+                n->pcEntityInstance = NULL;
+        }
+
+        ESP_LOGI(TAG_RINA,"Name at %pK finalized successfully", n);
+}
+
 void xRinaNameFree(name_t *xName);
 
 void xRinaNameFree(name_t *xName)
@@ -195,4 +220,103 @@ BaseType_t xRINAStringDup(const string_t *src, string_t **dst)
         }
 
         return pdTRUE;
+}
+
+name_t *xRINANameInitFrom(name_t *dst,
+					   const string_t *process_name,
+					   const string_t *process_instance,
+					   const string_t *entity_name,
+					   const string_t *entity_instance)
+{
+	if (!dst)
+		return NULL;
+
+	/* Clean up the destination, leftovers might be there ... */
+	xRinaNameFree(dst);
+        //name_fini(dst);
+
+	//ASSERT(name_is_initialized(dst));
+
+	/* Boolean shortcuits ... */
+	if (xRINAStringDup(process_name, &dst->pcProcessName) ||
+		xRINAStringDup( process_instance, &dst->pcProcessInstance) ||
+		xRINAStringDup( entity_name, &dst->pcEntityName) ||
+		xRINAStringDup( entity_instance, &dst->pcEntityInstance))
+	{
+		vRINANameFini(dst);
+		return NULL;
+	}
+
+	return dst;
+}
+
+name_t *xRINAstringToName(const string_t *pxInput)
+{
+	name_t *pxName;
+
+	string_t *tmp1 = NULL;
+	string_t *tmp_pn = NULL;
+	string_t *tmp_pi = NULL;
+	string_t *tmp_en = NULL;
+	string_t *tmp_ei = NULL;
+
+        ESP_LOGE(TAG_RINA, "pxInput: %s", *pxInput);
+
+	if (pxInput)
+	{
+		string_t *tmp2;
+
+		xRINAStringDup(pxInput, &tmp1);
+		if (!tmp1)
+		{
+			return NULL;
+		}
+		tmp2 = tmp1;
+
+		tmp_pn = strsep(&tmp2, DELIMITER);
+		tmp_pi = strsep(&tmp2, DELIMITER);
+		tmp_en = strsep(&tmp2, DELIMITER);
+		tmp_ei = strsep(&tmp2, DELIMITER);
+	}
+
+        ESP_LOGE(TAG_RINA, "tmp_pn: %s", *tmp_pn);
+	pxName = xRinaNameCreate( );
+	if (!pxName)
+	{
+		if (tmp1)
+			vPortFree(tmp1);
+		return NULL;
+	}
+
+	if (!xRINANameInitFrom(pxName, tmp_pn, tmp_pi, tmp_en, tmp_ei))
+	{
+		xRinaNameFree(pxName);
+		if (tmp1)
+			vPortFree(tmp1);
+		return NULL;
+	}
+
+	if (tmp1)
+		vPortFree(tmp1);
+
+	return pxName;
+}
+
+void memcheck(void){
+	// perform free memory check
+	int blockSize = 16;
+	int i = 1;
+        static int size = 0;
+	printf("Checking memory with blocksize %d char ...\n", blockSize);
+	while (true) {
+		char *p = (char *) malloc(i * blockSize);
+		if (p == NULL){
+			break;
+		}
+		free(p);
+		++i;
+	}
+	printf("Ok for %d char\n", (i - 1) * blockSize);
+    if (size != (i - 1) * blockSize) printf("There is a possible memory leak because the last memory size was %d and now is %d\n",size,(i - 1) * blockSize);
+    size = (i - 1) * blockSize;
 }

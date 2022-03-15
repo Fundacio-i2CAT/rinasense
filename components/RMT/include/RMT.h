@@ -9,7 +9,7 @@
 #include "efcpStructures.h"
 #include "du.h"
 
-#define TAG_RMT "RMT"
+#define TAG_RMT "[RMT]"
 
 /* rmt_enqueue_policy return values */
 #define RMT_PS_ENQ_SEND  0	/* PDU can be transmitted by the RMT */
@@ -69,7 +69,10 @@ typedef struct xRMT_N1_PORT {
 }rmtN1Port_t;
 
 typedef struct xRMT_ADDRESS {
+	/*Address of the IPCP*/
         address_t	 xAddress;
+
+		/*Address List Item*/
         ListItem_t   xAddressListItem;
 }rmtAddress_t;
 
@@ -100,11 +103,14 @@ typedef struct xPORT_TABLE_ENTRY
 
 pci_t * vCastPointerTo_pci_t(void * pvArgument);
 BaseType_t xRmtSend(rmt_t * pxRmtInstance,struct du_t * pxDu);
-rmt_t * pxRmtCreate( struct efcpContainer_t * pxEfcpc);
+rmt_t * pxRmtCreate( struct efcpContainer_t * pxEfcpc, ipcpInstance_t *pxInstance);
 BaseType_t xRmtN1PortBind(rmt_t * pxRmtInstance, portId_t xId, ipcpInstance_t * pxN1Ipcp);
 BaseType_t xRmtSendPortId(rmt_t * pxRmtInstance,
 		     portId_t xPortId,
 		     struct du_t * pxDu);
+
+BaseType_t xRmtReceive ( rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom );
+BaseType_t xRmtAddressAdd(rmt_t * pxInstance, address_t xAddress);
 
 #endif /* COMPONENTS_RMT_INCLUDE_DU_H_ */
 

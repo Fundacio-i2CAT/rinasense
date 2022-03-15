@@ -21,13 +21,13 @@
 
 #include "esp_log.h"
 
-#include "RMT.h"
+#include "Rmt.h"
 #include "du.h"
 #include "pci.h"
 #include "IPCP.h"
 #include "BufferManagement.h"
 
-#define TAG_DTP 	"DTP"
+#define TAG_DTP 	"[DTP]"
 
 BaseType_t xDuDestroy(struct du_t * pxDu)
 {
@@ -54,23 +54,27 @@ BaseType_t xDuDecap(struct du_t * pxDu)
 
 	/* Extract PCI from buffer*/
 	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucEthernetBuffer);
+
+   // vPciPrint(pxPciTmp);
 	
 	xType = pxPciTmp->xType;
 	if (unlikely(!pdu_type_is_ok(xType))) {
 		ESP_LOGE(TAG_DTP, "Could not decap DU. Type is not ok");
-		return pdFALSE;
+		return pdTRUE;
 	}
 
-	uxPciLen = (size_t )(16); /* PCI defined static for this initial stage = 16Bytes*/
+	uxPciLen = (size_t )(14); /* PCI defined static for this initial stage = 14Bytes*/
 
-	xBufferSize = pxDu->pxNetworkBuffer->xDataLength - uxPciLen - pxPciTmp->xPduLen;
+	xBufferSize = pxDu->pxNetworkBuffer->xDataLength - uxPciLen;
+
+	ESP_LOGE(TAG_DTP, "PDU Size 107-14: %d", xBufferSize);
 
 	pxNewBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, ( TickType_t ) 0U );
 	pxNewBuffer->xDataLength = xBufferSize;
 
-	pucPtr = (uint8_t *)pxPciTmp + 16;
+	pucPtr = (uint8_t *)pxPciTmp + 14;
 
-	memcpy(pxNewBuffer, pucPtr,xBufferSize);
+	memcpy(pxNewBuffer->pucEthernetBuffer, pucPtr,xBufferSize);
 
 
 	pxDu->pxPci->ucVersion = pxPciTmp->ucVersion;
@@ -85,7 +89,7 @@ BaseType_t xDuDecap(struct du_t * pxDu)
 	vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
 	pxDu->pxNetworkBuffer = pxNewBuffer;
 
-	return pdTRUE;
+	return pdFALSE;
 }
 
 ssize_t xDuDataLen(const struct du_t * pxDu)
@@ -108,17 +112,13 @@ BaseType_t xDuEncap(struct du_t * pxDu, pduType_t xType)
 	size_t xBufferSize;
 	pci_t * pxPciTmp;
 	
-    ESP_LOGI(TAG_DTP, " xDuEncap");
 
 	uxPciLen = (size_t )(14); /* PCI defined static for this initial stage = 16Bytes*/
 	
 	/* New Size = Data Size more the PCI size defined by default. */
 	xBufferSize = pxDu->pxNetworkBuffer->xDataLength + uxPciLen;
 
-	ESP_LOGI(TAG_DTP, " xDuEncap: BufferSize: %d", pxDu->pxNetworkBuffer->xDataLength);
-	ESP_LOGI(TAG_DTP, " xDuEncap: NewBufferSize: %d", xBufferSize);
-	ESP_LOGI(TAG_DTP, " xDuEncap: BufferNet: %p",pxDu->pxNetworkBuffer);
-	ESP_LOGI(TAG_DTP, " xDuEncap: BufferNet PUC: %p",pxDu->pxNetworkBuffer->pucEthernetBuffer);
+
 
 	pxNewBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, ( TickType_t ) 0U );
 
@@ -141,7 +141,7 @@ BaseType_t xDuEncap(struct du_t * pxDu, pduType_t xType)
 
 	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucEthernetBuffer);
 
-	//ESP_LOGI(TAG_DTP,"PciInfo: %x",pxPciTmp->ucVersion);
+	
 
 	pxDu->pxPci = pxPciTmp;
 

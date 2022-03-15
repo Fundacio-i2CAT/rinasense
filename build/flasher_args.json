@@ -10,11 +10,11 @@
     "flash_files" : {
         "0x8000" : "partition_table/partition-table.bin",
         "0x1000" : "bootloader/bootloader.bin",
-        "0x10000" : "app-template.bin"
+        "0x10000" : "RINA_sensor.bin"
     },
     "partition_table" : { "offset" : "0x8000", "file" : "partition_table/partition-table.bin", "encrypted" : "false" },
     "bootloader" : { "offset" : "0x1000", "file" : "bootloader/bootloader.bin", "encrypted" : "false" },
-    "app" : { "offset" : "0x10000", "file" : "app-template.bin", "encrypted" : "false" },
+    "app" : { "offset" : "0x10000", "file" : "RINA_sensor.bin", "encrypted" : "false" },
     "extra_esptool_args" : {
         "after"  : "hard_reset",
         "before" : "default_reset",

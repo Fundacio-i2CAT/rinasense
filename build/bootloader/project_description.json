@@ -1,8 +1,8 @@
 {
     "project_name":       "bootloader",
     "project_path":       "C:/Esp32/esp-idf/components/bootloader/subproject",
-    "build_dir":          "C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/bootloader",
-    "config_file":        "C:/Users/i2CAT/Documents/VSTest/rina_freertos/sdkconfig",
+    "build_dir":          "C:/Users/i2CAT/Documents/VSTest/RINA_freertos/build/bootloader",
+    "config_file":        "C:/Users/i2CAT/Documents/VSTest/RINA_freertos/sdkconfig",
     "config_defaults":    "",
     "app_elf":            "bootloader.elf",
     "app_bin":            "bootloader.bin",

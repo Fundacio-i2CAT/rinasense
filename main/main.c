@@ -43,7 +43,7 @@ void app_main(void)
 
 
 
-	test = RINA_flow_alloc("Irati", "Test|1|Testing|1", "TestRemote", xFlowSpec, Flags);
+	//test = RINA_flow_alloc("Irati", "Test|1|Testing|1", "TestRemote", xFlowSpec, Flags);
 
 
 

@@ -18,7 +18,7 @@
 #include "freertos/semphr.h"
 
 #include "EFCP.h"
-#include "RMT.h"
+#include "Rmt.h"
 #include "pci.h"
 #include "du.h"
 #include "efcpStructures.h"
@@ -42,7 +42,7 @@ static struct efcp_t * pxEfcpCreate(void);
 /* Destroy an EFCP instance*/
 static BaseType_t xEfcpDestroy(struct efcp_t * pxInstance);
 
-/* Receive DU from a RMT into the EFCP instance*/
+/* Receive DU from a Rmt into the EFCP instance*/
 BaseType_t xEfcpReceive(struct efcp_t *pxEfcp, struct du_t *pxDu);
 
 /* Write DU from Application into a EFCP instance*/
@@ -56,7 +56,7 @@ struct efcpContainer_t *pxEfcpContainerCreate(void);
 /* Destroy an EFCP Container */
 BaseType_t xEfcpContainerDestroy(struct efcpContainer_t * pxContainer);
 
-/* Receive DU from RMT into the EFCPContainer */
+/* Receive DU from Rmt into the EFCPContainer */
 BaseType_t xEfcpContainerReceive(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, struct du_t *pxDu);
 
 /* Write a du from User App into a Container */
@@ -616,7 +616,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
         rcu_read_unlock();
         if (dtcp_present) {
                 dtcp = dtcp_create(efcp->dtp,
-                                   container->rmt,
+                                   container->Rmt,
                                    dtcp_cfg,
 				   &efcp->robj);
                 if (!dtcp) {
@@ -639,7 +639,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
         }
 
         if (dtcp_rtx_ctrl(dtcp_cfg)) {
-                rtxq = rtxq_create(efcp->dtp, container->rmt, container,
+                rtxq = rtxq_create(efcp->dtp, container->Rmt, container,
                 		   dtcp_cfg, cep_id);
                 if (!rtxq) {
                         ESP_LOGE(TAG_EFCP,"Failed to create rexmsn queue");

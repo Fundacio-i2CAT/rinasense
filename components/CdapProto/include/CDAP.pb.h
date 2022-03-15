@@ -40,20 +40,22 @@ typedef enum _rina_messages_flagValues_t {
 } rina_messages_flagValues_t;
 
 /* Struct definitions */
-typedef struct _rina_messages_authPolicy_t { 
-    pb_callback_t name; /* Policy name */
-    pb_callback_t versions; /* Supported versions */
-    pb_callback_t options; /* Opaque policy-specific versions */
-} rina_messages_authPolicy_t;
-
 typedef struct _rina_messages_string_t { /* information to identify an string */
     pb_callback_t value; /* value of the string */
 } rina_messages_string_t;
+
+typedef struct _rina_messages_authPolicy_t { 
+    bool has_name;
+    char name[40]; /* Policy name */
+    pb_callback_t versions; /* Supported versions */
+    pb_callback_t options; /* Opaque policy-specific versions */
+} rina_messages_authPolicy_t;
 
 typedef struct _rina_messages_int_t { /* information to identify an int */
     uint32_t value; /* value of the integer */
 } rina_messages_int_t;
 
+typedef PB_BYTES_ARRAY_T(256) rina_messages_objVal_t_byteval_t;
 typedef struct _rina_messages_objVal_t { /* value of an object */
     bool has_intval;
     int32_t intval; 
@@ -63,8 +65,10 @@ typedef struct _rina_messages_objVal_t { /* value of an object */
     int64_t int64val; 
     bool has_sint64val;
     int64_t sint64val; 
-    pb_callback_t strval; 
-    pb_callback_t byteval; /* arbitrary structure or message */
+    bool has_strval;
+    char strval[10]; 
+    bool has_byteval;
+    rina_messages_objVal_t_byteval_t byteval; /* arbitrary structure or message */
     bool has_floatval;
     uint32_t floatval; 
     bool has_doubleval;
@@ -85,8 +89,10 @@ typedef struct _rina_messages_CDAPMessage {
     int32_t invokeID; /* Invoke ID, omitted if no reply desired. */
     bool has_flags;
     rina_messages_flagValues_t flags; /* misc. flags */
-    pb_callback_t objClass; /* Name of the object class of objName */
-    pb_callback_t objName; /* Object name, unique in its class */
+    bool has_objClass;
+    char objClass[20]; /* Name of the object class of objName */
+    bool has_objName;
+    char objName[20]; /* Object name, unique in its class */
     bool has_objInst;
     int64_t objInst; /* Unique object instance */
     bool has_objValue;
@@ -98,15 +104,24 @@ typedef struct _rina_messages_CDAPMessage {
     pb_callback_t filter; /* filter script */
     bool has_authPolicy;
     rina_messages_authPolicy_t authPolicy; /* Authentication policy information */
-    pb_callback_t destAEInst; /* Destination AE Instance name */
-    pb_callback_t destAEName; /* Destination AE name */
-    pb_callback_t destApInst; /* Destination Application Instance name */
-    pb_callback_t destApName; /* Destination Application name */
-    pb_callback_t srcAEInst; /* Source AE Instance name */
-    pb_callback_t srcAEName; /* Source AE name */
-    pb_callback_t srcApInst; /* Source Application Instance name */
-    pb_callback_t srcApName; /* Source Application name */
-    pb_callback_t resultReason; /* further explanation of result */
+    bool has_destAEInst;
+    char destAEInst[20]; /* Destination AE Instance name */
+    bool has_destAEName;
+    char destAEName[20]; /* Destination AE name */
+    bool has_destApInst;
+    char destApInst[20]; /* Destination Application Instance name */
+    bool has_destApName;
+    char destApName[20]; /* Destination Application name */
+    bool has_srcAEInst;
+    char srcAEInst[20]; /* Source AE Instance name */
+    bool has_srcAEName;
+    char srcAEName[20]; /* Source AE name */
+    bool has_srcApInst;
+    char srcApInst[20]; /* Source Application Instance name */
+    bool has_srcApName;
+    char srcApName[20]; /* Source Application name */
+    bool has_resultReason;
+    char resultReason[20]; /* further explanation of result */
     bool has_version;
     int64_t version; /* For application use - RIB/class version. */
 } rina_messages_CDAPMessage;
@@ -127,22 +142,22 @@ extern "C" {
 #endif
 
 /* Initializer values for message structs */
-#define rina_messages_objVal_t_init_default      {false, 0, false, 0, false, 0, false, 0, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, false, 0, false, 0}
-#define rina_messages_authPolicy_t_init_default  {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define rina_messages_CDAPMessage_init_default   {false, 0, _rina_messages_opCode_t_MIN, false, 0, false, _rina_messages_flagValues_t_MIN, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, false, rina_messages_objVal_t_init_default, false, 0, false, 0, {{NULL}, NULL}, false, rina_messages_authPolicy_t_init_default, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, false, 0}
+#define rina_messages_objVal_t_init_default      {false, 0, false, 0, false, 0, false, 0, false, "", false, {0, {0}}, false, 0, false, 0, false, 0}
+#define rina_messages_authPolicy_t_init_default  {false, "", {{NULL}, NULL}, {{NULL}, NULL}}
+#define rina_messages_CDAPMessage_init_default   {false, 0, _rina_messages_opCode_t_MIN, false, 0, false, _rina_messages_flagValues_t_MIN, false, "", false, "", false, 0, false, rina_messages_objVal_t_init_default, false, 0, false, 0, {{NULL}, NULL}, false, rina_messages_authPolicy_t_init_default, false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, 0}
 #define rina_messages_int_t_init_default         {0}
 #define rina_messages_string_t_init_default      {{{NULL}, NULL}}
-#define rina_messages_objVal_t_init_zero         {false, 0, false, 0, false, 0, false, 0, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, false, 0, false, 0}
-#define rina_messages_authPolicy_t_init_zero     {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define rina_messages_CDAPMessage_init_zero      {false, 0, _rina_messages_opCode_t_MIN, false, 0, false, _rina_messages_flagValues_t_MIN, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, false, rina_messages_objVal_t_init_zero, false, 0, false, 0, {{NULL}, NULL}, false, rina_messages_authPolicy_t_init_zero, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, false, 0}
+#define rina_messages_objVal_t_init_zero         {false, 0, false, 0, false, 0, false, 0, false, "", false, {0, {0}}, false, 0, false, 0, false, 0}
+#define rina_messages_authPolicy_t_init_zero     {false, "", {{NULL}, NULL}, {{NULL}, NULL}}
+#define rina_messages_CDAPMessage_init_zero      {false, 0, _rina_messages_opCode_t_MIN, false, 0, false, _rina_messages_flagValues_t_MIN, false, "", false, "", false, 0, false, rina_messages_objVal_t_init_zero, false, 0, false, 0, {{NULL}, NULL}, false, rina_messages_authPolicy_t_init_zero, false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, 0}
 #define rina_messages_int_t_init_zero            {0}
 #define rina_messages_string_t_init_zero         {{{NULL}, NULL}}
 
 /* Field tags (for use in manual encoding/decoding) */
+#define rina_messages_string_t_value_tag         1
 #define rina_messages_authPolicy_t_name_tag      1
 #define rina_messages_authPolicy_t_versions_tag  2
 #define rina_messages_authPolicy_t_options_tag   3
-#define rina_messages_string_t_value_tag         1
 #define rina_messages_int_t_value_tag            1
 #define rina_messages_objVal_t_intval_tag        1
 #define rina_messages_objVal_t_sintval_tag       2
@@ -182,16 +197,16 @@ X(a, STATIC,   OPTIONAL, INT32,    intval,            1) \
 X(a, STATIC,   OPTIONAL, SINT32,   sintval,           2) \
 X(a, STATIC,   OPTIONAL, INT64,    int64val,          3) \
 X(a, STATIC,   OPTIONAL, SINT64,   sint64val,         4) \
-X(a, CALLBACK, OPTIONAL, STRING,   strval,            5) \
-X(a, CALLBACK, OPTIONAL, BYTES,    byteval,           6) \
+X(a, STATIC,   OPTIONAL, STRING,   strval,            5) \
+X(a, STATIC,   OPTIONAL, BYTES,    byteval,           6) \
 X(a, STATIC,   OPTIONAL, FIXED32,  floatval,          7) \
 X(a, STATIC,   OPTIONAL, FIXED64,  doubleval,         8) \
 X(a, STATIC,   OPTIONAL, BOOL,     boolval,           9)
-#define rina_messages_objVal_t_CALLBACK pb_default_field_callback
+#define rina_messages_objVal_t_CALLBACK NULL
 #define rina_messages_objVal_t_DEFAULT NULL
 
 #define rina_messages_authPolicy_t_FIELDLIST(X, a) \
-X(a, CALLBACK, OPTIONAL, STRING,   name,              1) \
+X(a, STATIC,   OPTIONAL, STRING,   name,              1) \
 X(a, CALLBACK, REPEATED, STRING,   versions,          2) \
 X(a, CALLBACK, OPTIONAL, BYTES,    options,           3)
 #define rina_messages_authPolicy_t_CALLBACK pb_default_field_callback
@@ -202,23 +217,23 @@ X(a, STATIC,   OPTIONAL, INT32,    absSyntax,         1) \
 X(a, STATIC,   REQUIRED, UENUM,    opCode,            2) \
 X(a, STATIC,   OPTIONAL, INT32,    invokeID,          3) \
 X(a, STATIC,   OPTIONAL, UENUM,    flags,             4) \
-X(a, CALLBACK, OPTIONAL, STRING,   objClass,          5) \
-X(a, CALLBACK, OPTIONAL, STRING,   objName,           6) \
+X(a, STATIC,   OPTIONAL, STRING,   objClass,          5) \
+X(a, STATIC,   OPTIONAL, STRING,   objName,           6) \
 X(a, STATIC,   OPTIONAL, INT64,    objInst,           7) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  objValue,          8) \
 X(a, STATIC,   OPTIONAL, INT32,    result,            9) \
 X(a, STATIC,   OPTIONAL, INT32,    scope,            10) \
 X(a, CALLBACK, OPTIONAL, BYTES,    filter,           11) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  authPolicy,       18) \
-X(a, CALLBACK, OPTIONAL, STRING,   destAEInst,       19) \
-X(a, CALLBACK, OPTIONAL, STRING,   destAEName,       20) \
-X(a, CALLBACK, OPTIONAL, STRING,   destApInst,       21) \
-X(a, CALLBACK, OPTIONAL, STRING,   destApName,       22) \
-X(a, CALLBACK, OPTIONAL, STRING,   srcAEInst,        23) \
-X(a, CALLBACK, OPTIONAL, STRING,   srcAEName,        24) \
-X(a, CALLBACK, OPTIONAL, STRING,   srcApInst,        25) \
-X(a, CALLBACK, OPTIONAL, STRING,   srcApName,        26) \
-X(a, CALLBACK, OPTIONAL, STRING,   resultReason,     27) \
+X(a, STATIC,   OPTIONAL, STRING,   destAEInst,       19) \
+X(a, STATIC,   OPTIONAL, STRING,   destAEName,       20) \
+X(a, STATIC,   OPTIONAL, STRING,   destApInst,       21) \
+X(a, STATIC,   OPTIONAL, STRING,   destApName,       22) \
+X(a, STATIC,   OPTIONAL, STRING,   srcAEInst,        23) \
+X(a, STATIC,   OPTIONAL, STRING,   srcAEName,        24) \
+X(a, STATIC,   OPTIONAL, STRING,   srcApInst,        25) \
+X(a, STATIC,   OPTIONAL, STRING,   srcApName,        26) \
+X(a, STATIC,   OPTIONAL, STRING,   resultReason,     27) \
 X(a, STATIC,   OPTIONAL, INT64,    version,          28)
 #define rina_messages_CDAPMessage_CALLBACK pb_default_field_callback
 #define rina_messages_CDAPMessage_DEFAULT (const pb_byte_t*)"\x48\x00\x00"
@@ -249,11 +264,11 @@ extern const pb_msgdesc_t rina_messages_string_t_msg;
 #define rina_messages_string_t_fields &rina_messages_string_t_msg
 
 /* Maximum encoded size of messages (where known) */
-/* rina_messages_objVal_t_size depends on runtime parameters */
 /* rina_messages_authPolicy_t_size depends on runtime parameters */
 /* rina_messages_CDAPMessage_size depends on runtime parameters */
 /* rina_messages_string_t_size depends on runtime parameters */
 #define rina_messages_int_t_size                 6
+#define rina_messages_objVal_t_size              325
 
 #ifdef __cplusplus
 } /* extern "C" */

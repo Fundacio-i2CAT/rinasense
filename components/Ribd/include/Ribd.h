@@ -1,0 +1,82 @@
+
+
+/*Move to configurations RINA*/
+#define APP_CONNECTION_TABLE_SIZE ( 5 )
+
+typedef enum {
+	M_CONNECT = 0,
+	M_CONNECT_R,
+	M_RELEASE,
+	M_RELEASE_R,
+	M_CREATE,
+	M_CREATE_R,
+	M_DELETE,
+	M_DELETE_R,
+	M_READ,
+	M_READ_R,
+	M_CANCELREAD,
+	M_CANCELREAD_R,
+	M_WRITE,
+	M_WRITE_R,
+	M_START,
+	M_START_R,
+	M_STOP,
+	M_STOP_R,
+}opCode_t;
+
+typedef enum{
+    eCONNECTION_INIT = 0,
+    eCONNECTION_IN_PROGRESS,
+    eCONNECTED,
+    eRELEASED,
+}connectionStatus_t; 
+
+typedef struct xAPP_CONNECTION{
+    name_t * pxSourceInfo;
+    name_t * pxDestinationInfo;
+    uint8_t  uCdapVersion;
+    uint8_t uRibVersion;
+    connectionStatus_t xStatus;
+    
+}appConnection_t;
+
+typedef struct xAPP_CONNECTION_ROW{
+    appConnection_t * pxAppConnection;
+    portId_t  xN1portId;
+    BaseType_t xValid;
+    
+}appConnectionTableRow_t;
+
+typedef struct xMESSAGE_CDAP{
+    /*Operation Code*/
+    opCode_t eOpCode;
+
+    /*absSyntax*/
+
+    /*Destination Info*/
+    name_t * pxDestinationInfo;
+
+    /*Source Info*/
+    name_t * pxSourceInfo;
+
+    /*Version*/
+    int64_t version;
+
+    /*Authentication Policy*/
+    authPolicy_t * pxAuthPolicy;
+
+    /*Invoke ID*/
+    int32_t invokeID;
+
+}messageCdap_t;
+
+
+BaseType_t xRibdConnectToIpcp( name_t *pxSource, name_t * pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth);
+BaseType_t xRibdDisconnectToIpcp( portId_t xN1flowPortId );
+BaseType_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
+
+
+BaseType_t xTest(void);
+
+
+

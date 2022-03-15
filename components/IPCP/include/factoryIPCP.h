@@ -30,18 +30,28 @@ typedef struct xIPCP_FACTORY_OPS {
 
                                            
     #endif
-    string_t TEST;
+    //string_t TEST;
 
 }ipcpFactoryOps_t;
 
 typedef struct xIPCP_FACTORY{
+
+    /* ListItem to be include into the List of factories in the IpcManager
+    * during the registration factory process */
     ListItem_t  xIPCPFactoryItem;
+
+    /* Type of factory (Normal, Shim-Wifi,...)*/
     ipcpFactoryType_t    xFactoryType;
+
+    /* Factory Data depends on each factory.*/
     struct ipcpFactoryData_t *pxFactoryData;
+
+    /* Basic operations of the Factoruy:init, fini, create and destroy*/
     ipcpFactoryOps_t *pxFactoryOps;
 }ipcpFactory_t;
 
 typedef struct xFACTORIES_{
+    /*List of factories registered, only by the IPCManager*/
     List_t xFactoriesList;
 }factories_t;
 

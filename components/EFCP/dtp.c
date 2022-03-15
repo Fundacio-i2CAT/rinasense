@@ -10,9 +10,9 @@
 
 #include "du.h"
 #include "common.h"
-#include "RMT.h"
+#include "Rmt.h"
 
-#define TAG_DTP         "DTP"
+#define TAG_DTP         "[DTP]"
 
 
 static dtpSv_t default_sv = {

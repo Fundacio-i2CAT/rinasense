@@ -91,9 +91,9 @@ struct ipcpInstanceOps_t {
                                      name_t *         		pxDest,
                                      //struct flowSpec_t *    		pxFlowSpec,
                                      portId_t               xId);
-        BaseType_t  (* flowAllocateResponse)(//struct ipcpInstanceData_t * pxData,
-                                        struct ipcpInstance_t *      pxDestUserIpcp//,
-                                        //portId_t                   xPortId,
+        BaseType_t  (* flowAllocateResponse)(struct ipcpInstanceData_t * pxData,
+                                        struct ipcpInstance_t *      pxUserIpcp,
+                                        portId_t                   xPortId
                                         /*int                         Result*/);
         BaseType_t  (* flowDeallocate)(struct ipcpInstanceData_t * 		pxData,
                                  portId_t                   xId);

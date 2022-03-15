@@ -1,4 +1,13 @@
-
+/**
+ * @file ipcpIdm.c
+ * @author David Sarabia i2CAT
+ * @brief Manager the IPCP Ids assign to the created IPCPs
+ * @version 0.1
+ * @date 2022-02-23
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 #include "freertos/FreeRTOS.h"
 
 #include "common.h"
@@ -65,13 +74,14 @@ BaseType_t xIpcpIdmAllocated(ipcpIdm_t *pxInstance, ipcProcessId_t xIpcpId)
 
                 if (pos)
                 {
-                        ESP_LOGI(TAG_IPCPMANAGER, "Port ID %p, #: %d", pos, pos->xIpcpId);
+                        ESP_LOGI(TAG_IPCPMANAGER, "IPCP ID %p, #: %d", pos, pos->xIpcpId);
 
                         /*if (pxInstance->xType == xType)
                         {
                                 //ESP_LOGI(TAG_IPCPMANAGER, "Instance founded %p, Type: %d", pxInstance, pxInstance->xType);
                                 return pxInstance;
                         }*/
+                   
                 }
                 else
                 {
@@ -129,7 +139,7 @@ ipcProcessId_t xIpcpIdmAllocate(ipcpIdm_t *pxInstance)
 
         pxInstance->xLastAllocated = pid;
 
-        ESP_LOGI(TAG_IPCPMANAGER, "Port-id allocation completed successfully (id = %d)", pid);
+        ESP_LOGI(TAG_IPCPMANAGER, "Ipcp-id allocation completed successfully (ipcpId = %d)", pid);
 
         return pid;
 }

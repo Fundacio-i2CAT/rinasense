@@ -83,7 +83,7 @@ BaseType_t xShimFlowAllocateRequest(portId_t xId,
 
 
 
-BaseType_t xShimFlowAllocateResponse(ipcpInstance_t * pxShimInstance);
+BaseType_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData, ipcpInstance_t *pxUserIpcp, portId_t xPortId);
 
 
 /*-------------------------------------------*/
@@ -134,10 +134,10 @@ void vShimWrite(void);
  * */
 void vShimRead(void);
 
+gpa_t *pxShimNameToGPA(const name_t *xLocalInfo);
 
 
-
-
+string_t * xShimGPAAddressToString(const gpa_t * pxGpa);
 
 /* @brief Create a generic protocol address based on an string address*/
 gpa_t * pxShimCreateGPA(const uint8_t * pucAddress, size_t xLength);
@@ -146,7 +146,7 @@ gpa_t * pxShimCreateGPA(const uint8_t * pucAddress, size_t xLength);
 gha_t * pxShimCreateGHA(eGHAType_t xType, const MACAddress_t * pxAddress );
 
 
-gpa_t * pxNameToGPA (const name_t * AplicationInfo );
+//gpa_t * pxNameToGPA (const name_t * AplicationInfo );
 
 
 void vNameDestroy(name_t * ptr );

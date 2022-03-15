@@ -55,10 +55,10 @@ typedef uint32_t seqNum_t;;
 
 typedef struct xName_info
 {
-	string_t  pcProcessName;  			/*> Process Name*/
+	string_t  pcProcessName;  		/*> Process Name*/
 	string_t  pcProcessInstance;		/*> Process Instance*/
-	string_t  pcEntityName;				/*> Entity Name*/
-	string_t  pcEntityInstance;		    /*> Entity Instance*/
+	string_t  pcEntityName;			/*> Entity Name*/
+	string_t  pcEntityInstance;		/*> Entity Instance*/
 
 }name_t;
 
@@ -125,11 +125,11 @@ struct flowSpec_t
 typedef struct xNETWORK_BUFFER
 {
     ListItem_t xBufferListItem;                /**< Used to reference the buffer form the free buffer list or a socket. */
-    uint8_t ulGpa;                      		/**< Source or destination Protocol address, depending on usage scenario. */
+    uint8_t ulGpa;                             /**< Source or destination Protocol address, depending on usage scenario. */
     uint8_t * pucEthernetBuffer;               /**< Pointer to the start of the Ethernet frame. */
     size_t xDataLength;                        /**< Starts by holding the total Ethernet frame length, then the UDP/TCP payload length. */
-    uint16_t usPort;                           /**< Source or destination port, depending on usage scenario. */
-    uint16_t usBoundPort;                      /**< The port to which a transmitting socket is bound. */
+    uint32_t ulPort;                           /**< Source or destination port, depending on usage scenario. */
+    uint32_t ulBoundPort;                      /**< The N-1 port to transmite. */
 
 } NetworkBufferDescriptor_t;
 typedef enum FRAMES_PROCESSING
@@ -313,8 +313,8 @@ typedef struct xDTP_CONFIG {
     };
 
 typedef struct xAUTH_POLICY{
-        string_t  xName;
-        uint8_t ucVersion;
+        string_t  pcName;
+        string_t pcVersion;
         uint8_t ucAbsSyntax;
 
 }authPolicy_t;
@@ -354,5 +354,9 @@ BaseType_t xRinaNameFromString(const string_t xString, name_t * xName);
 void xRinaNameFree(name_t * xName);
 
 BaseType_t xRINAStringDup(const string_t * src,string_t ** dst);
+
+name_t *xRINAstringToName(const string_t *pxInput);
+
+void memcheck(void);
 
 #endif /* COMPONENTS_IPCP_INCLUDE_COMMON_H_ */

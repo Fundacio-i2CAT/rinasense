@@ -164,5 +164,8 @@ void vARPPrintCache (void);
 
 void vPrintMACAddress(const gha_t * gha);
 
+gha_t * pxARPLookupGHA( const gpa_t * pxGpaToLookup );
+void vARPPrintMACAddress(const gha_t * pxGha);
+
 #endif /* ARP_H_ */
 

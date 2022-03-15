@@ -9,7 +9,7 @@
 
 #include "esp_log.h"
 
-#include "RMT.h"
+#include "Rmt.h"
 #include "du.h"
 #include "IPCP.h"
 #include "pci.h"
@@ -132,7 +132,7 @@ BaseType_t xRmtN1PortBind(rmt_t * pxRmtInstance, portId_t xId, ipcpInstance_t * 
 
 /* @brief Add an Address into the RMT list. This list is useful when the
  * packet arrived and need to know whether it is for us or not. */
-BaseType_t xRmtAddressAdd(rmt_t * pxInstance, address_t xAddress);
+
 
 BaseType_t xRmtAddressAdd(rmt_t * pxInstance, address_t xAddress)
 {
@@ -148,6 +148,8 @@ BaseType_t xRmtAddressAdd(rmt_t * pxInstance, address_t xAddress)
 		return pdFALSE;
 
 	pxRmtAddr->xAddress = xAddress;
+
+	ESP_LOGE(TAG_RMT, "Adding and Address into the RMT list:%d", pxRmtAddr->xAddress);
 
 	vListInitialiseItem( &(pxRmtAddr->xAddressListItem) );
 	vListInsert(&pxInstance->xAddresses,&(pxRmtAddr->xAddressListItem));
@@ -177,19 +179,45 @@ BaseType_t  xRmtPduIsAddressedToMe(rmt_t * pxRmt, address_t xAddress)
 
 	while ( pxListItem != pxListEnd )
 	{
-		pxNext = listGET_NEXT( pxListItem );
+		
 		pxAddr = (rmtAddress_t *)listGET_LIST_ITEM_VALUE( pxListItem );
+		//ESP_LOGE(TAG_RMT, "Address to evalute: %d", pxAddr->xAddress);
 		if (pxAddr->xAddress == xAddress )
 		{
+			ESP_LOGI(TAG_RMT, "Address to me founded!");
 			return pdTRUE;
 		}
-		pxListItem = pxNext;
+		pxListItem = listGET_NEXT( pxListItem );;
 	}
 
 
 	return pdFALSE;
 
 
+}
+
+static BaseType_t xRmtProcessMgmtPdu(rmt_t * pxRmt, portId_t xPortId, struct du_t * pxDu);
+static BaseType_t xRmtProcessMgmtPdu(rmt_t * pxRmt, portId_t xPortId, struct du_t * pxDu)
+{
+	ESP_LOGE(TAG_RMT,"xRmtProcessMgmtPdu");
+	if(!pxRmt->pxParent)
+	{
+		ESP_LOGE(TAG_RMT,"No IPCP Parent register");
+		return pdFALSE;
+	}
+	//ESP_LOGE(TAG_RMT,"No mgmtDuPost into %p");
+
+	if(!pxRmt->pxParent->pxOps->mgmtDuPost)
+	{
+		ESP_LOGE(TAG_RMT,"No mgmtDuPost into Instance");
+		return pdFALSE;
+	}
+	if (!pxRmt->pxParent->pxOps->mgmtDuPost(pxRmt->pxParent->pxData,xPortId,pxDu))
+	{
+		ESP_LOGE(TAG_RMT,"Failed");
+		return pdFALSE;
+	}
+	return pdTRUE;
 }
 
 static BaseType_t xRmtProcessDtPdu(rmt_t * pxRmt, portId_t xPortId, struct du_t * pxDu);
@@ -287,13 +315,12 @@ BaseType_t xRmtReceive (rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom)
 
 
 	if (unlikely(xDuDecap(pxDu)))
-	{ /*Decap PDU */
+	{ 
+		/*Decap PDU */
 		ESP_LOGE(TAG_RMT,"Could not decap PDU");
 		xDuDestroy(pxDu);
 		return pdFALSE;
 	}
-
-
 
 	xPduType = pxDu->pxPci->xType;
 	xDstAddr = pxDu->pxPci->xDestination;
@@ -316,7 +343,8 @@ BaseType_t xRmtReceive (rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom)
 		switch (xPduType)
 		{
 		case PDU_TYPE_MGMT:
-			//return process_mgmt_pdu(rmt, xFrom, pxDu);
+			ESP_LOGE(TAG_RMT,"Mgmt PDU!!!");
+			return xRmtProcessMgmtPdu(pxRmt, xFrom, pxDu);
 
 		case PDU_TYPE_CACK:
 		case PDU_TYPE_SACK:
@@ -345,7 +373,12 @@ BaseType_t xRmtReceive (rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom)
 	 * A forwarding to next hop will be consider in other version. */
 	else
 	{
-		return pdFALSE;
+		if (!xDstAddr)
+			return xRmtProcessMgmtPdu(pxRmt, xFrom, pxDu);
+		else{
+			ESP_LOGI(TAG_RMT, "PDU is not for me");
+			return pdFALSE;
+		}
 
 	}
 }
@@ -356,18 +389,18 @@ static BaseType_t xRmtN1PortWriteDu(rmt_t * pxRmt,
 			     rmtN1Port_t * pxN1Port,
 			    struct du_t * pxDu)
 {
-	ESP_LOGI(TAG_RMT,"xRmtN1PortWriteDu");
+	ESP_LOGI(TAG_RMT,"Executing xRmtN1PortWriteDu");
 	BaseType_t ret;
 	ssize_t bytes = pxDu->pxNetworkBuffer->xDataLength;
 
 	ESP_LOGI(TAG_RMT,"Gonna send SDU to port-id %d", pxN1Port->xPortId);
 	ret = pxN1Port->pxN1Ipcp->pxOps->duWrite(pxN1Port->pxN1Ipcp->pxData,pxN1Port->xPortId, pxDu, false);
-	ESP_LOGI(TAG_RMT,"xRmtN1PortWriteDu ret:%d",ret);
+	//ESP_LOGI(TAG_RMT,"xRmtN1PortWriteDu ret:%d",ret);
 
 	if (!ret)
-		return (int) bytes;
+		return pdFALSE;
 
-	if (ret == pdFAIL) {
+	if (ret == pdFALSE) {
 		//n1_port_lock(n1_port);
 		if (pxN1Port->pxPendingDu)
 		{
@@ -379,7 +412,7 @@ static BaseType_t xRmtN1PortWriteDu(rmt_t * pxRmt,
 
 		pxN1Port->pxPendingDu = pxDu;
 		pxN1Port->xStats.plen++;
-		ESP_LOGI(TAG_RMT,"xRmtN1PortWriteDu:Pending");
+		//ESP_LOGI(TAG_RMT,"xRmtN1PortWriteDu:Pending");
 
 		if (pxN1Port->eState == eN1_PORT_STATE_DO_NOT_DISABLE)
 		{
@@ -391,7 +424,7 @@ static BaseType_t xRmtN1PortWriteDu(rmt_t * pxRmt,
 		//n1_port_unlock(n1_port);
 	}
 
-	return ret;
+	return pdTRUE;
 }
 
 
@@ -551,7 +584,7 @@ pci_t * vCastPointerTo_pci_t(void * pvArgument)
 }
 
 
-rmt_t * pxRmtCreate(struct efcpContainer_t * pxEfcpc)
+rmt_t * pxRmtCreate(struct efcpContainer_t * pxEfcpc, ipcpInstance_t *pxInstance)
 {
 	rmt_t * pxRmtTmp;
 	rmtN1Port_t * pxPortN1[2];
@@ -566,8 +599,8 @@ rmt_t * pxRmtCreate(struct efcpContainer_t * pxEfcpc)
 		return NULL;
 
 	vListInitialise(&pxRmtTmp->xAddresses);
-	
-	//tmp->parent = container_of(parent, struct ipcp_instance, robj);
+
+	pxRmtTmp->pxParent = pxInstance;
 	pxRmtTmp->pxEfcpc = pxEfcpc;
 
 	/*tmp->pff = pff_create(&tmp->robj, tmp->parent);

@@ -19,6 +19,7 @@
 #include "IpcManager.h"
 #include "RINA_API.h"
 
+#include "Enrollment.h"
 #include "ESP_log.h"
 
 MACAddress_t xlocalMACAddress = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
@@ -49,7 +50,7 @@ static volatile BaseType_t xNetworkDownEventPending = pdFALSE;
 static TaskHandle_t xIPCPTaskHandle = NULL;
 
 /* List of Factories */
-//static factories_t *pxFactories;
+// static factories_t *pxFactories;
 ipcManager_t *pxIpcManager;
 
 /**
@@ -112,14 +113,14 @@ static void prvCheckNetworkTimers(void);
  */
 static TickType_t prvCalculateSleepTime(void);
 /*
-* Called to create a network connection when the stack is first started, or
-* when the network connection is lost.
-*/
+ * Called to create a network connection when the stack is first started, or
+ * when the network connection is lost.
+ */
 static void prvProcessNetworkDownEvent(void);
 
 /*
-* Called to initialize the Factories. Create the Normal y ShimWifi Factories.
-*/
+ * Called to initialize the Factories. Create the Normal y ShimWifi Factories.
+ */
 void vInitFactories(void);
 
 /*
@@ -172,24 +173,24 @@ static void prvIPCPTask(void *pvParameters)
      *  this it is the responsibility of the network interface hardware driver to
      *  send this message if a previously connected network is disconnected. */
 
-    //RINA_NetworkDown();
+    // RINA_NetworkDown();
     vInitFactories();
 
     /* Loop, processing IP events. */
     for (;;)
     {
-        //ipconfigWATCHDOG_TIMER();
+        // ipconfigWATCHDOG_TIMER();
 
         /* Check the ARP, DHCP and TCP timers to see if there is any periodic
-    	         * or timeout processing to perform. */
+         * or timeout processing to perform. */
         prvCheckNetworkTimers();
 
         /* Calculate the acceptable maximum sleep time. */
         xNextIPCPSleep = prvCalculateSleepTime();
 
         /* Wait until there is something to do. If the following call exits
-    	         * due to a time out rather than a message being received, set a
-    	         * 'NoEvent' value. */
+         * due to a time out rather than a message being received, set a
+         * 'NoEvent' value. */
         if (xQueueReceive(xNetworkEventQueue, (void *)&xReceivedEvent, xNextIPCPSleep) == pdFALSE)
         {
             xReceivedEvent.eEventType = eNoEvent;
@@ -208,8 +209,8 @@ static void prvIPCPTask(void *pvParameters)
         case eNetworkRxEvent:
 
             /* The network hardware driver has received a new packet.  A
-    	        	 * pointer to the received buffer is located in the pvData member
-    	        	 * of the received event structure. */
+             * pointer to the received buffer is located in the pvData member
+             * of the received event structure. */
             prvHandleEthernetPacket(CAST_PTR_TO_TYPE_PTR(NetworkBufferDescriptor_t, xReceivedEvent.pvData));
 
             break;
@@ -220,7 +221,7 @@ static void prvIPCPTask(void *pvParameters)
             NetworkBufferDescriptor_t *pxDescriptor = CAST_PTR_TO_TYPE_PTR(NetworkBufferDescriptor_t, xReceivedEvent.pvData);
 
             /* Send a network packet. The ownership will  be transferred to
-    	        	 * the driver, which will release it after delivery. */
+             * the driver, which will release it after delivery. */
 
             (void)xNetworkInterfaceOutput(pxDescriptor, pdTRUE);
         }
@@ -228,30 +229,24 @@ static void prvIPCPTask(void *pvParameters)
 
         case eShimEnrollEvent:
 
-            //xShimWiFiCreate(pxFactory, (MACAddress_t *) xReceivedEvent.pvData );
+            // xShimWiFiCreate(pxFactory, (MACAddress_t *) xReceivedEvent.pvData );
 
             break;
         case eShimAppRegisteredEvent:
 
-            xIcpManagerEnrollmentFlowRequest(pxIpcManager->pxFactories, eNormal, eShimWiFi, pxIpcManager->pxPidm); //changed pxFactories
+            // Should create the enrollment object and initialize it
+            // The enrollment object during the process of initialization should request the flow to the IpcManager.
+            // By the moment the IpcManager do this action.
+            ESP_LOGI(TAG_IPCPMANAGER, "Enrollment Request a Flow");
+            xIcpManagerEnrollmentFlowRequest(pxIpcManager->pxFactories, eNormal, eShimWiFi, pxIpcManager->pxPidm); // changed pxFactories
 
             break;
 
         case eShimFlowAllocatedEvent:
 
-            ESP_LOGI(TAG_IPCPMANAGER, "Testing FLow Allocated Event");
-
-            /* Prebind the flow???
-             if(xIpcpManagerPreBindFlow(pxIpcManager->pxFactories, eNormal))
-             {
-                 ESP_LOGI(TAG_IPCPMANAGER,"Flow Prebounded sucessfully");
-             }*/
-
-            //xNormalTest(xFactoryIPCPFindInstance(pxFactory, eNormal), xFactoryIPCPFindInstance(pxFactory, eShimWiFi));
-            /*
-                    xNormalFlowBinding(struct ipcpInstanceData_t *pxUserData,
-                              portId_t xPid,
-                              ipcpInstance_t *pxN1Ipcp)*/
+            /*Call to the method to init the enrollment*/
+            xEnrollmentInit(xReceivedEvent.pvData);
+            // ESP_LOGI(TAG_IPCPMANAGER, "Testing Flow Allocated Event");
 
             break;
 
@@ -300,25 +295,20 @@ static void prvIPCPTask(void *pvParameters)
 
         case eStackFlowAllocateEvent:
 
-
             ESP_LOGE(TAG_IPCPMANAGER, "Flow Allocate Received");
-           
+
             xFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
             xFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
             xRINA_WeakUpUser(xFlowAllocateRequest);
 
-
-        break;
+            break;
 
         case eSendMgmtEvent:
 
-
-            //ESP_LOGE(TAG_IPCPMANAGER, "Flow Allocate Received");
-           
             /*Call to IpcManger mgmt handle */
+            xIpcManagerWriteMgmtHandler(eShimWiFi, xReceivedEvent.pvData);
 
-
-        break;
+            break;
 
         case eNoEvent:
             /* xQueueReceive() returned because of a normal time-out. */
@@ -332,9 +322,9 @@ static void prvIPCPTask(void *pvParameters)
         if (xNetworkDownEventPending != pdFALSE)
         {
             /* A network down event could not be posted to the network event
-    	        	 * queue because the queue was full.
-    	        	 * As this code runs in the IP-task, it can be done directly by
-    	        	 * calling prvProcessNetworkDownEvent(). */
+             * queue because the queue was full.
+             * As this code runs in the IP-task, it can be done directly by
+             * calling prvProcessNetworkDownEvent(). */
             prvProcessNetworkDownEvent();
         }
     }
@@ -397,8 +387,8 @@ BaseType_t RINA_IPCPInit()
 #if (configQUEUE_REGISTRY_SIZE > 0)
         {
             /* A queue registry is normally used to assist a kernel aware
-                 * debugger.  If one is in use then it will be helpful for the debugger
-                 * to show information about the network event queue. */
+             * debugger.  If one is in use then it will be helpful for the debugger
+             * to show information about the network event queue. */
             vQueueAddToRegistry(xNetworkEventQueue, "NetEvnt");
             ESP_LOGI(TAG_IPCPMANAGER, "Queue added to Registry: %d", configQUEUE_REGISTRY_SIZE);
         }
@@ -540,7 +530,7 @@ BaseType_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
             if (xReturn == pdFAIL)
             {
                 /* A message should have been sent to the IP task, but wasn't. */
-                //FreeRTOS_debug_printf( ( "xSendEventStructToIPTask: CAN NOT ADD %d\n", pxEvent->eEventType ) );
+                // FreeRTOS_debug_printf( ( "xSendEventStructToIPTask: CAN NOT ADD %d\n", pxEvent->eEventType ) );
             }
         }
         else
@@ -560,8 +550,8 @@ void prvHandleEthernetPacket(NetworkBufferDescriptor_t *pxBuffer)
 #if (USE_LINKED_RX_MESSAGES == 0)
     {
         /* When ipconfigUSE_LINKED_RX_MESSAGES is not set to 0 then only one
-             * buffer will be sent at a time.  This is the default way for +TCP to pass
-             * messages from the MAC to the TCP/IP stack. */
+         * buffer will be sent at a time.  This is the default way for +TCP to pass
+         * messages from the MAC to the TCP/IP stack. */
         ESP_LOGI(TAG_IPCPMANAGER, "Packet to network stack %p, len %d", pxBuffer, pxBuffer->xDataLength);
         prvProcessEthernetPacket(pxBuffer);
     }
@@ -571,11 +561,11 @@ void prvHandleEthernetPacket(NetworkBufferDescriptor_t *pxBuffer)
         NetworkBufferDescriptor_t *pxNextBuffer;
 
         /* An optimisation that is useful when there is high network traffic.
-             * Instead of passing received packets into the IP task one at a time the
-             * network interface can chain received packets together and pass them into
-             * the IP task in one go.  The packets are chained using the pxNextBuffer
-             * member.  The loop below walks through the chain processing each packet
-             * in the chain in turn. */
+         * Instead of passing received packets into the IP task one at a time the
+         * network interface can chain received packets together and pass them into
+         * the IP task in one go.  The packets are chained using the pxNextBuffer
+         * member.  The loop below walks through the chain processing each packet
+         * in the chain in turn. */
         do
         {
             /* Store a pointer to the buffer after pxBuffer for use later on. */
@@ -609,7 +599,6 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 
         /* Map the buffer onto the Ethernet Header struct for easy access to the fields. */
         pxEthernetHeader = vCastPointerTo_EthernetPacket_t(pxNetworkBuffer->pucEthernetBuffer);
-        //pxEthernetHeader = CAST_CONST_PTR_TO_CONST_TYPE_PTR( EthernetHeader_t, pxNetworkBuffer->pucEthernetBuffer );
 
         usFrameType = FreeRTOS_ntohs(pxEthernetHeader->usFrameType);
 
@@ -619,7 +608,9 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
         case ETH_P_ARP:
 
             /* The Ethernet frame contains an ARP packet. */
-            ESP_LOGI(TAG_IPCPMANAGER, "Case ARP");
+            ESP_LOGI(TAG_IPCPMANAGER, "ARP Packet Received");
+
+
             if (pxNetworkBuffer->xDataLength >= sizeof(ARPPacket_t))
             {
                 eReturned = eARPProcessPacket(CAST_PTR_TO_TYPE_PTR(ARPPacket_t, pxNetworkBuffer->pucEthernetBuffer));
@@ -630,24 +621,52 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             }
 
             break;
-#if 0
-                case ETH_P_RINA:
 
-                    /* The Ethernet frame contains an SDU packet. */
-                    if( pxNetworkBuffer->xDataLength >= sizeof( IPPacket_t ) )
+        case ETH_P_RINA:
+
+            ESP_LOGI(TAG_IPCPMANAGER, "RINA Packet Received");
+
+            uint8_t * ptr;
+            size_t xlength;
+            NetworkBufferDescriptor_t * pxBuffer;
+
+            xlength = pxNetworkBuffer->xDataLength - 14;
+            ESP_LOGE(TAG_IPCPMANAGER, "Length Ethernet:%d",pxNetworkBuffer->xDataLength);
+            ESP_LOGE(TAG_IPCPMANAGER, "Length PDU:%d",xlength);
+
+            pxBuffer = pxGetNetworkBufferWithDescriptor( pxNetworkBuffer->xDataLength - 14, (TickType_t)0U );
 
 
-                    {
-                        eReturned = prvProcessIPPacket( CAST_PTR_TO_TYPE_PTR( IPPacket_t, pxNetworkBuffer->pucEthernetBuffer ), pxNetworkBuffer );
-                    }
-                    else
-                    {
-                        eReturned = eReleaseBuffer;
-                    }
+            ptr = (uint8_t *) pxNetworkBuffer->pucEthernetBuffer + 14;
 
-                    break;
+            memcpy(pxBuffer->pucEthernetBuffer, ptr, pxNetworkBuffer->xDataLength - 14);
 
-#endif
+        
+
+            pxBuffer->xDataLength =  xlength;
+
+            //pxNetworkBuffer->pucEthernetBuffer = prt;
+            //pxNetworkBuffer->xDataLength = xlength;
+            vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
+
+            //memcheck();
+            xIpcManagerRINAPackettHandler(pxBuffer);
+            //memcheck();
+
+            /* The Ethernet frame contains an SDU packet. */
+            /*if (pxNetworkBuffer->xDataLength >= sizeof(IPPacket_t))
+
+            {
+                eReturned = prvProcessIPPacket(CAST_PTR_TO_TYPE_PTR(IPPacket_t, pxNetworkBuffer->pucEthernetBuffer), pxNetworkBuffer);
+            }
+            else
+            {
+                eReturned = eReleaseBuffer;
+            }*/
+            eReturned = eReleaseBuffer;
+
+            break;
+
         default:
 
             break;
@@ -661,18 +680,18 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
     case eReturnEthernetFrame:
 
         /* The Ethernet frame will have been updated (maybe it was
-             * an ARP request or a PING request?) and should be sent back to
-             * its source. */
-        //vReturnEthernetFrame( pxNetworkBuffer, pdTRUE );
+         * an ARP request or a PING request?) and should be sent back to
+         * its source. */
+        // vReturnEthernetFrame( pxNetworkBuffer, pdTRUE );
 
         /* parameter pdTRUE: the buffer must be released once
-             * the frame has been transmitted */
+         * the frame has been transmitted */
         break;
 
     case eFrameConsumed:
 
         /* The frame is in use somewhere, don't release the buffer
-             * yet. */
+         * yet. */
         ESP_LOGI(TAG_SHIM, "Frame Consumed");
         break;
 
@@ -692,8 +711,8 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
     default:
 
         /* The frame is not being used anywhere, and the
-             * NetworkBufferDescriptor_t structure containing the frame should
-             * just be released back to the list of free buffers. */
+         * NetworkBufferDescriptor_t structure containing the frame should
+         * just be released back to the list of free buffers. */
         vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
         break;
     }
@@ -711,7 +730,7 @@ eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEth
     usFrameType = pxEthernetHeader->usFrameType;
     usFrameType = FreeRTOS_ntohs(usFrameType);
 
-    //Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
+    // Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
     if (usFrameType == ETH_P_ARP || usFrameType == ETH_P_RINA)
     {
 
@@ -894,8 +913,6 @@ void vInitFactories(void)
     const TickType_t xDontBlock = (TickType_t)0;
 
     ESP_LOGI(TAG_IPCPMANAGER, "Initializing IPCP FACTORIES");
-
-
 
     if (xNormalIPCPInitFactory(pxIpcManager->pxFactories) == pdTRUE)
     {

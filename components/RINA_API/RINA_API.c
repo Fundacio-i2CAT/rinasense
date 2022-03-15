@@ -130,7 +130,7 @@ portId_t RINA_flow_alloc(string_t xNameDIF, string_t xLocalApp, string_t xRemote
         (void)memset(xFlowAllocateRequest, 0, sizeof(*xFlowAllocateRequest));
 
         /*Create objetcs type name_t from string_t*/
-        ESP_LOGI(TAG_RINA, "FlowAllocate: NameCreate");
+        //ESP_LOGI(TAG_RINA, "FlowAllocate: NameCreate");
         xDIFName = xRinaNameCreate();
         xLocalName = xRinaNameCreate();
         xRemoteName = xRinaNameCreate();

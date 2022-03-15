@@ -1,4 +1,4 @@
-idf_component_register(SRCS "enrollment.c"
+idf_component_register(SRCS "Enrollment.c"
                     INCLUDE_DIRS "include"
-                    REQUIRES IPCP BufferManagement RIBDaemon)
+                    REQUIRES IPCP BufferManagement Ribd)
 

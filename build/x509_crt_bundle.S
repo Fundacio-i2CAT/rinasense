@@ -1,4 +1,4 @@
-/* * Data converted from C:/Users/i2CAT/Documents/VSTest/rina_freertos/build/esp-idf/mbedtls/x509_crt_bundle
+/* * Data converted from C:/Users/i2CAT/Documents/VSTest/RINA_freertos/build/esp-idf/mbedtls/x509_crt_bundle
  */
 .data
 .section .rodata.embedded

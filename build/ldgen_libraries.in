@@ -71,13 +71,14 @@ $<TARGET_FILE:__idf_wifi_provisioning>
 $<TARGET_FILE:__idf_configSensor>
 $<TARGET_FILE:__idf_configRINA>
 $<TARGET_FILE:__idf_EFCP>
-$<TARGET_FILE:__idf_RMT>
+$<TARGET_FILE:__idf_Rmt>
 $<TARGET_FILE:__idf_RINA_API>
+$<TARGET_FILE:__idf_CdapProto>
+$<TARGET_FILE:__idf_Ribd>
+$<TARGET_FILE:__idf_Enrollment>
 $<TARGET_FILE:__idf_IPCP>
 $<TARGET_FILE:__idf_ShimIPCP>
 $<TARGET_FILE:__idf_BufferManagement>
 $<TARGET_FILE:__idf_NetworkInterface>
 $<TARGET_FILE:__idf_ARP826>
-$<TARGET_FILE:__idf_CdapProto>
-$<TARGET_FILE:__idf_RIBDaemon>
 $<TARGET_FILE:__idf_main>

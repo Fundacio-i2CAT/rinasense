@@ -1,4 +1,10 @@
-
+/**
+*
+*        Port Id Manager:
+*       Managing the PortIds allocated in the whole stack. PortIds in IPCP Normal
+*       and Shim Wifi.
+*
+**/
 #include "freertos/FreeRTOS.h"
 
 #include "common.h"
@@ -10,6 +16,10 @@
 #define BITS_PER_BYTE (8)
 #define MAX_PORT_ID (((2 << BITS_PER_BYTE) * sizeof(portId_t)) - 1)
 
+
+/** @brief pxPidmCreate.
+ * Create the instance of Port Id manager. This instance is register in the
+ * IpcManager. Initialize the list of allocated Ports.*/
 pidm_t *pxPidmCreate(void)
 {
         pidm_t *pxPdimInstance;
@@ -24,6 +34,8 @@ pidm_t *pxPidmCreate(void)
         return pxPdimInstance;
 }
 
+/** @brief pxPidmDestroy.
+ * Destroy the instance of Port Id manager. This instance free memory.*/
 BaseType_t xPidmDestroy(pidm_t *pxInstance)
 {
         allocPid_t *pxPos, *pxNext;
@@ -43,6 +55,8 @@ BaseType_t xPidmDestroy(pidm_t *pxInstance)
         return pdTRUE;
 }
 
+/** @brief xPidmAllocated.
+ * check if a PortId was allocated or assigned */
 BaseType_t xPidmAllocated(pidm_t *pxInstance, portId_t xPortId)
 {
         allocPid_t *pos;
@@ -85,6 +99,9 @@ BaseType_t xPidmAllocated(pidm_t *pxInstance, portId_t xPortId)
 
 }
 
+/** @brief xPidmAllocate.
+ * Allocate or assign a new port Id. Insert the port Id into the list of port Id allocated
+ * Return the portId  */
 portId_t xPidmAllocate(pidm_t *pxInstance)
 {
         allocPid_t *pxNewPortId;
@@ -134,6 +151,8 @@ portId_t xPidmAllocate(pidm_t *pxInstance)
         return pid;
 }
 
+/** @brief xPidmRelease.
+ * Release a port Id. */
 BaseType_t xPidmRelease(pidm_t *pxInstance,
                         portId_t id)
 {

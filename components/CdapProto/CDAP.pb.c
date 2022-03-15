@@ -6,7 +6,7 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
-PB_BIND(rina_messages_objVal_t, rina_messages_objVal_t, AUTO)
+PB_BIND(rina_messages_objVal_t, rina_messages_objVal_t, 2)
 
 
 PB_BIND(rina_messages_authPolicy_t, rina_messages_authPolicy_t, AUTO)

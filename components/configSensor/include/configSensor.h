@@ -48,7 +48,7 @@
 
 	#define ESP_MAXIMUM_RETRY  					( 3 )
     /*TAG for Debugging*/
-	#define TAG_WIFI							"NetInterface"
+	#define TAG_WIFI							"[NetInterface]"
 
 		//Delimiter for Encode name
 	#define DELIMITER 								"/"
@@ -57,7 +57,7 @@
 /*********  Define BUFFERS Parameters *************/
 
 	#define NUM_NETWORK_BUFFER_DESCRIPTORS 		( 6 )
-	#define TAG_NETBUFFER						"NetBuffer"
+	#define TAG_NETBUFFER						"[NetBuffer]"
 
 	#define USE_LINKED_RX_MESSAGES				( 0 )
 	#define BUFFER_PADDING    					( 0 )
@@ -76,7 +76,7 @@
 
 
 	/*TAG for Debugging*/
-	#define TAG_ARP 							"ARP"
+	#define TAG_ARP 							"[ARP]"
 
 
 
@@ -101,9 +101,9 @@
 
 
 	/*TAG for Debugging*/
-	#define TAG_IPCPNORMAL 							"IPCP_NORMAL"
-	#define TAG_IPCPMANAGER 						"IPCP_MANAGER"
-	#define TAG_IPCPFACTORY							"IPCP_FACTORY"
+	#define TAG_IPCPNORMAL 							"[IPCP_NORMAL]"
+	#define TAG_IPCPMANAGER 						"[IPCP_MANAGER]"
+	#define TAG_IPCPFACTORY							"[IPCP_FACTORY]"
 
 
 	#define IPCP_TASK_PRIORITY                   ( configMAX_PRIORITIES - 2 )
@@ -114,16 +114,16 @@
 
 /*********   Configure Shim Parameters  ************/
 	/*TAG for Debugging*/
-	#define TAG_SHIM 							"SHIM_WIFI"
+	#define TAG_SHIM 							"[SHIM_WIFI]"
 
 /*********   Configure EFCP PArameters **************/
 
 	#define EFCP_IMAP_ENTRIES     				( 5 )
-	#define TAG_EFCP 							"EFCP"
+	#define TAG_EFCP 							"[EFCP]"
 
 	#define MAX_SDU_SIZE						( 1000 )
 
-	#define TAG_RINA 							"RINA_API"
+	#define TAG_RINA 							"[RINA_API]"
 
 
 

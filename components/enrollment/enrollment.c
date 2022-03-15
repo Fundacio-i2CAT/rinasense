@@ -14,43 +14,45 @@
 #include "common.h"
 #include "configSensor.h"
 #include "configRINA.h"
+#include "Ribd.h"
 
 #include "esp_log.h"
 
 BaseType_t xEnrollmentFlowAllocateRequest();
 
-BaseType_t xEnrollmentFlowAllocateRequest()
-{
-    
-}
 
 
-BaseType_t xEnrollmentInitiate();
-BaseType_t xEnrollmentInitiate()
+void xEnrollmentInit(portId_t xPortId );
+void xEnrollmentInit(portId_t xPortId  )
 {
+   
     name_t *pxSource;
     name_t *pxDestInfo;
-    porId_t xN1FlowPortId;
-    authPolicy_t xAuth;
+    //porId_t xN1FlowPortId;
+    authPolicy_t * pxAuth;
+    appConnection_t * test;
+    test = pvPortMalloc(sizeof(*test));
 
     pxSource = pvPortMalloc(sizeof(*pxSource));
     pxDestInfo = pvPortMalloc(sizeof(*pxDestInfo));
+    pxAuth = pvPortMalloc(sizeof(*pxAuth));
 
-    pxSource->pcEntityInstance = NORMAL_ENTITY_INSTANCE;
+    pxSource->pcEntityInstance = MANAGEMENT_AE;
     pxSource->pcEntityName = NORMAL_ENTITY_NAME;
     pxSource->pcProcessInstance = NORMAL_PROCESS_INSTANCE;
     pxSource->pcProcessName = NORMAL_PROCESS_NAME;
 
     pxDestInfo->pcProcessName = NORMAL_DIF_NAME;
     pxDestInfo->pcProcessInstance = "";
-    pxDestInfo->pcEntityInstance = "";
-    pxDestInfo->pcEntityName = "";
+    pxDestInfo->pcEntityInstance = MANAGEMENT_AE;
+    pxDestInfo->pcEntityName ="";
 
-    xAuth.ucAbsSyntax = 1;
-    xAuth.ucVersion = 1;
-    xAuth.xName = "PSOC_authentication-none";
+    pxAuth->ucAbsSyntax = 1;
+    pxAuth->pcVersion = "1";
+    pxAuth->pcName = "PSOC_authentication-none";
 
     //Find PortId
 
-    xRIBDaemonConnectToIpcp(pxSource, pxDestInfo, xN1FlowPortId, xAuth)
+
+   xRibdConnectToIpcp(pxSource, pxDestInfo, xPortId, pxAuth);
 }

@@ -16,7 +16,7 @@
 
 #include "esp_log.h"
 
-#include "RMT.h"
+#include "Rmt.h"
 #include "ConfigSensor.h"
 #include "common.h"
 #include "du.h"
@@ -65,6 +65,20 @@ BaseType_t xPciIsOk(const pci_t *pxPci)
 	if (pxPci && sizeof(pxPci) > 0 && pdu_type_is_ok(pxPci->xType))
 		return true;
 	return false;
+}
+
+void vPciPrint(const pci_t * pxPciTmp)
+{
+	ESP_LOGE(TAG_RINA, "Printing PCI");
+	ESP_LOGE(TAG_RINA, "Type: %02x", pxPciTmp->xType);
+	ESP_LOGE(TAG_RINA, "PDU len: %04x", pxPciTmp->xPduLen);
+	ESP_LOGE(TAG_RINA, "PDU Address Source: %02x", pxPciTmp->xSource);
+	ESP_LOGE(TAG_RINA, "PDU Address Destination: %02x", pxPciTmp->xDestination);
+	ESP_LOGE(TAG_RINA, "CEP destination: %02x",pxPciTmp->connectionId_t.xDestination);
+	ESP_LOGE(TAG_RINA, "CEP source: %02x",pxPciTmp->connectionId_t.xSource);
+	ESP_LOGE(TAG_RINA, "QoSid: %02x",pxPciTmp->connectionId_t.xQosId);
+	ESP_LOGE(TAG_RINA, "PDU Flag : %02x",pxPciTmp->xFlags);
+	ESP_LOGE(TAG_RINA, "Version: %02x",pxPciTmp->ucVersion);
 }
 
 #if 0
