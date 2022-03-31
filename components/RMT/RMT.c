@@ -199,7 +199,7 @@ BaseType_t  xRmtPduIsAddressedToMe(rmt_t * pxRmt, address_t xAddress)
 static BaseType_t xRmtProcessMgmtPdu(rmt_t * pxRmt, portId_t xPortId, struct du_t * pxDu);
 static BaseType_t xRmtProcessMgmtPdu(rmt_t * pxRmt, portId_t xPortId, struct du_t * pxDu)
 {
-	ESP_LOGE(TAG_RMT,"xRmtProcessMgmtPdu");
+	
 	if(!pxRmt->pxParent)
 	{
 		ESP_LOGE(TAG_RMT,"No IPCP Parent register");
@@ -212,6 +212,7 @@ static BaseType_t xRmtProcessMgmtPdu(rmt_t * pxRmt, portId_t xPortId, struct du_
 		ESP_LOGE(TAG_RMT,"No mgmtDuPost into Instance");
 		return pdFALSE;
 	}
+	
 	if (!pxRmt->pxParent->pxOps->mgmtDuPost(pxRmt->pxParent->pxData,xPortId,pxDu))
 	{
 		ESP_LOGE(TAG_RMT,"Failed");
@@ -335,6 +336,8 @@ BaseType_t xRmtReceive (rmt_t * pxRmt, struct du_t * pxDu, portId_t xFrom)
 		xDuDestroy(pxDu);
 		return pdFALSE;
 	}
+
+	
 
 	/* pdu is for me */
 	if (xRmtPduIsAddressedToMe(pxRmt, xDstAddr))

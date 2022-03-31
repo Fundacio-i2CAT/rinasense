@@ -320,3 +320,9 @@ void memcheck(void){
     if (size != (i - 1) * blockSize) printf("There is a possible memory leak because the last memory size was %d and now is %d\n",size,(i - 1) * blockSize);
     size = (i - 1) * blockSize;
 }
+
+static int invoke_id = 1;
+int get_next_invoke_id( void )
+{
+    return (invoke_id % INT_MAX == 0) ? (invoke_id = 1) : invoke_id++;
+}

@@ -35,7 +35,7 @@
 	#define LOCAL_ADDRESS_AP_INSTANCE				"1"
 	#define LOCAL_ADDRESS_AP_NAME					"ue1.mobile"
 
-	#define REMOTE_ADDRESS							( 1 )
+	#define REMOTE_ADDRESS							( 3 )
 	#define REMOTE_ADDRESS_AP_INSTANCE				"1"
 	#define REMOTE_ADDRESS_AP_NAME					"ar1.mobile"
 

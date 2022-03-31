@@ -38,6 +38,8 @@
 
 #define BUFFER_PADDING    0U
 
+int count = 0;
+
 /* A list of free (available) NetworkBufferDescriptor_t structures. */
 static List_t xFreeBuffersList;
 
@@ -290,6 +292,8 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
         /* No action. */
 
     }
+    count = count + 1;
+    ESP_LOGI(TAG_NETBUFFER, "Count BUffer:%d", count);
 
     return pxReturn;
 }
@@ -335,6 +339,8 @@ void vReleaseNetworkBufferAndDescriptor( NetworkBufferDescriptor_t * const pxNet
         /* No action. */
 
     }
+    count = count -1 ;
+        ESP_LOGI(TAG_NETBUFFER, "Count BUffer after Release:%d", count);
 }
 /*-----------------------------------------------------------*/
 

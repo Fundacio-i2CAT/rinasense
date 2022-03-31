@@ -499,7 +499,7 @@ static BaseType_t xNormalDuEnqueue(struct ipcpInstanceData_t * pxData,
                              portId_t                   xN1PortId,
                              struct du_t *                pxDu)
 {
-        if (xRmtReceive(pxData->pxRmt, pxDu, xN1PortId ))
+        if (!xRmtReceive(pxData->pxRmt, pxDu, xN1PortId ))
          {
                 ESP_LOGE(TAG_IPCPNORMAL,"Could not enqueue SDU into the RMT");
                 return pdFALSE;

@@ -67,7 +67,7 @@ BaseType_t xDuDecap(struct du_t * pxDu)
 
 	xBufferSize = pxDu->pxNetworkBuffer->xDataLength - uxPciLen;
 
-	ESP_LOGE(TAG_DTP, "PDU Size 107-14: %d", xBufferSize);
+	
 
 	pxNewBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, ( TickType_t ) 0U );
 	pxNewBuffer->xDataLength = xBufferSize;

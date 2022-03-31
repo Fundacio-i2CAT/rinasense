@@ -3,6 +3,9 @@
 /*Move to configurations RINA*/
 #define APP_CONNECTION_TABLE_SIZE ( 5 )
 
+#include "Enrollment.h"
+
+
 typedef enum {
 	M_CONNECT = 0,
 	M_CONNECT_R,
@@ -24,9 +27,11 @@ typedef enum {
 	M_STOP_R,
 }opCode_t;
 
+#define MAX_CDAP_OPCODE M_STOP_R
+
 typedef enum{
-    eCONNECTION_INIT = 0,
-    eCONNECTION_IN_PROGRESS,
+   
+    eCONNECTION_IN_PROGRESS = 0,
     eCONNECTED,
     eRELEASED,
 }connectionStatus_t; 
@@ -68,13 +73,26 @@ typedef struct xMESSAGE_CDAP{
     /*Invoke ID*/
     int32_t invokeID;
 
+    /*Name of the object class of objName*/
+    string_t xObjClass;
+
+    /*Object name, unique in its class*/
+    string_t xObjName;
+
+    /*Unique object instance*/
+    int64_t objInst;
+
+    /*value of object in read/write/etc.*/
+    serObjectValue_t *pxObjValue;
+
 }messageCdap_t;
 
 
 BaseType_t xRibdConnectToIpcp( name_t *pxSource, name_t * pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth);
 BaseType_t xRibdDisconnectToIpcp( portId_t xN1flowPortId );
 BaseType_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
-
+BaseType_t xRibdSendRequest(string_t xObjClass, string_t xObjName, long objInst,
+              opCode_t eMsgType, portId_t n1_port, serObjectValue_t *pxObjVal);
 
 BaseType_t xTest(void);
 

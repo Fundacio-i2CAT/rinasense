@@ -47,7 +47,8 @@ typedef struct _rina_messages_string_t { /* information to identify an string */
 typedef struct _rina_messages_authPolicy_t { 
     bool has_name;
     char name[40]; /* Policy name */
-    pb_callback_t versions; /* Supported versions */
+    pb_size_t versions_count;
+    char versions[1][40]; /* Supported versions */
     pb_callback_t options; /* Opaque policy-specific versions */
 } rina_messages_authPolicy_t;
 
@@ -143,12 +144,12 @@ extern "C" {
 
 /* Initializer values for message structs */
 #define rina_messages_objVal_t_init_default      {false, 0, false, 0, false, 0, false, 0, false, "", false, {0, {0}}, false, 0, false, 0, false, 0}
-#define rina_messages_authPolicy_t_init_default  {false, "", {{NULL}, NULL}, {{NULL}, NULL}}
+#define rina_messages_authPolicy_t_init_default  {false, "", 0, {""}, {{NULL}, NULL}}
 #define rina_messages_CDAPMessage_init_default   {false, 0, _rina_messages_opCode_t_MIN, false, 0, false, _rina_messages_flagValues_t_MIN, false, "", false, "", false, 0, false, rina_messages_objVal_t_init_default, false, 0, false, 0, {{NULL}, NULL}, false, rina_messages_authPolicy_t_init_default, false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, 0}
 #define rina_messages_int_t_init_default         {0}
 #define rina_messages_string_t_init_default      {{{NULL}, NULL}}
 #define rina_messages_objVal_t_init_zero         {false, 0, false, 0, false, 0, false, 0, false, "", false, {0, {0}}, false, 0, false, 0, false, 0}
-#define rina_messages_authPolicy_t_init_zero     {false, "", {{NULL}, NULL}, {{NULL}, NULL}}
+#define rina_messages_authPolicy_t_init_zero     {false, "", 0, {""}, {{NULL}, NULL}}
 #define rina_messages_CDAPMessage_init_zero      {false, 0, _rina_messages_opCode_t_MIN, false, 0, false, _rina_messages_flagValues_t_MIN, false, "", false, "", false, 0, false, rina_messages_objVal_t_init_zero, false, 0, false, 0, {{NULL}, NULL}, false, rina_messages_authPolicy_t_init_zero, false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, "", false, 0}
 #define rina_messages_int_t_init_zero            {0}
 #define rina_messages_string_t_init_zero         {{{NULL}, NULL}}
@@ -207,7 +208,7 @@ X(a, STATIC,   OPTIONAL, BOOL,     boolval,           9)
 
 #define rina_messages_authPolicy_t_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, STRING,   name,              1) \
-X(a, CALLBACK, REPEATED, STRING,   versions,          2) \
+X(a, STATIC,   REPEATED, STRING,   versions,          2) \
 X(a, CALLBACK, OPTIONAL, BYTES,    options,           3)
 #define rina_messages_authPolicy_t_CALLBACK pb_default_field_callback
 #define rina_messages_authPolicy_t_DEFAULT NULL

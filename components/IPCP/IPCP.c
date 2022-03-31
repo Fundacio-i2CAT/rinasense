@@ -610,13 +610,15 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             /* The Ethernet frame contains an ARP packet. */
             ESP_LOGI(TAG_IPCPMANAGER, "ARP Packet Received");
 
-
             if (pxNetworkBuffer->xDataLength >= sizeof(ARPPacket_t))
             {
+                /*Process the Packet ARP in case of REPLY -> eProcessBuffer, REQUEST -> eReturnEthernet to
+                 * send to the destination a REPLY (It requires more processing tasks) */
                 eReturned = eARPProcessPacket(CAST_PTR_TO_TYPE_PTR(ARPPacket_t, pxNetworkBuffer->pucEthernetBuffer));
             }
             else
             {
+                /*If ARP packet is not correct estructured then release buffer*/
                 eReturned = eReleaseBuffer;
             }
 
@@ -626,35 +628,41 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 
             ESP_LOGI(TAG_IPCPMANAGER, "RINA Packet Received");
 
-            uint8_t * ptr;
+            uint8_t *ptr;
             size_t xlength;
-            NetworkBufferDescriptor_t * pxBuffer;
+            NetworkBufferDescriptor_t *pxBuffer;
 
             xlength = pxNetworkBuffer->xDataLength - 14;
-            ESP_LOGE(TAG_IPCPMANAGER, "Length Ethernet:%d",pxNetworkBuffer->xDataLength);
-            ESP_LOGE(TAG_IPCPMANAGER, "Length PDU:%d",xlength);
+            ESP_LOGE(TAG_IPCPMANAGER, "Length PDU:%d", pxNetworkBuffer->xDataLength);
+            ESP_LOGE(TAG_IPCPMANAGER, "Length PDU without Eth-header:%d", xlength);
 
-            pxBuffer = pxGetNetworkBufferWithDescriptor( pxNetworkBuffer->xDataLength - 14, (TickType_t)0U );
+            pxBuffer = pxGetNetworkBufferWithDescriptor(xlength, (TickType_t)0U);
+
+            if (pxBuffer != NULL)
+            {
+                ptr = (uint8_t *)pxNetworkBuffer->pucEthernetBuffer + 14;
+
+                (void)memcpy(pxBuffer->pucEthernetBuffer, ptr, xlength);
+
+                pxBuffer->xDataLength = xlength;
+
+                xIpcManagerRINAPackettHandler(pxBuffer);
+            }
+            else{
+                ESP_LOGE(TAG_WIFI, "Failed to get buffer descriptor");
+	            eReturned = eReleaseBuffer;
+            }
 
 
-            ptr = (uint8_t *) pxNetworkBuffer->pucEthernetBuffer + 14;
+            // vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
 
-            memcpy(pxBuffer->pucEthernetBuffer, ptr, pxNetworkBuffer->xDataLength - 14);
+            // memcheck();
+      
+            // memcheck();
 
-        
-
-            pxBuffer->xDataLength =  xlength;
-
-            //pxNetworkBuffer->pucEthernetBuffer = prt;
-            //pxNetworkBuffer->xDataLength = xlength;
-            vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
-
-            //memcheck();
-            xIpcManagerRINAPackettHandler(pxBuffer);
-            //memcheck();
-
-            /* The Ethernet frame contains an SDU packet. */
-            /*if (pxNetworkBuffer->xDataLength >= sizeof(IPPacket_t))
+            /* The Ethernet frame contains an SDU packet.
+             * if the buffer is more than PCI_HEADER_LENGTH Then it sent to the Manager*/
+            /*if (pxNetworkBuffer->xDataLength >= PCI_HEADER_LENGTH)
 
             {
                 eReturned = prvProcessIPPacket(CAST_PTR_TO_TYPE_PTR(IPPacket_t, pxNetworkBuffer->pucEthernetBuffer), pxNetworkBuffer);
@@ -680,7 +688,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
     case eReturnEthernetFrame:
 
         /* The Ethernet frame will have been updated (maybe it was
-         * an ARP request or a PING request?) and should be sent back to
+         * an ARP request) and should be sent back to
          * its source. */
         // vReturnEthernetFrame( pxNetworkBuffer, pdTRUE );
 
@@ -696,7 +704,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
         break;
 
     case eReleaseBuffer:
-        ESP_LOGI(TAG_SHIM, "Releasing Buffer");
+
         break;
     case eProcessBuffer:
         /*ARP process buffer, call to ShimAllocateResponse*/
@@ -713,6 +721,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
         /* The frame is not being used anywhere, and the
          * NetworkBufferDescriptor_t structure containing the frame should
          * just be released back to the list of free buffers. */
+        ESP_LOGI(TAG_SHIM, "Releasing Buffer");
         vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
         break;
     }

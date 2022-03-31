@@ -56,7 +56,7 @@
 
 /*********  Define BUFFERS Parameters *************/
 
-	#define NUM_NETWORK_BUFFER_DESCRIPTORS 		( 6 )
+	#define NUM_NETWORK_BUFFER_DESCRIPTORS 		( 10 )
 	#define TAG_NETBUFFER						"[NetBuffer]"
 
 	#define USE_LINKED_RX_MESSAGES				( 0 )
@@ -133,7 +133,10 @@
 	#define INSTANCES_IPCP_ENTRIES				( 5 )
 
 
+	#define TAG_RIB 								"[RIB]"
 	#define MANAGEMENT_AE  						"Management"
 
+
+	#define TAG_ENROLLMENT						"[ENROLLMENT]"
 
 #endif

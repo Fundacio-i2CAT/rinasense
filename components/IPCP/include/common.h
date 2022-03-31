@@ -359,4 +359,6 @@ name_t *xRINAstringToName(const string_t *pxInput);
 
 void memcheck(void);
 
+int get_next_invoke_id( void );
+
 #endif /* COMPONENTS_IPCP_INCLUDE_COMMON_H_ */
