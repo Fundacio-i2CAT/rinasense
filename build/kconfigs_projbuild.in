@@ -1,5 +1,0 @@
-source "C:/Esp32/esp-idf/components/app_update/Kconfig.projbuild"
-source "C:/Esp32/esp-idf/components/bootloader/Kconfig.projbuild"
-source "C:/Esp32/esp-idf/components/esptool_py/Kconfig.projbuild"
-source "C:/Esp32/esp-idf/components/partition_table/Kconfig.projbuild"
-source "C:/Users/i2CAT/Documents/VSTest/RINA_freertos/main/Kconfig.projbuild"

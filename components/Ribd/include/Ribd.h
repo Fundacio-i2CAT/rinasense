@@ -1,9 +1,10 @@
 
 
 /*Move to configurations RINA*/
-#define APP_CONNECTION_TABLE_SIZE ( 5 )
+
 
 #include "Enrollment.h"
+#include "Rib.h"
 
 
 typedef enum {
@@ -28,6 +29,8 @@ typedef enum {
 }opCode_t;
 
 #define MAX_CDAP_OPCODE M_STOP_R
+#define APP_CONNECTION_TABLE_SIZE ( 5 )
+#define RESPONSE_HANDLER_TABLE_SIZE (10)
 
 typedef enum{
    
@@ -51,6 +54,13 @@ typedef struct xAPP_CONNECTION_ROW{
     BaseType_t xValid;
     
 }appConnectionTableRow_t;
+
+typedef struct xRESPONSE_HANDLER_ROW{
+    int32_t invokeID;
+    struct ribCallbackOps_t *pxCallbackHandler;
+    BaseType_t xValid;
+
+}responseHandlersRow_t;
 
 typedef struct xMESSAGE_CDAP{
     /*Operation Code*/

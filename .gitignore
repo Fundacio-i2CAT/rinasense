@@ -70,6 +70,8 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 
+build/
+
 ### CMake Patch ###
 # External projects
 *-prefix/
