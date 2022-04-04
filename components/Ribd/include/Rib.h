@@ -36,28 +36,20 @@ typedef struct xSER_OBJECT_VALUE{
 }serObjectValue_t;
 
 struct ribCallbackOps_t {
-    BaseType_t (*start_response)(void *, struct ser_obj_value *);
+    BaseType_t (*start_response)(string_t xRemoteAPName, struct serObjectValue_t *pxSerObjectValue);
 
-    BaseType_t (*stop_response)(void *);
+    BaseType_t (*stop_response)(string_t xRemoteAPName);
 
-    BaseType_t (*create_response)( struct ser_obj_value *);
+    BaseType_t (*create_response)( serObjectValue_t *pxSerObjectValue);
 };
 
 struct ribObjOps_t{
-    /*BaseType_t (*start)(struct ribObject_t *, struct ser_obj_value *obj_value, void *remote_process_name,
-                 void *local_process_name, int invoke_id, int n1_port);
+    BaseType_t (*start)(struct ribObject_t *pxRibObject, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
+                 string_t pxLocalApName, int invokeId, portId_t xN1Port);
 
-    BaseType_t (*stop)(struct rib_obj *, struct ipcp *,
-                struct ser_obj_value *obj_value, void *remote_process_name,
-                void *local_process_name, int invoke_id, int n1_port);
-
-    BaseType_t (*read)(struct rib_obj *, struct ipcp *,
-                struct ser_obj_value *obj_value, void *remote_process_name,
-                void *local_process_name, int invoke_id, int n1_port);
-
-    BaseType_t (*write)(struct rib_obj *, struct ipcp *,
-                 struct ser_obj_value *obj_value, void *remote_process_name,
-                 void *local_process_name, int invoke_id, int n1_port);*/
+    BaseType_t (*stop)(struct ribObject_t *pxRibObject, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
+                string_t pxLocalApName, int invokeId, portId_t xN1Port);
+    
 
     BaseType_t (*create)(struct ribObject_t *, serObjectValue_t *pxObjValue, string_t remote_process_name,
                   string_t local_process_name, int invokeId, portId_t xN1Port);
@@ -84,5 +76,7 @@ struct ribObjectRow_t{
 struct ribObject_t *pxRibFindObject(string_t ucRibObjectName);
 
 void vRibAddObjectEntry(struct ribObject_t *pxRibObject);
+struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
+                                      string_t ucDisplayableValue, string_t ucObjClass, eObjectType_t eObjType);
 
 #endif /* RIB_H_ */

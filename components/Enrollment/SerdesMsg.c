@@ -93,7 +93,7 @@ static enrollmentMessage_t * prvSerdesMsgDecodeEnrollment(rina_messages_enrollme
         pxMsg->ullAddress = message.address;
     }
 
-    retunr pxMsg;
+    return pxMsg;
 }
 
 enrollmentMessage_t *pxSerdesMsgEnrollmentDecode(uint8_t *pucBuffer, size_t xMessageLength)

@@ -81,9 +81,9 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
     switch ( eObjType )
     {
     case ENROLLMENT:
-        pxObj->pxObjOps->start = ;
-        // stop
-        pxObj->pxObjOps->create = xEnrollmentHandleCreate;
+        pxObj->pxObjOps->stop = xEnrollmentHandleStop;
+        pxObj->pxObjOps->start = xEnrollmentEnroller;
+        
 
         break;
 

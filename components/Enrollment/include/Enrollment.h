@@ -66,10 +66,18 @@ typedef struct xNEIGHBOR
 
 void xEnrollmentInit(portId_t xPortId);
 
-BaseType_t xEnrollmentHandleConnectR(string_t xRemoteProcessName, portId_t xN1Port);
-BaseType_t xEnrollmentHandleStartR(string_t xRemoteApName, serObjValue_t *pxSerObjValue);
+BaseType_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
+                 string_t pcLocalApName, int invokeId, portId_t xN1Port);
 
-BaseType_t xEnrollmentHandleCreate(struct ribObject_t * pxRibOject, serObjectValue_t *pxObjValue, string_t xRemoteProcessName,
-                                   string_t xLocalProcessName, int invokeId, portId_t xN1Port);
+BaseType_t xEnrollmentHandleConnectR(string_t xRemoteProcessName, portId_t xN1Port);
+BaseType_t xEnrollmentHandleStartR(string_t xRemoteApName, serObjectValue_t *pxSerObjValue);
+BaseType_t xEnrollmentHandleStopR(string_t xRemoteApName);
+
+BaseType_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
+                                 serObjectValue_t *pxObjValue, string_t xRemoteApName,
+                                 string_t xLocalProcessName, int invokeId, portId_t xN1Port);
+
+
+
 
 #endif /* ENROLLMENT_H_ */

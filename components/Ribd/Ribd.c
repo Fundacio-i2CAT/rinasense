@@ -24,7 +24,7 @@
 appConnectionTableRow_t xAppConnectionTable[APP_CONNECTION_TABLE_SIZE];
 
 /* Table to manage the pending request to response*/
-responseHandlersRow_t xPendingResponseHandlersTable[ RESPONSE_HANDLER_TABLE_SIZE ];
+responseHandlersRow_t xPendingResponseHandlersTable[RESPONSE_HANDLER_TABLE_SIZE];
 
 /* Encode the CDAP message */
 NetworkBufferDescriptor_t *prvRibEncodeCDAP(rina_messages_opCode_t xMessageOpCode,
@@ -41,12 +41,14 @@ BaseType_t xRibdppConnection(portId_t xPortId);
 BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId);
 BaseType_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
 
-void vRibdAddResponseHandler(int32_t invokeID, struct ribCallbackOps_t *pxCb )
+struct ribCallbackOps_t *pxRibdCreateCdapCallback(opCode_t xOpCode, int invoke_id);
+
+void vRibdAddResponseHandler(int32_t invokeID, struct ribCallbackOps_t *pxCb)
 {
 
     BaseType_t x = 0;
 
-    for (x = 0; x < RESPONSE_HANDLER_TABLE_SIZE ; x++)
+    for (x = 0; x < RESPONSE_HANDLER_TABLE_SIZE; x++)
     {
         if (xPendingResponseHandlersTable[x].xValid == pdFALSE)
         {
@@ -71,12 +73,12 @@ struct ribCallbackOps_t *pxRibdFindPendingResponseHandler(int32_t invokeID)
     for (x = 0; x < RESPONSE_HANDLER_TABLE_SIZE; x++)
 
     {
-        if (  xPendingResponseHandlersTable[x].xValid == pdTRUE)
+        if (xPendingResponseHandlersTable[x].xValid == pdTRUE)
         {
-            
-            if ( xPendingResponseHandlersTable[x].invokeID == invokeID)
+
+            if (xPendingResponseHandlersTable[x].invokeID == invokeID)
             {
-                
+
                 pxCb = xPendingResponseHandlersTable[x].pxCallbackHandler;
                 ESP_LOGI(TAG_IPCPMANAGER, "Cb Handler founded '%p'", pxCb);
 
@@ -589,6 +591,7 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
     BaseType_t ret = pdFALSE;
     appConnection_t *pxAppConnectionTmp;
     struct ribObject_t *pxRibObject;
+    struct ribCallbackOps_t *pxCallback;
 
     /*Check if the Operation Code is valid*/
     if (pxDecodeCdap->eOpCode > MAX_CDAP_OPCODE)
@@ -604,10 +607,6 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
     /* Looking for the object into the RIB */
     pxRibObject = pxRibFindObject(pxDecodeCdap->xObjName);
 
-    /* Looking for a pending request */
-
-    
-    
     ESP_LOGE(TAG_RIB, "OpCOde: %d", pxDecodeCdap->eOpCode);
     switch (pxDecodeCdap->eOpCode)
     {
@@ -628,7 +627,6 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
 
             // TODO: Create Connection and add into the table
             // Call to the xEnrollmentHandleConnect
-            
         }
 
         break;
@@ -657,9 +655,9 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
     case M_RELEASE_R:
         /**
          * @brief 1. Update the pxAppconnection status to eRELEASED
-         * 
+         *
          */
-        
+
         if (pxAppConnectionTmp->xStatus != eRELEASED)
         {
             ESP_LOGE(TAG_RIB, "The connection is already released");
@@ -672,19 +670,27 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
         // TODO: delete App connection from the table (APPConnection)
 
         break;
-    
 
     case M_CREATE:
-        /* Calling the Create function of the enrollment object to create a Negihbor object and
-        * add into the RibObject table 
-        */
+        /* Calling the Create function of the enrollment object to create a Neighbor object and
+         * add into the RibObject table
+         */
 
-       pxRibObject->pxObjOps->create(pxRibObject, pxDecodeCdap->pxObjValue,  pxAppConnectionTmp->pxDestinationInfo->pcProcessName,
-            pxAppConnectionTmp->pxSourceInfo->pcProcessName,pxDecodeCdap->invokeID, xN1FlowPortId);
+        pxRibCreateObject(pxDecodeCdap->xObjName, pxDecodeCdap->objInst, pxDecodeCdap->xObjName, pxDecodeCdap->xObjClass,ENROLLMENT);
+    
 
     case M_START_R:
+        /* Looking for a pending request */
+        pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
 
-        pxRibObject->pxObjOps->
+        pxCallback->start_response(pxAppConnectionTmp->pxDestinationInfo->pcProcessName, pxDecodeCdap->pxObjValue);
+
+        break;
+    case M_STOP_R:
+        /* Looking for a pending request */
+        pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
+
+        pxCallback->start_response(pxAppConnectionTmp->pxDestinationInfo->pcProcessName, pxDecodeCdap->pxObjValue);
 
         break;
 
@@ -706,6 +712,12 @@ BaseType_t xRibdSendRequest(string_t xObjClass, string_t xObjName, long objInst,
     {
     case M_START:
         pxMsgCdap = prvRibdFillEnrollMsg(xObjClass, xObjName, objInst, eMsgType, pxObjVal);
+
+        break;
+
+    case M_STOP:
+        pxMsgCdap = prvRibdFillEnrollMsg(xObjClass, xObjName, objInst, eMsgType, pxObjVal);
+
         break;
 
     default:
@@ -717,7 +729,6 @@ BaseType_t xRibdSendRequest(string_t xObjClass, string_t xObjName, long objInst,
 
     pxCb = pxRibdCreateCdapCallback(eMsgType, pxMsgCdap->invokeID);
     vRibdAddResponseHandler(pxMsgCdap->invokeID, pxCb);
-    
 
     /* Generate and Encode Message M_CONNECT*/
     pxNetworkBuffer = prvRibdEncodeCDAP(pxMsgCdap);
@@ -734,15 +745,12 @@ BaseType_t xRibdSendRequest(string_t xObjClass, string_t xObjName, long objInst,
     return pdTRUE;
 }
 
-
-struct ribCallbackOps_t *
-pxRibdCreateCdapCallback( opCode_t xOpCode,
-                          int invoke_id)
+struct ribCallbackOps_t *pxRibdCreateCdapCallback(opCode_t xOpCode, int invoke_id)
 {
     struct ribCallbackOps_t *pxCallback = pvPortMalloc(sizeof(struct ribCallbackOps_t));
 
-    // TODO nest switches in function of the msg OpCode
-    switch (xOpCode) {
+    switch (xOpCode)
+    {
     case M_START:
         pxCallback->start_response = xEnrollmentHandleStartR;
         break;
@@ -752,7 +760,8 @@ pxRibdCreateCdapCallback( opCode_t xOpCode,
         break;
 
     case M_CREATE:
-        //pxCllback->create_response = fa_handle_create_r;
+        /*FLow Allocator*/
+
         break;
 
     default:
