@@ -331,6 +331,8 @@ BaseType_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 	xBufferSize = sizeof(ARPPacket_t) + (xMaxLen + sizeof(pxSha->xAddress)) * 2;
 	/* This is called from the context of the IPCP event task, so a block time
 	 * must not be used. */
+
+	//ESP_LOGE(TAG_ARP, "Taking Buffer to send ARP Request: vARPSendRequest");
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, (TickType_t)0U); // sizeof length ARPPacket
 
 	if (pxNetworkBuffer != NULL)
@@ -473,10 +475,10 @@ void vARPRemoveCacheEntry(const gpa_t *pxGpa, const gha_t *pxMACAddress)
 {
 	BaseType_t x = 0;
 
-	const string_t xAd = "NULL\0";
+	const string_t pcAd = "NULL\0";
 
 	gha_t *tmp = pxARPCreateGHAUnknown(MAC_ADDR_802_3);
-	gpa_t *protocolAddress = pxShimCreateGPA((uint8_t *)xAd, 5);
+	gpa_t *protocolAddress = pxShimCreateGPA((uint8_t *)pcAd, 5);
 
 	ARPCacheRow_t xNullCacheEntry;
 
@@ -880,10 +882,10 @@ BaseType_t xARPResolveGPA(const gpa_t *pxTpa, const gpa_t *pxSpa, const gha_t *p
 
 void vARPInitCache(void)
 {
-	const string_t xAd = "NULL\0";
+	const string_t pcAd = "NULL\0";
 
 	gha_t *pxTmp = pxARPCreateGHAUnknown(MAC_ADDR_802_3);
-	gpa_t *pxProtocolAddress = pxShimCreateGPA((uint8_t *)xAd, 5);
+	gpa_t *pxProtocolAddress = pxShimCreateGPA((uint8_t *)pcAd, 5);
 
 	ARPCacheRow_t xNullCacheEntry;
 

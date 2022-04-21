@@ -22,9 +22,9 @@
 #include "esp_log.h"
 #include "RINA_API.h"
 
-struct appRegistration_t *RINA_application_register(string_t xNameDif, string_t xLocalApp, uint8_t Flags);
+struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t pcLocalApp, uint8_t Flags);
 
-struct appRegistration_t *RINA_application_register(string_t xNameDif, string_t xLocalApp, uint8_t Flags)
+struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t pcLocalApp, uint8_t Flags)
 {
     name_t *xDn, *xAppn, *xDan;
     registerApplicationHandle_t *xRegAppRequest = pvPortMalloc(sizeof(*xRegAppRequest));
@@ -37,16 +37,16 @@ struct appRegistration_t *RINA_application_register(string_t xNameDif, string_t 
     xAppn = xRinaNameCreate();
     xDan = xRinaNameCreate();
 
-    if (xNameDif && xRinaNameFromString(xNameDif, xDn))
+    if (pcNameDif && xRinaNameFromString(pcNameDif, xDn))
     {
         ESP_LOGE(TAG_RINA, "DIFName incorrect");
         xRinaNameFree(xDn);
         return NULL;
     }
-    if (xLocalApp && xRinaNameFromString(xLocalApp, xAppn))
+    if (pcLocalApp && xRinaNameFromString(pcLocalApp, xAppn))
     {
         ESP_LOGE(TAG_RINA, "LocalName incorrect");
-        xRinaNameFree(xNameDif);
+        xRinaNameFree(pcNameDif);
         xRinaNameFree(xAppn);
         return NULL;
     }
@@ -64,9 +64,9 @@ struct appRegistration_t *RINA_application_register(string_t xNameDif, string_t 
     xRegAppRequest->xDestPort = 1;
     xRegAppRequest->xSrcPort = 1; //Should be random?
 
-    xRegAppRequest->xAppName = xAppn;
-    xRegAppRequest->xDifName = xDn;
-    xRegAppRequest->xDafName = xDan;
+    xRegAppRequest->pxAppName = xAppn;
+    xRegAppRequest->pxDifName = xDn;
+    xRegAppRequest->pxDafName = xDan;
 
     xStackAppRegistrationEvent.pvData = xRegAppRequest;
 
@@ -95,30 +95,30 @@ void xRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse)
     pxFlowAllocateResponse->xEventBits = 0U;
 }
 
-portId_t RINA_flow_alloc(string_t xNameDIF, string_t xLocalApp, string_t xRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags);
+portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags);
 
-portId_t RINA_flow_alloc(string_t xNameDIF, string_t xLocalApp, string_t xRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags)
+portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags)
 {
     portId_t xPortId; /* PortId to return to the user*/
     RINAStackEvent_t xStackFlowAllocateEvent = {eStackFlowAllocateEvent, NULL};
-    name_t *xDIFName, *xLocalName, *xRemoteName;
-    flowAllocateHandle_t *xFlowAllocateRequest;
-    struct flowSpec_t *xFlowSpecTmp;
+    name_t *pxDIFName, *pxLocalName, *pxRemoteName;
+    flowAllocateHandle_t *pxFlowAllocateRequest;
+    struct flowSpec_t *pxFlowSpecTmp;
     EventGroupHandle_t xEventGroup;
     TickType_t xRemainingTime;
     BaseType_t xTimed = pdFALSE; /* Check non-blocking*/
     TimeOut_t xTimeOut;
 
-    xFlowSpecTmp = pvPortMalloc(sizeof(*xFlowSpecTmp));
+    pxFlowSpecTmp = pvPortMalloc(sizeof(*pxFlowSpecTmp));
 
-    xFlowAllocateRequest = pvPortMalloc(sizeof(*xFlowAllocateRequest));
+    pxFlowAllocateRequest = pvPortMalloc(sizeof(*pxFlowAllocateRequest));
 
     xEventGroup = xEventGroupCreate();
 
     if (xEventGroup == NULL)
     {
-        vPortFree(xFlowAllocateRequest);
-        vPortFree(xFlowSpecTmp);
+        vPortFree(pxFlowAllocateRequest);
+        vPortFree(pxFlowSpecTmp);
         return -1;
     }
     else
@@ -127,39 +127,39 @@ portId_t RINA_flow_alloc(string_t xNameDIF, string_t xLocalApp, string_t xRemote
         /* Check Flow spec ok version*/
 
         /*Check Flags*/
-        (void)memset(xFlowAllocateRequest, 0, sizeof(*xFlowAllocateRequest));
+        (void)memset(pxFlowAllocateRequest, 0, sizeof(*pxFlowAllocateRequest));
 
         /*Create objetcs type name_t from string_t*/
         //ESP_LOGI(TAG_RINA, "FlowAllocate: NameCreate");
-        xDIFName = xRinaNameCreate();
-        xLocalName = xRinaNameCreate();
-        xRemoteName = xRinaNameCreate();
+        pxDIFName = xRinaNameCreate();
+        pxLocalName = xRinaNameCreate();
+        pxRemoteName = xRinaNameCreate();
 
-        if (!xDIFName && !xLocalName && !xRemoteName)
+        if (!pxDIFName && !pxLocalName && !pxRemoteName)
         {
             ESP_LOGE(TAG_RINA, "Error");
         }
         ESP_LOGE(TAG_RINA, "OK");
 
-        if (!xNameDIF && xRinaNameFromString(xNameDIF, xDIFName))
+        if (!pcNameDIF && xRinaNameFromString(pcNameDIF, pxDIFName))
         {
             ESP_LOGE(TAG_RINA, "DIFName incorrect");
-            xRinaNameFree(xDIFName);
+            xRinaNameFree(pxDIFName);
             return -1;
         }
-        if (!xLocalApp && xRinaNameFromString(xLocalApp, xLocalName))
+        if (!pcLocalApp && xRinaNameFromString(pcLocalApp, pxLocalName))
         {
             ESP_LOGE(TAG_RINA, "LocalName incorrect");
-            xRinaNameFree(xDIFName);
-            xRinaNameFree(xLocalName);
+            xRinaNameFree(pxDIFName);
+            xRinaNameFree(pxLocalName);
             return -1;
         }
-        if (!xRemoteApp && xRinaNameFromString(xRemoteApp, xRemoteName))
+        if (!pcRemoteApp && xRinaNameFromString(pcRemoteApp, pxRemoteName))
         {
             ESP_LOGE(TAG_RINA, "RemoteName incorrect");
-            xRinaNameFree(xDIFName);
-            xRinaNameFree(xDIFName);
-            xRinaNameFree(xRemoteName);
+            xRinaNameFree(pxDIFName);
+            //xRinaNameFree(pxDIFName);
+            xRinaNameFree(pxRemoteName);
             return -1;
         }
 
@@ -168,46 +168,46 @@ portId_t RINA_flow_alloc(string_t xNameDIF, string_t xLocalApp, string_t xRemote
 
         /*Struct Data to sent attached into the event*/
 
-        if (xFlowAllocateRequest != NULL)
+        if (pxFlowAllocateRequest != NULL)
         {
-            xFlowAllocateRequest->xEventGroup = xEventGroup;
-            xFlowAllocateRequest->xReceiveBlockTime = FLOW_DEFAULT_RECEIVE_BLOCK_TIME;
-            xFlowAllocateRequest->xSendBlockTime = FLOW_DEFAULT_SEND_BLOCK_TIME;
+            pxFlowAllocateRequest->xEventGroup = xEventGroup;
+            pxFlowAllocateRequest->xReceiveBlockTime = FLOW_DEFAULT_RECEIVE_BLOCK_TIME;
+            pxFlowAllocateRequest->xSendBlockTime = FLOW_DEFAULT_SEND_BLOCK_TIME;
 
-            xFlowAllocateRequest->xLocal = xLocalName;
-            xFlowAllocateRequest->xRemote = xRemoteName;
-            xFlowAllocateRequest->xDifName = xDIFName;
-            xFlowAllocateRequest->xFspec = xFlowSpecTmp;
-            xFlowAllocateRequest->xPortId = xPortId;
+            pxFlowAllocateRequest->pxLocal = pxLocalName;
+            pxFlowAllocateRequest->pxRemote = pxRemoteName;
+            pxFlowAllocateRequest->pxDifName = pxDIFName;
+            pxFlowAllocateRequest->pxFspec =pxFlowSpecTmp;
+            pxFlowAllocateRequest->xPortId = xPortId;
 
             if (!xFlowSpec)
             {
-                xFlowAllocateRequest->xFspec->ulAverageBandwidth = 0;
-                xFlowAllocateRequest->xFspec->ulAverageSduBandwidth = 0;
-                xFlowAllocateRequest->xFspec->ulDelay = 0;
-                xFlowAllocateRequest->xFspec->ulJitter = 0;
-                xFlowAllocateRequest->xFspec->usLoss = 10000;
-                xFlowAllocateRequest->xFspec->ulMaxAllowableGap = 10;
-                xFlowAllocateRequest->xFspec->xOrderedDelivery = false;
-                xFlowAllocateRequest->xFspec->ulUndetectedBitErrorRate = 0;
-                xFlowAllocateRequest->xFspec->xPartialDelivery = true;
-                xFlowAllocateRequest->xFspec->xMsgBoundaries = false;
+                pxFlowAllocateRequest->pxFspec->ulAverageBandwidth = 0;
+                pxFlowAllocateRequest->pxFspec->ulAverageSduBandwidth = 0;
+                pxFlowAllocateRequest->pxFspec->ulDelay = 0;
+                pxFlowAllocateRequest->pxFspec->ulJitter = 0;
+                pxFlowAllocateRequest->pxFspec->usLoss = 10000;
+                pxFlowAllocateRequest->pxFspec->ulMaxAllowableGap = 10;
+                pxFlowAllocateRequest->pxFspec->xOrderedDelivery = false;
+                pxFlowAllocateRequest->pxFspec->ulUndetectedBitErrorRate = 0;
+                pxFlowAllocateRequest->pxFspec->xPartialDelivery = true;
+                pxFlowAllocateRequest->pxFspec->xMsgBoundaries = false;
             }
             else
             {
-                xFlowAllocateRequest->xFspec->ulAverageBandwidth = xFlowSpec->avg_bandwidth;
-                xFlowAllocateRequest->xFspec->ulAverageSduBandwidth = 0;
-                xFlowAllocateRequest->xFspec->ulDelay = xFlowSpec->max_delay;
-                xFlowAllocateRequest->xFspec->ulJitter = xFlowSpec->max_jitter;
-                xFlowAllocateRequest->xFspec->usLoss = xFlowSpec->max_loss;
-                xFlowAllocateRequest->xFspec->ulMaxAllowableGap = xFlowSpec->max_sdu_gap;
-                xFlowAllocateRequest->xFspec->xOrderedDelivery = xFlowSpec->in_order_delivery;
-                xFlowAllocateRequest->xFspec->ulUndetectedBitErrorRate = 0;
-                xFlowAllocateRequest->xFspec->xPartialDelivery = true;
-                xFlowAllocateRequest->xFspec->xMsgBoundaries = xFlowSpec->msg_boundaries;
+                pxFlowAllocateRequest->pxFspec->ulAverageBandwidth = xFlowSpec->avg_bandwidth;
+                pxFlowAllocateRequest->pxFspec->ulAverageSduBandwidth = 0;
+                pxFlowAllocateRequest->pxFspec->ulDelay = xFlowSpec->max_delay;
+                pxFlowAllocateRequest->pxFspec->ulJitter = xFlowSpec->max_jitter;
+                pxFlowAllocateRequest->pxFspec->usLoss = xFlowSpec->max_loss;
+                pxFlowAllocateRequest->pxFspec->ulMaxAllowableGap = xFlowSpec->max_sdu_gap;
+                pxFlowAllocateRequest->pxFspec->xOrderedDelivery = xFlowSpec->in_order_delivery;
+                pxFlowAllocateRequest->pxFspec->ulUndetectedBitErrorRate = 0;
+                pxFlowAllocateRequest->pxFspec->xPartialDelivery = true;
+                pxFlowAllocateRequest->pxFspec->xMsgBoundaries = xFlowSpec->msg_boundaries;
             }
 
-            xStackFlowAllocateEvent.pvData = xFlowAllocateRequest;
+            xStackFlowAllocateEvent.pvData = pxFlowAllocateRequest;
 
             if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, (TickType_t)0U) == pdFAIL)
             {
@@ -219,16 +219,16 @@ portId_t RINA_flow_alloc(string_t xNameDIF, string_t xLocalApp, string_t xRemote
                 /* The IP-task will set the 'eFLOW_BOUND' bit when it has done its
              * job. */
 
-                (void)xEventGroupWaitBits(xFlowAllocateRequest->xEventGroup, (EventBits_t)eFLOW_BOUND, pdTRUE /*xClearOnExit*/, pdFALSE /*xWaitAllBits*/, portMAX_DELAY);
+                (void)xEventGroupWaitBits(pxFlowAllocateRequest->xEventGroup, (EventBits_t)eFLOW_BOUND, pdTRUE /*xClearOnExit*/, pdFALSE /*xWaitAllBits*/, portMAX_DELAY);
 
-                ESP_LOGE(TAG_RINA, "TEST OK");
+                ESP_LOGE(TAG_RINA, "TEST OK:%d",pxFlowAllocateRequest->xPortId);
 
                 /*Check if the flow was bound*/
                 /* if (!socketSOCKET_IS_BOUND(pxSocket))
                 {
                     xReturn = -pdFREERTOS_ERRNO_EINVAL;
                 }*/
-                return xPortId;
+                return pxFlowAllocateRequest->xPortId;
             }
         }
     }

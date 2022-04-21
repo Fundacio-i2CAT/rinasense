@@ -29,6 +29,7 @@
 #include "ipcpIdm.h"
 #include "Ribd.h"
 #include "du.h"
+#include "FlowAllocator.h"
 
 #include "esp_log.h"
 
@@ -73,7 +74,7 @@ BaseType_t xIpcManagerInit(ipcManager_t *pxIpcManager)
 
     if (xTest())
     {
-        ESP_LOGE(TAG_IPCPMANAGER,"INIT Ribd");
+        ESP_LOGI(TAG_IPCPMANAGER,"INIT Ribd");
     }
 
     return pdTRUE;
@@ -294,15 +295,16 @@ portId_t xIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, void *data)
     if (pxNormalInstance->pxOps->flowPrebind(pxNormalInstance->pxData, xPortId))
     {
 
-        if (pxNormalInstance->pxOps->connectionCreate(pxNormalInstance->pxData, xPortId,
-                                                      xSource, xDest, xQosId, pxDtpCfg,
-                                                      pxDtcpCfg))
+        //call to FlowAllocator.
+        if(xFlowAllocatorFlowRequest(pxNormalInstance, xPortId, (flowAllocateHandle_t*)data))
         {
-            return pdTRUE;
+            return xPortId;
         }
+        
+        
     }
 
-    return pdFALSE;
+    return -1;
 }
 
 BaseType_t xIpcpManagerPreBindFlow(factories_t *pxFactories, ipcpFactoryType_t xNormalType)
@@ -366,7 +368,7 @@ BaseType_t xIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBu
     pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
     pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
 
-    ESP_LOGE(TAG_IPCPMANAGER,"Calling xNormalMgmtDuWrite");
+   // ESP_LOGE(TAG_IPCPMANAGER,"Calling xNormalMgmtDuWrite");
 
     pxNormalInstance->pxOps->duEnqueue(pxNormalInstance->pxData,1,pxMessagePDU);
 

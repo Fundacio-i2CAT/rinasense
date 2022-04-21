@@ -293,7 +293,8 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
 
     }
     count = count + 1;
-    ESP_LOGI(TAG_NETBUFFER, "Count BUffer:%d", count);
+    //ESP_LOGI(TAG_NETBUFFER, "Taking Buffer");
+    //ESP_LOGI(TAG_NETBUFFER, "Count:%d", count);
 
     return pxReturn;
 }
@@ -339,8 +340,9 @@ void vReleaseNetworkBufferAndDescriptor( NetworkBufferDescriptor_t * const pxNet
         /* No action. */
 
     }
-    count = count -1 ;
-        ESP_LOGI(TAG_NETBUFFER, "Count BUffer after Release:%d", count);
+    count = count - 1 ;
+    //ESP_LOGI(TAG_NETBUFFER, "Releasing Buffer....!!!");
+    //ESP_LOGI(TAG_NETBUFFER, "Buffer actived:%d", count);
 }
 /*-----------------------------------------------------------*/
 

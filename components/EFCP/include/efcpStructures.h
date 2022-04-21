@@ -5,11 +5,8 @@
  *      Author: i2CAT
  */
 
-
-
 #ifndef COMPONENTS_EFCP_INCLUDE_EFCPSTRUCTURES_H_
 #define COMPONENTS_EFCP_INCLUDE_EFCPSTRUCTURES_H_
-
 
 #include <stdio.h>
 
@@ -24,10 +21,7 @@
 #include "Rmt.h"
 #include "common.h"
 #include "delim.h"
-
-
-
-
+#include "cepidm.h"
 
 /* Retransmission Queue RTXQ used to buffer those PDUs
  * that may require retransmission */
@@ -40,84 +34,92 @@
 
 /* Close Window Queue (CWQ) used to buffer those PDUs
  * that cannot be transmitted when using flow control*/
-typedef struct xCWQ {
+typedef struct xCWQ
+{
 
-	QueueHandle_t * pxQueue;
-        //spinlock_t      lock;
-}cwq_t;
+        QueueHandle_t *pxQueue;
+        // spinlock_t      lock;
+} cwq_t;
 
-typedef struct xRTX_QUEUE {
-	int len;
-	int dropPdus;
-    //struct list_head head;
-}rtxqueue_t;
+typedef struct xRTX_QUEUE
+{
+        int len;
+        int dropPdus;
+        // struct list_head head;
+} rtxqueue_t;
 
-typedef struct xRTXQ {
-        //spinlock_t                lock;
-        struct dtp_t *              pxParent;
-        struct rmt_t *              rmt;
-        rtxqueue_t *         queue;
-}rtxq_t;
+typedef struct xRTXQ
+{
+        // spinlock_t                lock;
+        struct dtp_t *pxParent;
+        struct rmt_t *rmt;
+        rtxqueue_t *queue;
+} rtxq_t;
 
-typedef struct xRTT_ENTRY {
-	unsigned long 	ulTimeStamp;
-	seqNum_t 		xSeqNum;
-        //struct list_head next;
-}rttEntry_t;
+typedef struct xRTT_ENTRY
+{
+        unsigned long ulTimeStamp;
+        seqNum_t xSeqNum;
+        // struct list_head next;
+} rttEntry_t;
 
-typedef struct xRTTQ {
-	//spinlock_t lock;
-	struct dtp * pxParent;
-        //struct list_head head;
-}rttq_t;
+typedef struct xRTTQ
+{
+        // spinlock_t lock;
+        struct dtp *pxParent;
+        // struct list_head head;
+} rttq_t;
 
 /* This is the DT-SV part maintained by DTP */
-typedef struct xDTP_SV {
+typedef struct xDTP_SV
+{
         /*Less or equal to those defined for the DIF*/
-        uint_t       xMaxFlowPduSize;
-        uint_t       xMaxFlowSduSize;
-        //timeout_t    MPL;
-        //timeout_t    R;
-        //timeout_t    A;
-        //timeout_t    tr;
-        seqNum_t    xRcvLeftWindowEdge;
-        BaseType_t         xWindowClosed;
-        
+        uint_t xMaxFlowPduSize;
+        uint_t xMaxFlowSduSize;
+        // timeout_t    MPL;
+        // timeout_t    R;
+        // timeout_t    A;
+        // timeout_t    tr;
+        seqNum_t xRcvLeftWindowEdge;
+        BaseType_t xWindowClosed;
+
         /* Indicates that the next PDU sent should have the
         DRF set. */
-        BaseType_t         xDrfFlag;
+        BaseType_t xDrfFlag;
         /* used to notifies that a new connection will soon
         be needed to avoid sequence number rollover.*/
-        uint_t     xSeqNumberRolloverThreshold;
-	/* FIXME: we need to control rollovers...*/
-	struct {
-		unsigned int drop_pdus;
-		unsigned int err_pdus;
-		unsigned int tx_pdus;
-		unsigned int tx_bytes;
-		unsigned int rx_pdus;
-		unsigned int rx_bytes;
-	} stats;
-        seqNum_t  xMaxSeqNumberRcvd;
-        seqNum_t  xNextSeqNumberToSend;
-        seqNum_t  xMaxSeqNumberToSend;
+        uint_t xSeqNumberRolloverThreshold;
+        /* FIXME: we need to control rollovers...*/
+        struct
+        {
+                unsigned int drop_pdus;
+                unsigned int err_pdus;
+                unsigned int tx_pdus;
+                unsigned int tx_bytes;
+                unsigned int rx_pdus;
+                unsigned int rx_bytes;
+        } stats;
+        seqNum_t xMaxSeqNumberRcvd;
+        seqNum_t xNextSeqNumberToSend;
+        seqNum_t xMaxSeqNumberToSend;
 
-        BaseType_t        xWindowBased;
-        BaseType_t        xRexmsnCtrl;
-        BaseType_t        xRateBased;
-        BaseType_t        xDrfRequired;
-        BaseType_t        xRateFulfiled;
+        BaseType_t xWindowBased;
+        BaseType_t xRexmsnCtrl;
+        BaseType_t xRateBased;
+        BaseType_t xDrfRequired;
+        BaseType_t xRateFulfiled;
 
-}dtpSv_t;
+} dtpSv_t;
 
-typedef struct xDTCP_SV {
+typedef struct xDTCP_SV
+{
         /* TimeOuts */
         /*
          * When flow control is rate based this timeout may be
          * used to pace number of PDUs sent in TimeUnit
          */
 
-        uint_t       pdus_per_time_unit;
+        uint_t pdus_per_time_unit;
 /*Do not consider control stage yet, but defined for the dtcp struct */
 #if 0
         /* Sequencing */
@@ -232,61 +234,57 @@ typedef struct xDTCP_SV {
          */
         bool         rendezvous_rcvr;
 #endif
-}dtcpSv_t;
+} dtcpSv_t;
 
 /* This is the DTCP configurations from connection policies */
 struct dtcpConfig_t
 {
-        BaseType_t                    xFlowCtrl;
-        struct dtcp_fctrl_config *  fctrl_cfg;
-        bool                        rtx_ctrl;
-        struct dtcp_rxctrl_config * rxctrl_cfg;
-        policy_t *             lost_control_pdu;
-        policy_t *             dtcp_ps;
-        policy_t *             rtt_estimator;
+        BaseType_t xFlowCtrl;
+        struct dtcp_fctrl_config *fctrl_cfg;
+        bool rtx_ctrl;
+        struct dtcp_rxctrl_config *rxctrl_cfg;
+        policy_t *lost_control_pdu;
+        policy_t *dtcp_ps;
+        policy_t *rtt_estimator;
 };
-
 
 typedef struct xDTCP
 {
-        struct dtp_t *         	pxParent;
+        struct dtp_t *pxParent;
         /*
          * NOTE: The DTCP State Vector can be discarded during long periods of
          *       no traffic
          */
-        dtcpSv_t *       		pxSv; /* The state-vector */
+        dtcpSv_t *pxSv; /* The state-vector */
 
-        struct dtcpConfig_t *   		pxCfg;
-        struct rmt_t *          pxRmt;
-        //struct timer_list 	   rendezvous_rcv;
+        struct dtcpConfig_t *pxCfg;
+        struct rmt_t *pxRmt;
+        // struct timer_list 	   rendezvous_rcv;
 
-
-
-}dtcp_t;
+} dtcp_t;
 
 typedef struct xDTP
 {
 
-        dtcp_t *                pxDtcp;
-        struct efcp_t *         pxEfcp;
+        dtcp_t *pxDtcp;
+        struct efcp_t *pxEfcp;
 
-        cwq_t *        		pxCwq;
-        rtxq_t *                pxRtxq;
-        rttq_t * 	        pxRttq;
+        cwq_t *pxCwq;
+        rtxq_t *pxRtxq;
+        rttq_t *pxRttq;
 
         /*
          * NOTE: The DTP State Vector is discarded only after and explicit
          *       release by the AP or by the system (if the AP crashes).
          */
-       dtpSv_t * 	        pxDtpStateVector; /* The state-vector */
-       // spinlock_t          sv_lock; /* The state vector lock (DTP & DTCP) */
+        dtpSv_t *pxDtpStateVector; /* The state-vector */
+                                   // spinlock_t          sv_lock; /* The state vector lock (DTP & DTCP) */
 
-
-        dtpConfig_t *            pxDtpCfg;
-        struct rmt_t *           pxRmt;
-        //struct squeue *           seqq;
-        //struct ringq *            to_post;
-        //struct ringq *            to_send;
+        dtpConfig_t *pxDtpCfg;
+        struct rmt_t *pxRmt;
+        // struct squeue *           seqq;
+        // struct ringq *            to_post;
+        // struct ringq *            to_send;
         /*struct {
                 struct timer_list sender_inactivity;
                 struct timer_list receiver_inactivity;
@@ -296,60 +294,55 @@ typedef struct xDTP
                 struct timer_list rendezvous;
         } timers;*/
 
+} dtp_t;
 
-}dtp_t;
+typedef struct xConnection
+{
+        portId_t xPortId;
+        address_t xSourceAddress;
+        address_t xDestinationAddress;
+        cepId_t xSourceCepId;
+        cepId_t xDestinationCepId;
+        qosId_t xQosId;
+} connection_t;
 
-
-
-
-typedef struct xConnection {
-        portId_t              xPortId;
-        address_t             xSourceAddress;
-        address_t             xDestinationAddress;
-        cepId_t               xSourceCepId;
-        cepId_t               xDestinationCepId;
-        qosId_t               xQosId;
-}connection_t;
-
-typedef enum  {
+typedef enum
+{
         eEfcpAllocated = 1,
         eEfcpDeallocated
-}eEfcpState_t;
+} eEfcpState_t;
 
-//struct efcp_t;
+// struct efcp_t;
 
 typedef struct xEFCP_IMAP_ROW
 {
-	cepId_t          xCepIdKey;
-        struct efcp_t *  xEfcpValue;
-        uint8_t          ucValid; 
-        //struct hlist_node hlist;
-}efcpImapRow_t;
+        cepId_t xCepIdKey;
+        struct efcp_t *xEfcpValue;
+        uint8_t ucValid;
 
+} efcpImapRow_t;
 
-
-struct efcpContainer_t{
-	//struct rset *        rset;
-	efcpImapRow_t  *         pxEfcpImap;
-	//struct cidm *        cidm;
-	efcpConfig_t *          pxConfig;
-	struct rmt_t *          pxRmt;
-	//struct kfa *         kfa;
-	//spinlock_t           lock;
-	//wait_queue_head_t    del_wq;
+struct efcpContainer_t
+{
+        // struct rset *        rset;
+        efcpImapRow_t           *pxEfcpImap;
+        cepIdm_t                *pxCidm;
+        efcpConfig_t            *pxConfig;
+        struct rmt_t            *pxRmt;
+        // struct kfa *         kfa;
+        // spinlock_t           lock;
+        // wait_queue_head_t    del_wq;
 };
 
+struct efcp_t
+{
 
-struct efcp_t {
-
-        connection_t *          pxConnection;
-        ipcpInstance_t *        pxUserIpcp;//IPCP NORMAL
-        dtp_t *                 pxDtp; // implement in EFCP Component
-        delim_t *		pxDelim; //delimiting module
-        struct efcpContainer_t * 	pxContainer;
-        eEfcpState_t            xState;
-
+        connection_t *pxConnection;
+        ipcpInstance_t *pxUserIpcp; // IPCP NORMAL
+        dtp_t *pxDtp;               // implement in EFCP Component
+        delim_t *pxDelim;           // delimiting module
+        struct efcpContainer_t *pxContainer;
+        eEfcpState_t xState;
 };
-
 
 #endif /* COMPONENTS_EFCP_INCLUDE_EFCPSTRUCTURES_H_ */

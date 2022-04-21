@@ -1,9 +1,4 @@
 
-/*TODO:
- * - Write EFCP
- * - Write EFCP container
- * - Receive EFCP
- * - Receive EFCP Container*/
 
 #include <stdio.h>
 #include <stdint.h>
@@ -26,6 +21,7 @@
 #include "common.h"
 #include "connection.h"
 #include "configSensor.h"
+#include "cepidm.h"
 
 #include "esp_log.h"
 
@@ -252,12 +248,16 @@ struct efcpContainer_t *pxEfcpContainerCreate(void)
         if (!pxContainer)
                 return NULL;
 
-        if (!xEfcpImapCreate( ))
+        pxContainer->pxCidm = pxCepIdmCreate();
+
+        if (!xEfcpImapCreate( ) || pxContainer->pxCidm == NULL)
         {
                 ESP_LOGE(TAG_EFCP, "Failed to init EFCP container instances");
                 xEfcpContainerDestroy(pxContainer);
                 return NULL;
         }
+
+       
 
         ESP_LOGI(TAG_EFCP, "EFCP container instance %p created", pxContainer);
 
@@ -272,7 +272,7 @@ BaseType_t xEfcpContainerDestroy(struct efcpContainer_t * pxContainer)
         }
 
         if (pxContainer->pxEfcpImap)  xEfcpImapDestroy( );
-        //if (container->cidm)       cidm_destroy(container->cidm);
+        //if (pxContainer->pxCidm)       pxCepIdmDestroy(pxContainer->pxCidm);
 
         //if (pxContainer->pxConfig)     efcp_config_free(container->config);
 

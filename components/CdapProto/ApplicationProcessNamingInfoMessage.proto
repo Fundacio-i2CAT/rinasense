@@ -1,0 +1,11 @@
+syntax="proto2";
+import "nanopb.proto";
+package rina.messages;
+option optimize_for = LITE_RUNTIME;
+
+message applicationProcessNamingInfo_t {         // carries the naming information of an application process
+        required string applicationProcessName = 1 [(nanopb).max_size = 20];
+        optional string applicationProcessInstance = 2 [(nanopb).max_size = 20];
+        optional string applicationEntityName = 3 [(nanopb).max_size = 20];
+        optional string applicationEntityInstance = 4 [(nanopb).max_size = 20];
+}

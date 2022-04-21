@@ -21,21 +21,20 @@
 #include "esp_log.h"
 
 /*Table of Objects*/
-struct ribObjectRow_t xRibObjectTable [ RIB_TABLE_SIZE ];
-
+struct ribObjectRow_t xRibObjectTable[RIB_TABLE_SIZE];
 
 void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
 {
 
     BaseType_t x = 0;
 
-    for (x = 0; x < RIB_TABLE_SIZE ; x++)
+    for (x = 0; x < RIB_TABLE_SIZE; x++)
     {
         if (xRibObjectTable[x].xValid == pdFALSE)
         {
             xRibObjectTable[x].pxRibObject = pxRibObject;
             xRibObjectTable[x].xValid = pdTRUE;
-            ESP_LOGE(TAG_IPCPMANAGER, "Rib Object Entry successful: %p", pxRibObject);
+            ESP_LOGI(TAG_RIB, "Rib Object Entry successful: %p", pxRibObject);
 
             break;
         }
@@ -49,21 +48,26 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
     struct ribObject_t *pxRibObject;
     pxRibObject = pvPortMalloc(sizeof(*pxRibObject));
 
-    for (x = 0; x < RIB_TABLE_SIZE; x++)
 
-    {
-        if ( xRibObjectTable[x].xValid == pdTRUE)
+
+        for (x = 0; x < RIB_TABLE_SIZE; x++)
+
         {
-            pxRibObject = xRibObjectTable[x].pxRibObject;
-            if ( pxRibObject->ucObjName == ucRibObjectName)
+            if (xRibObjectTable[x].xValid == pdTRUE)
             {
-                ESP_LOGI(TAG_IPCPMANAGER, "RibObj founded '%p'", pxRibObject);
+                pxRibObject = xRibObjectTable[x].pxRibObject;
+                ESP_LOGI(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
+                if (!strcmp(pxRibObject->ucObjName, ucRibObjectName))
+                {
+                    ESP_LOGI(TAG_RIB, "RibObj founded '%p'", pxRibObject);
 
-                return pxRibObject;
-                break;
+                    return pxRibObject;
+                    break;
+                }
             }
         }
-    }
+        ESP_LOGI(TAG_IPCPMANAGER, "RibObj not founded");
+
     return NULL;
 }
 
@@ -78,33 +82,36 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
 
     pxObj->pxObjOps = pvPortMalloc(sizeof(struct ribObjOps_t));
 
-    switch ( eObjType )
+    switch (eObjType)
     {
     case ENROLLMENT:
         pxObj->pxObjOps->stop = xEnrollmentHandleStop;
         pxObj->pxObjOps->start = xEnrollmentEnroller;
-        
 
         break;
 
     case FLOW_ALLOCATOR:
+        //M_create
+        //M_Delete
+        //M_write
 
         break;
 
+    case OPERATIONAL:
+        pxObj->pxObjOps->start = xEnrollmentHandleOperationalStart;
+
+        break;
 
     default:
-        {
-            pxObj->pxObjOps->create = NULL;
-            
-        }
-        break;
+    {
+        pxObj->pxObjOps->create = NULL;
+    }
+    break;
     }
 
     /*Add object into the table*/
-    // ht_str_insert(rib->rib_obj_db, obj_name, obj);
+    vRibAddObjectEntry(pxObj);
+    ESP_LOGI(TAG_RIB, "RIB object created: %s, %p", pxObj->ucObjName, pxObj);
 
     return pxObj;
 }
-
-
-

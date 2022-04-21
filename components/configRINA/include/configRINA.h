@@ -39,6 +39,18 @@
 	#define REMOTE_ADDRESS_AP_INSTANCE				"1"
 	#define REMOTE_ADDRESS_AP_NAME					"ar1.mobile"
 
+	/**** QoS CUBES ****/
+	#define QoS_CUBE_NAME 							"unreliable"
+	#define QoS_CUBE_ID								( 3 )
+	#define QoS_CUBE_PARTIAL_DELIVERY				pdFALSE
+	#define QoS_CUBE_ORDERED_DELIVERY				pdTRUE
 
+	/**** EFCP POLICIES ****/
+	/* DTP POLICY SET */
+	#define DTP_POLICY_SET_NAME						"default"
+	#define DTP_POLICY_SET_VERSION					"0"
 
+	#define DTP_INITIAL_A_TIMER						( 300 )
+	#define DTP_DTCP_PRESENT						pdFALSE
+		
 #endif

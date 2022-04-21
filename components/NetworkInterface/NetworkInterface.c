@@ -265,6 +265,7 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuf
 
 	if (xReleaseAfterSend == pdTRUE)
 	{
+		//ESP_LOGE(TAG_WIFI, "Releasing Buffer interface WiFi after send");
 		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 	}
 
@@ -297,6 +298,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 	}
 
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, xDescriptorWaitTime);
+	//ESP_LOGE(TAG_WIFI,"xNetworkInterfaceInput Taking buffer to copy wifidriver buffer");
 
 	if (pxNetworkBuffer != NULL)
 	{
@@ -322,6 +324,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 	else
 	{
 		ESP_LOGE(TAG_WIFI, "Failed to get buffer descriptor");
+		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 		return ESP_FAIL;
 	}
 }

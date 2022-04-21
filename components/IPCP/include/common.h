@@ -141,10 +141,21 @@ typedef enum FRAMES_PROCESSING
 } eFrameProcessingResult_t;
 
 typedef struct xPOLICY {
-        string_t *       pxName;
-        string_t *       pxVersion;
-        List_t           xparameters;
+        /* The name of the policy */
+        string_t        pcPolicyName;
+
+        /* The version of the policy implementation */
+        string_t        pcPolicyVersion;
+
+        /* The paramters of the policy */
+        List_t          xParameters;
 }policy_t;
+
+typedef struct xCONNECTION_ID{
+ 		qosId_t xQosId;			/**< QoS Id  3 + 1 = 4 */
+ 		cepId_t xDestination;	/**< Cep Id Dest 4 + 1 = 5 */
+ 		cepId_t xSource;	    /**< Cep Id Source  5 + 1 = 6 */
+ 	} connectionId_t;
 
 /* The structure is useful when the Data Transfers value are variable
 * when it is required to change the PCI fields. Now it is config by
@@ -210,22 +221,22 @@ typedef struct xDT_CONS {
 typedef struct  xEFCP_CONFIG{
 	 
         /* The data transfer constants. FUTURE IMPLEMENTATION */
-	dtCons_t * pxDtCons;
+	dtCons_t        *pxDtCons;
 
         /* Useful when the dt sizes are variable. FUTURE IMPLEMENTATION*/
-	size_t *		uxPciOffsetTable;
+	size_t          *uxPciOffsetTable;
 
 	/* Policy to implement. FUTURE IMPLEMENTATION*/
-	policy_t * pxUnknownFlow;
+	policy_t        *pxUnknownFlow;
 
 	/* List of qos_cubes supported by the EFCP config */
-	List_t xQosCubesList;
+	List_t          xQosCubesList;
 
 }efcpConfig_t;
 
 typedef struct xRMT_CONFIG {
 	/* The PS name for the RMT */
-	policy_t * pxPolicySet;
+	policy_t        *pxPolicySet;
 
 	/* The configuration of the PDU Forwarding Function subcomponent */
 	//struct pff_config * pff_conf;
@@ -234,16 +245,16 @@ typedef struct xRMT_CONFIG {
 /* Represents a DIF configuration (policies, parameters, etc) */
 typedef struct xDIF_CONFIG {
         /* List of configuration entries */
-       List_t    xIpcpConfigEntries;
+        List_t          xIpcpConfigEntries;
 
         /* the config of the efcp */
-        efcpConfig_t * pxEfcpConfig;
+        efcpConfig_t    *pxEfcpConfig;
 
         /* the config of the rmt */
-        rmtConfig_t * pxRmtConfig;
+        rmtConfig_t     *pxRmtConfig;
 
         /* The address of the IPC Process*/
-        address_t           xAddress;
+        address_t        xAddress;
         /*
         struct fa_config * fa_config;
         struct et_config * et_config;
@@ -255,16 +266,20 @@ typedef struct xDIF_CONFIG {
 
 
 typedef struct xDTP_CONFIG {
-        BaseType_t                 xDtcpPresent;
+        /* It is DTCP used in this config: default-pdFALSE */
+        BaseType_t           xDtcpPresent;
+
         /* Sequence number rollover threshold */
         int                  seqNumRoTh;
-        timeout_t            xInitialATimer;
-        BaseType_t                  xPartialDelivery;
-        BaseType_t                  xIncompleteDelivery;
-        BaseType_t                  xInOrderDelivery;
-        seqNum_t            xMaxSduGap;
 
-        struct policy *      dtp_ps;
+        timeout_t            xInitialATimer;
+        BaseType_t           xPartialDelivery;
+        BaseType_t           xIncompleteDelivery;
+        BaseType_t           xInOrderDelivery;
+        seqNum_t             xMaxSduGap;
+
+        /* Describes a policy */
+        policy_t              *pxDtpPolicySet;
 }dtpConfig_t;
 
 /* Endian related definitions. */
@@ -350,10 +365,10 @@ BaseType_t is_ipcp_id_ok(ipcProcessId_t id);
 
 name_t * xRinaNameCreate( void );
 
-BaseType_t xRinaNameFromString(const string_t xString, name_t * xName);
+BaseType_t xRinaNameFromString(const string_t pcString, name_t * xName);
 void xRinaNameFree(name_t * xName);
 
-BaseType_t xRINAStringDup(const string_t * src,string_t ** dst);
+BaseType_t xRINAStringDup(const string_t * pcSrc,string_t ** pcDst);
 
 name_t *xRINAstringToName(const string_t *pxInput);
 

@@ -299,6 +299,8 @@ static void prvIPCPTask(void *pvParameters)
 
             xFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
             xFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
+            //pxIpcManager->pxIpcpIdm;
+            
             xRINA_WeakUpUser(xFlowAllocateRequest);
 
             break;
@@ -633,9 +635,10 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             NetworkBufferDescriptor_t *pxBuffer;
 
             xlength = pxNetworkBuffer->xDataLength - 14;
-            ESP_LOGE(TAG_IPCPMANAGER, "Length PDU:%d", pxNetworkBuffer->xDataLength);
-            ESP_LOGE(TAG_IPCPMANAGER, "Length PDU without Eth-header:%d", xlength);
+            //ESP_LOGE(TAG_IPCPMANAGER, "Length PDU:%d", pxNetworkBuffer->xDataLength);
+            //ESP_LOGE(TAG_IPCPMANAGER, "Length PDU without Eth-header:%d", xlength);
 
+            //ESP_LOGE(TAG_ARP, "Taking Buffer to copy the RINA PDU: ETH_P_RINA");
             pxBuffer = pxGetNetworkBufferWithDescriptor(xlength, (TickType_t)0U);
 
             if (pxBuffer != NULL)
@@ -653,8 +656,8 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 	            eReturned = eReleaseBuffer;
             }
 
-
-            // vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
+            //ESP_LOGE(TAG_ARP, "Releasing the copied Buffer: ETH_P_RINA");
+            vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
 
             // memcheck();
       
@@ -721,10 +724,11 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
         /* The frame is not being used anywhere, and the
          * NetworkBufferDescriptor_t structure containing the frame should
          * just be released back to the list of free buffers. */
-        ESP_LOGI(TAG_SHIM, "Releasing Buffer");
+       // ESP_LOGI(TAG_SHIM, "Releasing Buffer: ProcessEthernet");
         vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
         break;
     }
+    vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 }
 
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer)

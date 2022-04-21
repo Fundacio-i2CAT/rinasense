@@ -408,7 +408,7 @@ BaseType_t xNormalTest(ipcpInstance_t *pxNormalInstance, ipcpInstance_t *pxN1Ipc
 
 static BaseType_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t *pxDifName)
 {
-        // efcpConfig_t *pxEfcpConfig;
+        efcpConfig_t *pxEfcpConfig;
         //struct secman_config * sm_config;
         //rmtConfig_t *pxRmtConfig;
 
@@ -429,6 +429,8 @@ static BaseType_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t 
 
         /*Reading from the RINACONFIG.h*/
         pxData->xAddress = LOCAL_ADDRESS;
+
+    
 
         /* FUTURE IMPLEMENTATIONS
         
@@ -617,7 +619,7 @@ static struct ipcpInstanceOps_t xNormalInstanceOps = {
     .assignToDif = NULL,     //ok
     .updateDifConfig = NULL, //ok
 
-    .connectionCreate = NULL,        //ok
+    .connectionCreate = xNormalConnectionCreateRequest,        //ok
     .connectionUpdate = NULL,        //ok
     .connectionDestroy = NULL,       //ok
     .connectionCreateArrived = NULL, // ok

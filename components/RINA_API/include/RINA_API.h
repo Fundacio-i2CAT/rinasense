@@ -15,8 +15,8 @@
 
 
 struct appRegistration_t{
-    string_t    xNameDIF;
-    string_t    xApplicationName;
+    string_t    pcNameDIF;
+    string_t    pcApplicationName;
     List_t      xFlowsList;  
 };
 
@@ -45,10 +45,10 @@ typedef struct xFLOW_ALLOCATE_HANDLE{
     TickType_t xSendBlockTime;  
     
     portId_t    xPortId;    /*Should be change by the TASK*/
-    name_t      *xLocal;
-    name_t      *xRemote;
-    name_t      *xDifName;
-    struct flowSpec_t *xFspec;
+    name_t      *pxLocal;
+    name_t      *pxRemote;
+    name_t      *pxDifName;
+    struct flowSpec_t *pxFspec;
 
 }flowAllocateHandle_t;
 
@@ -57,20 +57,20 @@ typedef struct xREGISTER_APPLICATION_HANDLE {
     uint32_t xDestPort;
     ipcProcessId_t xSrcIpcpId;
     ipcProcessId_t xDestIpcpId;
-    name_t* xAppName;
-    name_t* xDafName;
-    name_t* xDifName;
+    name_t* pxAppName;
+    name_t* pxDafName;
+    name_t* pxDifName;
 
 }registerApplicationHandle_t;
 
-struct appRegistration_t * RINA_application_register(string_t xNameDif, string_t xLocalApp, uint8_t Flags);
+struct appRegistration_t * RINA_application_register(string_t pcNameDif, string_t pcLocalApp, uint8_t Flags);
 
 BaseType_t RINA_application_unregister(struct appRegistration_t * xAppRegistration);
 
-portId_t RINA_flow_accept(struct appRegistration_t * xAppRegistration, string_t xRemoteApp, struct rinaFlowSpec_t * xFlowSpec, uint8_t Flags);
+portId_t RINA_flow_accept(struct appRegistration_t * xAppRegistration, string_t pcRemoteApp, struct rinaFlowSpec_t * xFlowSpec, uint8_t Flags);
 
 
-portId_t RINA_flow_alloc(string_t xNameDIF, string_t xLocalApp, string_t xRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags);
+portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags);
 
 BaseType_t RINA_flow_read(portId_t xPortId, void * pvBuffer, size_t uxBufferLength);
 BaseType_t RINA_flow_write(portId_t xPortId, void * pvBuffer, size_t uxTotalDataLength);

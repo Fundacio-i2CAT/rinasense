@@ -131,12 +131,12 @@ void xRinaNameFree(name_t *xName)
         vPortFree(xName);
 }
 
-BaseType_t xRinaNameFromString(const string_t xString, name_t *xName);
+BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName);
 
-BaseType_t xRinaNameFromString(const string_t xString, name_t *xName)
+BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName)
 {
         char *apn, *api, *aen, *aei;
-        char *strc = xRINAstrdup(xString);
+        char *strc = xRINAstrdup(pcString);
         char *strc_orig = strc;
         char **strp = &strc;
 

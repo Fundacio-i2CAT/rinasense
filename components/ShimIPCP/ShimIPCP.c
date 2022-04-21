@@ -29,7 +29,7 @@ struct ipcpInstanceData_t
 	/* IPC Process name */
 	name_t *pxName;
 	name_t *pxDifName;
-	string_t xIntefaceName;
+	string_t pcIntefaceName;
 
 	MACAddress_t *pxPhyDev;
 	struct flowSpec_t *pxFspec;
@@ -80,7 +80,7 @@ static BaseType_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData, shi
 /** @brief  Concatenate the Information Application Name into a Complete Address
  * (ProcessName-ProcessInstance-EntityName-EntityInstance).
  * */
-string_t xShimNameToString(const name_t *xNameInfo); // Could be reutilized by others?, private?
+string_t pcShimNameToString(const name_t *xNameInfo); // Could be reutilized by others?, private?
 
 /** @brief Convert the Complete Address (ProcessName-ProcessInstance-EntityName-EntityInstance)
  *  to Generic Protocol Address
@@ -609,27 +609,27 @@ gpa_t *pxShimNameToGPA(const name_t *xLocalInfo)
 {
 	// uint32_t ulIPCPAddress;
 	gpa_t *pxGpa;
-	string_t xTmp;
+	string_t pcTmp;
 
-	xTmp = xShimNameToString(xLocalInfo);
+	pcTmp = pcShimNameToString(xLocalInfo);
 
-	if (!xTmp)
+	if (!pcTmp)
 	{
 		ESP_LOGI(TAG_SHIM, "Name to String not correct");
 		return NULL;
 	}
 
 	// Convert the IPCPAddress Concatenate to bits
-	pxGpa = pxShimCreateGPA((uint8_t *)(xTmp), strlen(xTmp) + 1);
+	pxGpa = pxShimCreateGPA((uint8_t *)(pcTmp), strlen(pcTmp) + 1);
 
 	if (!pxGpa)
 	{
 		ESP_LOGI(TAG_SHIM, "GPA was not created correct");
-		vPortFree(xTmp);
+		vPortFree(pcTmp);
 		return NULL;
 	}
 
-	vPortFree(xTmp);
+	vPortFree(pcTmp);
 
 	return pxGpa;
 }
@@ -719,32 +719,32 @@ gha_t *pxShimCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress) // Chang
 	return pxGha;
 }
 
-string_t xShimNameToString(const name_t *xNameInfo)
+string_t pcShimNameToString(const name_t *xNameInfo)
 {
-	string_t xNameInfoConcatenated = {'\0'};
+	string_t pcNameInfoConcatenated = {'\0'};
 
 	if (!xNameInfo)
 		return NULL;
 
-	xNameInfoConcatenated = pvPortMalloc(strlen(xNameInfo->pcProcessName) + strlen(xNameInfo->pcProcessInstance) + 3 + strlen(xNameInfo->pcEntityName) + strlen(xNameInfo->pcEntityInstance));
+	pcNameInfoConcatenated = pvPortMalloc(strlen(xNameInfo->pcProcessName) + strlen(xNameInfo->pcProcessInstance) + 3 + strlen(xNameInfo->pcEntityName) + strlen(xNameInfo->pcEntityInstance));
 
-	strcpy(xNameInfoConcatenated, xNameInfo->pcProcessName);
-	strcat(xNameInfoConcatenated, DELIMITER);
-	strcat(xNameInfoConcatenated, xNameInfo->pcProcessInstance);
-	strcat(xNameInfoConcatenated, DELIMITER);
-	strcat(xNameInfoConcatenated, xNameInfo->pcEntityName);
-	strcat(xNameInfoConcatenated, DELIMITER);
-	strcat(xNameInfoConcatenated, xNameInfo->pcEntityInstance);
+	strcpy(pcNameInfoConcatenated, xNameInfo->pcProcessName);
+	strcat(pcNameInfoConcatenated, DELIMITER);
+	strcat(pcNameInfoConcatenated, xNameInfo->pcProcessInstance);
+	strcat(pcNameInfoConcatenated, DELIMITER);
+	strcat(pcNameInfoConcatenated, xNameInfo->pcEntityName);
+	strcat(pcNameInfoConcatenated, DELIMITER);
+	strcat(pcNameInfoConcatenated, xNameInfo->pcEntityInstance);
 
-	if (!xNameInfoConcatenated)
+	if (!pcNameInfoConcatenated)
 	{
-		vPortFree(xNameInfoConcatenated);
+		vPortFree(pcNameInfoConcatenated);
 		return NULL;
 	}
 
-	//ESP_LOGI(TAG_SHIM, "Concatenated: %s", xNameInfoConcatenated);
+	//ESP_LOGI(TAG_SHIM, "Concatenated: %s", pcNameInfoConcatenated);
 
-	return xNameInfoConcatenated;
+	return pcNameInfoConcatenated;
 }
 
 static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, portId_t xPortId)
@@ -1012,7 +1012,6 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 	}
 
 	uxHeadLen = sizeof(EthernetHeader_t); // Header length Ethernet
-	// tlen   = data->dev->needed_tailroom; check it is required?
 	uxLength = pxDu->pxNetworkBuffer->xDataLength; // total length PDU
 
 	if (unlikely(uxLength > MTU))
@@ -1062,6 +1061,7 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 
 	ESP_LOGI(TAG_SHIM, "SDUWrite: Encapsulate packet into Ethernet");
 	/* Get a Network Buffer with size total ethernet + PDU size*/
+	//ESP_LOGE(TAG_SHIM, "Taking Buffer to write the SDU from the normal, ShimSDUWrite");
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxHeadLen + uxLength, (TickType_t)0U);
 
 	if (pxNetworkBuffer == NULL)
@@ -1086,14 +1086,11 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 	pxNetworkBuffer->xDataLength = uxHeadLen + uxLength;
 
 	/* Generate an event to sent or send from here*/
+	/* Destroy pxDU no need anymore the stackbuffer*/
+	xDuDestroy(pxDu);
 
 	/* ReleaseBuffer, no need anymore that why pdTRUE here*/
 	(void)xNetworkInterfaceOutput(pxNetworkBuffer, pdTRUE);
-
-	/*Destroy pxDU no need anymore the stackbuffer*/
-	xDuDestroy(pxDu);
-
-	//ESP_LOGI(TAG_SHIM, "Packet sent");
 
 	return pdTRUE;
 }
@@ -1151,7 +1148,7 @@ ipcpInstance_t *pxShimWiFiCreate(struct ipcpFactoryData_t *pxFactoryData, ipcPro
 {
 
 	ipcpInstance_t *pxInst;
-	string_t xIntefaceName = SHIM_INTERFACE;
+	string_t pcIntefaceName = SHIM_INTERFACE;
 	name_t *pxName;
 	MACAddress_t *pxPhyDev;
 
@@ -1188,7 +1185,7 @@ ipcpInstance_t *pxShimWiFiCreate(struct ipcpFactoryData_t *pxFactoryData, ipcPro
 	pxInst->pxData->xId = xIpcpId;
 	pxInst->pxData->pxPhyDev = pxPhyDev;
 
-	pxInst->pxData->xIntefaceName = xIntefaceName;
+	pxInst->pxData->pcIntefaceName = pcIntefaceName;
 
 	pxInst->pxData->pxFspec->ulAverageBandwidth = 0;
 	pxInst->pxData->pxFspec->ulAverageSduBandwidth = 0;

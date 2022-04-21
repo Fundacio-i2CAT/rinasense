@@ -56,7 +56,7 @@
 
 /*********  Define BUFFERS Parameters *************/
 
-	#define NUM_NETWORK_BUFFER_DESCRIPTORS 		( 10 )
+	#define NUM_NETWORK_BUFFER_DESCRIPTORS 		( 12 )
 	#define TAG_NETBUFFER						"[NetBuffer]"
 
 	#define USE_LINKED_RX_MESSAGES				( 0 )
@@ -138,5 +138,7 @@
 
 
 	#define TAG_ENROLLMENT						"[ENROLLMENT]"
+
+	#define TAG_FA						"[FLOW_ALLOCATOR]"
 
 #endif

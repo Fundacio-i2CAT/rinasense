@@ -22,7 +22,7 @@ struct  ribObject_t;
 typedef enum{
     ENROLLMENT,
     FLOW_ALLOCATOR,
-    NEIGHBOR,
+    OPERATIONAL,
 
 }eObjectType_t;
 
@@ -36,9 +36,9 @@ typedef struct xSER_OBJECT_VALUE{
 }serObjectValue_t;
 
 struct ribCallbackOps_t {
-    BaseType_t (*start_response)(string_t xRemoteAPName, struct serObjectValue_t *pxSerObjectValue);
+    BaseType_t (*start_response)(string_t pcRemoteAPName, struct serObjectValue_t *pxSerObjectValue);
 
-    BaseType_t (*stop_response)(string_t xRemoteAPName);
+    BaseType_t (*stop_response)(string_t pcRemoteAPName);
 
     BaseType_t (*create_response)( serObjectValue_t *pxSerObjectValue);
 };
