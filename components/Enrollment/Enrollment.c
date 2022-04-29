@@ -79,6 +79,11 @@ address_t xEnrollmentGetNeighborAddress(string_t pcRemoteApName)
         BaseType_t x = 0;
         neighborInfo_t *pxNeighbor;
         pxNeighbor = pvPortMalloc(sizeof(*pxNeighbor));
+        if(!pcRemoteApName)
+        {
+                ESP_LOGE(TAG_ENROLLMENT, "No Remote Application Name valid");
+                return -1;
+        }
 
         ESP_LOGI(TAG_ENROLLMENT, "Looking for '%s'", pcRemoteApName);
         for (x = 0; x < NEIGHBOR_TABLE_SIZE; x++)
@@ -387,6 +392,7 @@ BaseType_t xEnrollmentHandleStopR(string_t pcRemoteApName)
                 return pdFALSE;
         }
         ESP_LOGI(TAG_ENROLLMENT, "Enrollment finished with IPCP %s", pxNeighborInfo->pcApName);
+        ESP_LOGI(TAG_ENROLLMENT, "Enrollment STOP_R");
 
         return pdTRUE;
 }
@@ -410,7 +416,7 @@ BaseType_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
         pxNeighborInfo->eEnrollmentState = eENROLLED;
 
         /* Decoding Object Value */
-        pxEnrollmentMsg = d(pxSerObjectValue->pvSerBuffer, pxSerObjectValue->xSerLength);
+        pxEnrollmentMsg = pxSerdesMsgEnrollmentDecode(pxSerObjectValue->pvSerBuffer, pxSerObjectValue->xSerLength);
 
         pxNeighborInfo->pcToken = pxEnrollmentMsg->pcToken;
 
@@ -423,6 +429,7 @@ BaseType_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
         }
 
         ESP_LOGI(TAG_ENROLLMENT, "Enrollment finished with IPCP %s", pxNeighborInfo->pcApName);
+         ESP_LOGI(TAG_ENROLLMENT, "Enrollment STOP");
 
         return pdTRUE;
 }

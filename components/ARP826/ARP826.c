@@ -129,7 +129,7 @@ BaseType_t xARPAddressGPAShrink(gpa_t *pxGpa, uint8_t ucFiller)
 	if (!xShimIsGPAOK(pxGpa))
 	{
 		ESP_LOGE(TAG_ARP, "Bad input parameter, cannot shrink the GPA");
-		return -1;
+		return pdFALSE;
 	}
 
 	ESP_LOGI(TAG_ARP, "Looking for filler 0x%02X in GPA (length = %zd)",
@@ -139,7 +139,7 @@ BaseType_t xARPAddressGPAShrink(gpa_t *pxGpa, uint8_t ucFiller)
 	if (pucPosition >= pxGpa->ucAddress + pxGpa->uxLength)
 	{
 		ESP_LOGI(TAG_ARP, "GPA doesn't need to be shrinked ...");
-		return 0;
+		return pdFALSE;
 	}
 
 	uxLength = pucPosition - pxGpa->ucAddress;
@@ -148,7 +148,7 @@ BaseType_t xARPAddressGPAShrink(gpa_t *pxGpa, uint8_t ucFiller)
 
 	pucNewAddress = pvPortMalloc(uxLength);
 	if (!pucNewAddress)
-		return -1;
+		return pdFALSE;
 
 	memcpy(pucNewAddress, pxGpa->ucAddress, uxLength);
 
@@ -156,7 +156,7 @@ BaseType_t xARPAddressGPAShrink(gpa_t *pxGpa, uint8_t ucFiller)
 	pxGpa->ucAddress = pucNewAddress;
 	pxGpa->uxLength = uxLength;
 
-	return 0;
+	return pdTRUE;
 }
 
 void vARPRefreshCacheEntry(const gpa_t *pxGpa, const gha_t *pxMACAddress)
@@ -652,7 +652,7 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 			vShimGPADestroy(pxTmpTpa);
 			vShimGHADestroy(pxTmpSha);
 			vShimGHADestroy(pxTmpTha);
-			return -1;
+			return eReturn;
 		}
 
 		// handle->ha = sha;

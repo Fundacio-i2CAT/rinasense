@@ -95,9 +95,9 @@ void xRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse)
     pxFlowAllocateResponse->xEventBits = 0U;
 }
 
-portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags);
+void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags);
 
-portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags)
+void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags)
 {
     portId_t xPortId; /* PortId to return to the user*/
     RINAStackEvent_t xStackFlowAllocateEvent = {eStackFlowAllocateEvent, NULL};
@@ -115,11 +115,17 @@ portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRem
 
     xEventGroup = xEventGroupCreate();
 
+    ESP_LOGE(TAG_RINA, "pcNameDIF:%s", pcNameDIF);
+    ESP_LOGE(TAG_RINA, "pcLocalApp:%s", pcLocalApp);
+    ESP_LOGE(TAG_RINA, "pcRemoteApp:%s", pcRemoteApp);
+    //ESP_LOGE(TAG_RINA, "pxRemoteName->APName:%s", pxRemoteName->pcProcessName);
+
+
     if (xEventGroup == NULL)
     {
         vPortFree(pxFlowAllocateRequest);
         vPortFree(pxFlowSpecTmp);
-        return -1;
+        //return -1;
     }
     else
     {
@@ -131,7 +137,8 @@ portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRem
 
         /*Create objetcs type name_t from string_t*/
         //ESP_LOGI(TAG_RINA, "FlowAllocate: NameCreate");
-        pxDIFName = xRinaNameCreate();
+
+       /* pxDIFName = xRinaNameCreate();
         pxLocalName = xRinaNameCreate();
         pxRemoteName = xRinaNameCreate();
 
@@ -139,7 +146,7 @@ portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRem
         {
             ESP_LOGE(TAG_RINA, "Error");
         }
-        ESP_LOGE(TAG_RINA, "OK");
+        
 
         if (!pcNameDIF && xRinaNameFromString(pcNameDIF, pxDIFName))
         {
@@ -161,7 +168,18 @@ portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRem
             //xRinaNameFree(pxDIFName);
             xRinaNameFree(pxRemoteName);
             return -1;
-        }
+        }*/
+
+        pxRemoteName = pvPortMalloc(sizeof(*pxRemoteName));
+        pxRemoteName->pcProcessName = strdup(pcRemoteApp);
+
+        pxLocalName = pvPortMalloc(sizeof(*pxLocalName));
+        pxLocalName->pcProcessName = strdup(pcLocalApp);
+
+        pxDIFName = pvPortMalloc(sizeof(*pxDIFName));
+        pxDIFName->pcProcessName = strdup(pcNameDIF);
+
+
 
         /*xPortId set to zero until the TASK fill properly.*/
         xPortId = 0;
@@ -212,28 +230,31 @@ portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRem
             if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, (TickType_t)0U) == pdFAIL)
             {
                 ESP_LOGE(TAG_RINA, "IPCP Task not working properly");
-                return -1;
+                //return -1;
             }
+            #if 0
             else
             {
                 /* The IP-task will set the 'eFLOW_BOUND' bit when it has done its
              * job. */
 
-                (void)xEventGroupWaitBits(pxFlowAllocateRequest->xEventGroup, (EventBits_t)eFLOW_BOUND, pdTRUE /*xClearOnExit*/, pdFALSE /*xWaitAllBits*/, portMAX_DELAY);
+              (void)xEventGroupWaitBits(pxFlowAllocateRequest->xEventGroup, (EventBits_t)eFLOW_BOUND, pdTRUE /*xClearOnExit*/, pdFALSE /*xWaitAllBits*/, portMAX_DELAY);
 
-                ESP_LOGE(TAG_RINA, "TEST OK:%d",pxFlowAllocateRequest->xPortId);
+               ESP_LOGE(TAG_RINA, "TEST OK:%d",pxFlowAllocateRequest->xPortId);
 
                 /*Check if the flow was bound*/
                 /* if (!socketSOCKET_IS_BOUND(pxSocket))
                 {
                     xReturn = -pdFREERTOS_ERRNO_EINVAL;
                 }*/
-                return pxFlowAllocateRequest->xPortId;
+              return pxFlowAllocateRequest->xPortId;
             }
+            #endif
+           // return pxFlowAllocateRequest->xPortId;
         }
     }
 
-    return -1;
+    //return -1;
 }
 
 BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength);

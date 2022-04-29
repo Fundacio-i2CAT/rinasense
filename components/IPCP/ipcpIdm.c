@@ -23,12 +23,15 @@ ipcpIdm_t *pxIpcpIdmCreate(void)
 {
         ipcpIdm_t *pxIpcpIdmInstance;
 
+
         pxIpcpIdmInstance = pvPortMalloc(sizeof(*pxIpcpIdmInstance));
         if (!pxIpcpIdmInstance)
                 return NULL;
 
-        vListInitialise(&pxIpcpIdmInstance->xAllocatedIpcpIds);
+        vListInitialise(&(pxIpcpIdmInstance->xAllocatedIpcpIds));
         pxIpcpIdmInstance->xLastAllocated = 0;
+        
+ 
 
         return pxIpcpIdmInstance;
 }
@@ -60,7 +63,12 @@ BaseType_t xIpcpIdmAllocated(ipcpIdm_t *pxInstance, ipcProcessId_t xIpcpId)
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
 
+
+
+
         pos = pvPortMalloc(sizeof(*pos));
+
+
 
         /* Find a way to iterate in the list and compare the addesss*/
 
@@ -70,28 +78,28 @@ BaseType_t xIpcpIdmAllocated(ipcpIdm_t *pxInstance, ipcProcessId_t xIpcpId)
         while (pxListItem != pxListEnd)
         {
 
-                pos = (allocIpcpId_t *)listGET_LIST_ITEM_VALUE(pxListItem);
+               
+                pos = (allocIpcpId_t *)listGET_LIST_ITEM_OWNER(pxListItem);
+                
+                if(pos == NULL)
+                        return pdFALSE;
 
-                if (pos)
+                if(!pos)
+                        return pdFALSE;
+                
+
+                if (pos->xIpcpId == xIpcpId)
                 {
                         ESP_LOGI(TAG_IPCPMANAGER, "IPCP ID %p, #: %d", pos, pos->xIpcpId);
 
-                        /*if (pxInstance->xType == xType)
-                        {
-                                //ESP_LOGI(TAG_IPCPMANAGER, "Instance founded %p, Type: %d", pxInstance, pxInstance->xType);
-                                return pxInstance;
-                        }*/
+                        return pdTRUE;
                    
-                }
-                else
-                {
-                        return 0;
                 }
 
                 pxListItem = listGET_NEXT(pxListItem);
         }
 
-        return 0;
+        return pdFALSE;
 
 }
 
@@ -107,7 +115,7 @@ ipcProcessId_t xIpcpIdmAllocate(ipcpIdm_t *pxInstance)
                 return -1;
         }
 
-        /* If the last ipId allocated is same as the max port id then start it again*/
+        /* If the last ipcpId allocated is same as the max port id then start it again*/
         if (pxInstance->xLastAllocated == MAX_PORT_ID)
         {
                 pid = 1;
@@ -116,6 +124,7 @@ ipcProcessId_t xIpcpIdmAllocate(ipcpIdm_t *pxInstance)
         {
                 pid = pxInstance->xLastAllocated + 1;
         }
+
 
         while (xIpcpIdmAllocated(pxInstance, pid))
         {
@@ -131,10 +140,15 @@ ipcProcessId_t xIpcpIdmAllocate(ipcpIdm_t *pxInstance)
 
         pxNewPortId = pvPortMalloc(sizeof(*pxNewPortId));
         if (!pxNewPortId)
+        {
+                vPortFree(pxNewPortId);
                 return -1;
+        }
+                
 
         vListInitialiseItem(&pxNewPortId->xIpcpIdItem);
         pxNewPortId->xIpcpId = pid;
+        listSET_LIST_ITEM_OWNER(&(pxNewPortId->xIpcpIdItem), (void *)pxNewPortId);
         vListInsert( &pxInstance->xAllocatedIpcpIds,&pxNewPortId->xIpcpIdItem);
 
         pxInstance->xLastAllocated = pid;

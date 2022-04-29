@@ -693,6 +693,7 @@ dtp_t * pxDtpCreate(struct efcp_t *       pxEfcp,
 {
         dtp_t * pxDtp;
         string_t *   psName;
+        dtcpSv_t *pxDtcpSv;
 
         if (!pxEfcp) {
                 ESP_LOGE(TAG_DTP,"No EFCP passed, bailing out");
@@ -725,7 +726,8 @@ dtp_t * pxDtpCreate(struct efcp_t *       pxEfcp,
                 return NULL;
 	}*/
 
-        pxDtp->pxDtpStateVector = pvPortMalloc(sizeof(*pxDtp->pxDtpStateVector));
+        pxDtcpSv = pvPortMalloc(sizeof(*pxDtcpSv));
+        pxDtp->pxDtpStateVector = pxDtcpSv;
         if (!pxDtp->pxDtpStateVector) {
                 ESP_LOGE(TAG_DTP,"Cannot create DTP state-vector");
 

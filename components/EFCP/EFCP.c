@@ -96,6 +96,7 @@ static struct efcp_t * pxEfcpCreate(void)
         struct efcp_t * pxEfcpInstance;
 
         pxEfcpInstance = pvPortMalloc(sizeof(*pxEfcpInstance));
+
         if (!pxEfcpInstance)
                 return NULL;
 
@@ -509,7 +510,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
         ESP_LOGE(TAG_EFCP,"xEfcpConnectionCreate");
 
         struct efcp_t           *pxEfcp;
-        connection_t            *pxConnection;
+        connection_t            *pxConnection = NULL;
         cepId_t                 xCepId;
         struct dtcp_t           *pxDtcp;
         //struct cwq *        cwq;
@@ -527,7 +528,11 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
         }
 
         ESP_LOGE(TAG_EFCP,"xEfcpConnectionCreate: ConnectionCreate");
+        size_t Test = xPortGetFreeHeapSize();
+        ESP_LOGE(TAG_EFCP,"Memory size:%d", (int)Test);
         pxConnection =  pxConnectionCreate();
+        configASSERT( pxConnection );
+
         if (!pxConnection)
                 return cep_id_bad();
 

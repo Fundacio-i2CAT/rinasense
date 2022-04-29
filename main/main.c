@@ -28,10 +28,6 @@ void app_main(void)
 	}
 	ESP_ERROR_CHECK(ret);*/
 
-	//ESP_LOGI(TAG_WIFI, "ESP_WIFI_MODE_STA");
-	//ESP_LOGI(TAG_WIFI, "Enrolling to DIF");
-
-	
 
 	RINA_IPCPInit( );
 
@@ -43,7 +39,7 @@ void app_main(void)
 
 
 
-	//test = RINA_flow_alloc("Irati", "Test|1|Testing|1", "TestRemote", xFlowSpec, Flags);
+	//RINA_flow_alloc("mobile.DIF", "TestLocal", "ar1.mobile", xFlowSpec, Flags);
 
 
 

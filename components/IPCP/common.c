@@ -62,10 +62,10 @@ name_t *xRinaNameCreate(void)
 {
         name_t *result;
 
-        result = pvPortMalloc(sizeof(name_t));
+        result = pvPortMalloc(sizeof(*result));
         if (!result)
                 return NULL;
-        memset(result, 0, sizeof(name_t));
+        memset(result, 0, sizeof(*result));
 
         return result;
 }

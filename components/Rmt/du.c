@@ -31,11 +31,12 @@
 
 BaseType_t xDuDestroy(struct du_t * pxDu)
 {
-	/*If there is an NetworkBuffer then release and */
+	/* If there is an NetworkBuffer then release and release memory */
 	if (pxDu->pxNetworkBuffer)
-		//ESP_LOGE(TAG_DTP, "Releasing buffer as part of DuDestroy");
-		vReleaseNetworkBuffer( pxDu->pxNetworkBuffer->pucEthernetBuffer );
-
+	{
+		ESP_LOGI(TAG_DTP, "Destroying du struct and releasing Buffer");
+		vReleaseNetworkBufferAndDescriptor( pxDu->pxNetworkBuffer);
+	}
 	vPortFree(pxDu);
 
 	return pdTRUE;
@@ -45,6 +46,7 @@ BaseType_t xDuDestroy(struct du_t * pxDu)
 
 BaseType_t xDuDecap(struct du_t * pxDu)
 {
+	ESP_LOGI(TAG_DTP,"xDuDecap");
 	pduType_t xType;
 	pci_t * pxPciTmp;
 	size_t uxPciLen;
@@ -71,6 +73,11 @@ BaseType_t xDuDecap(struct du_t * pxDu)
 	
 	//ESP_LOGE(TAG_ARP, "Taking Buffer to copy the SDU from the RINA PDU: DuDecap");
 	pxNewBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, ( TickType_t ) 0U );
+	if(pxNewBuffer == NULL)
+	{ 	
+		ESP_LOGE(TAG_DTP,"NO buffer was allocated to do the Decap");
+		return pdFALSE;
+	}
 	pxNewBuffer->xDataLength = xBufferSize;
 
 	pucPtr = (uint8_t *)pxPciTmp + 14;

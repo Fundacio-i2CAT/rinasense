@@ -70,7 +70,7 @@ BaseType_t RINA_application_unregister(struct appRegistration_t * xAppRegistrati
 portId_t RINA_flow_accept(struct appRegistration_t * xAppRegistration, string_t pcRemoteApp, struct rinaFlowSpec_t * xFlowSpec, uint8_t Flags);
 
 
-portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags);
+void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags);
 
 BaseType_t RINA_flow_read(portId_t xPortId, void * pvBuffer, size_t uxBufferLength);
 BaseType_t RINA_flow_write(portId_t xPortId, void * pvBuffer, size_t uxTotalDataLength);

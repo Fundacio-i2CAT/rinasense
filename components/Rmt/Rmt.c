@@ -392,13 +392,13 @@ static BaseType_t xRmtN1PortWriteDu(rmt_t * pxRmt,
 			     rmtN1Port_t * pxN1Port,
 			    struct du_t * pxDu)
 {
-	ESP_LOGI(TAG_RMT,"Executing xRmtN1PortWriteDu");
+	
 	BaseType_t ret;
 	ssize_t bytes = pxDu->pxNetworkBuffer->xDataLength;
 
 	ESP_LOGI(TAG_RMT,"Gonna send SDU to port-id %d", pxN1Port->xPortId);
 	ret = pxN1Port->pxN1Ipcp->pxOps->duWrite(pxN1Port->pxN1Ipcp->pxData,pxN1Port->xPortId, pxDu, false);
-	//ESP_LOGI(TAG_RMT,"xRmtN1PortWriteDu ret:%d",ret);
+	ESP_LOGI(TAG_RMT,"xRmtN1PortWriteDu ret:%d",ret);
 
 	if (!ret)
 		return pdFALSE;
@@ -415,7 +415,7 @@ static BaseType_t xRmtN1PortWriteDu(rmt_t * pxRmt,
 
 		pxN1Port->pxPendingDu = pxDu;
 		pxN1Port->xStats.plen++;
-		//ESP_LOGI(TAG_RMT,"xRmtN1PortWriteDu:Pending");
+		ESP_LOGI(TAG_RMT,"xRmtN1PortWriteDu:Pending");
 
 		if (pxN1Port->eState == eN1_PORT_STATE_DO_NOT_DISABLE)
 		{

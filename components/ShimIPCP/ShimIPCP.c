@@ -416,6 +416,8 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 	gpa_t *pxPa;
 	gha_t *pxHa;
 
+
+
 	if (!pxData)
 	{
 		ESP_LOGI(TAG_SHIM, "Data no valid ");
@@ -432,7 +434,6 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 		return pdFALSE;
 	}
 
-	pxData->pxAppName = pvPortMalloc(sizeof(pxAppName));
 	pxData->pxAppName = pxAppName;
 
 	if (!pxData->pxAppName)
@@ -479,7 +480,7 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 
 	// vShimGPADestroy( pa );
 
-	pxData->pxDafName = pvPortMalloc(sizeof(pxDafName));
+
 	pxData->pxDafName = pxDafName;
 
 	if (!pxData->pxDafName)
@@ -629,7 +630,7 @@ gpa_t *pxShimNameToGPA(const name_t *xLocalInfo)
 		return NULL;
 	}
 
-	vPortFree(pcTmp);
+	//vPortFree(pcTmp);
 
 	return pxGpa;
 }
@@ -1001,6 +1002,9 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 	gha_t *pxDestHw;
 	size_t uxHeadLen, uxLength;
 
+	RINAStackEvent_t xTxEvent = {eNetworkTxEvent, NULL};
+	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(250);
+
 	unsigned char *pucArpPtr;
 
 	ESP_LOGI(TAG_SHIM, "Entered the sdu-write");
@@ -1059,9 +1063,9 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 		return pdFALSE;
 	}
 
-	ESP_LOGI(TAG_SHIM, "SDUWrite: Encapsulate packet into Ethernet");
+	ESP_LOGI(TAG_SHIM, "SDUWrite: Encapsulating packet into Ethernet Frame");
 	/* Get a Network Buffer with size total ethernet + PDU size*/
-	//ESP_LOGE(TAG_SHIM, "Taking Buffer to write the SDU from the normal, ShimSDUWrite");
+
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxHeadLen + uxLength, (TickType_t)0U);
 
 	if (pxNetworkBuffer == NULL)
@@ -1088,9 +1092,24 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 	/* Generate an event to sent or send from here*/
 	/* Destroy pxDU no need anymore the stackbuffer*/
 	xDuDestroy(pxDu);
+	//ESP_LOGE(TAG_SHIM, "Releasing Buffer used in RMT");
 
-	/* ReleaseBuffer, no need anymore that why pdTRUE here*/
-	(void)xNetworkInterfaceOutput(pxNetworkBuffer, pdTRUE);
+	//vReleaseNetworkBufferAndDescriptor( pxDu->pxNetworkBuffer);
+
+	/* ReleaseBuffer, no need anymore that why pdTRUE here */
+
+	xTxEvent.pvData = (void *)pxNetworkBuffer;
+
+		if (xSendEventStructToIPCPTask(&xTxEvent, xDescriptorWaitTime) == pdFAIL)
+		{
+			ESP_LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", pxNetworkBuffer,pxNetworkBuffer->xDataLength);
+			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+			return ESP_FAIL;
+		}
+
+		ESP_LOGE(TAG_SHIM, "Data sent to the IPCP TAsk");
+
+	
 
 	return pdTRUE;
 }
@@ -1148,7 +1167,9 @@ ipcpInstance_t *pxShimWiFiCreate(struct ipcpFactoryData_t *pxFactoryData, ipcPro
 {
 
 	ipcpInstance_t *pxInst;
+	struct ipcpInstanceData_t *pxInstData;
 	string_t pcIntefaceName = SHIM_INTERFACE;
+	struct flowSpec_t *pxFspec;
 	name_t *pxName;
 	MACAddress_t *pxPhyDev;
 
@@ -1162,11 +1183,14 @@ ipcpInstance_t *pxShimWiFiCreate(struct ipcpFactoryData_t *pxFactoryData, ipcPro
 	pxPhyDev->ucBytes[5] = 0x00;
 
 	/* Create an instance */
-	pxInst = pvPortMalloc(sizeof(pxInst));
+	pxInst = pvPortMalloc(sizeof(*pxInst));
 
 	/* Create Data instance and Flow Specifications*/
-	pxInst->pxData = pvPortMalloc(sizeof(struct ipcpInstanceData_t));
-	pxInst->pxData->pxFspec = pvPortMalloc(sizeof(struct flowSpec_t));
+	pxInstData = pvPortMalloc(sizeof(*pxInstData));
+	pxInst->pxData = pxInstData;
+
+	pxFspec = pvPortMalloc(sizeof(*pxFspec));
+	pxInst->pxData->pxFspec = pxFspec;
 
 	/*Create Dif Name and Daf Name*/
 	pxName = pvPortMalloc(sizeof(*pxName));

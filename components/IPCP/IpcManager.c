@@ -187,7 +187,8 @@ BaseType_t xIpcManagerCreateInstance(factories_t *pxFactories, ipcpFactoryType_t
     }
 
     xIpcpId = xIpcpIdmAllocate(pxIpcpIdManager);
-    //ESP_LOGE(TAG_IPCPMANAGER,"IPCP id to be ADD: %d", xIpcpId);
+    ESP_LOGD(TAG_IPCPMANAGER,"IPCP id to be ADD: %d", xIpcpId);
+    
     pxInstance = pxFactory->pxFactoryOps->create(pxFactory->pxFactoryData, xIpcpId);
 
     if (!pxInstance)
@@ -290,7 +291,7 @@ portId_t xIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, void *data)
 
     pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
 
-    xPortId = xPidmAllocate(pxPidm);
+    xPortId = 55;
 
     if (pxNormalInstance->pxOps->flowPrebind(pxNormalInstance->pxData, xPortId))
     {
@@ -345,8 +346,8 @@ BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData)
     
 }
 
-BaseType_t xIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBuffer);
-BaseType_t xIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBuffer)
+void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBuffer);
+void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBuffer)
 {
     struct du_t *pxMessagePDU;
 
@@ -357,8 +358,6 @@ BaseType_t xIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBu
     }
     pxMessagePDU->pxNetworkBuffer = pxNetworkBuffer;
 
-
-
     ipcpInstance_t *pxShimInstance;
     ipcpInstance_t *pxNormalInstance;
 
@@ -368,9 +367,14 @@ BaseType_t xIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBu
     pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
     pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
 
-   // ESP_LOGE(TAG_IPCPMANAGER,"Calling xNormalMgmtDuWrite");
+    ESP_LOGE(TAG_IPCPMANAGER,"The RINA packet is a managment packet");
 
-    pxNormalInstance->pxOps->duEnqueue(pxNormalInstance->pxData,1,pxMessagePDU);
+    if(!pxNormalInstance->pxOps->duEnqueue(pxNormalInstance->pxData,1,pxMessagePDU))
+    {
+        ESP_LOGI(TAG_IPCPMANAGER,"Drop frame because there is not enough memory space" );
+        xDuDestroy(pxMessagePDU);
+    }
 
-    return pdTRUE;
+    
+
 }

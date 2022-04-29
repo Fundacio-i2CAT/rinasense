@@ -17,6 +17,7 @@
 #include "Ribd.h"
 #include "configSensor.h"
 #include "Rib.h"
+#include "RINA_API.h"
 
 #include "esp_log.h"
 
@@ -67,18 +68,26 @@ void vRibdAddResponseHandler(int32_t invokeID, struct ribCallbackOps_t *pxCb)
 
     BaseType_t x = 0;
 
-    for (x = 0; x < RESPONSE_HANDLER_TABLE_SIZE; x++)
+    if (pxCb != NULL)
     {
-        if (xPendingResponseHandlersTable[x].xValid == pdFALSE)
+
+        for (x = 0; x < RESPONSE_HANDLER_TABLE_SIZE; x++)
         {
-            xPendingResponseHandlersTable[x].invokeID = invokeID;
-            xPendingResponseHandlersTable[x].xValid = pdTRUE;
-            xPendingResponseHandlersTable[x].pxCallbackHandler = pxCb;
+            if (xPendingResponseHandlersTable[x].xValid == pdFALSE)
+            {
+                xPendingResponseHandlersTable[x].invokeID = invokeID;
+                xPendingResponseHandlersTable[x].xValid = pdTRUE;
+                xPendingResponseHandlersTable[x].pxCallbackHandler = pxCb;
 
-            ESP_LOGE(TAG_RIB, "Pending Handlers Entry successful: %p", pxCb);
+                //                ESP_LOGE(TAG_RIB, "Pending Handlers Entry successful: %p", pxCb);
 
-            break;
+                break;
+            }
         }
+    }
+    else
+    {
+        ESP_LOGE(TAG_RIB, "No pxcb");
     }
 }
 
@@ -138,10 +147,13 @@ messageCdap_t *prvRibMessageCdapInit(void);
 messageCdap_t *prvRibMessageCdapInit(void)
 {
     messageCdap_t *pxMessage = pvPortMalloc(sizeof(*pxMessage));
+    name_t *pxDestinationInfo = pvPortMalloc(sizeof(*pxDestinationInfo));
+    name_t *pxSourceInfo = pvPortMalloc(sizeof(*pxSourceInfo));
+    authPolicy_t *pxAuthPolicy = pvPortMalloc(sizeof(*pxAuthPolicy));
 
-    pxMessage->pxDestinationInfo = pvPortMalloc(sizeof(name_t *));
-    pxMessage->pxSourceInfo = pvPortMalloc(sizeof(name_t *));
-    pxMessage->pxAuthPolicy = pvPortMalloc(sizeof(authPolicy_t *));
+    pxMessage->pxDestinationInfo = pxDestinationInfo;
+    pxMessage->pxSourceInfo = pxSourceInfo;
+    pxMessage->pxAuthPolicy = pxAuthPolicy;
 
     /* Init to Default Values*/
 
@@ -173,12 +185,15 @@ messageCdap_t *prvRibMessageCdapInit(void)
 messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
 {
     messageCdap_t *pxMessageCdap;
+    name_t *pxDestinationInfo = pvPortMalloc(sizeof(*pxDestinationInfo));
+    name_t *pxSourceInfo = pvPortMalloc(sizeof(*pxSourceInfo));
+    authPolicy_t *pxAuthPolicy = pvPortMalloc(sizeof(*pxAuthPolicy));
 
     pxMessageCdap = pvPortMalloc(sizeof(*pxMessageCdap));
 
-    pxMessageCdap->pxDestinationInfo = pvPortMalloc(sizeof(name_t *));
-    pxMessageCdap->pxSourceInfo = pvPortMalloc(sizeof(name_t *));
-    pxMessageCdap->pxAuthPolicy = pvPortMalloc(sizeof(authPolicy_t *));
+    pxMessageCdap->pxDestinationInfo = pxDestinationInfo;
+    pxMessageCdap->pxSourceInfo = pxSourceInfo;
+    pxMessageCdap->pxAuthPolicy = pxAuthPolicy;
 
     pxMessageCdap->eOpCode = message.opCode;
     pxMessageCdap->version = message.version;
@@ -252,9 +267,11 @@ messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
     if (message.has_objValue)
     {
         configASSERT(message.objValue.has_byteval == true);
+        serObjectValue_t *pxSerObjVal = pvPortMalloc(sizeof(*pxSerObjVal));
+        void *pvSerBuf = pvPortMalloc(message.objValue.byteval.size);
 
-        pxMessageCdap->pxObjValue = pvPortMalloc(sizeof(serObjectValue_t));
-        pxMessageCdap->pxObjValue->pvSerBuffer = pvPortMalloc(message.objValue.byteval.size);
+        pxMessageCdap->pxObjValue = pxSerObjVal;
+        pxMessageCdap->pxObjValue->pvSerBuffer = pvSerBuf;
         pxMessageCdap->pxObjValue->xSerLength = message.objValue.byteval.size;
 
         memcpy(pxMessageCdap->pxObjValue->pvSerBuffer, message.objValue.byteval.bytes,
@@ -478,10 +495,12 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap);
 appConnection_t *prvRibCreateConnection(name_t *pxSource, name_t *pxDestInfo)
 
 {
-    appConnection_t *pxAppConnectionTmp;
-    pxAppConnectionTmp = pvPortMalloc(sizeof(*pxAppConnectionTmp));
-    pxAppConnectionTmp->pxDestinationInfo = pvPortMalloc(sizeof(name_t *));
-    pxAppConnectionTmp->pxSourceInfo = pvPortMalloc(sizeof(name_t *));
+    appConnection_t *pxAppConnectionTmp = pvPortMalloc(sizeof(*pxAppConnectionTmp));
+    name_t *pxDestinationInfo = pvPortMalloc(sizeof(*pxDestinationInfo));
+    name_t *pxSourceInfo = pvPortMalloc(sizeof(*pxSourceInfo));
+
+    pxAppConnectionTmp->pxDestinationInfo = pxDestinationInfo;
+    pxAppConnectionTmp->pxSourceInfo = pxSourceInfo;
 
     pxAppConnectionTmp->uCdapVersion = 0x01;
     pxAppConnectionTmp->pxSourceInfo->pcEntityInstance = strdup(pxSource->pcEntityInstance);
@@ -665,9 +684,8 @@ BaseType_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData, por
         return pdFALSE;
     }
 
-    /*Release Buffer Network*/
-    // ESP_LOGE(TAG_RIB, "Releasing Buffer After to decode CDAP message");
-    //vReleaseNetworkBuffer(pxDu->pxNetworkBuffer->pucEthernetBuffer);
+    /* Destroying the PDU it is not longer required */
+    xDuDestroy(pxDu);
 
     /*Call to rib Handle Message*/
     vRibHandleMessage(pxDecodeCdap, xN1flowPortId);
@@ -708,7 +726,7 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
     /* Looking for an App Connection using the N-1 Flow Port */
     pxAppConnectionTmp = pxRibdFindAppConnection(xN1FlowPortId);
 
-    vPrintAppConnection(pxAppConnectionTmp);
+    // vPrintAppConnection(pxAppConnectionTmp);
 
     /* Looking for the object into the RIB */
     pxRibObject = pxRibFindObject(pxDecodeCdap->pcObjName);
@@ -755,7 +773,7 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
         ESP_LOGI(TAG_RIB, "Application Connection Status Updated to 'CONNECTED'");
 
         /*Call to Enrollment Handle ConnectR*/
-        xEnrollmentHandleConnectR(pxAppConnectionTmp->pxDestinationInfo->pcProcessName , xN1FlowPortId);
+        xEnrollmentHandleConnectR(pxAppConnectionTmp->pxDestinationInfo->pcProcessName, xN1FlowPortId);
 
         break;
 
@@ -812,6 +830,39 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
         pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
 
         pxCallback->stop_response(pxAppConnectionTmp->pxDestinationInfo->pcProcessName);
+
+        break;
+
+    // for testing purposes
+    case M_WRITE:
+
+        // send a message to the IPCP task a release a FlowAllocationRequest
+        {
+            RINAStackEvent_t xStackFlowAllocateEvent = {eStackFlowAllocateEvent, NULL};
+            flowAllocateHandle_t *pxFlowAllocateRequest;
+            name_t *pxDIFName, *pxLocalName, *pxRemoteName;
+
+            pxFlowAllocateRequest = pvPortMalloc(sizeof(*pxFlowAllocateRequest));
+            pxDIFName = pvPortMalloc(sizeof(*pxDIFName));
+            pxLocalName = pvPortMalloc(sizeof(*pxLocalName));
+            pxRemoteName = pvPortMalloc(sizeof(*pxRemoteName));
+
+            pxDIFName->pcProcessName = "irati";
+            pxLocalName->pcProcessName = "Test";
+            pxRemoteName->pcProcessName = "ar1.mobile";
+            pxFlowAllocateRequest->pxDifName = pxDIFName;
+            pxFlowAllocateRequest->pxLocal = pxLocalName;
+            pxFlowAllocateRequest->pxRemote = pxRemoteName;
+            pxFlowAllocateRequest->xPortId = 51;
+
+            xStackFlowAllocateEvent.pvData = pxFlowAllocateRequest;
+
+            if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, (TickType_t)0U) == pdFAIL)
+            {
+                ESP_LOGE(TAG_RINA, "IPCP Task not working properly");
+                // return -1;
+            }
+        }
 
         break;
 
@@ -907,7 +958,7 @@ BaseType_t xRibdSendRequest(string_t pcObjClass, string_t pcObjName, long objIns
 
 struct ribCallbackOps_t *pxRibdCreateCdapCallback(opCode_t xOpCode, int invoke_id)
 {
-    struct ribCallbackOps_t *pxCallback = pvPortMalloc(sizeof(struct ribCallbackOps_t));
+    struct ribCallbackOps_t *pxCallback = pvPortMalloc(sizeof(*pxCallback));
 
     switch (xOpCode)
     {

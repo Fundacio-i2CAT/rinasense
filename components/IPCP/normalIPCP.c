@@ -277,8 +277,6 @@ cepId_t xNormalConnectionCreateRequest(struct ipcpInstanceData_t *pxData,
         struct cepIdsEntry_t *pxCepEntry;
         ipcpInstance_t *pxIpcp;
 
-        /*if (!pxUserIpcp)
-                return cep_id_bad();*/
       
 
         xCepId = xEfcpConnectionCreate(pxData->pxEfcpc, xSource, xDest,
@@ -597,7 +595,11 @@ static BaseType_t xNormalMgmtDuPost(struct ipcpInstanceData * pxData,
 	}*/
 
         /*Send to the RIB Daemon*/
-        xRibdProcessLayerManagementPDU(pxData,  xPortId, pxDu);
+        if(!xRibdProcessLayerManagementPDU(pxData,  xPortId, pxDu))
+        {       
+                ESP_LOGI(TAG_IPCPNORMAL, "Was not possible to process el Management PDU");
+                return pdFALSE;
+        }
 
 
         return pdTRUE;
@@ -659,6 +661,7 @@ ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t 
         name_t *pxDifName;
 
         ipcpInstance_t *pxNormalInstance;
+        struct ipcpInstanceData_t *pxInstanceData;
 
 
         /* Create Instance*/
@@ -675,7 +678,9 @@ ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t 
         pxNormalInstance->xType = eNormal;
         pxNormalInstance->xId = xIpcpId;
 
-        pxNormalInstance->pxData = pvPortMalloc(sizeof(struct ipcpInstanceData_t));
+        pxInstanceData = pvPortMalloc(sizeof(*pxInstanceData));
+
+        pxNormalInstance->pxData = pxInstanceData;
 
         if (!pxNormalInstance->pxData)
         {
@@ -691,19 +696,21 @@ ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t 
         /*Create an object name_t and fill it*/
         pxName = pvPortMalloc(sizeof(*pxName));
 
-        pxNormalInstance->pxData->pxName = pvPortMalloc(sizeof(pxName));
+        
         pxName->pcEntityInstance = NORMAL_ENTITY_INSTANCE;
         pxName->pcEntityName = NORMAL_ENTITY_NAME;
         pxName->pcProcessInstance = NORMAL_PROCESS_INSTANCE;
         pxName->pcProcessName = NORMAL_PROCESS_NAME;
+        pxNormalInstance->pxData->pxName = pxName;
 
         pxDifName = pvPortMalloc(sizeof(*pxDifName));
 
-        pxNormalInstance->pxData->pxDifName = pvPortMalloc(sizeof(pxDifName));
+       
         pxDifName->pcProcessName = NORMAL_DIF_NAME;
         pxDifName->pcProcessInstance = "";
         pxDifName->pcEntityInstance = "";
         pxDifName->pcEntityName = "";
+        pxNormalInstance->pxData->pxDifName = pxDifName;
 
         if (!pxName)
         {

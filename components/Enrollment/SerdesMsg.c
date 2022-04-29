@@ -272,13 +272,13 @@ static rina_messages_Flow prvSerdesMsgEncodeFlow(flow_t *pxMsg)
 
     message.has_qosParameters = true;
     message.qosParameters.qosid = pxMsg->pxQosSpec->xQosId;
-    message.qosParameters.has_qosid = true
-    strcpy(message.qosParameters.name = pxMsg->pxQosSpec->pcQosName);
+    message.qosParameters.has_qosid = true;
+    strcpy(message.qosParameters.name, pxMsg->pxQosSpec->pcQosName);
     message.qosParameters.has_name = true;
     message.qosParameters.partialDelivery = pxMsg->pxQosSpec->pxFlowSpec->xPartialDelivery;
-    message.qosParameters.has_partialDelivery;
+    message.qosParameters.has_partialDelivery = true;
     message.qosParameters.order = pxMsg->pxQosSpec->pxFlowSpec->xOrderedDelivery;
-    message.qosParameters.has_order;
+    message.qosParameters.has_order = true;
 
     message.has_dtpConfig = true;
     strcpy( message.dtpConfig.dtppolicyset.policyName,
@@ -321,6 +321,8 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
         serObjectValue_t *pxSerMsg = pvPortMalloc(sizeof(*pxSerMsg));
         pxSerMsg->pvSerBuffer = pvBuffer;
         pxSerMsg->xSerLength = stream.bytes_written;
+
+        ESP_LOGE(TAG_ENROLLMENT, "Encoding Flow Message ok");
 
         return pxSerMsg;
 }

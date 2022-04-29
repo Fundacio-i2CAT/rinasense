@@ -51,7 +51,7 @@ BaseType_t xIpcpManagerAppFlowAllocateRequestHandle(pidm_t * pxPidm, void * data
 BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData);
 
 ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId);
-BaseType_t xIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBuffer);
+void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBuffer);
 
 
 

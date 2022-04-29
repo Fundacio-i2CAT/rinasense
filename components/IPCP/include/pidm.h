@@ -20,7 +20,7 @@ typedef struct xPIDM {
 
 typedef struct xALLOC_PID {
         /*List Item to register the Pid into the xAllocatedPorts List*/
-        ListItem_t xporIdItem;
+        ListItem_t xPortIdItem;
 
         /*Port Id allocated*/
         portId_t xPid;

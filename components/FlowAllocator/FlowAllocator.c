@@ -45,44 +45,76 @@ BaseType_t xFlowAllocatorInit()
     return pdTRUE;
 }
 
+
+static qosSpec_t *prvFlowAllocatorSelectQoSCube(void)
+{
+    qosSpec_t *pxQosSpec;
+    struct flowSpec_t *pxFlowSpec;
+
+
+    pxQosSpec = pvPortMalloc(sizeof(*pxQosSpec));
+    pxFlowSpec = pvPortMalloc(sizeof(*pxFlowSpec));
+
+    /* TODO: Found the most suitable QoScube for the pxFlowRequest->pxFspec
+     * Now, it use a default cube to test */
+    pxQosSpec->xQosId = QoS_CUBE_ID;
+    pxQosSpec->pcQosName = QoS_CUBE_NAME;
+
+    pxFlowSpec->xPartialDelivery = QoS_CUBE_PARTIAL_DELIVERY;
+    pxFlowSpec->xOrderedDelivery = QoS_CUBE_ORDERED_DELIVERY;
+
+    pxQosSpec->pxFlowSpec = pxFlowSpec;
+
+    return pxQosSpec;
+
+}
+
 /**/
 static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 {
     flow_t *pxFlow;
-    pxFlow = pvPortMalloc(sizeof(*pxFlow));
-    pxFlow->pxQosSpec = pvPortMalloc(sizeof(qosSpec_t *));
-    pxFlow->pxQosSpec->pxFlowSpec = pvPortMalloc(sizeof(struct flowSpec_t*));
+    
+   
+    dtpConfig_t *pxDtpConfig;
+    policy_t *pxDtpPolicySet;
+    struct dtcpConfig_t *pxDtcpConfig = NULL;
 
-    pxFlow->pxSourceInfo = pxFlowRequest->pxLocal;
-    pxFlow->pxDestInfo = pxFlowRequest->pxRemote;
+ 
+
+
+    pxFlow = pvPortMalloc(sizeof(*pxFlow));
+    
+    pxDtpConfig = pvPortMalloc((sizeof(*pxDtpConfig)));
+    pxDtpPolicySet = pvPortMalloc(sizeof(*pxDtpPolicySet));
+
+    
+    ESP_LOGI(TAG_FA,"DEst:%s",strdup(pxFlowRequest->pxRemote));
+
+    pxFlow->pxSourceInfo = strdup(pxFlowRequest->pxLocal);
+    pxFlow->pxDestInfo = strdup(pxFlowRequest->pxRemote);
     pxFlow->ulHopCount = 3;
     pxFlow->ulMaxCreateFlowRetries = 1;
     pxFlow->eState = eALLOCATION_IN_PROGRESS;
     pxFlow->xSourceAddress = LOCAL_ADDRESS;
 
+    /* Select QoS Cube based on the FlowSpec Required */
+    pxFlow->pxQosSpec = prvFlowAllocatorSelectQoSCube();
 
-    /* TODO: Found the most suitable QoScube for the pxFlowRequest->pxFspec
-     * Now, it use a default cube to test */
-    pxFlow->pxQosSpec->xQosId = QoS_CUBE_ID;
-    pxFlow->pxQosSpec->pcQosName = QoS_CUBE_NAME;
-    pxFlow->pxQosSpec->pxFlowSpec->xPartialDelivery = QoS_CUBE_PARTIAL_DELIVERY;
-    pxFlow->pxQosSpec->pxFlowSpec->xOrderedDelivery = QoS_CUBE_ORDERED_DELIVERY;
-
+   
     /* Fulfill the DTP_config and the DTCP_config based on the QoSCube*/
-    pxFlow->pxDtpConfig = pvPortMalloc((sizeof(dtpConfig_t *)));
-    pxFlow->pxDtpConfig->xDtcpPresent = DTP_DTCP_PRESENT;
-    pxFlow->pxDtpConfig->xInitialATimer = DTP_INITIAL_A_TIMER;
 
-    pxFlow->pxDtpConfig->pxDtpPolicySet = pvPortMalloc(sizeof(policy_t *));
-    pxFlow->pxDtpConfig->pxDtpPolicySet->pcPolicyName = DTP_POLICY_SET_NAME;
-    pxFlow->pxDtpConfig->pxDtpPolicySet->pcPolicyVersion = DTP_POLICY_SET_VERSION;
+    pxDtpConfig->xDtcpPresent = DTP_DTCP_PRESENT;
+    pxDtpConfig->xInitialATimer = DTP_INITIAL_A_TIMER;
+
+
+    pxDtpPolicySet->pcPolicyName = DTP_POLICY_SET_NAME;
+    pxDtpPolicySet->pcPolicyVersion = DTP_POLICY_SET_VERSION;
+    pxDtpConfig->pxDtpPolicySet = pxDtpPolicySet;
+
+    pxFlow->pxDtpConfig = pxDtpConfig;
 
     // By the moment the DTCP is not implemented yet so we are using DTP_DTCP_PRESENT = pdFALSE
-    pxFlow->pxDtcpConfig = NULL;
-    if (pxFlow->pxDtpConfig->xDtcpPresent == pdTRUE)
-    {
-        pxFlow->pxDtcpConfig = pvPortMalloc(sizeof(struct dtcpConfig_t *));
-    }
+
 
     return pxFlow;
 }
@@ -91,20 +123,34 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
  * if it is well-formed, create a new FlowAllocator-Instance*/
 BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest)
 {
+    ESP_LOGE(TAG_FA, "xFlowAllocatorRequest");
     
     flow_t *pxFlow;
     cepId_t xCepSourceId;
     flowAllocatorInstace_t *pxFlowAllocatorInstance;
 
+    connectionId_t *pxConnectionId;
+
     /* Create a flow object and fill using the event FlowRequest */
     pxFlow = prvFlowAllocatorNewFlow(pxFlowRequest);
+
+    pxConnectionId = pvPortMalloc(sizeof(*pxConnectionId));
+
 
     /* Create a FAI and fill the struct properly*/
     pxFlowAllocatorInstance = pvPortMalloc(sizeof(*pxFlowAllocatorInstance));
 
+    if(!pxFlowAllocatorInstance)
+    {
+        ESP_LOGE(TAG_FA,"FAI was not allocated");
+        return pdFALSE;
+    }
+
+
     pxFlowAllocatorInstance->eFaiState = eFAI_NONE;
     pxFlowAllocatorInstance->xPortId = xPortId;
 
+     ESP_LOGE(TAG_FA, "GetNeighbor");
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
     pxFlow->xRemoteAddress = xEnrollmentGetNeighborAddress(pxFlow->pxDestInfo->pcProcessName);
     
@@ -118,6 +164,7 @@ BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t 
     }
 
     /* Call EFCP to create an EFCP instance following the EFCP Config */
+    ESP_LOGE(TAG_FA, "Calling EFCP");
     xCepSourceId = pxNormalInstance->pxOps->connectionCreate(pxNormalInstance->pxData, xPortId,
                                                        LOCAL_ADDRESS, pxFlow->xRemoteAddress, pxFlow->pxQosSpec->xQosId,
                                                        pxFlow->pxDtpConfig, pxFlow->pxDtcpConfig);
@@ -128,16 +175,19 @@ BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t 
     }
 
     /* Fill the Flow connectionId */
-    pxFlow->pxConnectionId = pvPortMalloc(sizeof(connectionId_t*));
-    pxFlow->pxConnectionId->xSource = xCepSourceId;
-    pxFlow->pxConnectionId->xQosId = pxFlow->pxQosSpec->xQosId;
+    pxConnectionId->xSource = xCepSourceId;
+    pxConnectionId->xQosId = pxFlow->pxQosSpec->xQosId;
+
+    pxFlow->pxConnectionId = pxConnectionId;
 
     /* Send the flow message to the neighbor */
     //Serialize the pxFLow Struct into FlowMsg and Encode the FlowMsg as obj_value
+    ESP_LOGE(TAG_FA, "EncodingFLow");
 
     serObjectValue_t *pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
 
     //Send using the ribd_send_req M_Create
+    ESP_LOGE(TAG_FA, "SendingFlow");
     if (!xRibdSendRequest("Flow_Allocator", "/fa/flows", -1, M_START, xPortId, pxObjVal))
         {
                 ESP_LOGE(TAG_FA, "It was a problem to sen the request");

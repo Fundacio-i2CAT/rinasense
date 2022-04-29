@@ -22,16 +22,21 @@
  * IpcManager. Initialize the list of allocated Ports.*/
 pidm_t *pxPidmCreate(void)
 {
-        pidm_t *pxPdimInstance;
+        pidm_t *pxPidmInstance;
 
-        pxPdimInstance = pvPortMalloc(sizeof(*pxPdimInstance));
-        if (!pxPdimInstance)
+        pxPidmInstance = pvPortMalloc(sizeof(*pxPidmInstance));
+        if (!pxPidmInstance)
                 return NULL;
 
-        vListInitialise(&pxPdimInstance->xAllocatedPorts);
-        pxPdimInstance->xLastAllocated = 0;
+        //Initializing the list of Allocated Ports
+        vListInitialise(&(pxPidmInstance->xAllocatedPorts));
+        if(listLIST_IS_INITIALISED(&(pxPidmInstance->xAllocatedPorts)))
+        {
+                ESP_LOGE(TAG_IPCPMANAGER,"List initialized properly");
+        }
+        pxPidmInstance->xLastAllocated = 0;
 
-        return pxPdimInstance;
+        return pxPidmInstance;
 }
 
 /** @brief pxPidmDestroy.
@@ -75,27 +80,20 @@ BaseType_t xPidmAllocated(pidm_t *pxInstance, portId_t xPortId)
         while (pxListItem != pxListEnd)
         {
 
-                pos = (allocPid_t *)listGET_LIST_ITEM_VALUE(pxListItem);
+                pos = (allocPid_t *)listGET_LIST_ITEM_OWNER(pxListItem);
 
-                if (pos)
+                if (pos->xPid == xPortId)
                 {
                         ESP_LOGI(TAG_IPCPMANAGER, "Port ID %p, #: %d", pos, pos->xPid);
+                        vPortFree(pos);
 
-                        /*if (pxInstance->xType == xType)
-                        {
-                                //ESP_LOGI(TAG_IPCPMANAGER, "Instance founded %p, Type: %d", pxInstance, pxInstance->xType);
-                                return pxInstance;
-                        }*/
-                }
-                else
-                {
-                        return 0;
+                        return pdTRUE;
                 }
 
                 pxListItem = listGET_NEXT(pxListItem);
         }
-
-        return 0;
+        vPortFree(pos);
+        return pdFALSE;
 
 }
 
@@ -138,11 +136,13 @@ portId_t xPidmAllocate(pidm_t *pxInstance)
 
         pxNewPortId = pvPortMalloc(sizeof(*pxNewPortId));
         if (!pxNewPortId)
+        {       ESP_LOGE(TAG_IPCPMANAGER,"It was not allocated properly");
                 return port_id_bad();
-
-        vListInitialiseItem(&pxNewPortId->xporIdItem);
+        }
         pxNewPortId->xPid = pid;
-        vListInsert( &pxInstance->xAllocatedPorts,&pxNewPortId->xporIdItem);
+        vListInitialiseItem(&(pxNewPortId->xPortIdItem));
+        listSET_LIST_ITEM_OWNER(&(pxNewPortId->xPortIdItem), (void *)pxNewPortId);
+        vListInsert( &(pxInstance->xAllocatedPorts),&(pxNewPortId->xPortIdItem));
 
         pxInstance->xLastAllocated = pid;
 

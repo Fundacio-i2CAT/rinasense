@@ -56,17 +56,17 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
             if (xRibObjectTable[x].xValid == pdTRUE)
             {
                 pxRibObject = xRibObjectTable[x].pxRibObject;
-                ESP_LOGI(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
+                //ESP_LOGI(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
                 if (!strcmp(pxRibObject->ucObjName, ucRibObjectName))
                 {
-                    ESP_LOGI(TAG_RIB, "RibObj founded '%p'", pxRibObject);
+                    ESP_LOGI(TAG_RIB, "RibObj founded '%p', '%s'", pxRibObject,pxRibObject->ucObjName);
 
                     return pxRibObject;
                     break;
                 }
             }
         }
-        ESP_LOGI(TAG_IPCPMANAGER, "RibObj not founded");
+        ESP_LOGI(TAG_IPCPMANAGER, "RibObj '%s' not founded", ucRibObjectName);
 
     return NULL;
 }
@@ -75,12 +75,13 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
                                       string_t ucDisplayableValue, string_t ucObjClass, eObjectType_t eObjType)
 {
     struct ribObject_t *pxObj = pvPortMalloc(sizeof(*pxObj));
+    struct ribObjOps_t *pxObjOps = pvPortMalloc(sizeof(*pxObjOps));
 
     pxObj->ucObjName = ucObjName;
     pxObj->ulObjInst = ulObjInst;
     pxObj->ucDisplayableValue = ucDisplayableValue;
 
-    pxObj->pxObjOps = pvPortMalloc(sizeof(struct ribObjOps_t));
+    pxObj->pxObjOps = pxObjOps;
 
     switch (eObjType)
     {

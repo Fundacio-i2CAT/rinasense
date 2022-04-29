@@ -300,8 +300,10 @@ static void prvIPCPTask(void *pvParameters)
             xFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
             xFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
             //pxIpcManager->pxIpcpIdm;
+
+            xIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, xFlowAllocateRequest);
             
-            xRINA_WeakUpUser(xFlowAllocateRequest);
+            ///xRINA_WeakUpUser(xFlowAllocateRequest);
 
             break;
 
@@ -590,7 +592,7 @@ void prvHandleEthernetPacket(NetworkBufferDescriptor_t *pxBuffer)
 void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 {
     const EthernetHeader_t *pxEthernetHeader;
-    eFrameProcessingResult_t eReturned = eReleaseBuffer;
+    eFrameProcessingResult_t eReturned = eFrameConsumed;
     uint16_t usFrameType;
 
     configASSERT(pxNetworkBuffer != NULL);
@@ -634,51 +636,43 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             size_t xlength;
             NetworkBufferDescriptor_t *pxBuffer;
 
-            xlength = pxNetworkBuffer->xDataLength - 14;
-            //ESP_LOGE(TAG_IPCPMANAGER, "Length PDU:%d", pxNetworkBuffer->xDataLength);
-            //ESP_LOGE(TAG_IPCPMANAGER, "Length PDU without Eth-header:%d", xlength);
+            //removing Ethernet Header
+            xlength = pxNetworkBuffer->xDataLength - (size_t)14;
+
 
             //ESP_LOGE(TAG_ARP, "Taking Buffer to copy the RINA PDU: ETH_P_RINA");
             pxBuffer = pxGetNetworkBufferWithDescriptor(xlength, (TickType_t)0U);
 
             if (pxBuffer != NULL)
             {
+                //Copy into the newBuffer but just the RINA PDU, and not the Ethernet Header
                 ptr = (uint8_t *)pxNetworkBuffer->pucEthernetBuffer + 14;
 
                 (void)memcpy(pxBuffer->pucEthernetBuffer, ptr, xlength);
 
                 pxBuffer->xDataLength = xlength;
 
-                xIpcManagerRINAPackettHandler(pxBuffer);
+                
+                //Release the buffer with the Ethernet header, it is not needed any more
+                //ESP_LOGE(TAG_ARP, "Releasing Buffer to copy the RINA PDU: ETH_P_RINA");
+                vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+                
+                //must be void function
+                vIpcManagerRINAPackettHandler(pxBuffer);
+ 
             }
             else{
                 ESP_LOGE(TAG_WIFI, "Failed to get buffer descriptor");
 	            eReturned = eReleaseBuffer;
             }
 
-            //ESP_LOGE(TAG_ARP, "Releasing the copied Buffer: ETH_P_RINA");
-            vReleaseNetworkBufferAndDescriptor( pxNetworkBuffer );
 
-            // memcheck();
-      
-            // memcheck();
-
-            /* The Ethernet frame contains an SDU packet.
-             * if the buffer is more than PCI_HEADER_LENGTH Then it sent to the Manager*/
-            /*if (pxNetworkBuffer->xDataLength >= PCI_HEADER_LENGTH)
-
-            {
-                eReturned = prvProcessIPPacket(CAST_PTR_TO_TYPE_PTR(IPPacket_t, pxNetworkBuffer->pucEthernetBuffer), pxNetworkBuffer);
-            }
-            else
-            {
-                eReturned = eReleaseBuffer;
-            }*/
-            eReturned = eReleaseBuffer;
 
             break;
 
         default:
+            ESP_LOGE(TAG_WIFI, "No Case Ethernet Type, Drop Frame");
+            eReturned = eReleaseBuffer;
 
             break;
         }
@@ -707,6 +701,12 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
         break;
 
     case eReleaseBuffer:
+       // ESP_LOGI(TAG_SHIM, "Releasing Buffer: ProcessEthernet");
+        if(pxNetworkBuffer != NULL)
+        {
+             vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+        }
+        
 
         break;
     case eProcessBuffer:
@@ -714,21 +714,28 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 
         /* Finding an instance of eShimiFi and call the floww allocate Response using this instance*/
 
-        // (xFactoryIPCPFindInstance(pxFactory, eShimWiFi));
-        xIpcpManagerShimAllocateResponseHandle(pxIpcManager->pxFactories, eShimWiFi);
+        if(!xIpcpManagerShimAllocateResponseHandle(pxIpcManager->pxFactories, eShimWiFi))
+        {
+            ESP_LOGE(TAG_IPCPMANAGER, "Error during the Allocation Request at Shim");
+            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+        }
+        else{
+            ESP_LOGI(TAG_IPCPMANAGER, "Buffer Processed");
+            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+        }
 
-        ESP_LOGI(TAG_SHIM, "Process Buffer");
         break;
     default:
 
         /* The frame is not being used anywhere, and the
          * NetworkBufferDescriptor_t structure containing the frame should
          * just be released back to the list of free buffers. */
-       // ESP_LOGI(TAG_SHIM, "Releasing Buffer: ProcessEthernet");
+        //ESP_LOGI(TAG_SHIM, "Default: Releasing Buffer");
         vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
         break;
     }
-    vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+
+    
 }
 
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer)

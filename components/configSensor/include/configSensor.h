@@ -56,7 +56,7 @@
 
 /*********  Define BUFFERS Parameters *************/
 
-	#define NUM_NETWORK_BUFFER_DESCRIPTORS 		( 12 )
+	#define NUM_NETWORK_BUFFER_DESCRIPTORS 		( 20 )
 	#define TAG_NETBUFFER						"[NetBuffer]"
 
 	#define USE_LINKED_RX_MESSAGES				( 0 )
