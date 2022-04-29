@@ -22,7 +22,8 @@ considered enough, it can be merged into *master*.
 * **feature dev branches**: each feature is developed in a dedicated branch, and 
 merged into *dev* when they are ready.
 
-To develop a new feature or a fix for a bug, the workflow is the following:
+To develop a new feature or a fix for a bug, the workflow is the following (as a 
+prerequisite you must fork the main rinasense repo):
 
 1. Create an issue summarising the work to be done (https://github.com/Fundacio-i2CAT/rinasense/issues/new/choose). 
 Assign it to someone and add one or more labels.
