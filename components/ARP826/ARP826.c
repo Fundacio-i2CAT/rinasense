@@ -413,7 +413,7 @@ static void prvARPGeneratePacket(NetworkBufferDescriptor_t *const pxNetworkBuffe
 {
 
 	ARPPacket_t *pxARPPacket;
-	gha_t *pxTha = pvPortMalloc(sizeof(*pxTha));
+	gha_t *pxTha;
 	unsigned char *pucArpPtr;
 	size_t uxLength;
 
@@ -469,6 +469,8 @@ static void prvARPGeneratePacket(NetworkBufferDescriptor_t *const pxNetworkBuffe
 	pxNetworkBuffer->xDataLength = uxLength;
 
 	ESP_LOGD(TAG_ARP, "Generated Request Packet ");
+
+	vShimGHADestroy(pxTha);
 }
 
 void vARPRemoveCacheEntry(const gpa_t *pxGpa, const gha_t *pxMACAddress)
@@ -682,6 +684,9 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 
 		vARPAddCacheEntry(pxHandle, 3);
 
+		vShimGPADestroy(pxTmpTpa);
+		vShimGHADestroy(pxTmpTha);
+
 		//vARPPrintCache(); // test
 
 		eReturn = eProcessBuffer;
@@ -722,6 +727,8 @@ gha_t *pxARPLookupGHA(const gpa_t *pxGpaToLookup)
 		}
 		//ESP_LOGE(TAG_ARP, "ARP not Found: %s", xARPCache[x].pxProtocolAddress->ucAddress);
 	}
+
+	vShimGHADestroy(pxGHA);
 
 	return NULL;
 }
@@ -820,8 +827,6 @@ struct rinarpHandle_t *pxARPAdd(gpa_t *pxPa, gha_t *pxHa)
 
 	struct rinarpHandle_t *pxHandle;
 
-	pxHandle = pvPortMalloc(sizeof(*pxHandle));
-
 	if (!xShimIsGPAOK(pxPa))
 	{
 		ESP_LOGI(TAG_SHIM, "GPA is not correct");
@@ -833,6 +838,8 @@ struct rinarpHandle_t *pxARPAdd(gpa_t *pxPa, gha_t *pxHa)
 		ESP_LOGI(TAG_SHIM, "GHA is not correct");
 		return pdFALSE;
 	}
+
+	pxHandle = pvPortMalloc(sizeof(*pxHandle));
 
 	pxHandle->pxHa = pxHa;
 	pxHandle->pxPa = pxPa;
