@@ -116,8 +116,6 @@ static ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t *pxFac
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
 
-        pxInstance = pvPortMalloc(sizeof(*pxInstance));
-
         /* Find a way to iterate in the list and compare the addesss*/
 
         pxListEnd = listGET_END_MARKER(&pxFactoryData->xInstancesNormalList);
@@ -157,8 +155,6 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
 
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
-
-        pxFlow = pvPortMalloc(sizeof(*pxFlow));
 
         /* Find a way to iterate in the list and compare the addesss*/
         pxListEnd = listGET_END_MARKER(&pxData->xFlowsList);
@@ -695,7 +691,12 @@ ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t 
 
         /*Create an object name_t and fill it*/
         pxName = pvPortMalloc(sizeof(*pxName));
-
+        if (!pxName)
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "Failed creation of ipc name");
+                vPortFree(pxNormalInstance);
+                return pdFALSE;
+        }
         
         pxName->pcEntityInstance = NORMAL_ENTITY_INSTANCE;
         pxName->pcEntityName = NORMAL_ENTITY_NAME;
@@ -711,13 +712,6 @@ ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t 
         pxDifName->pcEntityInstance = "";
         pxDifName->pcEntityName = "";
         pxNormalInstance->pxData->pxDifName = pxDifName;
-
-        if (!pxName)
-        {
-                ESP_LOGE(TAG_IPCPNORMAL, "Failed creation of ipc name");
-                vPortFree(pxNormalInstance);
-                return pdFALSE;
-        }
 
         if (!xRINAStringDup(pxName->pcProcessName, &pxNormalInstance->pxData->pxName->pcProcessName) ||
             !xRINAStringDup(pxName->pcProcessInstance, &pxNormalInstance->pxData->pxName->pcProcessInstance) ||
