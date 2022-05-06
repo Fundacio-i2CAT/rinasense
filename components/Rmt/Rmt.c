@@ -279,9 +279,14 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xFrom)
 		return pdFALSE;
 	}
 
+	ESP_LOGD(TAG_IPCPMANAGER, "Checking Pointer RMTReceive");
+	ESP_LOGD(TAG_IPCPMANAGER, "Pointer NetBuffer:%p", pxDu->pxNetworkBuffer);
+	ESP_LOGD(TAG_IPCPMANAGER, "Pointer NetBuffer PDU:%p", pxDu->pxNetworkBuffer->pucEthernetBuffer);
+
 	uxBytes = pxDu->pxNetworkBuffer->xDataLength;
 	pxDu->pxCfg = pxRmt->pxEfcpc->pxConfig;
 
+	// Should search in the PortId Table, it takes the first entre for testing purposes.
 	pxN1Port = xPortIdTable[0].pxPortN1;
 	if (!pxN1Port)
 	{
@@ -335,7 +340,7 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xFrom)
 		switch (xPduType)
 		{
 		case PDU_TYPE_MGMT:
-			ESP_LOGE(TAG_RMT, "Mgmt PDU!!!");
+			ESP_LOGD(TAG_RMT, "Mgmt PDU!!!");
 			return xRmtProcessMgmtPdu(pxRmt, xFrom, pxDu);
 
 		case PDU_TYPE_CACK:

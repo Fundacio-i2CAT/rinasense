@@ -211,7 +211,7 @@ messageCdap_t *prvRibdFillDecodeMessage(const rina_messages_CDAPMessage message)
     }
     if (message.has_srcApInst)
     {
-        pxMessageCdap->pcSrcApInst = strdup(message.srcApInst);
+        // pxMessageCdap->pcSrcApInst = strdup(message.srcApInst);
     }
     if (message.has_srcAEName)
     {
@@ -443,8 +443,6 @@ messageCdap_t *prvRibdDecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength)
         ESP_LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
-
-    
 
     return prvRibdFillDecodeMessage(message);
 }
