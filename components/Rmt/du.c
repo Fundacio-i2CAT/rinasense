@@ -58,7 +58,7 @@ BaseType_t xDuDecap(struct du_t * pxDu)
 	/* Extract PCI from buffer*/
 	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucEthernetBuffer);
 
-   // vPciPrint(pxPciTmp);
+   	//vPciPrint(pxPciTmp);
 	
 	xType = pxPciTmp->xType;
 	if (unlikely(!pdu_type_is_ok(xType))) {
@@ -84,6 +84,7 @@ BaseType_t xDuDecap(struct du_t * pxDu)
 
 	memcpy(pxNewBuffer->pucEthernetBuffer, pucPtr,xBufferSize);
 
+	pxDu->pxPci = pvPortMalloc(sizeof(pxPciTmp));
 
 	pxDu->pxPci->ucVersion = pxPciTmp->ucVersion;
 	pxDu->pxPci->xSource = pxPciTmp->xSource;

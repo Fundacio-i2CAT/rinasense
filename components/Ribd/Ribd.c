@@ -18,6 +18,7 @@
 #include "configSensor.h"
 #include "Rib.h"
 #include "RINA_API.h"
+#include "rstr.h"
 
 #include "esp_log.h"
 
@@ -53,6 +54,8 @@ NetworkBufferDescriptor_t *prvRibEncodeCDAP(rina_messages_opCode_t xMessageOpCod
 
 /* Decode the CDAP message */
 BaseType_t xRibdecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength, messageCdap_t *pxMessageCdap);
+
+messageCdap_t *prvRibMessageCdapInit(void);
 
 messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message);
 
@@ -143,17 +146,9 @@ BaseType_t xTest(void)
     return pdTRUE;
 }
 
-messageCdap_t *prvRibMessageCdapInit(void);
 messageCdap_t *prvRibMessageCdapInit(void)
 {
     messageCdap_t *pxMessage = pvPortMalloc(sizeof(*pxMessage));
-    name_t *pxDestinationInfo = pvPortMalloc(sizeof(*pxDestinationInfo));
-    name_t *pxSourceInfo = pvPortMalloc(sizeof(*pxSourceInfo));
-    authPolicy_t *pxAuthPolicy = pvPortMalloc(sizeof(*pxAuthPolicy));
-
-    pxMessage->pxDestinationInfo = pxDestinationInfo;
-    pxMessage->pxSourceInfo = pxSourceInfo;
-    pxMessage->pxAuthPolicy = pxAuthPolicy;
 
     /* Init to Default Values*/
 
@@ -166,87 +161,76 @@ messageCdap_t *prvRibMessageCdapInit(void)
     pxMessage->pxObjValue = NULL;
     pxMessage->result = 0;
 
-    pxMessage->pxDestinationInfo->pcEntityInstance = NULL;
-    pxMessage->pxDestinationInfo->pcEntityName = MANAGEMENT_AE;
-    pxMessage->pxDestinationInfo->pcProcessInstance = NULL;
-    pxMessage->pxDestinationInfo->pcProcessName = NULL;
+    pxMessage->pcDestApName = NULL;
+    pxMessage->pcDestApInst = NULL;
+    pxMessage->pcDestAeName = MANAGEMENT_AE;
+    pxMessage->pcDestAeInst = NULL;
 
-    pxMessage->pxSourceInfo->pcEntityInstance = "";
-    pxMessage->pxSourceInfo->pcEntityName = MANAGEMENT_AE;
-    pxMessage->pxSourceInfo->pcProcessInstance = NULL;
-    pxMessage->pxSourceInfo->pcProcessName = NULL;
+    pxMessage->pcSrcApName = NULL;
+    pxMessage->pcSrcApInst = NULL;
+    pxMessage->pcSrcAeName = MANAGEMENT_AE;
+    pxMessage->pcSrcAeInst = NULL;
 
-    pxMessage->pxAuthPolicy->pcName = NULL;
-    pxMessage->pxAuthPolicy->pcVersion = NULL;
+    pxMessage->pcAuthPoliName = NULL;
+    pxMessage->pcAuthPoliVersion = NULL;
 
     return pxMessage;
 }
 
-messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
+messageCdap_t *prvRibdFillDecodeMessage(const rina_messages_CDAPMessage message)
 {
-    messageCdap_t *pxMessageCdap;
-    name_t *pxDestinationInfo = pvPortMalloc(sizeof(*pxDestinationInfo));
-    name_t *pxSourceInfo = pvPortMalloc(sizeof(*pxSourceInfo));
-    authPolicy_t *pxAuthPolicy = pvPortMalloc(sizeof(*pxAuthPolicy));
 
-    pxMessageCdap = pvPortMalloc(sizeof(*pxMessageCdap));
-
-    pxMessageCdap->pxDestinationInfo = pxDestinationInfo;
-    pxMessageCdap->pxSourceInfo = pxSourceInfo;
-    pxMessageCdap->pxAuthPolicy = pxAuthPolicy;
+    messageCdap_t *pxMessageCdap = pvPortMalloc(sizeof(*pxMessageCdap));
 
     pxMessageCdap->eOpCode = message.opCode;
     pxMessageCdap->version = message.version;
     pxMessageCdap->invokeID = message.invokeID;
     pxMessageCdap->result = message.result;
 
-    if (message.has_destAEInst)
+    if (message.has_destApName)
     {
-        pxMessageCdap->pxDestinationInfo->pcEntityInstance = strdup(message.destAEInst);
-    }
-
-    if (message.has_destAEName)
-    {
-        pxMessageCdap->pxDestinationInfo->pcEntityName = strdup(message.destAEName);
+        pxMessageCdap->pcDestApName = strdup(message.destApName); /// Error
     }
 
     if (message.has_destApInst)
     {
-        pxMessageCdap->pxDestinationInfo->pcProcessInstance = strdup(message.destApInst);
+        pxMessageCdap->pcDestApInst = strdup(message.destApInst);
     }
 
-    if (message.has_destApName)
+    if (message.has_destAEName)
     {
-        pxMessageCdap->pxDestinationInfo->pcProcessName = strdup(message.destApName);
+        pxMessageCdap->pcDestApName = strdup(message.destAEName);
+    }
+
+    if (message.has_destAEInst)
+    {
+        pxMessageCdap->pcDestApInst = strdup(message.destAEInst);
+    }
+    if (message.has_srcApName)
+    {
+        pxMessageCdap->pcSrcApName = strdup(message.srcApName);
+    }
+    if (message.has_srcApInst)
+    {
+        pxMessageCdap->pcSrcApInst = strdup(message.srcApInst);
+    }
+    if (message.has_srcAEName)
+    {
+        pxMessageCdap->pcSrcAeName = strdup(message.srcAEName);
     }
 
     if (message.has_srcAEInst)
     {
-        pxMessageCdap->pxSourceInfo->pcEntityInstance = strdup(message.srcAEInst);
-    }
-
-    if (message.has_srcAEName)
-    {
-        pxMessageCdap->pxSourceInfo->pcEntityName = strdup(message.srcAEName);
-    }
-
-    if (message.has_srcApInst)
-    {
-        pxMessageCdap->pxSourceInfo->pcProcessInstance = strdup(message.srcApInst);
-    }
-
-    if (message.has_srcApName)
-    {
-        pxMessageCdap->pxSourceInfo->pcProcessName = strdup(message.srcApName);
+        pxMessageCdap->pcSrcAeInst = strdup(message.srcAEInst);
     }
 
     if (message.has_authPolicy)
     {
         if (message.authPolicy.has_name)
         {
-            pxMessageCdap->pxAuthPolicy->pcName = strdup(message.authPolicy.name);
+            pxMessageCdap->pcAuthPoliName = strdup(message.authPolicy.name);
         }
-        pxMessageCdap->pxAuthPolicy->pcVersion = strdup(message.authPolicy.versions);
+        pxMessageCdap->pcAuthPoliVersion = strdup(message.authPolicy.versions);
     }
 
     if (message.has_objClass)
@@ -276,7 +260,6 @@ messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
 
         memcpy(pxMessageCdap->pxObjValue->pvSerBuffer, message.objValue.byteval.bytes,
                pxMessageCdap->pxObjValue->xSerLength);
-        // ESP_LOGE(TAG_RIB,"It has object Value!!!!!!!!!!!!!!!");
     }
 
     return pxMessageCdap;
@@ -313,62 +296,62 @@ rina_messages_CDAPMessage prvRibdSerToRinaMessage(messageCdap_t *pxMessageCdap)
     }
 
     /*Destination*/
-    if (pxMessageCdap->pxDestinationInfo->pcEntityInstance != NULL)
+    if (pxMessageCdap->pcDestAeInst != NULL)
     {
-        strcpy(message.destAEInst, pxMessageCdap->pxDestinationInfo->pcEntityInstance);
+        strcpy(message.destAEInst, pxMessageCdap->pcDestAeInst);
         message.has_destAEInst = true;
     }
 
-    if (pxMessageCdap->pxDestinationInfo->pcEntityName != NULL)
+    if (pxMessageCdap->pcDestAeName != NULL)
     {
-        strcpy(message.destAEName, pxMessageCdap->pxDestinationInfo->pcEntityName);
+        strcpy(message.destAEName, pxMessageCdap->pcDestAeName);
         message.has_destAEName = true;
     }
 
-    if (pxMessageCdap->pxDestinationInfo->pcProcessInstance != NULL)
+    if (pxMessageCdap->pcDestApInst != NULL)
     {
-        strcpy(message.destApInst, pxMessageCdap->pxDestinationInfo->pcProcessInstance);
+        strcpy(message.destApInst, pxMessageCdap->pcDestApInst);
         message.has_destApInst = true;
     }
 
-    if (pxMessageCdap->pxDestinationInfo->pcProcessName != NULL)
+    if (pxMessageCdap->pcDestApName != NULL)
     {
-        strcpy(message.destApName, pxMessageCdap->pxDestinationInfo->pcProcessName);
+        strcpy(message.destApName, pxMessageCdap->pcDestApName);
         message.has_destApName = true;
     }
 
     /*Source*/
-    if (pxMessageCdap->pxSourceInfo->pcEntityInstance != NULL)
+    if (pxMessageCdap->pcSrcAeInst != NULL)
     {
-        strcpy(message.srcAEInst, pxMessageCdap->pxSourceInfo->pcEntityInstance);
+        strcpy(message.srcAEInst, pxMessageCdap->pcSrcAeInst);
         message.has_srcAEInst = true;
     }
 
-    if (pxMessageCdap->pxSourceInfo->pcEntityName != NULL)
+    if (pxMessageCdap->pcSrcAeName != NULL)
     {
-        strcpy(message.srcAEName, pxMessageCdap->pxSourceInfo->pcEntityName);
+        strcpy(message.srcAEName, pxMessageCdap->pcSrcAeName);
         message.has_srcAEName = true;
     }
 
-    if (pxMessageCdap->pxSourceInfo->pcProcessInstance != NULL)
+    if (pxMessageCdap->pcSrcApInst != NULL)
     {
-        strcpy(message.srcApInst, pxMessageCdap->pxSourceInfo->pcProcessInstance);
+        strcpy(message.srcApInst, pxMessageCdap->pcSrcApInst);
         message.has_srcApInst = true;
     }
 
-    if (pxMessageCdap->pxSourceInfo->pcProcessName != NULL)
+    if (pxMessageCdap->pcSrcApName != NULL)
     {
-        strcpy(message.srcApName, pxMessageCdap->pxSourceInfo->pcProcessName);
+        strcpy(message.srcApName, pxMessageCdap->pcSrcApName);
         message.has_srcApName = true;
     }
 
     /*Authentication Policy*/
-    if (pxMessageCdap->pxAuthPolicy->pcName != NULL)
+    if (pxMessageCdap->pcAuthPoliName != NULL)
     {
-        strcpy(message.authPolicy.name, pxMessageCdap->pxAuthPolicy->pcName);
+        strcpy(message.authPolicy.name, pxMessageCdap->pcAuthPoliName);
         message.has_authPolicy = true;
         message.authPolicy.versions_count = 1;
-        strcpy(message.authPolicy.versions, pxMessageCdap->pxAuthPolicy->pcVersion);
+        strcpy(message.authPolicy.versions, pxMessageCdap->pcAuthPoliVersion);
 
         message.authPolicy.has_name = true;
     }
@@ -462,6 +445,8 @@ messageCdap_t *prvRibdDecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength)
         return NULL;
     }
 
+    
+
     return prvRibdFillDecodeMessage(message);
 }
 
@@ -496,21 +481,10 @@ appConnection_t *prvRibCreateConnection(name_t *pxSource, name_t *pxDestInfo)
 
 {
     appConnection_t *pxAppConnectionTmp = pvPortMalloc(sizeof(*pxAppConnectionTmp));
-    name_t *pxDestinationInfo = pvPortMalloc(sizeof(*pxDestinationInfo));
-    name_t *pxSourceInfo = pvPortMalloc(sizeof(*pxSourceInfo));
 
-    pxAppConnectionTmp->pxDestinationInfo = pxDestinationInfo;
-    pxAppConnectionTmp->pxSourceInfo = pxSourceInfo;
-
+    pxAppConnectionTmp->pxDestinationInfo = pxDestInfo;
+    pxAppConnectionTmp->pxSourceInfo = pxSource;
     pxAppConnectionTmp->uCdapVersion = 0x01;
-    pxAppConnectionTmp->pxSourceInfo->pcEntityInstance = strdup(pxSource->pcEntityInstance);
-    pxAppConnectionTmp->pxSourceInfo->pcEntityName = strdup(pxSource->pcEntityName);
-    pxAppConnectionTmp->pxSourceInfo->pcProcessInstance = strdup(pxSource->pcProcessInstance);
-    pxAppConnectionTmp->pxSourceInfo->pcEntityInstance = strdup(pxSource->pcProcessName);
-    pxAppConnectionTmp->pxDestinationInfo->pcEntityInstance = strdup(pxDestInfo->pcEntityInstance);
-    pxAppConnectionTmp->pxDestinationInfo->pcEntityName = strdup(pxDestInfo->pcEntityName);
-    pxAppConnectionTmp->pxDestinationInfo->pcProcessInstance = strdup(pxDestInfo->pcProcessInstance);
-    pxAppConnectionTmp->pxDestinationInfo->pcEntityInstance = strdup(pxDestInfo->pcProcessName);
     pxAppConnectionTmp->xStatus = eCONNECTION_IN_PROGRESS;
     pxAppConnectionTmp->uRibVersion = 0x01;
 
@@ -596,19 +570,22 @@ BaseType_t xRibdConnectToIpcp(name_t *pxSource, name_t *pxDestInfo, portId_t xN1
 
     /*Fill the Message to be encoded in the connection*/
     pxMessageEncode->eOpCode = rina_messages_opCode_t_M_CONNECT;
-    pxMessageEncode->pxDestinationInfo->pcEntityName = strdup(pxDestInfo->pcEntityName);
-    pxMessageEncode->pxDestinationInfo->pcProcessInstance = strdup(pxDestInfo->pcProcessInstance);
-    pxMessageEncode->pxDestinationInfo->pcProcessName = strdup(pxDestInfo->pcProcessName);
 
-    pxMessageEncode->pxSourceInfo->pcEntityName = strdup(pxSource->pcEntityName);
-    pxMessageEncode->pxSourceInfo->pcProcessInstance = strdup(pxSource->pcProcessInstance);
-    pxMessageEncode->pxSourceInfo->pcProcessName = strdup(pxSource->pcProcessName);
+    pxMessageEncode->pcDestApName = strdup(pxDestInfo->pcProcessName);
+    pxMessageEncode->pcDestApInst = strdup(pxDestInfo->pcProcessInstance);
+    pxMessageEncode->pcDestAeName = strdup(pxDestInfo->pcEntityName);
+    pxMessageEncode->pcDestAeInst = strdup(pxDestInfo->pcEntityInstance);
 
-    pxMessageEncode->pxAuthPolicy->pcName = strdup(pxAuth->pcName);
-    pxMessageEncode->pxAuthPolicy->pcVersion = strdup(pxAuth->pcVersion);
+    pxMessageEncode->pcSrcApName = strdup(pxSource->pcProcessName);
+    pxMessageEncode->pcSrcApInst = strdup(pxSource->pcProcessInstance);
+    pxMessageEncode->pcSrcAeName = strdup(pxSource->pcEntityName);
+    pxMessageEncode->pcSrcAeInst = strdup(pxSource->pcEntityInstance);
+
+    pxMessageEncode->pcAuthPoliName = strdup(pxAuth->pcName);
+    pxMessageEncode->pcAuthPoliVersion = strdup(pxAuth->pcVersion);
 
     // printf("ENCODE\n");
-    // vRibdPrintCdapMessage(pxMessageEncode);
+    vRibdPrintCdapMessage(pxMessageEncode);
 
     /*Fill the appConnection structure*/
     pxAppConnectionTmp = prvRibCreateConnection(pxSource, pxDestInfo);
@@ -637,20 +614,20 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
     ESP_LOGE(TAG_RIB, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
     ESP_LOGE(TAG_RIB, "Invoke Id: %d ", pxDecodeCdap->invokeID);
     ESP_LOGE(TAG_RIB, "Version: %lld", pxDecodeCdap->version);
-    if (pxDecodeCdap->pxAuthPolicy->pcName != NULL)
+    if (pxDecodeCdap->pcAuthPoliName != NULL)
     {
-        ESP_LOGE(TAG_RIB, "AuthPolicy Name: %s", pxDecodeCdap->pxAuthPolicy->pcName);
-        ESP_LOGE(TAG_RIB, "AuthPolicy Version: %s", pxDecodeCdap->pxAuthPolicy->pcVersion);
+        ESP_LOGE(TAG_RIB, "AuthPolicy Name: %s", pxDecodeCdap->pcAuthPoliName);
+        ESP_LOGE(TAG_RIB, "AuthPolicy Version: %s", pxDecodeCdap->pcAuthPoliVersion);
     }
 
-    ESP_LOGE(TAG_RIB, "Source AEI: %s", pxDecodeCdap->pxSourceInfo->pcEntityInstance);
-    ESP_LOGE(TAG_RIB, "Source AEN: %s", pxDecodeCdap->pxSourceInfo->pcEntityName);
-    ESP_LOGE(TAG_RIB, "Source API: %s", pxDecodeCdap->pxSourceInfo->pcProcessInstance);
-    ESP_LOGE(TAG_RIB, "Source APN: %s", pxDecodeCdap->pxSourceInfo->pcProcessName);
-    ESP_LOGE(TAG_RIB, "Dest AEI: %s", pxDecodeCdap->pxDestinationInfo->pcEntityInstance);
-    ESP_LOGE(TAG_RIB, "Dest AEN: %s", pxDecodeCdap->pxDestinationInfo->pcEntityName);
-    ESP_LOGE(TAG_RIB, "Dest API: %s", pxDecodeCdap->pxDestinationInfo->pcProcessInstance);
-    ESP_LOGE(TAG_RIB, "Dest APN: %s", pxDecodeCdap->pxDestinationInfo->pcProcessName);
+    ESP_LOGE(TAG_RIB, "Source AEI: %s", pxDecodeCdap->pcSrcAeInst);
+    ESP_LOGE(TAG_RIB, "Source AEN: %s", pxDecodeCdap->pcSrcAeName);
+    ESP_LOGE(TAG_RIB, "Source API: %s", pxDecodeCdap->pcSrcApInst);
+    ESP_LOGE(TAG_RIB, "Source APN: %s", pxDecodeCdap->pcSrcApName);
+    ESP_LOGE(TAG_RIB, "Dest AEI: %s", pxDecodeCdap->pcDestAeInst);
+    ESP_LOGE(TAG_RIB, "Dest AEN: %s", pxDecodeCdap->pcDestAeName);
+    ESP_LOGE(TAG_RIB, "Dest API: %s", pxDecodeCdap->pcDestApInst);
+    ESP_LOGE(TAG_RIB, "Dest APN: %s", pxDecodeCdap->pcDestApName);
 
     // configASSERT(pxDecodeCdap->xObjName == NULL);
 
@@ -658,11 +635,11 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
     {
         ESP_LOGE(TAG_RIB, "ObjectName:%s", pxDecodeCdap->pcObjName);
     }
-    if (!pxDecodeCdap->objInst)
+    if (pxDecodeCdap->objInst)
     {
         ESP_LOGE(TAG_RIB, "ObjectInstance:%d", (int)pxDecodeCdap->objInst);
     }
-    if (!pxDecodeCdap->pcObjClass)
+    if (pxDecodeCdap->pcObjClass)
     {
         ESP_LOGE(TAG_RIB, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
     }
@@ -726,7 +703,7 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
     /* Looking for an App Connection using the N-1 Flow Port */
     pxAppConnectionTmp = pxRibdFindAppConnection(xN1FlowPortId);
 
-    // vPrintAppConnection(pxAppConnectionTmp);
+    vPrintAppConnection(pxAppConnectionTmp);
 
     /* Looking for the object into the RIB */
     pxRibObject = pxRibFindObject(pxDecodeCdap->pcObjName);
@@ -768,7 +745,7 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
         }
 
         /*Update Connection Status*/
-        pxAppConnectionTmp->pxDestinationInfo->pcProcessName = pxDecodeCdap->pxSourceInfo->pcProcessName;
+        pxAppConnectionTmp->pxDestinationInfo->pcProcessName = pxDecodeCdap->pcSrcApName;
         pxAppConnectionTmp->xStatus = eCONNECTED;
         ESP_LOGI(TAG_RIB, "Application Connection Status Updated to 'CONNECTED'");
 

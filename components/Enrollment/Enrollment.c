@@ -21,6 +21,7 @@
 #include "pb_decode.h"
 #include "Rib.h"
 #include "SerdesMsg.h"
+#include "rstr.h"
 
 #include "esp_log.h"
 
@@ -154,6 +155,8 @@ neighborInfo_t *pxEnrollmentCreateNeighInfo(string_t pcApName, portId_t xN1Port)
         pxNeighInfo = pvPortMalloc(sizeof(*pxNeighInfo));
 
         pxNeighInfo->pcApName = strdup(pcApName);
+
+        
         pxNeighInfo->eEnrollmentState = eENROLLMENT_NONE;
         pxNeighInfo->xNeighborAddress = -1;
         pxNeighInfo->xN1Port = xN1Port;

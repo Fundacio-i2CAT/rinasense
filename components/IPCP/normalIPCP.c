@@ -15,6 +15,7 @@
 #include "factoryIPCP.h"
 #include "configRINA.h"
 #include "Ribd.h"
+#include "rstr.h"
 
 #include "BufferManagement.h"
 
@@ -290,6 +291,7 @@ cepId_t xNormalConnectionCreateRequest(struct ipcpInstanceData_t *pxData,
         }
 
         pxCepEntry = pvPortMalloc(sizeof(*pxCepEntry));
+
         if (!pxCepEntry)
         {
                 ESP_LOGE(TAG_IPCPNORMAL, "Could not create a cep_id entry, bailing out");
@@ -417,10 +419,10 @@ static BaseType_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t 
                 return pdFALSE;
         }
 
-        if (!xRINAStringDup(pxDifName->pcProcessName, &pxData->pxDifName->pcProcessName) ||
-            !xRINAStringDup(pxDifName->pcProcessInstance, &pxData->pxDifName->pcProcessInstance) ||
-            !xRINAStringDup(pxDifName->pcEntityName, &pxData->pxDifName->pcEntityName) ||
-            !xRINAStringDup(pxDifName->pcEntityInstance, &pxData->pxDifName->pcEntityInstance))
+        if (!xRstringDup(pxDifName->pcProcessName, &pxData->pxDifName->pcProcessName) ||
+            !xRstringDup(pxDifName->pcProcessInstance, &pxData->pxDifName->pcProcessInstance) ||
+            !xRstringDup(pxDifName->pcEntityName, &pxData->pxDifName->pcEntityName) ||
+            !xRstringDup(pxDifName->pcEntityInstance, &pxData->pxDifName->pcEntityInstance))
         {
                 ESP_LOGE(TAG_IPCPNORMAL, "Name was not created properly");
         }
@@ -719,10 +721,10 @@ ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t 
                 return pdFALSE;
         }
 
-        if (!xRINAStringDup(pxName->pcProcessName, &pxNormalInstance->pxData->pxName->pcProcessName) ||
-            !xRINAStringDup(pxName->pcProcessInstance, &pxNormalInstance->pxData->pxName->pcProcessInstance) ||
-            !xRINAStringDup(pxName->pcEntityName, &pxNormalInstance->pxData->pxName->pcEntityName) ||
-            !xRINAStringDup(pxName->pcEntityInstance, &pxNormalInstance->pxData->pxName->pcEntityInstance))
+        if (!xRstringDup(pxName->pcProcessName, &pxNormalInstance->pxData->pxName->pcProcessName) ||
+            !xRstringDup(pxName->pcProcessInstance, &pxNormalInstance->pxData->pxName->pcProcessInstance) ||
+            !xRstringDup(pxName->pcEntityName, &pxNormalInstance->pxData->pxName->pcEntityName) ||
+            !xRstringDup(pxName->pcEntityInstance, &pxNormalInstance->pxData->pxName->pcEntityInstance))
         {
                 ESP_LOGE(TAG_IPCPNORMAL, "Name was not created properly");
         }

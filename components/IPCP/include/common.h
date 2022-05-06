@@ -55,6 +55,7 @@ typedef uint32_t seqNum_t;;
 
 typedef struct xName_info
 {
+        //char*
 	string_t  pcProcessName;  		/*> Process Name*/
 	string_t  pcProcessInstance;		/*> Process Instance*/
 	string_t  pcEntityName;			/*> Entity Name*/

@@ -30,7 +30,7 @@ typedef struct xIPCP_FACTORY_OPS {
 
                                            
     #endif
-    //string_t TEST;
+
 
 }ipcpFactoryOps_t;
 

@@ -31,6 +31,7 @@
 /* Create_Request: handle the request send by other IPCP. Consults the local
  * directory Forwarding Table. It is to me, create a FAI*/
 
+#if 0
 BaseType_t xFlowAllocatorInit()
 {
     flowAllocator_t *pxFlowAllocator;
@@ -197,3 +198,4 @@ BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t 
     return pdTRUE;
 
 }
+#endif

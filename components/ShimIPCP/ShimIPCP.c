@@ -17,6 +17,7 @@
 #include "BufferManagement.h"
 #include "du.h"
 #include "IpcManager.h"
+#include "rstr.h"
 
 #include "esp_log.h"
 
@@ -29,7 +30,7 @@ struct ipcpInstanceData_t
 	/* IPC Process name */
 	name_t *pxName;
 	name_t *pxDifName;
-	string_t pcIntefaceName;
+	string_t pcInterfaceName;
 
 	MACAddress_t *pxPhyDev;
 	struct flowSpec_t *pxFspec;
@@ -191,13 +192,7 @@ BaseType_t xShimFlowDeallocate(struct ipcpInstanceData_t *xData, portId_t xId)
 	return prvShimUnbindDestroyFlow(xData, xFlow);
 }
 
-/*-------------------------------------------*/
-/* FlowAllocateRequest (naming-info). Naming-info about the destination.
- * Primitive invoked by the IPCP task event_handler:
- * - Check if there is a flow established (eALLOCATED), or a flow pending between the
- * source and destination application (ePENDING),
- * - If stated is eNULL then RINA_xARPAdd is called.
- * */
+
 
 /**
  * @brief FlowAllocateRequest (naming-info). Naming-info about the destination.
@@ -269,8 +264,8 @@ BaseType_t xShimFlowAllocateRequest(portId_t xPortId,
 			return pdFALSE;
 		}
 
-		// Register the flow in a list or in the Flow allocator
 
+		// Register the flow in a list or in the Flow allocator
 		ESP_LOGI(TAG_SHIM, "Created Flow: %p, portID: %d, portState: %d", pxFlow, pxFlow->xPortId, pxFlow->ePortIdState);
 		vListInitialiseItem(&pxFlow->xFlowItem);
 		listSET_LIST_ITEM_OWNER(&(pxFlow->xFlowItem), pxFlow);
@@ -392,7 +387,7 @@ BaseType_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceDa
 
 	if (pxFlow->ePortIdState == eALLOCATED)
 	{
-		xEnrollEvent.pvData = xPortId;
+		xEnrollEvent.pvData = (void*)xPortId;
 		xSendEventStructToIPCPTask(&xEnrollEvent, xDontBlock);
 	}
 
@@ -409,7 +404,9 @@ BaseType_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceDa
  * the shimWiFi ipcp instance.
  * @return a pdTrue if Success or pdFalse Failure.
  * */
-BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *pxAppName, name_t *pxDafName)
+BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, 
+									const name_t *pxAppName, 
+									const name_t *pxDafName)
 {
 	ESP_LOGI(TAG_SHIM, "Registering Application");
 
@@ -434,7 +431,7 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 		return pdFALSE;
 	}
 
-	pxData->pxAppName = pxAppName;
+	pxData->pxAppName = pxRstrNameDup(pxAppName);
 
 	if (!pxData->pxAppName)
 	{
@@ -466,7 +463,7 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 		return pdFALSE;
 	}
 
-	pxData->pxAppHandle = pxARPAdd(pxPa, pxHa);
+	pxData->pxAppHandle = pxARPAddToCache(pxPa, pxHa);
 
 	if (!pxData->pxAppHandle)
 	{
@@ -481,7 +478,7 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 	// vShimGPADestroy( pa );
 
 
-	pxData->pxDafName = pxDafName;
+	pxData->pxDafName = pxRstrNameDup(pxDafName);
 
 	if (!pxData->pxDafName)
 	{
@@ -508,7 +505,7 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 		return pdFALSE;
 	}
 
-	pxData->pxDafHandle = pxARPAdd(pxPa, pxHa);
+	pxData->pxDafHandle = pxARPAddToCache(pxPa, pxHa);
 
 	if (!pxData->pxDafHandle)
 	{
@@ -600,19 +597,70 @@ BaseType_t xShimApplicationUnregister(struct ipcpInstanceData_t *pxData, name_t 
 	return pdTRUE;
 }
 
-/***************** **************************/
+int string_len(const string_t * s)
+{ return strlen(s); }
 
-
-
-
-
-gpa_t *pxShimNameToGPA(const name_t *xLocalInfo)
+string_t pcShimNameToString(const name_t * n)
 {
-	// uint32_t ulIPCPAddress;
+        string_t       tmp;
+        size_t       size;
+        const string_t none     = "";
+        size_t       none_len = strlen(none);
+
+		
+
+        if (!n)
+                return NULL;
+
+        size  = 0;
+
+        size += (n->pcProcessName                 ?
+                 string_len(n->pcProcessName)     : none_len);
+        size += strlen(DELIMITER);
+
+        size += (n->pcProcessInstance             ?
+                 string_len(n->pcProcessInstance) : none_len);
+        size += strlen(DELIMITER);
+
+        size += (n->pcEntityName                  ?
+                 string_len(n->pcEntityName)      : none_len);
+        size += strlen(DELIMITER);
+
+        size += (n->pcEntityInstance              ?
+                 string_len(n->pcEntityInstance)  : none_len);
+        size += strlen(DELIMITER);
+
+        tmp = pvPortMalloc(size);
+		memset(tmp, 0, sizeof(*tmp));
+
+        if (!tmp)
+                return NULL;
+
+        if (snprintf(tmp, size,
+                     "%s%s%s%s%s%s%s",
+                     (n->pcProcessName     ? n->pcProcessName     : none),
+                     DELIMITER,
+                     (n->pcProcessInstance ? n->pcProcessInstance : none),
+                     DELIMITER,
+                     (n->pcEntityName      ? n->pcEntityName      : none),
+                     DELIMITER,
+                     (n->pcEntityInstance  ? n->pcEntityInstance  : none)) !=
+            size - 1) {
+                vPortFree(tmp);
+                return NULL;
+        }
+
+        return tmp;
+}
+
+
+gpa_t *pxShimNameToGPA(const name_t *pxLocalInfo)
+{
+
 	gpa_t *pxGpa;
 	string_t pcTmp;
 
-	pcTmp = pcShimNameToString(xLocalInfo);
+	pcTmp = pcShimNameToString(pxLocalInfo);
 
 	if (!pcTmp)
 	{
@@ -620,8 +668,8 @@ gpa_t *pxShimNameToGPA(const name_t *xLocalInfo)
 		return NULL;
 	}
 
-	// Convert the IPCPAddress Concatenate to bits
-	pxGpa = pxShimCreateGPA((uint8_t *)(pcTmp), strlen(pcTmp) + 1);
+	// Convert the IPCPAddress Concatenated to bits
+	pxGpa = pxShimCreateGPA((uint8_t *)(pcTmp), strlen(pcTmp)); //considering the null terminated
 
 	if (!pxGpa)
 	{
@@ -630,11 +678,12 @@ gpa_t *pxShimNameToGPA(const name_t *xLocalInfo)
 		return NULL;
 	}
 
-	//vPortFree(pcTmp);
+	vPortFree(pcTmp);
 
 	return pxGpa;
 }
 
+/* No used check if this is necessary */
 string_t *xShimGPAAddressToString(const gpa_t *pxGpa)
 {
 	string_t *tmp;
@@ -651,12 +700,12 @@ string_t *xShimGPAAddressToString(const gpa_t *pxGpa)
 	if (!tmp)
 		return NULL;
 
-	memcpy(tmp, pxGpa->ucAddress, pxGpa->uxLength);
+	memcpy(tmp, pxGpa->pucAddress, pxGpa->uxLength);
 
 	p = tmp + pxGpa->uxLength;
 	*(p) = '\0';
 
-	ESP_LOGE(TAG_ARP, "GPA:%s", pxGpa->ucAddress);
+	ESP_LOGE(TAG_ARP, "GPA:%s", pxGpa->pucAddress);
 	ESP_LOGE(TAG_ARP, "GPA:%s", *tmp);
 
 
@@ -664,11 +713,23 @@ string_t *xShimGPAAddressToString(const gpa_t *pxGpa)
 	return tmp;
 }
 
-gpa_t *pxShimCreateGPA(const uint8_t *pucAddress, size_t xLength)
+uint8_t *pucCreateAddress(size_t uxLength)
+{
+	uint8_t *pucAddress;
+
+	pucAddress = (uint8_t *)pvPortMalloc(uxLength);
+    memset(pucAddress, 0, uxLength);
+
+	return pucAddress;
+}
+
+
+
+gpa_t *pxShimCreateGPA(const uint8_t *pucAddress, size_t uxLength)
 {
 	gpa_t *pxGPA;
 
-	if (!pucAddress || xLength == 0)
+	if (!pucAddress || uxLength == 0)
 	{
 		ESP_LOGI(TAG_SHIM, "Bad input parameters, cannot create GPA");
 		return NULL;
@@ -676,23 +737,24 @@ gpa_t *pxShimCreateGPA(const uint8_t *pucAddress, size_t xLength)
 
 	pxGPA = pvPortMalloc(sizeof(*pxGPA));
 
+
 	if (!pxGPA)
 		return NULL;
 
-	pxGPA->uxLength = xLength;
-	pxGPA->ucAddress = pvPortMalloc(pxGPA->uxLength);
-	//memset(pxGPA->ucAddress, 0, pxGPA->uxLength);
+	pxGPA->uxLength = uxLength; //strlen of the address without '\0'
+	pxGPA->pucAddress = pucCreateAddress(uxLength + 1); //Create an address an include the '\0'
 
-	if (!pxGPA->ucAddress)
+
+	if (!pxGPA->pucAddress)
 	{
 		vPortFree(pxGPA);
 		return NULL;
 	}
 
-	memcpy(pxGPA->ucAddress, pucAddress, pxGPA->uxLength);
+	memcpy(pxGPA->pucAddress, pucAddress, pxGPA->uxLength);
 
 
-	ESP_LOGI(TAG_SHIM, "CREATE GPA address: %s", pxGPA->ucAddress);
+	ESP_LOGI(TAG_SHIM, "CREATE GPA address: %s", pxGPA->pucAddress);
 	ESP_LOGI(TAG_SHIM, "CREATE GPA size: %d", pxGPA->uxLength);
 	
 
@@ -720,33 +782,7 @@ gha_t *pxShimCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress) // Chang
 	return pxGha;
 }
 
-string_t pcShimNameToString(const name_t *xNameInfo)
-{
-	string_t pcNameInfoConcatenated = {'\0'};
 
-	if (!xNameInfo)
-		return NULL;
-
-	pcNameInfoConcatenated = pvPortMalloc(strlen(xNameInfo->pcProcessName) + strlen(xNameInfo->pcProcessInstance) + 3 + strlen(xNameInfo->pcEntityName) + strlen(xNameInfo->pcEntityInstance));
-
-	strcpy(pcNameInfoConcatenated, xNameInfo->pcProcessName);
-	strcat(pcNameInfoConcatenated, DELIMITER);
-	strcat(pcNameInfoConcatenated, xNameInfo->pcProcessInstance);
-	strcat(pcNameInfoConcatenated, DELIMITER);
-	strcat(pcNameInfoConcatenated, xNameInfo->pcEntityName);
-	strcat(pcNameInfoConcatenated, DELIMITER);
-	strcat(pcNameInfoConcatenated, xNameInfo->pcEntityInstance);
-
-	if (!pcNameInfoConcatenated)
-	{
-		vPortFree(pcNameInfoConcatenated);
-		return NULL;
-	}
-
-	//ESP_LOGI(TAG_SHIM, "Concatenated: %s", pcNameInfoConcatenated);
-
-	return pcNameInfoConcatenated;
-}
 
 static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, portId_t xPortId)
 {
@@ -867,7 +903,7 @@ BaseType_t xShimIsGPAOK(const gpa_t *pxGpa)
 		ESP_LOGI(TAG_SHIM, " !Gpa");
 		return pdFALSE;
 	}
-	if (pxGpa->ucAddress == NULL)
+	if (pxGpa->pucAddress == NULL)
 	{
 
 		ESP_LOGI(TAG_SHIM, "xShimIsGPAOK Address is NULL");
@@ -903,7 +939,7 @@ void vShimGPADestroy(gpa_t *pxGpa)
 	{
 		return;
 	}
-	vPortFree(pxGpa->ucAddress);
+	vPortFree(pxGpa->pucAddress);
 	vPortFree(pxGpa);
 
 	return;
@@ -1168,7 +1204,6 @@ ipcpInstance_t *pxShimWiFiCreate(struct ipcpFactoryData_t *pxFactoryData, ipcPro
 
 	ipcpInstance_t *pxInst;
 	struct ipcpInstanceData_t *pxInstData;
-	string_t pcIntefaceName = SHIM_INTERFACE;
 	struct flowSpec_t *pxFspec;
 	name_t *pxName;
 	MACAddress_t *pxPhyDev;
@@ -1184,6 +1219,9 @@ ipcpInstance_t *pxShimWiFiCreate(struct ipcpFactoryData_t *pxFactoryData, ipcPro
 
 	/* Create an instance */
 	pxInst = pvPortMalloc(sizeof(*pxInst));
+	if (!pxInst)
+		return NULL;
+
 
 	/* Create Data instance and Flow Specifications*/
 	pxInstData = pvPortMalloc(sizeof(*pxInstData));
@@ -1205,11 +1243,11 @@ ipcpInstance_t *pxShimWiFiCreate(struct ipcpFactoryData_t *pxFactoryData, ipcPro
 	pxInst->pxData->pxDafName = NULL;
 
 	/*Filling the ShimWiFi instance properly*/
-	pxInst->pxData->pxName = pxName;
+	pxInst->pxData->pxName = pxName; //RINA_str_name?
 	pxInst->pxData->xId = xIpcpId;
 	pxInst->pxData->pxPhyDev = pxPhyDev;
 
-	pxInst->pxData->pcIntefaceName = pcIntefaceName;
+	pxInst->pxData->pcInterfaceName = SHIM_INTERFACE;
 
 	pxInst->pxData->pxFspec->ulAverageBandwidth = 0;
 	pxInst->pxData->pxFspec->ulAverageSduBandwidth = 0;
