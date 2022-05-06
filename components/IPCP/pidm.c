@@ -70,8 +70,6 @@ BaseType_t xPidmAllocated(pidm_t *pxInstance, portId_t xPortId)
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
 
-        pos = pvPortMalloc(sizeof(*pos));
-
         /* Find a way to iterate in the list and compare the addesss*/
 
         pxListEnd = listGET_END_MARKER(&pxInstance->xAllocatedPorts);
@@ -85,16 +83,14 @@ BaseType_t xPidmAllocated(pidm_t *pxInstance, portId_t xPortId)
                 if (pos->xPid == xPortId)
                 {
                         ESP_LOGI(TAG_IPCPMANAGER, "Port ID %p, #: %d", pos, pos->xPid);
-                        vPortFree(pos);
 
                         return pdTRUE;
                 }
 
                 pxListItem = listGET_NEXT(pxListItem);
         }
-        vPortFree(pos);
-        return pdFALSE;
 
+        return pdFALSE;
 }
 
 /** @brief xPidmAllocate.

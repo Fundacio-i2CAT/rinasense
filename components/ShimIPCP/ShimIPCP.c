@@ -828,8 +828,6 @@ static shimFlow_t *prvShimFindFlow(struct ipcpInstanceData_t *pxData)
 	ListItem_t *pxListItem;
 	ListItem_t const *pxListEnd;
 
-	pxFlow = pvPortMalloc(sizeof(*pxFlow));
-
 	/* Find a way to iterate in the list and compare the addesss*/
 	pxListEnd = listGET_END_MARKER(&pxData->xFlowsList);
 	pxListItem = listGET_HEAD_ENTRY(&pxData->xFlowsList);
@@ -1313,7 +1311,7 @@ BaseType_t xShimWiFiInit(void)
 	if (!xShimEnrollToDIF(pxPhyDev))
 	{
 		ESP_LOGE(TAG_SHIM, "SHIM instance can't enroll to DIF");
-
+		vPortFree(pxPhyDev);
 		return pdFALSE;
 	}
 	else

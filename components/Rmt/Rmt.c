@@ -166,8 +166,6 @@ BaseType_t xRmtPduIsAddressedToMe(rmt_t *pxRmt, address_t xAddress)
 	ListItem_t *pxListItem, *pxNext;
 	ListItem_t const *pxListEnd;
 
-	pxAddr = pvPortMalloc(sizeof(*pxAddr));
-
 	/* Find a way to iterate in the list and compare the addesss*/
 	pxListEnd = listGET_END_MARKER(&pxRmt->xAddresses);
 	pxListItem = listGET_HEAD_ENTRY(&pxRmt->xAddresses);
@@ -176,8 +174,7 @@ BaseType_t xRmtPduIsAddressedToMe(rmt_t *pxRmt, address_t xAddress)
 	{
 
 		pxAddr = (rmtAddress_t *)listGET_LIST_ITEM_OWNER(pxListItem);
-		
-		
+
 		if (pxAddr->xAddress == xAddress)
 		{
 			ESP_LOGI(TAG_RMT, "Address to me founded!");
@@ -187,10 +184,8 @@ BaseType_t xRmtPduIsAddressedToMe(rmt_t *pxRmt, address_t xAddress)
 		pxListItem = listGET_NEXT(pxListItem);
 	}
 
-
 	return pdFALSE;
 }
-
 
 static BaseType_t xRmtProcessMgmtPdu(rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
 {

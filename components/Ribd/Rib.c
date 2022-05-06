@@ -46,9 +46,6 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
 
     BaseType_t x = 0;
     struct ribObject_t *pxRibObject;
-    pxRibObject = pvPortMalloc(sizeof(*pxRibObject));
-
-
 
         for (x = 0; x < RIB_TABLE_SIZE; x++)
 

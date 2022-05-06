@@ -62,7 +62,7 @@ struct ipcpInstanceData_t
         List_t xFlowsList;
 
         /*  FIXME: Remove it as soon as the kipcm_kfa gets removed*/
-        //struct kfa *            kfa;
+        // struct kfa *            kfa;
 
         /* Efcp Container asociated at the IPCP Instance */
         struct efcpContainer_t *pxEfcpc;
@@ -71,23 +71,22 @@ struct ipcpInstanceData_t
         struct rmt_t *pxRmt;
 
         /* SDUP asociated at the IPCP Instance */
-        //struct sdup *           sdup;
+        // struct sdup *           sdup;
 
         address_t xAddress;
         address_t xOldAddress;
 
-        ///spinlock_t              lock;
+        /// spinlock_t              lock;
 
         /* Instance List Item to be add into the Factory List*/
         ListItem_t xInstanceListItem;
 
-        /* Timers required for the address change procedure 
+        /* Timers required for the address change procedure
         struct {
-        	struct timer_list use_naddress;
+                struct timer_list use_naddress;
             struct timer_list kill_oaddress;
         } timers;*/
 };
-
 
 struct ipcpFactoryData_t
 {
@@ -117,8 +116,6 @@ static ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t *pxFac
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
 
-        pxInstance = pvPortMalloc(sizeof(*pxInstance));
-
         /* Find a way to iterate in the list and compare the addesss*/
 
         pxListEnd = listGET_END_MARKER(&pxFactoryData->xInstancesNormalList);
@@ -134,7 +131,7 @@ static ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t *pxFac
 
                         if (pxInstance->xType == xType)
                         {
-                                //ESP_LOGI(TAG_IPCPMANAGER, "Instance founded %p, Type: %d", pxInstance, pxInstance->xType);
+                                // ESP_LOGI(TAG_IPCPMANAGER, "Instance founded %p, Type: %d", pxInstance, pxInstance->xType);
                                 return pxInstance;
                         }
                 }
@@ -154,12 +151,10 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
 {
 
         struct normalFlow_t *pxFlow;
-        //shimFlow_t *pxFlowNext;
+        // shimFlow_t *pxFlowNext;
 
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
-
-        pxFlow = pvPortMalloc(sizeof(*pxFlow));
 
         /* Find a way to iterate in the list and compare the addesss*/
         pxListEnd = listGET_END_MARKER(&pxData->xFlowsList);
@@ -173,7 +168,7 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
                 if (pxFlow && pxFlow->xPortId == xPortId)
                 {
 
-                        //ESP_LOGI(TAG_IPCPNORMAL, "Flow founded %p, portID: %d, portState:%d", pxFlow, pxFlow->xPortId, pxFlow->eState);
+                        // ESP_LOGI(TAG_IPCPNORMAL, "Flow founded %p, portID: %d, portState:%d", pxFlow, pxFlow->xPortId, pxFlow->eState);
                         return pxFlow;
                 }
 
@@ -227,13 +222,9 @@ BaseType_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
         return pdTRUE;
 }*/
 
-
-
-
 BaseType_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
-                                     portId_t xPortId)
+                              portId_t xPortId)
 {
-   
 
         struct normalFlow_t *pxFlow;
 
@@ -253,14 +244,12 @@ BaseType_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
         pxFlow->xPortId = xPortId;
         pxFlow->eState = ePORT_STATE_PENDING;
         /*KFA should be the user. Implement this when the KFA is implemented*/
-        //pxFlow->pxUserIpcp = kfa;
+        // pxFlow->pxUserIpcp = kfa;
 
-        //ESP_LOGI(TAG_IPCPNORMAL, "Flow: %p portID: %d portState: %d", pxFlow, pxFlow->xPortId, pxFlow->eState);
+        // ESP_LOGI(TAG_IPCPNORMAL, "Flow: %p portID: %d portState: %d", pxFlow, pxFlow->xPortId, pxFlow->eState);
         vListInitialiseItem(&(pxFlow->xFlowListItem));
         listSET_LIST_ITEM_OWNER(&(pxFlow->xFlowListItem), (void *)pxFlow);
         vListInsert(&(pxData->xFlowsList), &(pxFlow->xFlowListItem));
-
-
 
         return pdTRUE;
 }
@@ -277,8 +266,6 @@ cepId_t xNormalConnectionCreateRequest(struct ipcpInstanceData_t *pxData,
         struct normalFlow_t *pxFlow;
         struct cepIdsEntry_t *pxCepEntry;
         ipcpInstance_t *pxIpcp;
-
-      
 
         xCepId = xEfcpConnectionCreate(pxData->pxEfcpc, xSource, xDest,
                                        xPortId, xQosId,
@@ -299,7 +286,7 @@ cepId_t xNormalConnectionCreateRequest(struct ipcpInstanceData_t *pxData,
                 return cep_id_bad();
         }
 
-        //vListInitialise(&pxCepEntry->CepIdListItem);
+        // vListInitialise(&pxCepEntry->CepIdListItem);
         pxCepEntry->xCepId = xCepId;
 
         /*/ipcp = kipcm_find_ipcp(default_kipcm, data->id);
@@ -309,46 +296,46 @@ cepId_t xNormalConnectionCreateRequest(struct ipcpInstanceData_t *pxData,
                 return cep_id_bad();
         }*/
 
-        //configASSERT(xUserIpcp->xOps);
-        //configASSERT(xUserIpcp->xOps->flow_binding_ipcp);
-        //spin_lock_bh(&data->lock);
+        // configASSERT(xUserIpcp->xOps);
+        // configASSERT(xUserIpcp->xOps->flow_binding_ipcp);
+        // spin_lock_bh(&data->lock);
         pxFlow = prvNormalFindFlow(pxData, xPortId);
 
-/*
-        if (!pxFlow) {
-                //spin_unlock_bh(&data->lock);
-                ESP_LOGE(TAG_IPCPNORMAL,"Could not retrieve normal flow to create connection");
-                xEfcpConnectionDestroy(pxData->efcpc, xCepId);
-                return cep_id_bad();
-        }
+        /*
+                if (!pxFlow) {
+                        //spin_unlock_bh(&data->lock);
+                        ESP_LOGE(TAG_IPCPNORMAL,"Could not retrieve normal flow to create connection");
+                        xEfcpConnectionDestroy(pxData->efcpc, xCepId);
+                        return cep_id_bad();
+                }
 
-        if (user_ipcp->ops->flow_binding_ipcp(user_ipcp->data,
-                                              port_id,
-                                              ipcp)) {
-                spin_unlock_bh(&data->lock);
-                ESP_LOGE(TAG_IPCPNORMAL,"Could not bind flow with user_ipcp");
-                efcp_connection_destroy(data->efcpc, cep_id);
-                return cep_id_bad();
-        }
+                if (user_ipcp->ops->flow_binding_ipcp(user_ipcp->data,
+                                                      port_id,
+                                                      ipcp)) {
+                        spin_unlock_bh(&data->lock);
+                        ESP_LOGE(TAG_IPCPNORMAL,"Could not bind flow with user_ipcp");
+                        efcp_connection_destroy(data->efcpc, cep_id);
+                        return cep_id_bad();
+                }
 
-        list_add(&cep_entry->list, &flow->cep_ids_list);*/
+                list_add(&cep_entry->list, &flow->cep_ids_list);*/
 
         pxFlow->xActive = xCepId;
         // pxFlow->eState = ePORTSTATEPENDING;
 
-        //spin_unlock_bh(&data->lock);
+        // spin_unlock_bh(&data->lock);
 
         return xCepId;
 }
 
 /**
- * @brief Flow binding the N-1 Instance and the Normal IPCP by the 
+ * @brief Flow binding the N-1 Instance and the Normal IPCP by the
  * portId (N-1 port Id).
- * 
+ *
  * @param pxUserData Normal IPCP in this case
  * @param xPid The PortId of the N-1 DIF
  * @param pxN1Ipcp Ipcp Instance N-1 DIF
- * @return BaseType_t 
+ * @return BaseType_t
  */
 BaseType_t xNormalFlowBinding(struct ipcpInstanceData_t *pxUserData,
                               portId_t xPid,
@@ -373,7 +360,7 @@ BaseType_t xNormalTest(ipcpInstance_t *pxNormalInstance, ipcpInstance_t *pxN1Ipc
 
         /*Getting the buffer Descriptor*/
         xBufferSize = strlen(ucStringTest);
-        pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, (TickType_t)0U); //sizeof length DataUser packet.
+        pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, (TickType_t)0U); // sizeof length DataUser packet.
 
         ESP_LOGI(TAG_IPCPNORMAL, "BufferSize DU:%d", xBufferSize);
 
@@ -382,7 +369,7 @@ BaseType_t xNormalTest(ipcpInstance_t *pxNormalInstance, ipcpInstance_t *pxN1Ipc
 
         pxNetworkBuffer->xDataLength = xBufferSize;
 
-        //ESP_LOGI(TAG_IPCPNORMALNORMAL, "Size of NetworkBuffer: %d",pxNetworkBuffer->xDataLength);
+        // ESP_LOGI(TAG_IPCPNORMALNORMAL, "Size of NetworkBuffer: %d",pxNetworkBuffer->xDataLength);
         /*Integrate the buffer to the Du structure*/
         testDu = pvPortMalloc(sizeof(*testDu));
         testDu->pxNetworkBuffer = pxNetworkBuffer;
@@ -405,12 +392,11 @@ BaseType_t xNormalTest(ipcpInstance_t *pxNormalInstance, ipcpInstance_t *pxN1Ipc
         return pdFALSE;
 }
 
-
 static BaseType_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t *pxDifName)
 {
         efcpConfig_t *pxEfcpConfig;
-        //struct secman_config * sm_config;
-        //rmtConfig_t *pxRmtConfig;
+        // struct secman_config * sm_config;
+        // rmtConfig_t *pxRmtConfig;
 
         if (!pxDifName)
         {
@@ -430,10 +416,8 @@ static BaseType_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t 
         /*Reading from the RINACONFIG.h*/
         pxData->xAddress = LOCAL_ADDRESS;
 
-    
-
         /* FUTURE IMPLEMENTATIONS
-        
+
         **** SHOULD READ CONFIGS FROM FILE RINACONFIG.H
         pxEfcpConfig =  pxConfig->pxEfcpconfig;
         pxConfig->pxEfcpconfig = 0;
@@ -443,7 +427,7 @@ static BaseType_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t 
                 ESP_LOGE(TAG_IPCPNORMAL, "No EFCP configuration in the dif_info");
                 return pdFALSE;
         }
-        
+
         if (!pxEfcpConfig->pxDtCons)
         {
                 ESP_LOGE(TAG_IPCPNORMAL, "Configuration constants for the DIF are bogus...");
@@ -452,7 +436,7 @@ static BaseType_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t 
         }
 
         efcp_container_config_set(pxData->pxEfcpc, pxEfcpConfig);
-        
+
 
         pxRmtConfig = pxConfig->pxRmtConfig;
         pxConfig->pxRmtConfig = 0;
@@ -468,42 +452,42 @@ static BaseType_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t 
                 ESP_LOGE(TAG_IPCPNORMAL, "Could not set local Address to RMT");
                 return pdFALSE;
         }
-/*
-        if (rmt_config_set(data->rmt, rmt_config))
-        {
-                ESP_LOGE(TAG_IPCPNORMAL, "Could not set RMT conf");
-                return pdFALSE;
-        }
+        /*
+                if (rmt_config_set(data->rmt, rmt_config))
+                {
+                        ESP_LOGE(TAG_IPCPNORMAL, "Could not set RMT conf");
+                        return pdFALSE;
+                }
 
-        sm_config = config->secman_config;
-        config->secman_config = 0;
-        if (!sm_config)
-        {
-                LOG_INFO("No SDU protection config specified, using default");
-                sm_config = secman_config_create();
-                sm_config->default_profile = auth_sdup_profile_create();
-        }
-        if (sdup_config_set(data->sdup, sm_config))
-        {
-                ESP_LOGE(TAG_IPCPNORMAL, "Could not set SDUP conf");
-                return -1;
-        }
-        if (sdup_dt_cons_set(data->sdup, dt_cons_dup(efcp_config->dt_cons)))
-        {
-                ESP_LOGE(TAG_IPCPNORMAL, "Could not set dt_cons in SDUP");
-                return -1;
-        }*/
+                sm_config = config->secman_config;
+                config->secman_config = 0;
+                if (!sm_config)
+                {
+                        LOG_INFO("No SDU protection config specified, using default");
+                        sm_config = secman_config_create();
+                        sm_config->default_profile = auth_sdup_profile_create();
+                }
+                if (sdup_config_set(data->sdup, sm_config))
+                {
+                        ESP_LOGE(TAG_IPCPNORMAL, "Could not set SDUP conf");
+                        return -1;
+                }
+                if (sdup_dt_cons_set(data->sdup, dt_cons_dup(efcp_config->dt_cons)))
+                {
+                        ESP_LOGE(TAG_IPCPNORMAL, "Could not set dt_cons in SDUP");
+                        return -1;
+                }*/
 
         return pdTRUE;
 }
 
-static BaseType_t xNormalDuEnqueue(struct ipcpInstanceData_t * pxData,
-                             portId_t                   xN1PortId,
-                             struct du_t *                pxDu)
+static BaseType_t xNormalDuEnqueue(struct ipcpInstanceData_t *pxData,
+                                   portId_t xN1PortId,
+                                   struct du_t *pxDu)
 {
-        if (!xRmtReceive(pxData->pxRmt, pxDu, xN1PortId ))
-         {
-                ESP_LOGE(TAG_IPCPNORMAL,"Could not enqueue SDU into the RMT");
+        if (!xRmtReceive(pxData->pxRmt, pxDu, xN1PortId))
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "Could not enqueue SDU into the RMT");
                 return pdFALSE;
         }
 
@@ -512,31 +496,33 @@ static BaseType_t xNormalDuEnqueue(struct ipcpInstanceData_t * pxData,
 
 /**
  * @brief Write the DU into the IPCP instance
- * 
+ *
  * @param pxData Ipcp Instance Data (Normal Instance)
  * @param xPortId Port Id N-1 of the flow. Enrollment task know the Port Id when it request a flow to the
  * N-1 DIF.
  * @param pxDu Data Unit to be write into the IPCP instance.
- * @return BaseType_t 
+ * @return BaseType_t
  */
-BaseType_t xNormalMgmtDuWrite(struct ipcpInstanceData_t * pxData, portId_t xPortId, struct du_t * pxDu)
+BaseType_t xNormalMgmtDuWrite(struct ipcpInstanceData_t *pxData, portId_t xPortId, struct du_t *pxDu)
 {
         ssize_t sbytes;
 
-        ESP_LOGI(TAG_IPCPNORMAL,"Passing SDU to be written to N-1 port %d "
-                "from IPC Process %d", xPortId, pxData->xId);
+        ESP_LOGI(TAG_IPCPNORMAL, "Passing SDU to be written to N-1 port %d "
+                                 "from IPC Process %d",
+                 xPortId, pxData->xId);
 
-        if (!pxDu) {
-                ESP_LOGE(TAG_IPCPNORMAL,"No data passed, bailing out");
+        if (!pxDu)
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "No data passed, bailing out");
                 return pdFALSE;
         }
 
         pxDu->pxCfg = pxData->pxEfcpc->pxConfig;
         sbytes = xDuLen(pxDu);
 
-        if( !xDuEncap(pxDu, PDU_TYPE_MGMT))
+        if (!xDuEncap(pxDu, PDU_TYPE_MGMT))
         {
-                ESP_LOGE(TAG_IPCPNORMAL,"No data passed, bailing out");
+                ESP_LOGE(TAG_IPCPNORMAL, "No data passed, bailing out");
                 xDuDestroy(pxDu);
                 return pdFALSE;
         }
@@ -553,98 +539,98 @@ BaseType_t xNormalMgmtDuWrite(struct ipcpInstanceData_t * pxData, portId_t xPort
         pxDu->pxPci->xPduLen = pxDu->pxNetworkBuffer->xDataLength;
         pxDu->pxPci->xSource = pxData->xAddress;
 
-        //vPciPrint(pxDu->pxPci);
-        
-        if(xPortId)
+        // vPciPrint(pxDu->pxPci);
+
+        if (xPortId)
         {
-                if(!xRmtSendPortId(pxData->pxRmt, xPortId, pxDu))
+                if (!xRmtSendPortId(pxData->pxRmt, xPortId, pxDu))
                 {
-                        ESP_LOGE(TAG_IPCPNORMAL,"Could not sent to RMT");
+                        ESP_LOGE(TAG_IPCPNORMAL, "Could not sent to RMT");
                         return pdFALSE;
                 }
-        }else{
-                        ESP_LOGE(TAG_IPCPNORMAL,"Could not sent to RMT: no portID");
-                        xDuDestroy(pxDu);
-                        return pdFALSE;
-                }
-
-
-        return pdTRUE;
-
-}
-
-
-static BaseType_t xNormalMgmtDuPost(struct ipcpInstanceData * pxData,
-                               portId_t                   xPortId,
-                               struct du *                 pxDu)
-{
-
-	if (!pxData) {
-		ESP_LOGE(TAG_IPCPNORMAL,"Bogus instance passed");
-		xDuDestroy(pxDu);
-		return pdFALSE;
-	}
-
-	if (!is_port_id_ok(xPortId)) {
-		ESP_LOGE(TAG_IPCPNORMAL,"Wrong port id");
-		xDuDestroy(pxDu);
-		return pdFALSE;
-	}
-	/*if (!IsDuOk(pxDu)) {
-		ESP_LOGE(TAG_IPCPNORMAL,"Bogus management SDU");
-		xDuDestroy(pxDu);
-		return pdFALSE;
-	}*/
-
-        /*Send to the RIB Daemon*/
-        if(!xRibdProcessLayerManagementPDU(pxData,  xPortId, pxDu))
-        {       
-                ESP_LOGI(TAG_IPCPNORMAL, "Was not possible to process el Management PDU");
+        }
+        else
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "Could not sent to RMT: no portID");
+                xDuDestroy(pxDu);
                 return pdFALSE;
         }
 
+        return pdTRUE;
+}
+
+static BaseType_t xNormalMgmtDuPost(struct ipcpInstanceData *pxData,
+                                    portId_t xPortId,
+                                    struct du *pxDu)
+{
+
+        if (!pxData)
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "Bogus instance passed");
+                xDuDestroy(pxDu);
+                return pdFALSE;
+        }
+
+        if (!is_port_id_ok(xPortId))
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "Wrong port id");
+                xDuDestroy(pxDu);
+                return pdFALSE;
+        }
+        /*if (!IsDuOk(pxDu)) {
+                ESP_LOGE(TAG_IPCPNORMAL,"Bogus management SDU");
+                xDuDestroy(pxDu);
+                return pdFALSE;
+        }*/
+
+        /*Send to the RIB Daemon*/
+        if (!xRibdProcessLayerManagementPDU(pxData, xPortId, pxDu))
+        {
+                ESP_LOGI(TAG_IPCPNORMAL, "Was not possible to process el Management PDU");
+                return pdFALSE;
+        }
 
         return pdTRUE;
 }
 
 static struct ipcpInstanceOps_t xNormalInstanceOps = {
-    .flowAllocateRequest = NULL,   //ok
-    .flowAllocateResponse = NULL,  //ok
-    .flowDeallocate = NULL,        //ok
-    .flowPrebind = xNormalFlowPrebind,           //ok
-    .flowBindingIpcp =  xNormalFlowBinding,       //ok
-    .flowUnbindingIpcp = NULL,     //ok
-    .flowUnbindingUserIpcp = NULL, //ok
-    .nm1FlowStateChange = NULL,    //ok
+    .flowAllocateRequest = NULL,           // ok
+    .flowAllocateResponse = NULL,          // ok
+    .flowDeallocate = NULL,                // ok
+    .flowPrebind = xNormalFlowPrebind,     // ok
+    .flowBindingIpcp = xNormalFlowBinding, // ok
+    .flowUnbindingIpcp = NULL,             // ok
+    .flowUnbindingUserIpcp = NULL,         // ok
+    .nm1FlowStateChange = NULL,            // ok
 
-    .applicationRegister = NULL,   //ok
-    .applicationUnregister = NULL, //ok
+    .applicationRegister = NULL,   // ok
+    .applicationUnregister = NULL, // ok
 
-    .assignToDif = NULL,     //ok
-    .updateDifConfig = NULL, //ok
+    .assignToDif = NULL,     // ok
+    .updateDifConfig = NULL, // ok
 
-    .connectionCreate = xNormalConnectionCreateRequest,        //ok
-    .connectionUpdate = NULL,        //ok
-    .connectionDestroy = NULL,       //ok
-    .connectionCreateArrived = NULL, // ok
-    .connectionModify = NULL,        //ok
+    .connectionCreate = xNormalConnectionCreateRequest, // ok
+    .connectionUpdate = NULL,                           // ok
+    .connectionDestroy = NULL,                          // ok
+    .connectionCreateArrived = NULL,                    // ok
+    .connectionModify = NULL,                           // ok
 
-    .duEnqueue = xNormalDuEnqueue, //ok
-    .duWrite = xNormalDuWrite,   //ok
+    .duEnqueue = xNormalDuEnqueue, // ok
+    .duWrite = xNormalDuWrite,     // ok
 
-    .mgmtDuWrite = xNormalMgmtDuWrite, //ok
-    .mgmtDuPost = xNormalMgmtDuPost,  //ok
+    .mgmtDuWrite = xNormalMgmtDuWrite, // ok
+    .mgmtDuPost = xNormalMgmtDuPost,   // ok
 
-    .pffAdd = NULL,    //ok
-    .pffRemove = NULL, //ok
+    .pffAdd = NULL,    // ok
+    .pffRemove = NULL, // ok
     //.pff_dump                  = NULL,
     //.pff_flush                 = NULL,
     //.pff_modify		   		   = NULL,
 
     //.query_rib		  		   = NULL,
 
-    .ipcpName = NULL, //ok
-    .difName = NULL,  //ok
+    .ipcpName = NULL, // ok
+    .difName = NULL,  // ok
     //.ipcp_id		  		   = NULL,
 
     //.set_policy_set_param      = NULL,
@@ -654,17 +640,15 @@ static struct ipcpInstanceOps_t xNormalInstanceOps = {
     //.dif_name		   		   = NULL,
     .maxSduSize = NULL};
 
-
 ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t xIpcpId)
 {
- 
+
         //---------------------
         name_t *pxName; /*Name should be send by the IPCPTASK?*/
         name_t *pxDifName;
 
         ipcpInstance_t *pxNormalInstance;
         struct ipcpInstanceData_t *pxInstanceData;
-
 
         /* Create Instance*/
 
@@ -697,8 +681,13 @@ ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t 
 
         /*Create an object name_t and fill it*/
         pxName = pvPortMalloc(sizeof(*pxName));
+        if (!pxName)
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "Failed creation of ipc name");
+                vPortFree(pxNormalInstance);
+                return pdFALSE;
+        }
 
-        
         pxName->pcEntityInstance = NORMAL_ENTITY_INSTANCE;
         pxName->pcEntityName = NORMAL_ENTITY_NAME;
         pxName->pcProcessInstance = NORMAL_PROCESS_INSTANCE;
@@ -707,7 +696,6 @@ ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t 
 
         pxDifName = pvPortMalloc(sizeof(*pxDifName));
 
-       
         pxDifName->pcProcessName = NORMAL_DIF_NAME;
         pxDifName->pcProcessInstance = "";
         pxDifName->pcEntityInstance = "";
@@ -745,15 +733,14 @@ ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t 
         if (!pxNormalInstance->pxData->pxRmt)
         {
                 ESP_LOGE(TAG_IPCPNORMAL, "Failed creation of RMT instance");
-                //sdup_destroy(instance->data->sdup);
-                //efcp_container_destroy(instance->data->efcpc);
+                // sdup_destroy(instance->data->sdup);
+                // efcp_container_destroy(instance->data->efcpc);
                 vPortFree(pxNormalInstance->pxData);
                 vPortFree(pxNormalInstance);
                 return pdFALSE;
         }
 
         pxNormalInstance->pxData->pxEfcpc->pxRmt = pxNormalInstance->pxData->pxRmt;
-        
 
         /* rtimer_init(tf_use_naddress,
                 &instance->data->timers.use_naddress,
@@ -802,8 +789,8 @@ BaseType_t xNormalIPCPInitFactory(factories_t *pxFactoriesList)
         return pdFALSE;
 }
 
-/* Called from the IPCP Task to the NormalIPCP register as APP into the SHIM DIF 
-* depending on the Type of ShimDIF.*/
+/* Called from the IPCP Task to the NormalIPCP register as APP into the SHIM DIF
+ * depending on the Type of ShimDIF.*/
 BaseType_t xNormalRegistering(ipcpInstance_t *pxInstanceFrom, ipcpInstance_t *pxInstanceTo)
 {
 
@@ -870,4 +857,3 @@ xNormalConnectionCreateRequest(pxNormalInstance->pxData, xPortId,
                                pxDtcpCfg);
 
 #endif
-

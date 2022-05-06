@@ -47,22 +47,12 @@ static InstanceTableRow_t xInstanceTable[INSTANCES_IPCP_ENTRIES];
  */
 BaseType_t xIpcManagerInit(ipcManager_t *pxIpcManager)
 {
+	if (!pxIpcManager)
+		return pdFALSE;
 
-    factories_t *pxIpcpFactories;
-    pidm_t *pxPidm;
-    ipcpIdm_t * pxIpcpIdm;
-
-    pxIpcpFactories = pvPortMalloc(sizeof(*pxIpcpFactories));
-    pxPidm = pvPortMalloc(sizeof(*pxPidm));
-    pxIpcpIdm = pvPortMalloc(sizeof(*pxIpcpIdm));
-    
-
-    pxPidm = pxPidmCreate();
-    pxIpcpIdm = pxIpcpIdmCreate();
-
-    pxIpcManager->pxFactories = pxIpcpFactories;
-    pxIpcManager->pxPidm = pxPidm;
-    pxIpcManager->pxIpcpIdm = pxIpcpIdm;
+    pxIpcManager->pxFactories = pvPortMalloc(sizeof(factories_t));
+    pxIpcManager->pxPidm = pxPidmCreate();
+    pxIpcManager->pxIpcpIdm = pxIpcpIdmCreate();
 
     vListInitialise(&pxIpcManager->pxFactories->xFactoriesList);
 
@@ -174,9 +164,6 @@ BaseType_t xIpcManagerCreateInstance(factories_t *pxFactories, ipcpFactoryType_t
     ipcpInstance_t *pxInstance;
     ipcProcessId_t xIpcpId;
 
-    pxFactory = pvPortMalloc(sizeof(*pxFactory));
-    pxInstance = pvPortMalloc(sizeof(*pxInstance));
-
     /*Find the Factory required depending on the IPCP Type*/
     pxFactory = pxFactoryIPCPFind(pxFactories, xFactoryType);
 
@@ -208,9 +195,6 @@ BaseType_t xIcpManagerNormalRegister(factories_t *pxFactories, ipcpFactoryType_t
     ipcpInstance_t *pxInstanceFrom;
     ipcpInstance_t *pxInstanceTo;
 
-    pxInstanceFrom = pvPortMalloc(sizeof(*pxInstanceFrom));
-    pxInstanceTo = pvPortMalloc(sizeof(*pxInstanceTo));
-
     pxInstanceFrom = pxIpcManagerFindInstanceByType(xFactoryTypeFrom);
     pxInstanceTo = pxIpcManagerFindInstanceByType(xFactoryTypeTo);
 
@@ -231,9 +215,6 @@ BaseType_t xIcpManagerEnrollmentFlowRequest(factories_t *pxFactories, ipcpFactor
     ipcpInstance_t *pxInstanceTo;
     portId_t xPortID;
 
-    pxInstanceFrom = pvPortMalloc(sizeof(*pxInstanceFrom));
-    pxInstanceTo = pvPortMalloc(sizeof(*pxInstanceTo));
-
     pxInstanceFrom = pxIpcManagerFindInstanceByType(xFactoryTypeFrom);
     pxInstanceTo = pxIpcManagerFindInstanceByType(xFactoryTypeTo);
 
@@ -251,9 +232,6 @@ BaseType_t xIpcpManagerShimAllocateResponseHandle(factories_t *pxFactories, ipcp
 {
     ipcpInstance_t *pxShimInstance;
     ipcpInstance_t *pxNormalInstance;
-
-    pxShimInstance = pvPortMalloc(sizeof(*pxShimInstance));
-    pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
 
     pxShimInstance = pxIpcManagerFindInstanceByType(xShimType);
     pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
@@ -285,10 +263,6 @@ portId_t xIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, void *data)
     address_t xDest = 3;
     qosId_t xQosId = 1;
 
-    pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
-    pxDtcpCfg = pvPortMalloc(sizeof(*pxDtcpCfg));
-    pxDtpCfg = pvPortMalloc(sizeof(*pxDtpCfg));
-
     pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
 
     xPortId = 55;
@@ -311,7 +285,7 @@ portId_t xIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, void *data)
 BaseType_t xIpcpManagerPreBindFlow(factories_t *pxFactories, ipcpFactoryType_t xNormalType)
 {
 
-    ipcpInstance_t *pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
+    ipcpInstance_t *pxNormalInstance;
 
     pxNormalInstance = pxIpcManagerFindInstanceByType(xNormalType);
 
@@ -332,10 +306,8 @@ BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData)
     ipcpInstance_t *pxShimInstance;
     ipcpInstance_t *pxNormalInstance;
 
-    pxShimInstance = pvPortMalloc(sizeof(*pxShimInstance));
     pxShimInstance = pxIpcManagerFindInstanceByType(xType);
 
-    pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
     pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
 
     //ESP_LOGE(TAG_IPCPMANAGER,"Calling xNormalMgmtDuWrite");
@@ -361,10 +333,8 @@ void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBuffer)
     ipcpInstance_t *pxShimInstance;
     ipcpInstance_t *pxNormalInstance;
 
-    pxShimInstance = pvPortMalloc(sizeof(*pxShimInstance));
     pxShimInstance = pxIpcManagerFindInstanceByType(eShimWiFi);//COuld come from other kind of Shim
 
-    pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
     pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
 
     ESP_LOGE(TAG_IPCPMANAGER,"The RINA packet is a managment packet");
@@ -374,7 +344,5 @@ void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t * pxNetworkBuffer)
         ESP_LOGI(TAG_IPCPMANAGER,"Drop frame because there is not enough memory space" );
         xDuDestroy(pxMessagePDU);
     }
-
-    
 
 }

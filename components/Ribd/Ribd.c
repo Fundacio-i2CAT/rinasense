@@ -99,7 +99,6 @@ struct ribCallbackOps_t *pxRibdFindPendingResponseHandler(int32_t invokeID)
 
     BaseType_t x = 0;
     struct ribCallbackOps_t *pxCb;
-    pxCb = pvPortMalloc(sizeof(*pxCb));
 
     for (x = 0; x < RESPONSE_HANDLER_TABLE_SIZE; x++)
 
