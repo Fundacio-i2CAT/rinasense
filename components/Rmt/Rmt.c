@@ -257,7 +257,7 @@ static BaseType_t xRmtProcessDtPdu(rmt_t *pxRmt, portId_t xPortId, struct du_t *
 	return pdTRUE;
 }
 
-BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xFrom)
+BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xPortIdFrom)
 {
 
 	pduType_t xPduType;
@@ -272,18 +272,14 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xFrom)
 		xDuDestroy(pxDu);
 		return pdFALSE;
 	}
-	if (!IS_PORT_ID_OK(xFrom))
+	if (!IS_PORT_ID_OK(xPortIdFrom))
 	{
-		ESP_LOGE(TAG_RMT, "Wrong port-id %d", xFrom);
+		ESP_LOGE(TAG_RMT, "Wrong port-id %d", xPortIdFrom);
 		xDuDestroy(pxDu);
 		return pdFALSE;
 	}
 
-	ESP_LOGD(TAG_IPCPMANAGER, "Checking Pointer RMTReceive");
-	ESP_LOGD(TAG_IPCPMANAGER, "Pointer NetBuffer:%p", pxDu->pxNetworkBuffer);
-	ESP_LOGD(TAG_IPCPMANAGER, "Pointer NetBuffer PDU:%p", pxDu->pxNetworkBuffer->pucEthernetBuffer);
-
-	uxBytes = pxDu->pxNetworkBuffer->xDataLength;
+	uxBytes = pxDu->pxNetworkBuffer->xRinaDataLength;
 	pxDu->pxCfg = pxRmt->pxEfcpc->pxConfig;
 
 	// Should search in the PortId Table, it takes the first entre for testing purposes.
@@ -341,7 +337,7 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xFrom)
 		{
 		case PDU_TYPE_MGMT:
 			ESP_LOGD(TAG_RMT, "Mgmt PDU!!!");
-			return xRmtProcessMgmtPdu(pxRmt, xFrom, pxDu);
+			return xRmtProcessMgmtPdu(pxRmt, xPortIdFrom, pxDu);
 
 		case PDU_TYPE_CACK:
 		case PDU_TYPE_SACK:
@@ -357,7 +353,7 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xFrom)
 			 * enqueue PDU in pdus_dt[dest-addr, qos-id]
 			 * don't process it now ...
 			 */
-			return xRmtProcessDtPdu(pxRmt, xFrom, pxDu);
+			return xRmtProcessDtPdu(pxRmt, xPortIdFrom, pxDu);
 
 		default:
 			ESP_LOGE(TAG_RMT, "Unknown PDU type %d", xPduType);
@@ -370,7 +366,7 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xFrom)
 	else
 	{
 		if (!xDstAddr)
-			return xRmtProcessMgmtPdu(pxRmt, xFrom, pxDu);
+			return xRmtProcessMgmtPdu(pxRmt, xPortIdFrom, pxDu);
 		else
 		{
 			ESP_LOGI(TAG_RMT, "PDU is not for me");

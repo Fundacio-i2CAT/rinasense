@@ -5,12 +5,6 @@
  *      Author: i2CAT
  */
 
-
-
-
-
-
-
 #ifndef COMPONENTS_IPCP_INCLUDE_COMMON_H_
 #define COMPONENTS_IPCP_INCLUDE_COMMON_H_
 
@@ -19,149 +13,149 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-#define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
+#define offsetof(TYPE, MEMBER) ((size_t) & ((TYPE *)0)->MEMBER)
 #define container_of(ptr, type, member) ({         \
     const typeof( ((type *)0)->member ) *__mptr = (ptr); \
-    (type *)( (char *)__mptr - offsetof(type,member) );})
+    (type *)( (char *)__mptr - offsetof(type,member) ); })
 
 #define PORT_ID_WRONG -1
 #define CEP_ID_WRONG -1
 #define ADDRESS_WRONG -1
 #define QOS_ID_WRONG -1
 
-typedef int32_t  portId_t;
+typedef int32_t portId_t;
 
 typedef uint32_t seqNum_t;
 
 /* CEPIdLength field 1 Byte*/
-typedef uint8_t  cepId_t;
+typedef uint8_t cepId_t;
 
 /* QoSIdLength field 1 Byte*/
-typedef uint8_t  qosId_t;
+typedef uint8_t qosId_t;
 
 /* QoSIdLength field 1 Byte*/
 typedef uint8_t address_t;
 
 typedef uint16_t ipcProcessId_t;
 
-
-typedef char* string_t;
-typedef unsigned int  uint_t;
-typedef unsigned int  timeout_t;
+typedef char *string_t;
+typedef unsigned int uint_t;
+typedef unsigned int timeout_t;
 /* SeqNumLength field 4 Byte*/
-typedef uint32_t seqNum_t;;
-
-
+typedef uint32_t seqNum_t;
+;
 
 typedef struct xName_info
 {
-        //char*
-	string_t  pcProcessName;  		/*> Process Name*/
-	string_t  pcProcessInstance;		/*> Process Instance*/
-	string_t  pcEntityName;			/*> Entity Name*/
-	string_t  pcEntityInstance;		/*> Entity Instance*/
+        // char*
+        string_t pcProcessName;     /**> Process Name*/
+        string_t pcProcessInstance; /**> Process Instance*/
+        string_t pcEntityName;      /**> Entity Name*/
+        string_t pcEntityInstance;  /**> Entity Instance*/
 
-}name_t;
+} name_t;
 
 struct flowSpec_t
 {
         /* This structure defines the characteristics of a flow */
 
         /* Average bandwidth in bytes/s */
-        uint32_t 		ulAverageBandwidth;
+        uint32_t ulAverageBandwidth;
 
         /* Average bandwidth in SDUs/s */
-        uint32_t 		ulAverageSduBandwidth;
+        uint32_t ulAverageSduBandwidth;
 
         /*
          * In milliseconds, indicates the maximum delay allowed in this
          * flow. A value of 0 indicates 'do not care'
          */
-        uint32_t 		ulDelay;
+        uint32_t ulDelay;
         /*
          * In milliseconds, indicates the maximum jitter allowed
          * in this flow. A value of 0 indicates 'do not care'
          */
-        uint32_t 		ulJitter;
+        uint32_t ulJitter;
 
         /*
          * Indicates the maximum packet loss (loss/10000) allowed in this
          * flow. A value of loss >=10000 indicates 'do not care'
          */
-        uint16_t 		usLoss;
+        uint16_t usLoss;
 
         /*
          * Indicates the maximum gap allowed among SDUs, a gap of N
          * SDUs is considered the same as all SDUs delivered.
          * A value of -1 indicates 'Any'
          */
-        int32_t 		ulMaxAllowableGap;
+        int32_t ulMaxAllowableGap;
 
         /*
          * The maximum SDU size for the flow. May influence the choice
          * of the DIF where the flow will be created.
          */
-        uint32_t 		ulMaxSduSize;
+        uint32_t ulMaxSduSize;
 
         /* Indicates if SDUs have to be delivered in order */
-        BaseType_t   	xOrderedDelivery;
+        BaseType_t xOrderedDelivery;
 
         /* Indicates if partial delivery of SDUs is allowed or not */
-        BaseType_t   	xPartialDelivery;
+        BaseType_t xPartialDelivery;
 
         /* In milliseconds */
-        uint32_t 		ulPeakBandwidthDuration;
+        uint32_t ulPeakBandwidthDuration;
 
         /* In milliseconds */
-        uint32_t 		ulPeakSduBandwidthDuration;
+        uint32_t ulPeakSduBandwidthDuration;
 
         /* A value of 0 indicates 'do not care' */
-        uint32_t 		ulUndetectedBitErrorRate;
+        uint32_t ulUndetectedBitErrorRate;
 
         /* Preserve message boundaries */
-        BaseType_t 		xMsgBoundaries;
+        BaseType_t xMsgBoundaries;
 };
-
 
 typedef struct xNETWORK_BUFFER
 {
-    ListItem_t xBufferListItem;                /**< Used to reference the buffer form the free buffer list or a socket. */
-    uint8_t ulGpa;                             /**< Source or destination Protocol address, depending on usage scenario. */
-    uint8_t * pucEthernetBuffer;               /**< Pointer to the start of the Ethernet frame. */
-    size_t xDataLength;                        /**< Starts by holding the total Ethernet frame length, then the UDP/TCP payload length. */
-    uint32_t ulPort;                           /**< Source or destination port, depending on usage scenario. */
-    uint32_t ulBoundPort;                      /**< The N-1 port to transmite. */
+        ListItem_t xBufferListItem; /**< Used to reference the buffer form the free buffer list or a socket. */
+        uint8_t ulGpa;              /**< Source or destination Protocol address, depending on usage scenario. */
+        uint8_t *pucEthernetBuffer; /**< Pointer to the start of the Ethernet frame. */
+        uint8_t *pucRinaBuffer;     /**< Pointer to the start of the Rina packet. */
+        uint8_t *pucDataBuffer;     /**< Pointer to the start of the User Data Unit. */
+        size_t xEthernetDataLength; /**< Starts by holding the total Ethernet frame length, then the Rina payload length. */
+        size_t xRinaDataLength;     /**< Starts by holding the total Rina packet length, then the User Data payload length. */
+        size_t xDataLength;         /**< Starts by holding the total User Data Unit length. */
+        uint32_t ulPort;            /**< Source or destination port, depending on usage scenario. */
+        uint32_t ulBoundPort;       /**< The N-1 port to transmite. */
 
 } NetworkBufferDescriptor_t;
 typedef enum FRAMES_PROCESSING
 {
-	eReleaseBuffer = 0,   /* Processing the frame did not find anything to do - just release the buffer. */
-	eProcessBuffer,       /* An Ethernet frame has a valid address - continue process its contents. */
-	eReturnEthernetFrame, /* The Ethernet frame contains an ARP826 packet that can be returned to its source. */
-	eFrameConsumed        /* Processing the Ethernet packet contents resulted in the payload being sent to the stack. */
+        eReleaseBuffer = 0,   /**< Processing the frame did not find anything to do - just release the buffer. */
+        eProcessBuffer,       /**< An Ethernet frame has a valid address - continue process its contents. */
+        eReturnEthernetFrame, /**< The Ethernet frame contains an ARP826 packet that can be returned to its source. */
+        eFrameConsumed        /**< Processing the Ethernet packet contents resulted in the payload being sent to the stack. */
 } eFrameProcessingResult_t;
 
-typedef struct xPOLICY {
-        /* The name of the policy */
-        string_t        pcPolicyName;
+typedef struct xPOLICY
+{
 
-        /* The version of the policy implementation */
-        string_t        pcPolicyVersion;
+        string_t pcPolicyName;    /**< The name of the policy */
+        string_t pcPolicyVersion; /**< The version of the policy implementation */
+        List_t xParameters;       /**< The paramters of the policy */
+} policy_t;
 
-        /* The paramters of the policy */
-        List_t          xParameters;
-}policy_t;
-
-typedef struct xCONNECTION_ID{
- 		qosId_t xQosId;			/**< QoS Id  3 + 1 = 4 */
- 		cepId_t xDestination;	/**< Cep Id Dest 4 + 1 = 5 */
- 		cepId_t xSource;	    /**< Cep Id Source  5 + 1 = 6 */
- 	} connectionId_t;
+typedef struct xCONNECTION_ID
+{
+        qosId_t xQosId;       /**< QoS Id  3 + 1 = 4 */
+        cepId_t xDestination; /**< Cep Id Dest 4 + 1 = 5 */
+        cepId_t xSource;      /**< Cep Id Source  5 + 1 = 6 */
+} connectionId_t;
 
 /* The structure is useful when the Data Transfers value are variable
-* when it is required to change the PCI fields. Now it is config by
-* default. Future improvements will consider this.*/
-typedef struct xDT_CONS {
+ * when it is required to change the PCI fields. Now it is config by
+ * default. Future improvements will consider this.*/
+typedef struct xDT_CONS
+{
         /* The length of the address field in the DTP PCI, in bytes */
         uint16_t address_length;
 
@@ -216,46 +210,49 @@ typedef struct xDT_CONS {
         uint32_t max_time_to_keep_ret_;
         uint32_t max_time_to_ack_;
 
-}dtCons_t;
+} dtCons_t;
 
 /* Represents the configuration of the EFCP */
-typedef struct  xEFCP_CONFIG{
-	 
+typedef struct xEFCP_CONFIG
+{
+
         /* The data transfer constants. FUTURE IMPLEMENTATION */
-	dtCons_t        *pxDtCons;
+        dtCons_t *pxDtCons;
 
         /* Useful when the dt sizes are variable. FUTURE IMPLEMENTATION*/
-	size_t          *uxPciOffsetTable;
+        size_t *uxPciOffsetTable;
 
-	/* Policy to implement. FUTURE IMPLEMENTATION*/
-	policy_t        *pxUnknownFlow;
+        /* Policy to implement. FUTURE IMPLEMENTATION*/
+        policy_t *pxUnknownFlow;
 
-	/* List of qos_cubes supported by the EFCP config */
-	List_t          xQosCubesList;
+        /* List of qos_cubes supported by the EFCP config */
+        List_t xQosCubesList;
 
-}efcpConfig_t;
+} efcpConfig_t;
 
-typedef struct xRMT_CONFIG {
-	/* The PS name for the RMT */
-	policy_t        *pxPolicySet;
+typedef struct xRMT_CONFIG
+{
+        /* The PS name for the RMT */
+        policy_t *pxPolicySet;
 
-	/* The configuration of the PDU Forwarding Function subcomponent */
-	//struct pff_config * pff_conf;
-}rmtConfig_t;
+        /* The configuration of the PDU Forwarding Function subcomponent */
+        // struct pff_config * pff_conf;
+} rmtConfig_t;
 
 /* Represents a DIF configuration (policies, parameters, etc) */
-typedef struct xDIF_CONFIG {
+typedef struct xDIF_CONFIG
+{
         /* List of configuration entries */
-        List_t          xIpcpConfigEntries;
+        List_t xIpcpConfigEntries;
 
         /* the config of the efcp */
-        efcpConfig_t    *pxEfcpConfig;
+        efcpConfig_t *pxEfcpConfig;
 
         /* the config of the rmt */
-        rmtConfig_t     *pxRmtConfig;
+        rmtConfig_t *pxRmtConfig;
 
         /* The address of the IPC Process*/
-        address_t        xAddress;
+        address_t xAddress;
         /*
         struct fa_config * fa_config;
         struct et_config * et_config;
@@ -263,25 +260,25 @@ typedef struct xDIF_CONFIG {
         struct routing_config * routing_config;
         struct resall_config * resall_config;
         struct secman_config * secman_config;*/
-}difConfig_t;
+} difConfig_t;
 
-
-typedef struct xDTP_CONFIG {
+typedef struct xDTP_CONFIG
+{
         /* It is DTCP used in this config: default-pdFALSE */
-        BaseType_t           xDtcpPresent;
+        BaseType_t xDtcpPresent;
 
         /* Sequence number rollover threshold */
-        int                  seqNumRoTh;
+        int seqNumRoTh;
 
-        timeout_t            xInitialATimer;
-        BaseType_t           xPartialDelivery;
-        BaseType_t           xIncompleteDelivery;
-        BaseType_t           xInOrderDelivery;
-        seqNum_t             xMaxSduGap;
+        timeout_t xInitialATimer;
+        BaseType_t xPartialDelivery;
+        BaseType_t xIncompleteDelivery;
+        BaseType_t xInOrderDelivery;
+        seqNum_t xMaxSduGap;
 
         /* Describes a policy */
-        policy_t              *pxDtpPolicySet;
-}dtpConfig_t;
+        policy_t *pxDtpPolicySet;
+} dtpConfig_t;
 
 /* Endian related definitions. */
 //#if ( ipconfigBYTE_ORDER == pdFREERTOS_LITTLE_ENDIAN )
@@ -289,20 +286,16 @@ typedef struct xDTP_CONFIG {
 /* FreeRTOS_htons / FreeRTOS_htonl: some platforms might have built-in versions
  * using a single instruction so allow these versions to be overridden. */
 //#ifndef FreeRTOS_htons
-#define FreeRTOS_htons( usIn )    ( ( uint16_t ) ( ( ( usIn ) << 8U ) | ( ( usIn ) >> 8U ) ) )
+#define FreeRTOS_htons(usIn) ((uint16_t)(((usIn) << 8U) | ((usIn) >> 8U)))
 //#endif
 
 #ifndef FreeRTOS_htonl
-#define FreeRTOS_htonl( ulIn )                          \
-		(                                                               \
-				( uint32_t )                                                \
-				(                                                           \
-						( ( ( ( uint32_t ) ( ulIn ) ) ) << 24 ) |               \
-						( ( ( ( uint32_t ) ( ulIn ) ) & 0x0000ff00UL ) << 8 ) | \
-						( ( ( ( uint32_t ) ( ulIn ) ) & 0x00ff0000UL ) >> 8 ) | \
-						( ( ( ( uint32_t ) ( ulIn ) ) ) >> 24 )                 \
-				)                                                           \
-		)
+#define FreeRTOS_htonl(ulIn)                                        \
+        (                                                           \
+            (uint32_t)(((((uint32_t)(ulIn))) << 24) |               \
+                       ((((uint32_t)(ulIn)) & 0x0000ff00UL) << 8) | \
+                       ((((uint32_t)(ulIn)) & 0x00ff0000UL) >> 8) | \
+                       ((((uint32_t)(ulIn))) >> 24)))
 #endif /* ifndef FreeRTOS_htonl */
 
 //#else /* ipconfigBYTE_ORDER */
@@ -312,12 +305,12 @@ typedef struct xDTP_CONFIG {
 
 //#endif /* ipconfigBYTE_ORDER == pdFREERTOS_LITTLE_ENDIAN */
 
-#define FreeRTOS_ntohs( x )    FreeRTOS_htons( x )
-#define FreeRTOS_ntohl( x )    FreeRTOS_htonl( x )
- #define SOCKET_EVENT_BIT_COUNT         8
+#define FreeRTOS_ntohs(x) FreeRTOS_htons(x)
+#define FreeRTOS_ntohl(x) FreeRTOS_htonl(x)
+#define SOCKET_EVENT_BIT_COUNT 8
 
- enum eFLOW_EVENT
-    {
+enum eFLOW_EVENT
+{
         eFLOW_RECEIVE = 0x0001,
         eFLOW_SEND = 0x0002,
         eFLOW_ACCEPT = 0x0004,
@@ -326,35 +319,35 @@ typedef struct xDTP_CONFIG {
         eFLOW_CLOSED = 0x0020,
         eSELECT_ALL = 0x000F,
 
-    };
+};
 
-typedef struct xAUTH_POLICY{
-        string_t  pcName;
+typedef struct xAUTH_POLICY
+{
+        string_t pcName;
         string_t pcVersion;
         uint8_t ucAbsSyntax;
 
-}authPolicy_t;
+} authPolicy_t;
 
-//Structure MAC ADDRESS
+// Structure MAC ADDRESS
 typedef struct xMAC_ADDRESS
 {
-	uint8_t ucBytes[ MAC_ADDRESS_LENGTH_BYTES ]; /**< Byte array of the MAC address */
-}MACAddress_t;
-
+        uint8_t ucBytes[MAC_ADDRESS_LENGTH_BYTES]; /**< Byte array of the MAC address */
+} MACAddress_t;
 
 /* ALWAYS use this function to check if the id looks good */
-BaseType_t      is_port_id_ok(portId_t id);
+BaseType_t is_port_id_ok(portId_t id);
 
 /* ALWAYS use this function to get a bad id */
 portId_t port_id_bad(void);
 
 /* ALWAYS use this function to check if the id looks good */
-BaseType_t    is_cep_id_ok(cepId_t id);
+BaseType_t is_cep_id_ok(cepId_t id);
 
 /* ALWAYS use this function to get a bad id */
 cepId_t cep_id_bad(void);
 
-BaseType_t     is_address_ok(address_t address);
+BaseType_t is_address_ok(address_t address);
 
 address_t address_bad(void);
 
@@ -363,18 +356,17 @@ BaseType_t is_qos_id_ok(qosId_t id);
 
 BaseType_t is_ipcp_id_ok(ipcProcessId_t id);
 
+name_t *xRinaNameCreate(void);
 
-name_t * xRinaNameCreate( void );
+BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName);
+void xRinaNameFree(name_t *xName);
 
-BaseType_t xRinaNameFromString(const string_t pcString, name_t * xName);
-void xRinaNameFree(name_t * xName);
-
-BaseType_t xRINAStringDup(const string_t * pcSrc,string_t ** pcDst);
+BaseType_t xRINAStringDup(const string_t *pcSrc, string_t **pcDst);
 
 name_t *xRINAstringToName(const string_t *pxInput);
 
 void memcheck(void);
 
-int get_next_invoke_id( void );
+int get_next_invoke_id(void);
 
 #endif /* COMPONENTS_IPCP_INCLUDE_COMMON_H_ */

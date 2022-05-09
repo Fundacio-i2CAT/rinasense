@@ -16,7 +16,7 @@
 #include "configRINA.h"
 #include "Ribd.h"
 #include "rstr.h"
-
+#include "FlowAllocator.h"
 #include "BufferManagement.h"
 
 #include "esp_log.h"
@@ -61,8 +61,8 @@ struct ipcpInstanceData_t
         /* IPCP Instance's List of Flows created */
         List_t xFlowsList;
 
-        /*  FIXME: Remove it as soon as the kipcm_kfa gets removed*/
-        // struct kfa *            kfa;
+        /*  Flow Allocator */
+        flowAllocator_t *pxFlowAllocator;
 
         /* Efcp Container asociated at the IPCP Instance */
         struct efcpContainer_t *pxEfcpc;
@@ -718,6 +718,8 @@ ipcpInstance_t *pxNormalCreate(struct ipcpFactoryData_t *pxData, ipcProcessId_t 
         }
 
         /* ----------------------------------------- */
+
+        pxNormalInstance->pxData->pxFlowAllocator = pxFlowAllocatorInit();
 
         pxNormalInstance->pxData->pxEfcpc = pxEfcpContainerCreate();
         /*instance->data->efcpc = efcp_container_create(instance->data->kfa,

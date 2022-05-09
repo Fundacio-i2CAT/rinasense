@@ -28,30 +28,32 @@
 
 #include "esp_log.h"
 
-/* Create_Request: handle the request send by other IPCP. Consults the local
- * directory Forwarding Table. It is to me, create a FAI*/
-
-#if 0
-BaseType_t xFlowAllocatorInit()
+/**
+ * @brief Create an Instance of Flow Allocator to be add into the Normal IPCP
+ *
+ * @return flowAllocator_t*
+ */
+flowAllocator_t *pxFlowAllocatorInit(void)
 {
+    ESP_LOGE(TAG_FA, "Initializing a Flow Allocator");
     flowAllocator_t *pxFlowAllocator;
     pxFlowAllocator = pvPortMalloc(sizeof(*pxFlowAllocator));
 
     /* Create object in the Rib*/
+    ESP_LOGE(TAG_FA, "Creating objet /fa/flows into the rib");
     pxRibCreateObject("/fa/flows", 0, "Flow_Allocator", "Flow", FLOW_ALLOCATOR);
 
     /*Init List*/
+    ESP_LOGE(TAG_FA, "Initializing Flow instances");
     vListInitialise(&pxFlowAllocator->xFlowAllocatorInstances);
 
-    return pdTRUE;
+    return pxFlowAllocator;
 }
-
 
 static qosSpec_t *prvFlowAllocatorSelectQoSCube(void)
 {
     qosSpec_t *pxQosSpec;
     struct flowSpec_t *pxFlowSpec;
-
 
     pxQosSpec = pvPortMalloc(sizeof(*pxQosSpec));
     pxFlowSpec = pvPortMalloc(sizeof(*pxFlowSpec));
@@ -67,46 +69,38 @@ static qosSpec_t *prvFlowAllocatorSelectQoSCube(void)
     pxQosSpec->pxFlowSpec = pxFlowSpec;
 
     return pxQosSpec;
-
 }
 
 /**/
 static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 {
     flow_t *pxFlow;
-    
-   
+
     dtpConfig_t *pxDtpConfig;
     policy_t *pxDtpPolicySet;
     struct dtcpConfig_t *pxDtcpConfig = NULL;
 
- 
-
-
     pxFlow = pvPortMalloc(sizeof(*pxFlow));
-    
+
     pxDtpConfig = pvPortMalloc((sizeof(*pxDtpConfig)));
     pxDtpPolicySet = pvPortMalloc(sizeof(*pxDtpPolicySet));
 
-    
-    ESP_LOGI(TAG_FA,"DEst:%s",strdup(pxFlowRequest->pxRemote));
+    ESP_LOGI(TAG_FA, "DEst:%s", pxFlowRequest->pxRemote->pcProcessName);
 
-    pxFlow->pxSourceInfo = strdup(pxFlowRequest->pxLocal);
-    pxFlow->pxDestInfo = strdup(pxFlowRequest->pxRemote);
+    pxFlow->pxSourceInfo = pxFlowRequest->pxLocal;
+    pxFlow->pxDestInfo = pxFlowRequest->pxRemote;
     pxFlow->ulHopCount = 3;
     pxFlow->ulMaxCreateFlowRetries = 1;
-    pxFlow->eState = eALLOCATION_IN_PROGRESS;
+    pxFlow->eState = eFA_ALLOCATION_IN_PROGRESS;
     pxFlow->xSourceAddress = LOCAL_ADDRESS;
 
     /* Select QoS Cube based on the FlowSpec Required */
     pxFlow->pxQosSpec = prvFlowAllocatorSelectQoSCube();
 
-   
     /* Fulfill the DTP_config and the DTCP_config based on the QoSCube*/
 
     pxDtpConfig->xDtcpPresent = DTP_DTCP_PRESENT;
     pxDtpConfig->xInitialATimer = DTP_INITIAL_A_TIMER;
-
 
     pxDtpPolicySet->pcPolicyName = DTP_POLICY_SET_NAME;
     pxDtpPolicySet->pcPolicyVersion = DTP_POLICY_SET_VERSION;
@@ -116,7 +110,6 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 
     // By the moment the DTCP is not implemented yet so we are using DTP_DTCP_PRESENT = pdFALSE
 
-
     return pxFlow;
 }
 
@@ -125,7 +118,7 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest)
 {
     ESP_LOGE(TAG_FA, "xFlowAllocatorRequest");
-    
+
     flow_t *pxFlow;
     cepId_t xCepSourceId;
     flowAllocatorInstace_t *pxFlowAllocatorInstance;
@@ -137,26 +130,23 @@ BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t 
 
     pxConnectionId = pvPortMalloc(sizeof(*pxConnectionId));
 
-
     /* Create a FAI and fill the struct properly*/
     pxFlowAllocatorInstance = pvPortMalloc(sizeof(*pxFlowAllocatorInstance));
 
-    if(!pxFlowAllocatorInstance)
+    if (!pxFlowAllocatorInstance)
     {
-        ESP_LOGE(TAG_FA,"FAI was not allocated");
+        ESP_LOGE(TAG_FA, "FAI was not allocated");
         return pdFALSE;
     }
-
 
     pxFlowAllocatorInstance->eFaiState = eFAI_NONE;
     pxFlowAllocatorInstance->xPortId = xPortId;
 
-     ESP_LOGE(TAG_FA, "GetNeighbor");
+    ESP_LOGE(TAG_FA, "GetNeighbor");
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
     pxFlow->xRemoteAddress = xEnrollmentGetNeighborAddress(pxFlow->pxDestInfo->pcProcessName);
-    
-    pxFlow->xSourcePortId = xPortId;
 
+    pxFlow->xSourcePortId = xPortId;
 
     if (pxFlow->xRemoteAddress == -1)
     {
@@ -167,8 +157,8 @@ BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t 
     /* Call EFCP to create an EFCP instance following the EFCP Config */
     ESP_LOGE(TAG_FA, "Calling EFCP");
     xCepSourceId = pxNormalInstance->pxOps->connectionCreate(pxNormalInstance->pxData, xPortId,
-                                                       LOCAL_ADDRESS, pxFlow->xRemoteAddress, pxFlow->pxQosSpec->xQosId,
-                                                       pxFlow->pxDtpConfig, pxFlow->pxDtcpConfig);
+                                                             LOCAL_ADDRESS, pxFlow->xRemoteAddress, pxFlow->pxQosSpec->xQosId,
+                                                             pxFlow->pxDtpConfig, pxFlow->pxDtcpConfig);
     if (xCepSourceId == -1)
     {
         ESP_LOGE(TAG_FA, "CepId was not create properly");
@@ -182,20 +172,18 @@ BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t 
     pxFlow->pxConnectionId = pxConnectionId;
 
     /* Send the flow message to the neighbor */
-    //Serialize the pxFLow Struct into FlowMsg and Encode the FlowMsg as obj_value
+    // Serialize the pxFLow Struct into FlowMsg and Encode the FlowMsg as obj_value
     ESP_LOGE(TAG_FA, "EncodingFLow");
 
     serObjectValue_t *pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
 
-    //Send using the ribd_send_req M_Create
+    // Send using the ribd_send_req M_Create
     ESP_LOGE(TAG_FA, "SendingFlow");
     if (!xRibdSendRequest("Flow_Allocator", "/fa/flows", -1, M_START, xPortId, pxObjVal))
-        {
-                ESP_LOGE(TAG_FA, "It was a problem to sen the request");
-                return pdFALSE;
-        }
+    {
+        ESP_LOGE(TAG_FA, "It was a problem to sen the request");
+        return pdFALSE;
+    }
 
     return pdTRUE;
-
 }
-#endif

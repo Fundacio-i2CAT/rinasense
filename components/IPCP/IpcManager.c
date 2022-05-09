@@ -268,10 +268,10 @@ portId_t xIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, void *data)
     {
 
         // call to FlowAllocator.
-        /*        if(xFlowAllocatorFlowRequest(pxNormalInstance, xPortId, (flowAllocateHandle_t*)data))
-                {
-                    return xPortId;
-                }*/
+        if (xFlowAllocatorFlowRequest(pxNormalInstance, xPortId, (flowAllocateHandle_t *)data))
+        {
+            return xPortId;
+        }
     }
 
     return -1;
@@ -319,21 +319,19 @@ void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t *pxNetworkBuffer)
     ipcpInstance_t *pxShimInstance;
     ipcpInstance_t *pxNormalInstance;
 
+    configASSERT(pxNetworkBuffer);
+
     pxMessagePDU = pvPortMalloc(sizeof(*pxMessagePDU));
 
     if (!pxMessagePDU)
     {
         ESP_LOGE(TAG_IPCPMANAGER, "pxMessagePDU was not allocated");
     }
+
+    /* Copy the pointer of the Buffer */
     pxMessagePDU->pxNetworkBuffer = pxNetworkBuffer;
 
-    ESP_LOGE(TAG_IPCPMANAGER, "Pointer NetBuffer:%p", pxNetworkBuffer);
-    ESP_LOGE(TAG_IPCPMANAGER, "Pointer NetBuffer PDU:%p", pxMessagePDU->pxNetworkBuffer);
-    ESP_LOGE(TAG_IPCPMANAGER, "Pointer NetBuffer:%p", pxNetworkBuffer->pucEthernetBuffer);
-    ESP_LOGE(TAG_IPCPMANAGER, "Pointer NetBuffer PDU:%p", pxMessagePDU->pxNetworkBuffer->pucEthernetBuffer);
-
-    pxShimInstance = pxIpcManagerFindInstanceByType(eShimWiFi); // COuld come from other kind of Shim
-
+    pxShimInstance = pxIpcManagerFindInstanceByType(eShimWiFi); // Could come from other kind of Shim
     pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
 
     ESP_LOGE(TAG_IPCPMANAGER, "The RINA packet is a managment packet");
@@ -341,6 +339,6 @@ void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t *pxNetworkBuffer)
     if (!pxNormalInstance->pxOps->duEnqueue(pxNormalInstance->pxData, 1, pxMessagePDU))
     {
         ESP_LOGI(TAG_IPCPMANAGER, "Drop frame because there is not enough memory space");
-        xDuDestroy(pxMessagePDU);
+        xDuDestroy(pxMessagePDU); // DuDestroy and release buffer.
     }
 }

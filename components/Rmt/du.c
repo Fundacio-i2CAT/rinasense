@@ -46,11 +46,11 @@ BaseType_t xDuDecap(struct du_t *pxDu)
 	pci_t *pxPciTmp;
 	size_t uxPciLen;
 	// NetworkBufferDescriptor_t *pxNewBuffer;
-	uint8_t *pucPtr;
-	size_t uxLenPdu;
+	uint8_t *pucDu;
+	size_t uxLenDu;
 
 	/* Extract PCI from buffer*/
-	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucEthernetBuffer);
+	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucRinaBuffer);
 
 	// vPciPrint(pxPciTmp);
 
@@ -66,7 +66,7 @@ BaseType_t xDuDecap(struct du_t *pxDu)
 	uxPciLen = (size_t)(14);
 
 	/* Define the Pdu length without the PCI header */
-	uxLenPdu = pxDu->pxNetworkBuffer->xDataLength - uxPciLen;
+	uxLenDu = pxDu->pxNetworkBuffer->xRinaDataLength - uxPciLen;
 
 	/* ESP_LOGE(TAG_ARP, "Taking Buffer to copy the SDU from the RINA PDU: DuDecap");
 	//pxNewBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, (TickType_t)0U);
@@ -76,18 +76,19 @@ BaseType_t xDuDecap(struct du_t *pxDu)
 		return pdFALSE;
 	}*/
 
-	/* Assign the init of of the Pdu byte into the pucPrt*/
-	pucPtr = (uint8_t *)pxPciTmp + 14;
+	/* Assign the init of of the Pdu byte into the pucDu*/
+	pucDu = (uint8_t *)pxPciTmp + uxPciLen;
 
 	/* The new length is the PDU length */
-	pxDu->pxNetworkBuffer->xDataLength = uxLenPdu;
+	pxDu->pxNetworkBuffer->xDataLength = uxLenDu;
 
-	/* The Pdu Pointer*/
-	pxDu->pxNetworkBuffer->pucEthernetBuffer = pucPtr;
+	/* Pointer to the start of the Du */
+	pxDu->pxNetworkBuffer->pucDataBuffer = pucDu;
 
 	//(void)memcpy(pxNewBuffer->pucEthernetBuffer, pucPtr, xBufferSize);
 
-	/* Define the pxPci*/
+	pxDu->pxPci = pxPciTmp;
+	/* Define the pxPci
 	pxDu->pxPci = pvPortMalloc(sizeof(pxPciTmp));
 
 	pxDu->pxPci->ucVersion = pxPciTmp->ucVersion;
@@ -97,12 +98,14 @@ BaseType_t xDuDecap(struct du_t *pxDu)
 	pxDu->pxPci->xPduLen = pxPciTmp->xPduLen;
 	pxDu->pxPci->xSequenceNumber = pxPciTmp->xSequenceNumber;
 	pxDu->pxPci->xType = pxPciTmp->xType;
-	pxDu->pxPci->connectionId_t = pxPciTmp->connectionId_t;
+	pxDu->pxPci->connectionId_t = pxPciTmp->connectionId_t;*/
 
 	// ESP_LOGE(TAG_DTP, "Releasing Buffer after copy the SDU from the RINA PDU:DuDcap");
 	// vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
 
 	// pxDu->pxNetworkBuffer = pxNewBuffer;
+
+	// vPortFree(pxPciTmp);
 
 	return pdFALSE;
 }

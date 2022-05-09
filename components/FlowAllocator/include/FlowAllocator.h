@@ -18,13 +18,13 @@
 
 typedef enum
 {
-    eEMPTY,
-    eALLOCATION_IN_PROGRESS,
-    eALLOCATED,
-    eWAITING_2_MPL_BEFORE_TEARING_DOWN,
-    eDEALLOCATED,
+    eFA_EMPTY,
+    eFA_ALLOCATION_IN_PROGRESS,
+    eFA_ALLOCATED,
+    eFA_WAITING_2_MPL_BEFORE_TEARING_DOWN,
+    eFA_DEALLOCATED,
 
-}eFlowAllocationState_t;
+} eFlowAllocationState_t;
 
 typedef enum
 {
@@ -64,8 +64,8 @@ typedef struct xQOS_SPEC
 
     /* Defines the characteristics of a flow */
     struct flowSpec_t *pxFlowSpec;
-    
-}qosSpec_t;
+
+} qosSpec_t;
 
 /* Contains the information to setup a new flow */
 typedef struct xFLOW_MESSAGE
@@ -78,7 +78,8 @@ typedef struct xFLOW_MESSAGE
 
     /* The port id allocated to this flow by the source IPC process */
 
-    /* While the search rules that generate the forwarding table should allow for a natural termination condition, it seems wise to have the means to enforce termination */
+    /* While the search rules that generate the forwarding table should allow for a natural termination condition,
+    it seems wise to have the means to enforce termination */
     uint32_t ulHopCount;
 
     /* Flow allocation enum State*/
@@ -89,7 +90,7 @@ typedef struct xFLOW_MESSAGE
 
     /* Source address */
     address_t xSourceAddress;
-    
+
     /* Remote address to connect*/
     address_t xRemoteAddress;
 
@@ -99,7 +100,7 @@ typedef struct xFLOW_MESSAGE
     uint32_t ulCurrentConnectionId;
 
     /* the QoS parameters specified by the application process that requested this flow */
-    qosSpec_t   *pxQosSpec;
+    qosSpec_t *pxQosSpec;
 
     /* the configuration for the policies and parameters of this connection's DTP */
     dtpConfig_t *pxDtpConfig;
@@ -110,7 +111,9 @@ typedef struct xFLOW_MESSAGE
     /* Source Port Id */
     portId_t xSourcePortId;
 
-}flow_t;
+} flow_t;
+
+flowAllocator_t *pxFlowAllocatorInit(void);
 
 BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest);
 

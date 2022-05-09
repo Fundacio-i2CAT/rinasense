@@ -198,20 +198,21 @@ messageCdap_t *prvRibdFillDecodeMessage(const rina_messages_CDAPMessage message)
 
     if (message.has_destAEName)
     {
-        pxMessageCdap->pcDestApName = strdup(message.destAEName);
+        pxMessageCdap->pcDestAeName = strdup(message.destAEName);
     }
 
     if (message.has_destAEInst)
     {
-        pxMessageCdap->pcDestApInst = strdup(message.destAEInst);
+        pxMessageCdap->pcDestAeInst = strdup(message.destAEInst);
     }
+
     if (message.has_srcApName)
     {
         pxMessageCdap->pcSrcApName = strdup(message.srcApName);
     }
     if (message.has_srcApInst)
     {
-        // pxMessageCdap->pcSrcApInst = strdup(message.srcApInst);
+        pxMessageCdap->pcSrcApInst = strdup(message.srcApInst);
     }
     if (message.has_srcAEName)
     {
@@ -648,9 +649,11 @@ BaseType_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData, por
     messageCdap_t *pxDecodeCdap;
 
     /*Decode CDAP Message*/
-    pxDecodeCdap = prvRibdDecodeCDAP(pxDu->pxNetworkBuffer->pucEthernetBuffer, pxDu->pxNetworkBuffer->xDataLength);
+    ESP_LOGI(TAG_RIB, "Mgmt PDU received, sent it to decode");
+    pxDecodeCdap = prvRibdDecodeCDAP(pxDu->pxNetworkBuffer->pucDataBuffer, pxDu->pxNetworkBuffer->xDataLength);
 
-    // vRibdPrintCdapMessage(pxDecodeCdap);
+    ESP_LOGI(TAG_RIB, "Printing Decode CDAP message");
+    vRibdPrintCdapMessage(pxDecodeCdap);
 
     if (!pxDecodeCdap)
     {
@@ -787,7 +790,7 @@ BaseType_t vRibHandleMessage(messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId
     case M_START:
 
         configASSERT(pxRibObject != NULL);
-        configASSERT(pxDecodeCdap->pxObjValue != NULL);
+        //        configASSERT(pxDecodeCdap->pxObjValue != NULL);
         pxRibObject->pxObjOps->start(pxRibObject, pxDecodeCdap->pxObjValue, pxAppConnectionTmp->pxDestinationInfo->pcProcessName,
                                      pxAppConnectionTmp->pxSourceInfo->pcProcessName, pxDecodeCdap->invokeID, xN1FlowPortId);
         break;
