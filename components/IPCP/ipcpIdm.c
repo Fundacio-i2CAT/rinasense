@@ -58,16 +58,8 @@ BaseType_t xIpcpIdmDestroy(ipcpIdm_t *pxInstance)
 BaseType_t xIpcpIdmAllocated(ipcpIdm_t *pxInstance, ipcProcessId_t xIpcpId)
 {
         allocIpcpId_t *pos;
- 
-
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
-
-
-
-
-        pos = pvPortMalloc(sizeof(*pos));
-
 
 
         /* Find a way to iterate in the list and compare the addesss*/
@@ -141,10 +133,8 @@ ipcProcessId_t xIpcpIdmAllocate(ipcpIdm_t *pxInstance)
         pxNewPortId = pvPortMalloc(sizeof(*pxNewPortId));
         if (!pxNewPortId)
         {
-                vPortFree(pxNewPortId);
                 return -1;
         }
-                
 
         vListInitialiseItem(&pxNewPortId->xIpcpIdItem);
         pxNewPortId->xIpcpId = pid;

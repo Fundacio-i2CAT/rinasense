@@ -105,7 +105,9 @@ BaseType_t xShimFlowDeallocate(struct ipcpInstanceData_t * pxData, portId_t xId)
  * */
 
 
-BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t * pxAppName, name_t * pxDafName);
+BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, 
+									const name_t * pxAppName, 
+									const name_t * pxDafName);
 /*-------------------------------------------*/
 /* applicationUnregister (naming-info)
  * Primitive invoked before all other functions:

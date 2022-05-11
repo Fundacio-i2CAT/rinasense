@@ -31,7 +31,7 @@ typedef enum {
 //Structure Generic Protocol Address
 typedef struct xGENERIC_PROTOCOL_ADDRESS
 {
-	uint8_t * 	ucAddress;
+	uint8_t * 	pucAddress;
 	size_t		uxLength;
 }gpa_t;
 
@@ -153,7 +153,7 @@ void vARPRemoveCacheEntry( const gpa_t * ulIPCPAddress, const gha_t * pxMACAddre
 
 BaseType_t  xARPRemove(const gpa_t * pxPa, const gha_t * pxHa);
 
-struct rinarpHandle_t * pxARPAdd(gpa_t * pxPa, gha_t * pxHa);
+struct rinarpHandle_t * pxARPAddToCache(gpa_t * pxPa, gha_t * pxHa);
 
 BaseType_t xARPResolveGPA(const gpa_t * tpa, const gpa_t * spa, const gha_t * sha);
 

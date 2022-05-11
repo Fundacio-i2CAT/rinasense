@@ -73,16 +73,26 @@ typedef struct xMESSAGE_CDAP
     /*absSyntax*/
 
     /*Destination Info*/
-    name_t *pxDestinationInfo;
+    //name_t *pxDestinationInfo;
+    string_t pcDestApName;
+    string_t pcDestApInst; 
+    string_t pcDestAeName; 
+    string_t pcDestAeInst;  
 
     /*Source Info*/
-    name_t *pxSourceInfo;
+    //name_t *pxSourceInfo;
+    string_t pcSrcApName;
+    string_t pcSrcApInst; 
+    string_t pcSrcAeName; 
+    string_t pcSrcAeInst;  
 
     /*Version*/
     int64_t version;
 
     /*Authentication Policy*/
-    authPolicy_t *pxAuthPolicy;
+    //authPolicy_t *pxAuthPolicy;
+    string_t  pcAuthPoliName;
+    string_t  pcAuthPoliVersion;
 
     /*Invoke ID*/
     int32_t invokeID;
