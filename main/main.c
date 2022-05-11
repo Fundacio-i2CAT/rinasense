@@ -16,8 +16,6 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 
-
-
 void app_main(void)
 {
 	nvs_flash_init();
@@ -28,21 +26,13 @@ void app_main(void)
 	}
 	ESP_ERROR_CHECK(ret);*/
 
+	RINA_IPCPInit();
 
-	RINA_IPCPInit( );
+	// portId_t test = 0;
+	// struct rinaFlowSpec_t *xFlowSpec = pvPortMalloc(sizeof(*xFlowSpec));
+	// uint8_t Flags=1;
 
-	portId_t test = 0;
-	struct rinaFlowSpec_t *xFlowSpec = pvPortMalloc(sizeof(*xFlowSpec));
-	uint8_t Flags=1;
+	// vTaskDelay(1000);
 
-	vTaskDelay(1000);
-
-
-
-	//RINA_flow_alloc("mobile.DIF", "TestLocal", "ar1.mobile", xFlowSpec, Flags);
-
-
-
-
+	// RINA_flow_alloc("mobile.DIF", "TestLocal", "ar1.mobile", xFlowSpec, Flags);
 }
-

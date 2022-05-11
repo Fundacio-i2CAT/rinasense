@@ -760,9 +760,6 @@ struct efcp_t * pxEfcpImapFind( cepId_t xCepIdKey )
         int x = 0;
         BaseType_t check = pdFALSE;
 
-        xEfcpFounded = pvPortMalloc(sizeof(struct efcp_t*));
-
-
         for (x = 0; x < EFCP_IMAP_ENTRIES; x++) //lookup in the MAP for the EFCP Instance based on cepIdKey
         {
 

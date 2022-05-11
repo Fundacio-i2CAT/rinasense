@@ -35,13 +35,10 @@ BaseType_t xFactoryIPCPInit(ipcpFactory_t  * pxFactory)
 
 ipcpFactory_t *pxFactoryIPCPFind(factories_t *pxFactoriesList, ipcpFactoryType_t xType)
 {
-
         ipcpFactory_t *pxFactoryIPCP;
 
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
-
-        pxFactoryIPCP = pvPortMalloc(sizeof(*pxFactoryIPCP));
 
         /* Find a way to iterate in the list and compare the addesss*/
 

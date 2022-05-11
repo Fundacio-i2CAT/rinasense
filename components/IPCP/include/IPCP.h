@@ -157,7 +157,7 @@ struct ipcpInstanceOps_t {
 
         BaseType_t      (* flowBindingIpcp)(struct ipcpInstanceData_t * pxUserData,
                                        portId_t                   xPortId,
-                                       struct ipcpInstance_t *      xN1Ipcp);
+                                       struct ipcpInstance_t *      pxN1Ipcp);
 
         BaseType_t      (* flowUnbindingIpcp)(struct ipcpInstanceData_t * pxUserData,
                                          portId_t                   xPortId);

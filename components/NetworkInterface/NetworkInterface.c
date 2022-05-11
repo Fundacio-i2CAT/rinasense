@@ -57,7 +57,7 @@ BaseType_t event_loop_inited = pdFALSE;
 
 esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb);
 
-//NetworkBufferDescriptor_t * pxNetworkBuffer;
+// NetworkBufferDescriptor_t * pxNetworkBuffer;
 
 static void event_handler(void *arg, esp_event_base_t event_base,
 						  int32_t event_id, void *event_data)
@@ -67,7 +67,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 	if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
 	{
 		ret = esp_wifi_connect();
-		ESP_LOGI(TAG_WIFI,"ret:%d",ret);
+		ESP_LOGI(TAG_WIFI, "ret:%d", ret);
 		/*if (ret==0)
 		{
 			xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
@@ -79,7 +79,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 		if (s_retry_num < ESP_MAXIMUM_RETRY)
 		{
 			ret = esp_wifi_connect();
-			ESP_LOGI(TAG_WIFI,"ret:%d",ret);
+			ESP_LOGI(TAG_WIFI, "ret:%d", ret);
 			s_retry_num++;
 			ESP_LOGI(TAG_WIFI, "retry to connect to the AP");
 		}
@@ -89,7 +89,8 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 		}
 		ESP_LOGI(TAG_WIFI, "connect to the AP fail");
 	}
-	else{
+	else
+	{
 		s_retry_num = 0;
 		xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
 	}
@@ -104,16 +105,14 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 BaseType_t xNetworkInterfaceInitialise(const MACAddress_t *pxPhyDev)
 {
 	ESP_LOGI(TAG_WIFI, "%s", __func__);
-	 uint8_t ucMACAddress[ MAC_ADDRESS_LENGTH_BYTES ];
+	uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES];
 
 	esp_efuse_mac_get_default(ucMACAddress);
-	vARPUpdateMACAddress(ucMACAddress, pxPhyDev); 
+	vARPUpdateMACAddress(ucMACAddress, pxPhyDev);
 	return pdTRUE;
-
 }
 
-
-BaseType_t xNetworkInterfaceConnect( void )
+BaseType_t xNetworkInterfaceConnect(void)
 {
 	ESP_LOGI(TAG_WIFI, "%s", __func__);
 
@@ -122,7 +121,6 @@ BaseType_t xNetworkInterfaceConnect( void )
 		esp_wifi_stop();
 		esp_wifi_deinit();
 		s_retry_num = 0;
-		
 	}
 
 	ESP_LOGI(TAG_WIFI, "Creating group");
@@ -136,13 +134,13 @@ BaseType_t xNetworkInterfaceConnect( void )
 		ESP_LOGI(TAG_SHIM, "Creating event Loop");
 
 		ESP_ERROR_CHECK(esp_event_loop_create_default()); // EventTask init
-		//esp_netif_create_default_wifi_sta();// Binding STA with TCP/IP
+		// esp_netif_create_default_wifi_sta();// Binding STA with TCP/IP
 		event_loop_inited = pdTRUE;
 	}
 
 	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT(); // @suppress("Type cannot be resolved")
 	ESP_LOGI(TAG_SHIM, "Init Network Interface with Config file");
-	ESP_ERROR_CHECK(esp_wifi_init(&cfg)); //WiFi driver Task with default config
+	ESP_ERROR_CHECK(esp_wifi_init(&cfg)); // WiFi driver Task with default config
 
 	esp_event_handler_instance_t instance_any_id;
 
@@ -183,7 +181,7 @@ BaseType_t xNetworkInterfaceConnect( void )
 	/* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
 	 * happened. */
 
-	//vTaskDelay(1000 / portTICK_PERIOD_MS);
+	// vTaskDelay(1000 / portTICK_PERIOD_MS);
 	if (bits & WIFI_CONNECTED_BIT)
 	{
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -215,12 +213,12 @@ BaseType_t xNetworkInterfaceConnect( void )
 	{
 		if (xMACAdrInitialized == pdFALSE)
 		{
-			//Wifi_Interface: WIFI_STA or WIFI_AP. This case WIFI_STA
+			// Wifi_Interface: WIFI_STA or WIFI_AP. This case WIFI_STA
 			esp_wifi_get_mac(ESP_IF_WIFI_STA, ucMACAddress);
-			//Function from Shim_IPCP to update Source MACAddress.
-			//vARPUpdateMACAddress(ucMACAddress, pxPhyDev); //Maybe change the method name.
+			// Function from Shim_IPCP to update Source MACAddress.
+			// vARPUpdateMACAddress(ucMACAddress, pxPhyDev); //Maybe change the method name.
 			xMACAdrInitialized = pdTRUE;
-			//ESP_LOGI(TAG_WIFI,"MACAddressRINA updated");
+			// ESP_LOGI(TAG_WIFI,"MACAddressRINA updated");
 		}
 
 		return pdTRUE;
@@ -265,7 +263,7 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuf
 
 	if (xReleaseAfterSend == pdTRUE)
 	{
-		//ESP_LOGE(TAG_WIFI, "Releasing Buffer interface WiFi after send");
+		// ESP_LOGE(TAG_WIFI, "Releasing Buffer interface WiFi after send");
 		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 	}
 
@@ -298,17 +296,19 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 	}
 
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, xDescriptorWaitTime);
-	//ESP_LOGE(TAG_WIFI,"xNetworkInterfaceInput Taking buffer to copy wifidriver buffer");
+	// ESP_LOGE(TAG_WIFI,"xNetworkInterfaceInput Taking buffer to copy wifidriver buffer");
 
 	if (pxNetworkBuffer != NULL)
 	{
 
 		/* Set the packet size, in case a larger buffer was returned. */
-		pxNetworkBuffer->xDataLength = len;
+		pxNetworkBuffer->xEthernetDataLength = len;
 
 		/* Copy the packet data. */
 		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
 		xRxEvent.pvData = (void *)pxNetworkBuffer;
+
+		ESP_LOGE(TAG_RINA, "pucEthernetBuffer and len: %p, %d", pxNetworkBuffer->pucEthernetBuffer, len);
 
 		if (xSendEventStructToIPCPTask(&xRxEvent, xDescriptorWaitTime) == pdFAIL)
 		{

@@ -75,6 +75,7 @@ serObjectValue_t *pxSerdesMsgEnrollmentEncode(enrollmentMessage_t *pxMsg)
         if (!status)
         {
                 ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+                vPortFree(pvBuffer);
                 return NULL;
         }
 
@@ -243,6 +244,7 @@ serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMsg)
         if (!status)
         {
                 ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+                vPortFree(pvBuffer);
                 return NULL;
         }
 
@@ -315,6 +317,7 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
         if (!status)
         {
                 ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+                vPortFree(pvBuffer);
                 return NULL;
         }
 

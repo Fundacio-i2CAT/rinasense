@@ -47,11 +47,9 @@ BaseType_t xCepIdmAllocated(cepIdm_t *pxInstance, cepId_t xCepId)
 {
         allocCepId_t *pos;
  
-
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
 
-        pos = pvPortMalloc(sizeof(*pos));
 
         /* Find a way to iterate in the list and compare the addesss*/
 
