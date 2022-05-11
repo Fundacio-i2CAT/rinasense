@@ -78,14 +78,19 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 
     dtpConfig_t *pxDtpConfig;
     policy_t *pxDtpPolicySet;
-    struct dtcpConfig_t *pxDtcpConfig = NULL;
+    // struct dtcpConfig_t *pxDtcpConfig = NULL;
+
+    if (!pxFlowRequest)
+    {
+        return NULL;
+    }
 
     pxFlow = pvPortMalloc(sizeof(*pxFlow));
 
     pxDtpConfig = pvPortMalloc((sizeof(*pxDtpConfig)));
     pxDtpPolicySet = pvPortMalloc(sizeof(*pxDtpPolicySet));
 
-    ESP_LOGI(TAG_FA, "DEst:%s", pxFlowRequest->pxRemote->pcProcessName);
+    ESP_LOGI(TAG_FA, "Creating New Flow");
 
     pxFlow->pxSourceInfo = pxFlowRequest->pxLocal;
     pxFlow->pxDestInfo = pxFlowRequest->pxRemote;
@@ -109,23 +114,23 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
     pxFlow->pxDtpConfig = pxDtpConfig;
 
     // By the moment the DTCP is not implemented yet so we are using DTP_DTCP_PRESENT = pdFALSE
+    pxFlow->pxDtcpConfig = NULL;
 
     return pxFlow;
 }
 
 /*Allocate_Request: Handle the request send by the application
  * if it is well-formed, create a new FlowAllocator-Instance*/
-BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest)
+BaseType_t xFlowAllocatorFlowRequestHandle(ipcpInstance_t *pxNormalInstance, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest)
 {
     ESP_LOGE(TAG_FA, "xFlowAllocatorRequest");
 
     flow_t *pxFlow;
     cepId_t xCepSourceId;
     flowAllocatorInstace_t *pxFlowAllocatorInstance;
-
     connectionId_t *pxConnectionId;
 
-    /* Create a flow object and fill using the event FlowRequest */
+    /* Create a flow object and fill using the data event FlowRequest */
     pxFlow = prvFlowAllocatorNewFlow(pxFlowRequest);
 
     pxConnectionId = pvPortMalloc(sizeof(*pxConnectionId));
@@ -145,6 +150,8 @@ BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t 
     ESP_LOGE(TAG_FA, "GetNeighbor");
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
     pxFlow->xRemoteAddress = xEnrollmentGetNeighborAddress(pxFlow->pxDestInfo->pcProcessName);
+
+    ESP_LOGE(TAG_FA, "Remote Address:%d", pxFlow->xRemoteAddress);
 
     pxFlow->xSourcePortId = xPortId;
 

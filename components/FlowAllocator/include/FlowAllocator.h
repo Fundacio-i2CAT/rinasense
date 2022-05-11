@@ -115,6 +115,6 @@ typedef struct xFLOW_MESSAGE
 
 flowAllocator_t *pxFlowAllocatorInit(void);
 
-BaseType_t xFlowAllocatorFlowRequest(ipcpInstance_t *pxNormalInstance, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest);
+BaseType_t xFlowAllocatorFlowRequestHandle(ipcpInstance_t *pxNormalInstance, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest);
 
 #endif

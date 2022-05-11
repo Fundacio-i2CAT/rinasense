@@ -268,7 +268,7 @@ portId_t xIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, void *data)
     {
 
         // call to FlowAllocator.
-        if (xFlowAllocatorFlowRequest(pxNormalInstance, xPortId, (flowAllocateHandle_t *)data))
+        if (xFlowAllocatorFlowRequestHandle(pxNormalInstance, xPortId, (flowAllocateHandle_t *)data))
         {
             return xPortId;
         }

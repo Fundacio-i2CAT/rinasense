@@ -277,7 +277,7 @@ cepId_t xNormalConnectionCreateRequest(struct ipcpInstanceData_t *pxData,
                 return cep_id_bad();
         }
 
-        pxCepEntry = pvPortMalloc(sizeof(*pxCepEntry));
+        pxCepEntry = pvPortMalloc(sizeof(*pxCepEntry)); // Error
 
         if (!pxCepEntry)
         {

@@ -390,7 +390,7 @@ rina_messages_CDAPMessage prvRibdSerToRinaMessage(messageCdap_t *pxMessageCdap)
 NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
 {
     BaseType_t status;
-    uint8_t *pucBuffer[128];
+    uint8_t *pucBuffer[256];
     size_t xMessageLength;
 
     /*Create a stream that will write to the buffer*/
@@ -421,7 +421,6 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
     memcpy(pxNetworkBuffer->pucEthernetBuffer, &pucBuffer, xMessageLength);
 
     pxNetworkBuffer->xDataLength = xMessageLength;
-    // ESP_LOGE(TAG_RIB, "Buffering OK");
 
     return pxNetworkBuffer;
 }
