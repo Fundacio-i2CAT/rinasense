@@ -9,7 +9,7 @@
 
 #include "esp_log.h"
 
-#include "Rmt.h"
+#include "rmt.h"
 #include "du.h"
 #include "IPCP.h"
 #include "pci.h"
