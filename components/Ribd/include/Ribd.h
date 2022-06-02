@@ -4,6 +4,7 @@
 
 #include "Enrollment.h"
 #include "Rib.h"
+#include "normalIPCP.h"
 
 typedef enum
 {
@@ -73,26 +74,16 @@ typedef struct xMESSAGE_CDAP
     /*absSyntax*/
 
     /*Destination Info*/
-    //name_t *pxDestinationInfo;
-    string_t pcDestApName;
-    string_t pcDestApInst; 
-    string_t pcDestAeName; 
-    string_t pcDestAeInst;  
+    name_t *pxDestinationInfo;
 
     /*Source Info*/
-    //name_t *pxSourceInfo;
-    string_t pcSrcApName;
-    string_t pcSrcApInst; 
-    string_t pcSrcAeName; 
-    string_t pcSrcAeInst;  
+    name_t *pxSourceInfo;
 
     /*Version*/
     int64_t version;
 
     /*Authentication Policy*/
-    //authPolicy_t *pxAuthPolicy;
-    string_t  pcAuthPoliName;
-    string_t  pcAuthPoliVersion;
+    authPolicy_t *pxAuthPolicy;
 
     /*Invoke ID*/
     int32_t invokeID;
@@ -117,12 +108,12 @@ typedef struct xMESSAGE_CDAP
 BaseType_t xRibdConnectToIpcp(name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth);
 BaseType_t xRibdDisconnectToIpcp(portId_t xN1flowPortId);
 BaseType_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
-BaseType_t xRibdSendRequest(string_t pcObjClass, string_t pcObjName, long objInst,
-                            opCode_t eMsgType, portId_t n1_port, serObjectValue_t *pxObjVal);
+BaseType_t xRibdSendRequest(struct ipcpNormalData_t *pxIpcpData, string_t pcObjClass, string_t pcObjName, long objInst,
+                            opCode_t eOpCode, portId_t xN1flowPortId, serObjectValue_t *pxObjVal);
 
 BaseType_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objInst,
                              int result, string_t pcResultReason,
                              opCode_t eOpCode, int invokeId, portId_t xN1Port,
                              serObjectValue_t *pxObjVal);
 
-    BaseType_t xTest(void);
+BaseType_t xTest(void);

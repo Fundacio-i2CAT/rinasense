@@ -4,9 +4,9 @@
  * @brief Manager the IPCP Ids assign to the created IPCPs
  * @version 0.1
  * @date 2022-02-23
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 #include "freertos/FreeRTOS.h"
 
@@ -23,15 +23,12 @@ ipcpIdm_t *pxIpcpIdmCreate(void)
 {
         ipcpIdm_t *pxIpcpIdmInstance;
 
-
         pxIpcpIdmInstance = pvPortMalloc(sizeof(*pxIpcpIdmInstance));
         if (!pxIpcpIdmInstance)
                 return NULL;
 
         vListInitialise(&(pxIpcpIdmInstance->xAllocatedIpcpIds));
         pxIpcpIdmInstance->xLastAllocated = 0;
-        
- 
 
         return pxIpcpIdmInstance;
 }
@@ -47,7 +44,7 @@ BaseType_t xIpcpIdmDestroy(ipcpIdm_t *pxInstance)
         }
 
         //  list_for_each_entry_safe(pos, next, &pxInstance->xAllocatedPorts, list) {
-        //vPortFree(pxPos);
+        // vPortFree(pxPos);
         //}
 
         vPortFree(pxInstance);
@@ -58,9 +55,11 @@ BaseType_t xIpcpIdmDestroy(ipcpIdm_t *pxInstance)
 BaseType_t xIpcpIdmAllocated(ipcpIdm_t *pxInstance, ipcProcessId_t xIpcpId)
 {
         allocIpcpId_t *pos;
+
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
 
+        pos = pvPortMalloc(sizeof(*pos));
 
         /* Find a way to iterate in the list and compare the addesss*/
 
@@ -70,29 +69,25 @@ BaseType_t xIpcpIdmAllocated(ipcpIdm_t *pxInstance, ipcProcessId_t xIpcpId)
         while (pxListItem != pxListEnd)
         {
 
-               
                 pos = (allocIpcpId_t *)listGET_LIST_ITEM_OWNER(pxListItem);
-                
-                if(pos == NULL)
+
+                if (pos == NULL)
                         return pdFALSE;
 
-                if(!pos)
+                if (!pos)
                         return pdFALSE;
-                
 
                 if (pos->xIpcpId == xIpcpId)
                 {
                         ESP_LOGI(TAG_IPCPMANAGER, "IPCP ID %p, #: %d", pos, pos->xIpcpId);
 
                         return pdTRUE;
-                   
                 }
 
                 pxListItem = listGET_NEXT(pxListItem);
         }
 
         return pdFALSE;
-
 }
 
 ipcProcessId_t xIpcpIdmAllocate(ipcpIdm_t *pxInstance)
@@ -104,7 +99,7 @@ ipcProcessId_t xIpcpIdmAllocate(ipcpIdm_t *pxInstance)
         if (!pxInstance)
         {
                 ESP_LOGE(TAG_IPCPMANAGER, "Bogus instance passed, bailing out");
-                return -1;
+                return 0;
         }
 
         /* If the last ipcpId allocated is same as the max port id then start it again*/
@@ -116,7 +111,6 @@ ipcProcessId_t xIpcpIdmAllocate(ipcpIdm_t *pxInstance)
         {
                 pid = pxInstance->xLastAllocated + 1;
         }
-
 
         while (xIpcpIdmAllocated(pxInstance, pid))
         {
@@ -133,13 +127,14 @@ ipcProcessId_t xIpcpIdmAllocate(ipcpIdm_t *pxInstance)
         pxNewPortId = pvPortMalloc(sizeof(*pxNewPortId));
         if (!pxNewPortId)
         {
-                return -1;
+                vPortFree(pxNewPortId);
+                return 0;
         }
 
         vListInitialiseItem(&pxNewPortId->xIpcpIdItem);
         pxNewPortId->xIpcpId = pid;
         listSET_LIST_ITEM_OWNER(&(pxNewPortId->xIpcpIdItem), (void *)pxNewPortId);
-        vListInsert( &pxInstance->xAllocatedIpcpIds,&pxNewPortId->xIpcpIdItem);
+        vListInsert(&pxInstance->xAllocatedIpcpIds, &pxNewPortId->xIpcpIdItem);
 
         pxInstance->xLastAllocated = pid;
 
@@ -149,7 +144,7 @@ ipcProcessId_t xIpcpIdmAllocate(ipcpIdm_t *pxInstance)
 }
 
 BaseType_t xIpcpIdmRelease(ipcpIdm_t *pxInstance,
-                        ipcProcessId_t id)
+                           ipcProcessId_t id)
 {
         allocIpcpId_t *pos, *next;
         int found = 0;
@@ -167,8 +162,8 @@ BaseType_t xIpcpIdmRelease(ipcpIdm_t *pxInstance,
 
         /*list_for_each_entry_safe(pos, next, &instance->allocated_ports, list) {
                 if (pos->pid == id) {
-                	list_del(&pos->list);
-                	rkfree(pos);
+                        list_del(&pos->list);
+                        rkfree(pos);
                         found = 1;
                 }
         }*/

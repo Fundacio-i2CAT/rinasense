@@ -15,6 +15,7 @@
 
 #include "IPCP.h"
 #include "RINA_API.h"
+#include "normalIPCP.h"
 
 typedef enum
 {
@@ -78,8 +79,7 @@ typedef struct xFLOW_MESSAGE
 
     /* The port id allocated to this flow by the source IPC process */
 
-    /* While the search rules that generate the forwarding table should allow for a natural termination condition,
-    it seems wise to have the means to enforce termination */
+    /* While the search rules that generate the forwarding table should allow for a natural termination condition, it seems wise to have the means to enforce termination */
     uint32_t ulHopCount;
 
     /* Flow allocation enum State*/
@@ -113,8 +113,6 @@ typedef struct xFLOW_MESSAGE
 
 } flow_t;
 
-flowAllocator_t *pxFlowAllocatorInit(void);
-
-BaseType_t xFlowAllocatorFlowRequestHandle(ipcpInstance_t *pxNormalInstance, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest);
+void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest, struct ipcpNormalData_t *pxIpcpData);
 
 #endif

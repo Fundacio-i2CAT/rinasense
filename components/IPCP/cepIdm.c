@@ -35,7 +35,7 @@ BaseType_t xCepIdmDestroy(cepIdm_t *pxInstance)
         }
 
         //  list_for_each_entry_safe(pos, next, &pxInstance->xAllocatedPorts, list) {
-        //vPortFree(pxPos);
+        // vPortFree(pxPos);
         //}
 
         vPortFree(pxInstance);
@@ -46,10 +46,11 @@ BaseType_t xCepIdmDestroy(cepIdm_t *pxInstance)
 BaseType_t xCepIdmAllocated(cepIdm_t *pxInstance, cepId_t xCepId)
 {
         allocCepId_t *pos;
- 
+
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
 
+        pos = pvPortMalloc(sizeof(*pos));
 
         /* Find a way to iterate in the list and compare the addesss*/
 
@@ -74,7 +75,6 @@ BaseType_t xCepIdmAllocated(cepIdm_t *pxInstance, cepId_t xCepId)
         }
 
         return 0;
-
 }
 
 cepId_t xCepIdmAllocate(cepIdm_t *pxInstance)
@@ -117,7 +117,7 @@ cepId_t xCepIdmAllocate(cepIdm_t *pxInstance)
 
         vListInitialiseItem(&pxNewPortId->xCepIdItem);
         pxNewPortId->xCepId = pid;
-        vListInsert( &pxInstance->xAllocatedCepIds,&pxNewPortId->xCepIdItem);
+        vListInsert(&pxInstance->xAllocatedCepIds, &pxNewPortId->xCepIdItem);
 
         pxInstance->xLastAllocated = pid;
 
@@ -127,7 +127,7 @@ cepId_t xCepIdmAllocate(cepIdm_t *pxInstance)
 }
 
 BaseType_t xCepIdmRelease(cepIdm_t *pxInstance,
-                        cepId_t id)
+                          cepId_t id)
 {
         allocCepId_t *pos, *next;
         int found = 0;
@@ -145,8 +145,8 @@ BaseType_t xCepIdmRelease(cepIdm_t *pxInstance,
 
         /*list_for_each_entry_safe(pos, next, &instance->allocated_ports, list) {
                 if (pos->pid == id) {
-                	list_del(&pos->list);
-                	rkfree(pos);
+                        list_del(&pos->list);
+                        rkfree(pos);
                         found = 1;
                 }
         }*/

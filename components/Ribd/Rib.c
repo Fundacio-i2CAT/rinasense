@@ -46,24 +46,25 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
 
     BaseType_t x = 0;
     struct ribObject_t *pxRibObject;
+    pxRibObject = pvPortMalloc(sizeof(*pxRibObject));
 
-        for (x = 0; x < RIB_TABLE_SIZE; x++)
+    for (x = 0; x < RIB_TABLE_SIZE; x++)
 
+    {
+        if (xRibObjectTable[x].xValid == pdTRUE)
         {
-            if (xRibObjectTable[x].xValid == pdTRUE)
+            pxRibObject = xRibObjectTable[x].pxRibObject;
+            // ESP_LOGI(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
+            if (!strcmp(pxRibObject->ucObjName, ucRibObjectName))
             {
-                pxRibObject = xRibObjectTable[x].pxRibObject;
-                //ESP_LOGI(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
-                if (!strcmp(pxRibObject->ucObjName, ucRibObjectName))
-                {
-                    ESP_LOGI(TAG_RIB, "RibObj founded '%p', '%s'", pxRibObject,pxRibObject->ucObjName);
+                ESP_LOGI(TAG_RIB, "RibObj founded '%p', '%s'", pxRibObject, pxRibObject->ucObjName);
 
-                    return pxRibObject;
-                    break;
-                }
+                return pxRibObject;
+                break;
             }
         }
-        ESP_LOGI(TAG_IPCPMANAGER, "RibObj '%s' not founded", ucRibObjectName);
+    }
+    ESP_LOGI(TAG_IPCPMANAGER, "RibObj '%s' not founded", ucRibObjectName);
 
     return NULL;
 }
@@ -89,9 +90,9 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
         break;
 
     case FLOW_ALLOCATOR:
-        //M_create
-        //M_Delete
-        //M_write
+        // M_create
+        // M_Delete
+        // M_write
 
         break;
 

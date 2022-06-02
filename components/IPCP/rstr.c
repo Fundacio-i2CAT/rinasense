@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 
@@ -8,7 +7,6 @@
 #include "common.h"
 
 #include "esp_log.h"
-
 
 name_t *pxRStrNameCreate(void)
 {
@@ -24,7 +22,7 @@ name_t *pxRStrNameCreate(void)
 
 void vRstrNameFini(name_t *n)
 {
-        configASSERT(n);
+        // configASSERT(n);
 
         if (n->pcProcessName)
         {
@@ -52,16 +50,14 @@ void vRstrNameFini(name_t *n)
 
 void vRstrNameDestroy(name_t *pxName)
 {
-        configASSERT(pxName);
+        // configASSERT(pxName);
 
         vRstrNameFini(pxName);
 
         vPortFree(pxName);
 
-        ESP_LOGI(TAG_IPCPMANAGER,"Name at %pK destroyed successfully", pxName);
-
+        ESP_LOGI(TAG_IPCPMANAGER, "Name at %pK destroyed successfully", pxName);
 }
-
 
 void vRstrNameFree(name_t *xName)
 {
@@ -99,7 +95,6 @@ void vRstrNameFree(name_t *xName)
 
 BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName);
 
-
 char *pcRstrDup(const char *s)
 {
         size_t len;
@@ -109,9 +104,9 @@ char *pcRstrDup(const char *s)
                 return NULL;
 
         len = strlen(s) + 1;
-        ESP_LOGE(TAG_RIB,"Len RstrDup:%d", len);
+        ESP_LOGE(TAG_RIB, "Len RstrDup:%d", len);
         buf = pvPortMalloc(len);
-        memset(buf,0,len);
+        memset(buf, 0, len);
         if (buf)
                 memcpy(buf, s, len);
 
@@ -120,8 +115,8 @@ char *pcRstrDup(const char *s)
 
 BaseType_t xRstringDup(const string_t *pxSrc, string_t **pxDst)
 {
-        ESP_LOGE(TAG_RINA,"Free Heap Size: %d", xPortGetFreeHeapSize());
-        ESP_LOGE(TAG_RINA,"Minimum Ever Heap Size: %d", xPortGetMinimumEverFreeHeapSize());
+        ESP_LOGE(TAG_RINA, "Free Heap Size: %d", xPortGetFreeHeapSize());
+        ESP_LOGE(TAG_RINA, "Minimum Ever Heap Size: %d", xPortGetMinimumEverFreeHeapSize());
         heap_caps_check_integrity_all(pdTRUE);
         if (!pxDst)
         {
@@ -148,34 +143,31 @@ BaseType_t xRstringDup(const string_t *pxSrc, string_t **pxDst)
         return pdTRUE;
 }
 
-
-BaseType_t xRstrNameCpy(const name_t *pxSrc, name_t *pxDst)
+static BaseType_t xRstrNameCpy(const name_t *pxSrc, name_t *pxDst)
 {
         if (!pxSrc || !pxDst)
                 return pdFALSE;
 
-        ESP_LOGI(TAG_IPCPMANAGER,"Copying name %pK into %pK", pxSrc, pxDst);
+        ESP_LOGI(TAG_IPCPMANAGER, "Copying name %pK into %pK", pxSrc, pxDst);
 
         vRstrNameFini(pxDst);
 
-        //ASSERT(name_is_initialized(pxDst));
+        // ASSERT(name_is_initialized(pxDst));
 
         /* We rely on short-boolean evaluation ... :-) */
         if (xRstringDup(pxSrc->pcProcessName, &pxDst->pcProcessName) ||
-        xRstringDup(pxSrc->pcProcessInstance, &pxDst->pcProcessInstance) ||
-        xRstringDup(pxSrc->pcEntityName, &pxDst->pcEntityName) ||
-        xRstringDup(pxSrc->pcEntityInstance, &pxDst->pcEntityInstance))
+            xRstringDup(pxSrc->pcProcessInstance, &pxDst->pcProcessInstance) ||
+            xRstringDup(pxSrc->pcEntityName, &pxDst->pcEntityName) ||
+            xRstringDup(pxSrc->pcEntityInstance, &pxDst->pcEntityInstance))
         {
                 vRstrNameFini(pxDst);
                 return pdFALSE;
         }
 
-        ESP_LOGI(TAG_IPCPMANAGER,"Name %pK copied successfully into %pK", pxSrc, pxDst);
+        ESP_LOGI(TAG_IPCPMANAGER, "Name %pK copied successfully into %pK", pxSrc, pxDst);
 
         return pdTRUE;
 }
-
-
 
 name_t *xRINANameInitFrom(name_t *pxDst,
                           const string_t *process_name,
@@ -187,16 +179,16 @@ name_t *xRINANameInitFrom(name_t *pxDst,
                 return NULL;
 
         /* Clean up the destination, leftovers might be there ... */
-        xRinaNameFree(pxDst);
+        vRstrNameFree(pxDst);
         // name_fini(pxDst);
 
         // ASSERT(name_is_initialized(pxDst));
 
         /* Boolean shortcuits ... */
-        if (xRINAStringDup(process_name, &pxDst->pcProcessName) ||
-            xRINAStringDup(process_instance, &pxDst->pcProcessInstance) ||
-            xRINAStringDup(entity_name, &pxDst->pcEntityName) ||
-            xRINAStringDup(entity_instance, &pxDst->pcEntityInstance))
+        if (xRstringDup(process_name, &pxDst->pcProcessName) ||
+            xRstringDup(process_instance, &pxDst->pcProcessInstance) ||
+            xRstringDup(entity_name, &pxDst->pcEntityName) ||
+            xRstringDup(entity_instance, &pxDst->pcEntityInstance))
         {
                 vRstrNameFini(pxDst);
                 return NULL;
@@ -221,7 +213,7 @@ name_t *xRINAstringToName(const string_t *pxInput)
         {
                 string_t *tmp2;
 
-                xRINAStringDup(pxInput, &tmp1);
+                xRstringDup(pxInput, &tmp1);
                 if (!tmp1)
                 {
                         return NULL;
@@ -235,7 +227,7 @@ name_t *xRINAstringToName(const string_t *pxInput)
         }
 
         ESP_LOGE(TAG_RINA, "tmp_pn: %s", *tmp_pn);
-        pxName = xRinaNameCreate();
+        pxName = pxRStrNameCreate();
         if (!pxName)
         {
                 if (tmp1)
@@ -245,7 +237,7 @@ name_t *xRINAstringToName(const string_t *pxInput)
 
         if (!xRINANameInitFrom(pxName, tmp_pn, tmp_pi, tmp_en, tmp_ei))
         {
-                xRinaNameFree(pxName);
+                vRstrNameFree(pxName);
                 if (tmp1)
                         vPortFree(tmp1);
                 return NULL;
@@ -257,14 +249,23 @@ name_t *xRINAstringToName(const string_t *pxInput)
         return pxName;
 }
 
-BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName)
+/**
+ * @brief Create a Rina Name Structure using a string separated
+ * by the character "|".
+ *
+ * @param pcString String the type "name|instance|name|instance"
+ * @param xName pointer name struct to be filled with the string.
+ * @return BaseType_t
+ */
+BaseType_t xRinaNameFromString(const string_t pcString, name_t *pxName)
 {
+        ESP_LOGE(TAG_RINA, "Calling: %s", __func__);
         char *apn, *api, *aen, *aei;
         char *strc = pcRstrDup(pcString);
         char *strc_orig = strc;
         char **strp = &strc;
 
-        memset(xName, 0, sizeof(*xName));
+        memset(pxName, 0, sizeof(*pxName));
 
         if (!strc)
                 return pdFALSE;
@@ -280,17 +281,22 @@ BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName)
                 return pdFALSE;
         }
 
-        xName->pcProcessName = (apn && strlen(apn)) ? pcRstrDup(apn) : NULL;
-        xName->pcProcessInstance = (api && strlen(api)) ? pcRstrDup(api) : NULL;
-        xName->pcEntityName = (aen && strlen(aen)) ? pcRstrDup(aen) : NULL;
-        xName->pcEntityInstance = (aei && strlen(aei)) ? pcRstrDup(aei) : NULL;
+        pxName->pcProcessName = (apn && strlen(apn)) ? pcRstrDup(apn) : NULL;
+        pxName->pcProcessInstance = (api && strlen(api)) ? pcRstrDup(api) : NULL;
+        pxName->pcEntityName = (aen && strlen(aen)) ? pcRstrDup(aen) : NULL;
+        pxName->pcEntityInstance = (aei && strlen(aei)) ? pcRstrDup(aei) : NULL;
 
-        if ((apn && strlen(apn) && !xName->pcProcessName) ||
-            (api && strlen(api) && !xName->pcProcessInstance) ||
-            (aen && strlen(aen) && !xName->pcEntityName) ||
-            (aei && strlen(aei) && !xName->pcEntityInstance))
+        ESP_LOGE(TAG_FA, "RinaNameFromString - pcProcessName:%s", pxName->pcProcessName);
+        ESP_LOGE(TAG_FA, "RinaNameFromString - pcProcessInstance:%s", pxName->pcProcessInstance);
+        ESP_LOGE(TAG_FA, "RinaNameFromString - pcEntityName:%s", pxName->pcEntityName);
+        ESP_LOGE(TAG_FA, "RinaNameFromString - pcEntityInstance:%s", pxName->pcEntityInstance);
+
+        if ((apn && strlen(apn) && !pxName->pcProcessName) ||
+            (api && strlen(api) && !pxName->pcProcessInstance) ||
+            (aen && strlen(aen) && !pxName->pcEntityName) ||
+            (aei && strlen(aei) && !pxName->pcEntityInstance))
         {
-                xRinaNameFree(xName);
+                vRstrNameFree(pxName);
                 return pdFALSE;
         }
 
@@ -299,7 +305,12 @@ BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName)
         return pdTRUE;
 }
 
-
+/**
+ * @brief Duplicate a Rina Name structure
+ *
+ * @param pxSrc Pointer to the Rina Name structure
+ * @return Pointer to the Rina Name duplicated.
+ */
 name_t *pxRstrNameDup(const name_t *pxSrc)
 {
         name_t *pxTmp;
@@ -312,7 +323,7 @@ name_t *pxRstrNameDup(const name_t *pxSrc)
                 return NULL;
         if (xRstrNameCpy(pxSrc, pxTmp))
         {
-               vRstrNameDestroy(pxTmp);
+                vRstrNameDestroy(pxTmp);
                 return NULL;
         }
 

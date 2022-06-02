@@ -88,8 +88,8 @@ BaseType_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
                                  serObjectValue_t *pxObjValue, string_t pcRemoteApName,
                                  string_t pcLocalProcessName, int invokeId, portId_t xN1Port);
 
-BaseType_t xEnrollmentHandleOperationalStart(struct ribObject_t * pxOperRibObj, serObjectValue_t *pxSerObjectValue, string_t pcRemoteApName,
-                 string_t pxLocalApName, int invokeId, portId_t xN1Port);
+BaseType_t xEnrollmentHandleOperationalStart(struct ribObject_t *pxOperRibObj, serObjectValue_t *pxSerObjectValue, string_t pcRemoteApName,
+                                             string_t pxLocalApName, int invokeId, portId_t xN1Port);
 
 address_t xEnrollmentGetNeighborAddress(string_t pcRemoteApName);
 

@@ -53,12 +53,26 @@ static TaskHandle_t xIPCPTaskHandle = NULL;
 // static factories_t *pxFactories;
 ipcManager_t *pxIpcManager;
 
+/*********************************************************/
+
+struct ipcpNormalData_t *pxIpcpData;
+
+/* RIBD module */
+
+/* Enrollment Task */
+
+/* Flow Allocator */
+
+/**************************************/
+ipcpInstance_t *pxShimInstance;
+
 /**
  * @brief Utility function to cast pointer of a type to pointer of type NetworkBufferDescriptor_t.
  *
  * @return The casted pointer.
  */
-static portINLINE DECL_CAST_PTR_FUNC_FOR_TYPE(NetworkBufferDescriptor_t)
+static portINLINE
+DECL_CAST_PTR_FUNC_FOR_TYPE(NetworkBufferDescriptor_t)
 {
     return (NetworkBufferDescriptor_t *)pvArgument;
 }
@@ -67,6 +81,8 @@ static portINLINE DECL_CAST_PTR_FUNC_FOR_TYPE(NetworkBufferDescriptor_t)
 static IPCPTimer_t xARPTimer;
 
 void RINA_NetworkDown(void);
+
+void vIpcpInit(void);
 
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer);
 
@@ -123,6 +139,10 @@ static void prvProcessNetworkDownEvent(void);
  */
 void vInitFactories(void);
 
+BaseType_t xCreateIPCPModules(void);
+
+void prvIPCPSetAttributes(void);
+
 /*
  * Called when new data is available from the network interface.
  */
@@ -153,18 +173,18 @@ static void prvIPCPTask(void *pvParameters)
 {
     RINAStackEvent_t xReceivedEvent;
     TickType_t xNextIPCPSleep;
-    flowAllocateHandle_t *xFlowAllocateRequest;
+    flowAllocateHandle_t *pxFlowAllocateRequest;
 
     /* Just to prevent compiler warnings about unused parameters. */
     (void)pvParameters;
 
-    /*Initialize IPC Manager*/
+    vIpcpInit();
+
     pxIpcManager = pvPortMalloc(sizeof(*pxIpcManager));
     if (!xIpcManagerInit(pxIpcManager))
     {
         ESP_LOGE(TAG_IPCPMANAGER, "Error to initializing IPC Manager");
     }
-
     /* Initialization is complete and events can now be processed. */
     xIPCPTaskInitialised = pdTRUE;
 
@@ -174,7 +194,16 @@ static void prvIPCPTask(void *pvParameters)
      *  send this message if a previously connected network is disconnected. */
 
     // RINA_NetworkDown();
-    vInitFactories();
+
+    /* Create Shim */
+    pxShimInstance = pxIpcManagerCreateShim(pxIpcManager); // list of Instances, shimWifi Should request a xIpcpId. Use API?
+    if (!pxShimInstance)
+    {
+        ESP_LOGE(TAG_IPCPNORMAL, "It was not possible to create Shim ");
+    }
+
+    // Init shim use API?
+    vShimWiFiInit(pxShimInstance);
 
     /* Loop, processing IP events. */
     for (;;)
@@ -227,9 +256,16 @@ static void prvIPCPTask(void *pvParameters)
         }
         break;
 
-        case eShimEnrollEvent:
+        case eShimEnrolledEvent:
 
             // xShimWiFiCreate(pxFactory, (MACAddress_t *) xReceivedEvent.pvData );
+            /* Registering into the shim */
+            if (!xNormalRegistering(pxShimInstance, pxIpcpData->pxDifName, pxIpcpData->pxName))
+            {
+                ESP_LOGE(TAG_IPCPMANAGER, "IPCP not registered into the shim");
+            } // should be void, the Shim should control if there is an error.
+
+            (void)vIcpManagerEnrollmentFlowRequest(pxShimInstance, pxIpcManager->pxPidm, pxIpcpData->pxName); // changed pxFactories
 
             break;
         case eShimAppRegisteredEvent:
@@ -238,15 +274,18 @@ static void prvIPCPTask(void *pvParameters)
             // The enrollment object during the process of initialization should request the flow to the IpcManager.
             // By the moment the IpcManager do this action.
             ESP_LOGI(TAG_IPCPMANAGER, "Enrollment Request a Flow");
-            xIcpManagerEnrollmentFlowRequest(pxIpcManager->pxFactories, eNormal, eShimWiFi, pxIpcManager->pxPidm); // changed pxFactories
+            // xIcpManagerEnrollmentFlowRequest(pxIpcManager->pxFactories, eNormal, eShimWiFi, pxIpcManager->pxPidm); // changed pxFactories
 
             break;
 
         case eShimFlowAllocatedEvent:
 
             /*Call to the method to init the enrollment*/
-            xEnrollmentInit(xReceivedEvent.pvData);
-            // ESP_LOGI(TAG_IPCPMANAGER, "Testing Flow Allocated Event");
+            // xEnrollmentInit(xReceivedEvent.pvData);
+            (void)xNormalFlowBinding(pxIpcpData, 1, pxShimInstance);
+            (void)vIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, pxIpcpData->pxEfcpc, pxIpcpData);
+
+            ESP_LOGI(TAG_IPCPMANAGER, "Testing Flow Allocated Event");
 
             break;
 
@@ -254,32 +293,15 @@ static void prvIPCPTask(void *pvParameters)
 
             /* Create the IPCP Normal Instance calling the factory associated */
 
-            if (xIpcManagerCreateInstance(pxIpcManager->pxFactories, eFactoryNormal, pxIpcManager->pxIpcpIdm))
+            /*if (xIpcManagerCreateInstance(pxIpcManager->pxFactories, eFactoryNormal, pxIpcManager->pxIpcpIdm))
             {
                 ESP_LOGI(TAG_IPCPMANAGER, "Normal IPCP was created sucessfully");
             }
             else
             {
                 ESP_LOGI(TAG_IPCPMANAGER, "Normal IPCP was not created");
-            }
+            }*/
 
-#if SHIM_WIFI_MODULE
-            if (xIpcManagerCreateInstance(pxIpcManager->pxFactories, eShimWiFi, pxIpcManager->pxIpcpIdm))
-            {
-                ESP_LOGI(TAG_IPCPMANAGER, "Shim WiFi was created sucessfully");
-                /* Call to registerAPPNOrmal*/
-                if (xIcpManagerNormalRegister(pxIpcManager->pxFactories, eNormal, eShimWiFi))
-                {
-
-                    /* Normal IPCP should Request a Flow Allocator to the Shim*/
-                    ESP_LOGI(TAG_IPCPMANAGER, "Normal IPCP ");
-                }
-            }
-            else
-            {
-                ESP_LOGI(TAG_IPCPMANAGER, "Shim WiFi was not created");
-            }
-#endif
 #if SHIM_BLE_MODULE
             if (xIpcManagerCreate(pxIpcpFactoriesList, pxInstancesMap, eShimBLE))
             {
@@ -297,20 +319,19 @@ static void prvIPCPTask(void *pvParameters)
 
             ESP_LOGE(TAG_IPCPMANAGER, "Flow Allocate Received");
 
-            xFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
-            xFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
-            // pxIpcManager->pxIpcpIdm;
+            // pxFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
+            // pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
 
-            xIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, xFlowAllocateRequest);
+            // xIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, pxFlowAllocateRequest);
 
-            /// xRINA_WeakUpUser(xFlowAllocateRequest);
+            // xRINA_WeakUpUser(pxFlowAllocateRequest);
 
             break;
 
         case eSendMgmtEvent:
 
             /*Call to IpcManger mgmt handle */
-            xIpcManagerWriteMgmtHandler(eShimWiFi, xReceivedEvent.pvData);
+            // xIpcManagerWriteMgmtHandler(eShimWiFi, xReceivedEvent.pvData);
 
             break;
 
@@ -332,6 +353,7 @@ static void prvIPCPTask(void *pvParameters)
             prvProcessNetworkDownEvent();
         }
     }
+    vTaskDelete(NULL);
 }
 /*-----------------------------------------------------------*/
 
@@ -598,7 +620,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
     configASSERT(pxNetworkBuffer != NULL);
 
     /* Interpret the Ethernet frame. */
-    if (pxNetworkBuffer->xDataLength >= sizeof(EthernetHeader_t))
+    if (pxNetworkBuffer->xEthernetDataLength >= sizeof(EthernetHeader_t))
     {
 
         /* Map the buffer onto the Ethernet Header struct for easy access to the fields. */
@@ -614,7 +636,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             /* The Ethernet frame contains an ARP packet. */
             ESP_LOGI(TAG_IPCPMANAGER, "ARP Packet Received");
 
-            if (pxNetworkBuffer->xDataLength >= sizeof(ARPPacket_t))
+            if (pxNetworkBuffer->xEthernetDataLength >= sizeof(ARPPacket_t))
             {
                 /*Process the Packet ARP in case of REPLY -> eProcessBuffer, REQUEST -> eReturnEthernet to
                  * send to the destination a REPLY (It requires more processing tasks) */
@@ -632,7 +654,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 
             ESP_LOGI(TAG_IPCPMANAGER, "RINA Packet Received");
 
-            uint8_t *pucRinaPacket;
+            uint8_t *ptr;
             size_t uxRinaLength;
             // NetworkBufferDescriptor_t *pxBuffer;
 
@@ -642,17 +664,11 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             // ESP_LOGE(TAG_ARP, "Taking Buffer to copy the RINA PDU: ETH_P_RINA");
             // pxBuffer = pxGetNetworkBufferWithDescriptor(xlength, (TickType_t)0U);
 
-            // if (pxBuffer != NULL)
-            // {
             // Copy into the newBuffer but just the RINA PDU, and not the Ethernet Header
-            pucRinaPacket = (uint8_t *)pxNetworkBuffer->pucEthernetBuffer + 14;
+            ptr = (uint8_t *)pxNetworkBuffer->pucEthernetBuffer + 14;
 
-            //(void)memcpy(pxBuffer->pucEthernetBuffer, ptr, xlength);
-
-            pxNetworkBuffer->pucRinaBuffer = pucRinaPacket;
             pxNetworkBuffer->xRinaDataLength = uxRinaLength;
-
-            // pxBuffer->xDataLength = xlength;
+            pxNetworkBuffer->pucRinaBuffer = ptr;
 
             // Release the buffer with the Ethernet header, it is not needed any more
             // ESP_LOGE(TAG_ARP, "Releasing Buffer to copy the RINA PDU: ETH_P_RINA");
@@ -660,14 +676,6 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 
             // must be void function
             vIpcManagerRINAPackettHandler(pxNetworkBuffer);
-            eReturned = eFrameConsumed;
-
-            // }
-            // else
-            //{
-            //     ESP_LOGE(TAG_WIFI, "Failed to get buffer descriptor");
-            //    eReturned = eReleaseBuffer;
-            //}
 
             break;
 
@@ -714,7 +722,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 
         /* Finding an instance of eShimiFi and call the floww allocate Response using this instance*/
 
-        if (!xIpcpManagerShimAllocateResponseHandle(pxIpcManager->pxFactories, eShimWiFi))
+        if (!pxShimInstance->pxOps->flowAllocateResponse(pxShimInstance->pxData, 1))
         {
             ESP_LOGE(TAG_IPCPMANAGER, "Error during the Allocation Request at Shim");
             vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
@@ -820,7 +828,7 @@ static void prvProcessNetworkDownEvent(void)
     /* The network has been disconnected (or is being initialised for the first
      * time).  Perform whatever hardware processing is necessary to bring it up
      * again, or wait for it to be available again.  This is hardware dependent. */
-
+#if 0
     if (xShimWiFiInit() != pdTRUE)
     {
         /* Ideally the network interface initialisation function will only
@@ -830,6 +838,7 @@ static void prvProcessNetworkDownEvent(void)
         RINA_NetworkDown();
     }
     vTaskDelay(INITIALISATION_RETRY_DELAY);
+#endif
 }
 /*-----------------------------------------------------------*/
 /**
@@ -924,30 +933,6 @@ BaseType_t xIPCPIsNetworkTaskReady(void)
     return xIPCPTaskInitialised;
 }
 
-void vInitFactories(void)
-
-{
-    /*For improvement: Depending of the configRINA create the factories. FOr example: Normal-ShimWifi or Normal-ShimBLE*/
-    static const RINAStackEvent_t xFactoriesInitEvent = {eFactoryInitEvent, NULL};
-    const TickType_t xDontBlock = (TickType_t)0;
-
-    ESP_LOGI(TAG_IPCPMANAGER, "Initializing IPCP FACTORIES");
-
-    if (xNormalIPCPInitFactory(pxIpcManager->pxFactories) == pdTRUE)
-    {
-        if (xShimIPCPInitFactory(pxIpcManager->pxFactories) == pdTRUE)
-        {
-
-            xSendEventStructToIPCPTask(&xFactoriesInitEvent, xDontBlock);
-        }
-    }
-
-    else
-    {
-        ESP_LOGI(TAG_IPCPMANAGER, "Factories was not initiliazed properly");
-    }
-}
-
 void RINA_NetworkDown(void)
 {
     static const RINAStackEvent_t xNetworkDownEvent = {eNetworkDownEvent, NULL};
@@ -971,4 +956,60 @@ void RINA_NetworkDown(void)
 EthernetHeader_t *vCastPointerTo_EthernetPacket_t(const void *pvArgument)
 {
     return (const void *)(pvArgument);
+}
+
+//
+
+void vIpcpInit(void)
+{
+
+    name_t *pxDifName;
+    name_t *pxIPCPName;
+
+    /*** IPCP Modules ***/
+    /* RMT module */
+    rmt_t *pxRmt;
+
+    /* EFCP Container */
+    struct efcpContainer_t *pxEfcpContainer;
+
+    /*Initialize IPC Manager*/
+
+    pxIpcpData = pvPortMalloc(sizeof(*pxIpcpData));
+    pxIPCPName = pvPortMalloc(sizeof(*pxIPCPName));
+    pxDifName = pvPortMalloc(sizeof(*pxDifName));
+
+    pxIPCPName->pcEntityInstance = NORMAL_ENTITY_INSTANCE;
+    pxIPCPName->pcEntityName = NORMAL_ENTITY_NAME;
+    pxIPCPName->pcProcessInstance = NORMAL_PROCESS_INSTANCE;
+    pxIPCPName->pcProcessName = NORMAL_PROCESS_NAME;
+
+    pxDifName->pcProcessName = NORMAL_DIF_NAME;
+    pxDifName->pcProcessInstance = "";
+    pxDifName->pcEntityInstance = "";
+    pxDifName->pcEntityName = "";
+
+    /* Create EFPC Container */
+    pxEfcpContainer = pxEfcpContainerCreate();
+    if (!pxEfcpContainer)
+    {
+        ESP_LOGE(TAG_IPCPNORMAL, "Failed creation of EFCP Container");
+        // return pdFALSE;
+    }
+    /* Create RMT*/
+    pxRmt = pxRmtCreate(pxEfcpContainer);
+    if (!pxRmt)
+    {
+        ESP_LOGE(TAG_IPCPNORMAL, "Failed creation of RMT instance");
+        // return pdFALSE;
+    }
+
+    pxIpcpData->pxDifName = pxDifName;
+    pxIpcpData->pxName = pxIPCPName;
+    pxIpcpData->pxEfcpc = pxEfcpContainer;
+    pxIpcpData->pxRmt = pxRmt;
+    pxIpcpData->xAddress = LOCAL_ADDRESS;
+    // pxIpcpData->pxIpcManager = pxIpcManager;
+    /*Initialialise flows list*/
+    vListInitialise(&(pxIpcpData->xFlowsList));
 }

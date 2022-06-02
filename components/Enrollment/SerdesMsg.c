@@ -27,78 +27,61 @@
 #include "esp_log.h"
 
 /**
- * @brief Fill the proto struct rina_messages_enrollmentInformation using the internal struct
- * enrollmentMessage_t
- * 
- * @param pxMsg  struct enrollmentMessage_t that need to encode.
- * @return rina_messages_enrollmentInformation_t 
- */
-static rina_messages_enrollmentInformation_t prvSedesMsgEncodeEnroll(enrollmentMessage_t *pxMsg)
-{
-        rina_messages_enrollmentInformation_t msgPb = rina_messages_enrollmentInformation_t_init_zero;
-
-        /*adding the address msg struct*/
-        /****** For the moment just the address *****/
-        if (pxMsg->ullAddress > 0)
-        {
-                msgPb.address = pxMsg->ullAddress;
-                msgPb.has_address = true;
-        }
-
-        return msgPb;
-}
-
-
-/**
  * @brief Encode a Enrollment message and return the serialized object value to be
  * added into the CDAP message
- * 
- * @param pxMsg 
- * @return serObjectValue_t* 
+ *
+ * @param pxMsg
+ * @return serObjectValue_t*
  */
 serObjectValue_t *pxSerdesMsgEnrollmentEncode(enrollmentMessage_t *pxMsg)
 {
-        BaseType_t status;
-        rina_messages_enrollmentInformation_t enrollMsg = prvSedesMsgEncodeEnroll(pxMsg);
+    BaseType_t status;
+    rina_messages_enrollmentInformation_t enrollMsg = rina_messages_enrollmentInformation_t_init_zero;
 
-        // Allocate space on the stack to store the message data.
-        void *pvBuffer = pvPortMalloc(MTU);
-        int maxLength = MTU;
+    /*adding the address msg struct*/
+    /****** For the moment just the address *****/
+    if (pxMsg->ullAddress > 0)
+    {
+        enrollMsg.address = pxMsg->ullAddress;
+        enrollMsg.has_address = true;
+    }
 
-        // Create a stream that writes to our buffer.
-        pb_ostream_t stream = pb_ostream_from_buffer(pvBuffer, maxLength);
+    // Allocate space on the stack to store the message data.
+    void *pvBuffer = pvPortMalloc(MTU);
+    int maxLength = MTU;
 
-        // Now we are ready to encode the message.
-        status = pb_encode(&stream, rina_messages_enrollmentInformation_t_fields, &enrollMsg);
+    // Create a stream that writes to our buffer.
+    pb_ostream_t stream = pb_ostream_from_buffer(pvBuffer, maxLength);
 
-        // Check for errors...
-        if (!status)
-        {
-                ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
-                vPortFree(pvBuffer);
-                return NULL;
-        }
+    // Now we are ready to encode the message.
+    status = pb_encode(&stream, rina_messages_enrollmentInformation_t_fields, &enrollMsg);
 
-        serObjectValue_t *pxSerMsg = pvPortMalloc(sizeof(*pxSerMsg));
-        pxSerMsg->pvSerBuffer = pvBuffer;
-        pxSerMsg->xSerLength = stream.bytes_written;
+    // Check for errors...
+    if (!status)
+    {
+        ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        return NULL;
+    }
 
-        return pxSerMsg;
+    serObjectValue_t *pxSerMsg = pvPortMalloc(sizeof(*pxSerMsg));
+    pxSerMsg->pvSerBuffer = pvBuffer;
+    pxSerMsg->xSerLength = stream.bytes_written;
+
+    return pxSerMsg;
 }
 
-static enrollmentMessage_t * prvSerdesMsgDecodeEnrollment(rina_messages_enrollmentInformation_t message)
+static enrollmentMessage_t *prvSerdesMsgDecodeEnrollment(rina_messages_enrollmentInformation_t message)
 {
-    enrollmentMessage_t * pxMsg;
+    enrollmentMessage_t *pxMsg;
     pxMsg = pvPortMalloc(sizeof(*pxMsg));
 
-    if ( message.has_address )
+    if (message.has_address)
     {
         pxMsg->ullAddress = message.address;
     }
     if (message.has_token)
     {
         pxMsg->pcToken = strdup(message.token);
-        
     }
 
     return pxMsg;
@@ -106,7 +89,7 @@ static enrollmentMessage_t * prvSerdesMsgDecodeEnrollment(rina_messages_enrollme
 
 enrollmentMessage_t *pxSerdesMsgEnrollmentDecode(uint8_t *pucBuffer, size_t xMessageLength)
 {
-   
+
     BaseType_t status;
 
     /*Allocate space for the decode message data*/
@@ -129,21 +112,19 @@ enrollmentMessage_t *pxSerdesMsgEnrollmentDecode(uint8_t *pucBuffer, size_t xMes
 /**
  * @brief Fill the internal structure neighborMessage_t from the rina_messages_neighbor_t
  * It is call from the Decode Neighbor function.
- * 
+ *
  * @param message rina_messages_neighbor_t structure
- * @return neighborMessage_t* 
+ * @return neighborMessage_t*
  */
 static neighborMessage_t *prvSerdesMsgDecodeNeighbor(rina_messages_neighbor_t message)
 {
     neighborMessage_t *pxMessage;
-    
 
     pxMessage = pvPortMalloc(sizeof(*pxMessage));
 
     if (message.has_apname)
     {
         pxMessage->pcApName = strdup(message.apname);
-
     }
 
     if (message.has_apinstance)
@@ -153,7 +134,7 @@ static neighborMessage_t *prvSerdesMsgDecodeNeighbor(rina_messages_neighbor_t me
 
     if (message.has_aename)
     {
-         pxMessage->pcAeName = strdup(message.aename);
+        pxMessage->pcAeName = strdup(message.aename);
     }
 
     if (message.has_aeinstance)
@@ -166,14 +147,8 @@ static neighborMessage_t *prvSerdesMsgDecodeNeighbor(rina_messages_neighbor_t me
         pxMessage->ullAddress = message.address;
     }
 
-
-
-
     return pxMessage;
 }
-
-
-
 
 neighborMessage_t *pxserdesMsgDecodeNeighbor(uint8_t *pucBuffer, size_t xMessageLength)
 {
@@ -197,27 +172,26 @@ neighborMessage_t *pxserdesMsgDecodeNeighbor(uint8_t *pucBuffer, size_t xMessage
     return prvSerdesMsgDecodeNeighbor(message);
 }
 
-
 static rina_messages_neighbor_t prvSerdesMsgEncodeNeighbor(neighborMessage_t *pxMessage)
 {
     rina_messages_neighbor_t message = rina_messages_neighbor_t_init_zero;
 
-    if(pxMessage->pcAeInstance)
+    if (pxMessage->pcAeInstance)
     {
         strcpy(message.aeinstance, pxMessage->pcAeInstance);
         message.has_aeinstance = true;
     }
-        if(pxMessage->pcAeName)
+    if (pxMessage->pcAeName)
     {
         strcpy(message.aename, pxMessage->pcAeName);
         message.has_aename = true;
     }
-        if(pxMessage->pcApInstance)
+    if (pxMessage->pcApInstance)
     {
         strcpy(message.apinstance, pxMessage->pcApInstance);
         message.has_apinstance = true;
     }
-        if(pxMessage->pcApName)
+    if (pxMessage->pcApName)
     {
         strcpy(message.apname, pxMessage->pcApName);
         message.has_apname = true;
@@ -225,43 +199,61 @@ static rina_messages_neighbor_t prvSerdesMsgEncodeNeighbor(neighborMessage_t *px
 
     return message;
 }
-serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMsg)
+serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMessage)
 {
-        BaseType_t status;
-        rina_messages_neighbor_t  neighborMsg = prvSerdesMsgEncodeNeighbor(pxMsg);
+    BaseType_t status;
+    rina_messages_neighbor_t message = rina_messages_neighbor_t_init_zero;
 
-        // Allocate space on the stack to store the message data.
-        void *pvBuffer = pvPortMalloc(MTU);
-        int maxLength = MTU;
+    if (pxMessage->pcAeInstance)
+    {
+        strcpy(message.aeinstance, pxMessage->pcAeInstance);
+        message.has_aeinstance = true;
+    }
+    if (pxMessage->pcAeName)
+    {
+        strcpy(message.aename, pxMessage->pcAeName);
+        message.has_aename = true;
+    }
+    if (pxMessage->pcApInstance)
+    {
+        strcpy(message.apinstance, pxMessage->pcApInstance);
+        message.has_apinstance = true;
+    }
+    if (pxMessage->pcApName)
+    {
+        strcpy(message.apname, pxMessage->pcApName);
+        message.has_apname = true;
+    }
+    // Allocate space on the stack to store the message data.
+    void *pvBuffer = pvPortMalloc(MTU);
+    int maxLength = MTU;
 
-        // Create a stream that writes to our buffer.
-        pb_ostream_t stream = pb_ostream_from_buffer(pvBuffer, maxLength);
+    // Create a stream that writes to our buffer.
+    pb_ostream_t stream = pb_ostream_from_buffer(pvBuffer, maxLength);
 
-        // Now we are ready to encode the message.
-        status = pb_encode(&stream, rina_messages_neighbor_t_fields , &neighborMsg);
+    // Now we are ready to encode the message.
+    status = pb_encode(&stream, rina_messages_neighbor_t_fields, &message);
 
-        // Check for errors...
-        if (!status)
-        {
-                ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
-                vPortFree(pvBuffer);
-                return NULL;
-        }
+    // Check for errors...
+    if (!status)
+    {
+        ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        return NULL;
+    }
 
-        serObjectValue_t *pxSerMsg = pvPortMalloc(sizeof(*pxSerMsg));
-        pxSerMsg->pvSerBuffer = pvBuffer;
-        pxSerMsg->xSerLength = stream.bytes_written;
+    serObjectValue_t *pxSerMsg = pvPortMalloc(sizeof(*pxSerMsg));
+    pxSerMsg->pvSerBuffer = pvBuffer;
+    pxSerMsg->xSerLength = stream.bytes_written;
 
-        return pxSerMsg;
+    return pxSerMsg;
 }
-
 
 static rina_messages_Flow prvSerdesMsgEncodeFlow(flow_t *pxMsg)
 {
-    rina_messages_Flow message = rina_messages_Flow_init_zero ;
+    rina_messages_Flow message = rina_messages_Flow_init_zero;
 
-    //Fill required attributes
-    strcpy(message.sourceNamingInfo.applicationProcessName,pxMsg->pxSourceInfo->pcProcessName);
+    // Fill required attributes
+    strcpy(message.sourceNamingInfo.applicationProcessName, pxMsg->pxSourceInfo->pcProcessName);
     strcpy(message.destinationNamingInfo.applicationProcessName, pxMsg->pxDestInfo->pcProcessName);
 
     message.sourcePortId = pxMsg->xSourcePortId;
@@ -283,11 +275,11 @@ static rina_messages_Flow prvSerdesMsgEncodeFlow(flow_t *pxMsg)
     message.qosParameters.has_order = true;
 
     message.has_dtpConfig = true;
-    strcpy( message.dtpConfig.dtppolicyset.policyName,
-        pxMsg->pxDtpConfig->pxDtpPolicySet->pcPolicyName );
+    strcpy(message.dtpConfig.dtppolicyset.policyName,
+           pxMsg->pxDtpConfig->pxDtpPolicySet->pcPolicyName);
     message.dtpConfig.dtppolicyset.has_policyName = true;
-    strcpy( message.dtpConfig.dtppolicyset.version,
-        pxMsg->pxDtpConfig->pxDtpPolicySet->pcPolicyVersion );
+    strcpy(message.dtpConfig.dtppolicyset.version,
+           pxMsg->pxDtpConfig->pxDtpPolicySet->pcPolicyVersion);
     message.dtpConfig.dtppolicyset.has_version = true;
 
     message.dtpConfig.initialATimer = pxMsg->pxDtpConfig->xInitialATimer;
@@ -298,34 +290,79 @@ static rina_messages_Flow prvSerdesMsgEncodeFlow(flow_t *pxMsg)
 
     return message;
 }
+
 serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 {
-        BaseType_t status;
-        rina_messages_Flow flowMsg = prvSerdesMsgEncodeFlow(pxMsg);
+    ESP_LOGI(TAG_RIB, "Calling: %s", __func__);
 
-        // Allocate space on the stack to store the message data.
-        void *pvBuffer = pvPortMalloc(MTU);
-        int maxLength = MTU;
+    BaseType_t status;
 
-        // Create a stream that writes to our buffer.
-        pb_ostream_t stream = pb_ostream_from_buffer(pvBuffer, maxLength);
+    rina_messages_Flow message = rina_messages_Flow_init_zero;
 
-        // Now we are ready to encode the message.
-        status = pb_encode(&stream, rina_messages_Flow_fields , &flowMsg);
+    // Allocate space on the stack to store the message data.
+    uint8_t *pucBuffer[1500];
+    int maxLength = MTU;
 
-        // Check for errors...
-        if (!status)
-        {
-                ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
-                vPortFree(pvBuffer);
-                return NULL;
-        }
+    if (!pxMsg)
+    {
+        ESP_LOGE(TAG_RIB, "No flow message to be sended");
+        return NULL;
+    }
 
-        serObjectValue_t *pxSerMsg = pvPortMalloc(sizeof(*pxSerMsg));
-        pxSerMsg->pvSerBuffer = pvBuffer;
-        pxSerMsg->xSerLength = stream.bytes_written;
+    // Fill required attributes
+    strcpy(message.sourceNamingInfo.applicationProcessName, pxMsg->pxSourceInfo->pcProcessName);
+    strcpy(message.destinationNamingInfo.applicationProcessName, pxMsg->pxDestInfo->pcProcessName);
 
-        ESP_LOGE(TAG_ENROLLMENT, "Encoding Flow Message ok");
+    message.sourcePortId = pxMsg->xSourcePortId;
+    message.sourceAddress = pxMsg->xSourceAddress;
 
-        return pxSerMsg;
+    message.connectionIds->sourceCEPId = pxMsg->pxConnectionId->xSource;
+    message.connectionIds->has_sourceCEPId = true;
+    message.connectionIds->qosId = pxMsg->pxConnectionId->xQosId;
+    message.connectionIds->has_qosId = true;
+
+    message.has_qosParameters = true;
+    message.qosParameters.qosid = pxMsg->pxQosSpec->xQosId;
+    message.qosParameters.has_qosid = true;
+    strcpy(message.qosParameters.name, pxMsg->pxQosSpec->pcQosName);
+    message.qosParameters.has_name = true;
+    message.qosParameters.partialDelivery = pxMsg->pxQosSpec->pxFlowSpec->xPartialDelivery;
+    message.qosParameters.has_partialDelivery = true;
+    message.qosParameters.order = pxMsg->pxQosSpec->pxFlowSpec->xOrderedDelivery;
+    message.qosParameters.has_order = true;
+
+    message.has_dtpConfig = true;
+    strcpy(message.dtpConfig.dtppolicyset.policyName,
+           pxMsg->pxDtpConfig->pxDtpPolicySet->pcPolicyName);
+    message.dtpConfig.dtppolicyset.has_policyName = true;
+    strcpy(message.dtpConfig.dtppolicyset.version,
+           pxMsg->pxDtpConfig->pxDtpPolicySet->pcPolicyVersion);
+    message.dtpConfig.dtppolicyset.has_version = true;
+
+    message.dtpConfig.initialATimer = pxMsg->pxDtpConfig->xInitialATimer;
+    message.dtpConfig.has_initialATimer = true;
+
+    message.dtpConfig.dtcpPresent = pxMsg->pxDtpConfig->xDtcpPresent;
+    message.dtpConfig.has_dtcpPresent = true;
+
+    // Create a stream that writes to our buffer.
+    pb_ostream_t stream = pb_ostream_from_buffer((pb_byte_t *)pucBuffer, sizeof(pucBuffer));
+
+    // Now we are ready to encode the message.
+    status = pb_encode(&stream, rina_messages_Flow_fields, &message);
+
+    // Check for errors...
+    if (!status)
+    {
+        ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        return NULL;
+    }
+
+    serObjectValue_t *pxSerValue = pvPortMalloc(sizeof(*pxSerValue));
+    pxSerValue->pvSerBuffer = pucBuffer;
+    pxSerValue->xSerLength = stream.bytes_written;
+
+    ESP_LOGE(TAG_ENROLLMENT, "Encoding Flow Message ok");
+
+    return pxSerValue;
 }

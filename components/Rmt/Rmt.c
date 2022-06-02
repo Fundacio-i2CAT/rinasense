@@ -27,8 +27,6 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xFrom);
 /* @brief Called when a SDU arrived into the RMT from the EFCP Container*/
 static int xRmtN1PortWriteDu(rmt_t *pxRmt, rmtN1Port_t *pxN1Port, struct du_t *pxDu);
 
-static BaseType_t xRmtProcessMgmtPdu(rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu);
-
 /* @brief Create an N-1 Port in the RMT Component*/
 static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, ipcpInstance_t *pxN1Ipcp);
 
@@ -36,7 +34,7 @@ static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, ipcpInstance_t *pxN1Ipcp)
 {
 	rmtN1Port_t *pxTmp;
 
-	configASSERT(IS_PORT_ID_OK(xId));
+	// configASSERT(IS_PORT_ID_OK(xId));
 
 	pxTmp = pvPortMalloc(sizeof(*pxTmp));
 	if (!pxTmp)
@@ -148,7 +146,7 @@ BaseType_t xRmtAddressAdd(rmt_t *pxInstance, address_t xAddress)
 	ESP_LOGE(TAG_RMT, "Adding and Address into the RMT list:%d", pxRmtAddr->xAddress);
 
 	vListInitialiseItem(&(pxRmtAddr->xAddressListItem));
-	listSET_LIST_ITEM_OWNER(&(pxRmtAddr->xAddressListItem), pxRmtAddr);
+	listSET_LIST_ITEM_OWNER(&(pxRmtAddr->xAddressListItem), (void *)pxRmtAddr);
 	vListInsert(&pxInstance->xAddresses, &(pxRmtAddr->xAddressListItem));
 
 	return pdTRUE;
@@ -166,6 +164,8 @@ BaseType_t xRmtPduIsAddressedToMe(rmt_t *pxRmt, address_t xAddress)
 	ListItem_t *pxListItem, *pxNext;
 	ListItem_t const *pxListEnd;
 
+	pxAddr = pvPortMalloc(sizeof(*pxAddr));
+
 	/* Find a way to iterate in the list and compare the addesss*/
 	pxListEnd = listGET_END_MARKER(&pxRmt->xAddresses);
 	pxListItem = listGET_HEAD_ENTRY(&pxRmt->xAddresses);
@@ -174,19 +174,20 @@ BaseType_t xRmtPduIsAddressedToMe(rmt_t *pxRmt, address_t xAddress)
 	{
 
 		pxAddr = (rmtAddress_t *)listGET_LIST_ITEM_OWNER(pxListItem);
-
+		// ESP_LOGE(TAG_RMT, "Address to evalute: %d", pxAddr->xAddress);
 		if (pxAddr->xAddress == xAddress)
 		{
 			ESP_LOGI(TAG_RMT, "Address to me founded!");
-			vPortFree(pxAddr);
 			return pdTRUE;
 		}
 		pxListItem = listGET_NEXT(pxListItem);
+		;
 	}
 
 	return pdFALSE;
 }
 
+static BaseType_t xRmtProcessMgmtPdu(rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu);
 static BaseType_t xRmtProcessMgmtPdu(rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
 {
 
@@ -257,7 +258,7 @@ static BaseType_t xRmtProcessDtPdu(rmt_t *pxRmt, portId_t xPortId, struct du_t *
 	return pdTRUE;
 }
 
-BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xPortIdFrom)
+BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xFrom)
 {
 
 	pduType_t xPduType;
@@ -272,9 +273,9 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xPortIdFrom)
 		xDuDestroy(pxDu);
 		return pdFALSE;
 	}
-	if (!IS_PORT_ID_OK(xPortIdFrom))
+	if (!IS_PORT_ID_OK(xFrom))
 	{
-		ESP_LOGE(TAG_RMT, "Wrong port-id %d", xPortIdFrom);
+		ESP_LOGE(TAG_RMT, "Wrong port-id %d", xFrom);
 		xDuDestroy(pxDu);
 		return pdFALSE;
 	}
@@ -282,7 +283,6 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xPortIdFrom)
 	uxBytes = pxDu->pxNetworkBuffer->xRinaDataLength;
 	pxDu->pxCfg = pxRmt->pxEfcpc->pxConfig;
 
-	// Should search in the PortId Table, it takes the first entre for testing purposes.
 	pxN1Port = xPortIdTable[0].pxPortN1;
 	if (!pxN1Port)
 	{
@@ -336,8 +336,8 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xPortIdFrom)
 		switch (xPduType)
 		{
 		case PDU_TYPE_MGMT:
-			ESP_LOGD(TAG_RMT, "Mgmt PDU!!!");
-			return xRmtProcessMgmtPdu(pxRmt, xPortIdFrom, pxDu);
+			ESP_LOGE(TAG_RMT, "Mgmt PDU!!!");
+			return xRmtProcessMgmtPdu(pxRmt, xFrom, pxDu);
 
 		case PDU_TYPE_CACK:
 		case PDU_TYPE_SACK:
@@ -353,7 +353,7 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xPortIdFrom)
 			 * enqueue PDU in pdus_dt[dest-addr, qos-id]
 			 * don't process it now ...
 			 */
-			return xRmtProcessDtPdu(pxRmt, xPortIdFrom, pxDu);
+			return xRmtProcessDtPdu(pxRmt, xFrom, pxDu);
 
 		default:
 			ESP_LOGE(TAG_RMT, "Unknown PDU type %d", xPduType);
@@ -366,7 +366,7 @@ BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xPortIdFrom)
 	else
 	{
 		if (!xDstAddr)
-			return xRmtProcessMgmtPdu(pxRmt, xPortIdFrom, pxDu);
+			return xRmtProcessMgmtPdu(pxRmt, xFrom, pxDu);
 		else
 		{
 			ESP_LOGI(TAG_RMT, "PDU is not for me");
@@ -572,10 +572,10 @@ BaseType_t xRmtSend(rmt_t *pxRmtInstance,
 
 pci_t *vCastPointerTo_pci_t(void *pvArgument)
 {
-	return (pci_t *)(pvArgument);
+	return (void *)(pvArgument);
 }
 
-rmt_t *pxRmtCreate(struct efcpContainer_t *pxEfcpc, ipcpInstance_t *pxInstance)
+rmt_t *pxRmtCreate(struct efcpContainer_t *pxEfcpc)
 {
 	rmt_t *pxRmtTmp;
 	rmtN1Port_t *pxPortN1[2];
@@ -592,7 +592,7 @@ rmt_t *pxRmtCreate(struct efcpContainer_t *pxEfcpc, ipcpInstance_t *pxInstance)
 
 	vListInitialise(&pxRmtTmp->xAddresses);
 
-	pxRmtTmp->pxParent = pxInstance;
+	// pxRmtTmp->pxParent = pxInstance;
 	pxRmtTmp->pxEfcpc = pxEfcpc;
 
 	/*tmp->pff = pff_create(&tmp->robj, tmp->parent);
