@@ -10,7 +10,7 @@
 
 #include "du.h"
 #include "common.h"
-#include "Rmt.h"
+#include "rmt.h"
 
 #define TAG_DTP         "[DTP]"
 

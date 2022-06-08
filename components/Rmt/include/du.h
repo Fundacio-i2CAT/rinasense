@@ -9,7 +9,7 @@
 #ifndef COMPONENTS_RMT_INCLUDE_DU_H_
 #define COMPONENTS_RMT_INCLUDE_DU_H_
 
-#include "Rmt.h"
+#include "rmt.h"
 #include "IPCP.h"
 #include "common.h"
 #include "pci.h"

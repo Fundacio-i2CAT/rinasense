@@ -21,7 +21,7 @@
 
 #include "esp_log.h"
 
-#include "Rmt.h"
+#include "rmt.h"
 #include "du.h"
 #include "pci.h"
 #include "IPCP.h"

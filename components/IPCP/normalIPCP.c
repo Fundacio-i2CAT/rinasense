@@ -2,14 +2,14 @@
 #include <string.h>
 
 /* FreeRTOS includes. */
-#include "Freertos/FreeRTOS.h"
-#include "Freertos/task.h"
-#include "Freertos/queue.h"
-#include "Freertos/semphr.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
 
 #include "IPCP.h"
 #include "EFCP.h"
-#include "Rmt.h"
+#include "rmt.h"
 #include "common.h"
 #include "du.h"
 #include "factoryIPCP.h"
