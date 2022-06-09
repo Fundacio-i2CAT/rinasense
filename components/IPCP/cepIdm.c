@@ -4,7 +4,7 @@
 #include "common.h"
 #include "configRINA.h"
 #include "configSensor.h"
-#include "cepIdm.h"
+#include "cepidm.h"
 
 #include "esp_log.h"
 #define BITS_PER_BYTE (8)

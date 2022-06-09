@@ -565,7 +565,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t * pxContainer,
         /* We must ensure that the DTP is instantiated, at least ... */
 
         ESP_LOGE(TAG_EFCP,"xEfcpConnectionCreate: pxContainer");
-        pxEfcp->pvContainer = pxContainer;
+        pxEfcp->pxContainer = pxContainer;
         pxConnection->xSourceCepId = xCepId;
         if (!is_candidate_connection_ok((const struct connection_t *) pxConnection)) {
                 ESP_LOGE(TAG_EFCP,"Bogus connection passed, bailing out");

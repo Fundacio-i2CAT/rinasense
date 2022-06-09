@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "freertos/freertos.h"
+#include "freertos/FreeRTOS.h"
 #include "esp_heap_caps.h"
 
 #include "common.h"

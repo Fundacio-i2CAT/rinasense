@@ -10,7 +10,7 @@
 
 
 #include "common.h"
-#include "FreeRTOS/FreeRTOS.h"
+#include "freertos/FreeRTOS.h"
 
 connection_t *  pxConnectionCreate(void);
 
