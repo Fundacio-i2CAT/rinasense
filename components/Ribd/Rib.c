@@ -44,6 +44,7 @@ void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
 struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
 {
 
+    ESP_LOGI(TAG_RIB, "Looking for the object %s in the RIB Object Table", ucRibObjectName);
     BaseType_t x = 0;
     struct ribObject_t *pxRibObject;
     pxRibObject = pvPortMalloc(sizeof(*pxRibObject));
@@ -72,6 +73,7 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
 struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
                                       string_t ucDisplayableValue, string_t ucObjClass, eObjectType_t eObjType)
 {
+    ESP_LOGI(TAG_RIB, "Creating object %s into the RIB", ucObjName);
     struct ribObject_t *pxObj = pvPortMalloc(sizeof(*pxObj));
     struct ribObjOps_t *pxObjOps = pvPortMalloc(sizeof(*pxObjOps));
 

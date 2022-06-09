@@ -490,11 +490,11 @@ static BaseType_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t 
         return pdTRUE;
 }
 
-static BaseType_t xNormalDuEnqueue(struct ipcpInstanceData_t *pxData,
-                                   portId_t xN1PortId,
-                                   struct du_t *pxDu)
+BaseType_t xNormalDuEnqueue(struct ipcpNormalData_t *pxData,
+                            portId_t xN1PortId,
+                            struct du_t *pxDu)
 {
-        if (!xRmtReceive(pxData->pxRmt, pxDu, xN1PortId))
+        if (!xRmtReceive(pxData, pxDu, xN1PortId))
         {
                 ESP_LOGE(TAG_IPCPNORMAL, "Could not enqueue SDU into the RMT");
                 return pdFALSE;
@@ -512,11 +512,17 @@ static BaseType_t xNormalDuEnqueue(struct ipcpInstanceData_t *pxData,
  * @param pxDu Data Unit to be write into the IPCP instance.
  * @return BaseType_t
  */
-BaseType_t xNormalMgmtDuWrite(rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
+BaseType_t xNormalMgmtDuWrite(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
 {
         ssize_t sbytes;
 
         ESP_LOGI(TAG_IPCPNORMAL, "Passing SDU to be written to N-1 port %d ", xPortId);
+
+        if (!pxRmt)
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "No RMT passed");
+                return pdFALSE;
+        }
 
         if (!pxDu)
         {
@@ -568,17 +574,8 @@ BaseType_t xNormalMgmtDuWrite(rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
         return pdTRUE;
 }
 
-static BaseType_t xNormalMgmtDuPost(struct ipcpInstanceData *pxData,
-                                    portId_t xPortId,
-                                    struct du *pxDu)
+BaseType_t xNormalMgmtDuPost(struct ipcpNormalData_t *pxData, portId_t xPortId, struct du_t *pxDu)
 {
-
-        if (!pxData)
-        {
-                ESP_LOGE(TAG_IPCPNORMAL, "Bogus instance passed");
-                xDuDestroy(pxDu);
-                return pdFALSE;
-        }
 
         if (!is_port_id_ok(xPortId))
         {
@@ -624,11 +621,11 @@ static struct ipcpInstanceOps_t xNormalInstanceOps = {
     .connectionCreateArrived = NULL,                    // ok
     .connectionModify = NULL,                           // ok
 
-    .duEnqueue = xNormalDuEnqueue, // ok
-    .duWrite = xNormalDuWrite,     // ok
+    .duEnqueue = NULL, // ok
+    .duWrite = NULL,   // ok
 
-    .mgmtDuWrite = xNormalMgmtDuWrite, // ok
-    .mgmtDuPost = xNormalMgmtDuPost,   // ok
+    .mgmtDuWrite = NULL, // ok
+    .mgmtDuPost = NULL,  // ok
 
     .pffAdd = NULL,    // ok
     .pffRemove = NULL, // ok
@@ -804,7 +801,7 @@ BaseType_t xNormalRegistering(ipcpInstance_t *pxShimInstance, name_t *pxDifName,
         }
         if (pxShimInstance->pxOps->applicationRegister(pxShimInstance->pxData, pxName, pxDifName))
         {
-                ESP_LOGI(TAG_IPCPNORMAL, "Normal Instance Registered");
+                ESP_LOGI(TAG_IPCPNORMAL, "Normal Instance Registered into the Shim");
                 return pdTRUE;
         }
 

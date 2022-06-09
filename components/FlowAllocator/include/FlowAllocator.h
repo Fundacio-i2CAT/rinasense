@@ -114,5 +114,6 @@ typedef struct xFLOW_MESSAGE
 } flow_t;
 
 void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest, struct ipcpNormalData_t *pxIpcpData);
+BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
 
 #endif

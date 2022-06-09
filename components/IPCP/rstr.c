@@ -104,7 +104,7 @@ char *pcRstrDup(const char *s)
                 return NULL;
 
         len = strlen(s) + 1;
-        ESP_LOGE(TAG_RIB, "Len RstrDup:%d", len);
+        // ESP_LOGE(TAG_RIB, "Len RstrDup:%d", len);
         buf = pvPortMalloc(len);
         memset(buf, 0, len);
         if (buf)
@@ -115,8 +115,8 @@ char *pcRstrDup(const char *s)
 
 BaseType_t xRstringDup(const string_t *pxSrc, string_t **pxDst)
 {
-        ESP_LOGE(TAG_RINA, "Free Heap Size: %d", xPortGetFreeHeapSize());
-        ESP_LOGE(TAG_RINA, "Minimum Ever Heap Size: %d", xPortGetMinimumEverFreeHeapSize());
+        // ESP_LOGE(TAG_RINA, "Free Heap Size: %d", xPortGetFreeHeapSize());
+        // ESP_LOGE(TAG_RINA, "Minimum Ever Heap Size: %d", xPortGetMinimumEverFreeHeapSize());
         heap_caps_check_integrity_all(pdTRUE);
         if (!pxDst)
         {

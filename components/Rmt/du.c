@@ -34,14 +34,15 @@ BaseType_t xDuDestroy(struct du_t *pxDu)
 		ESP_LOGI(TAG_DTP, "Destroying du struct and releasing Buffer");
 		vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
 	}
-	vPortFree(pxDu);
+	// vPortFree(pxDu);
 
 	return pdTRUE;
 }
 
 BaseType_t xDuDecap(struct du_t *pxDu)
 {
-	ESP_LOGI(TAG_DTP, "xDuDecap");
+	ESP_LOGI(TAG_DTP, "Decapsulating the DU");
+
 	pduType_t xType;
 	pci_t *pxPciTmp;
 	size_t uxPciLen;

@@ -267,5 +267,6 @@ BaseType_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer);
 
 BaseType_t RINA_IPCPInit(void);
+struct rmt_t *pxIPCPGetRmt(void);
 
 #endif

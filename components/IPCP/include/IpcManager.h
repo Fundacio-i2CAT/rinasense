@@ -62,7 +62,7 @@ void vIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, struct efcpContain
 // BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData);
 
 ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId);
-void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t *pxNetworkBuffer);
+void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
 
 ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager);
 

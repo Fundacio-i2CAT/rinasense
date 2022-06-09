@@ -61,6 +61,12 @@ BaseType_t xNormalFlowAllocationRequest(struct ipcpInstance_t *pxInstanceFrom, s
 BaseType_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
                               portId_t xPortId);
 
-BaseType_t xNormalMgmtDuWrite(rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu);
+BaseType_t xNormalMgmtDuWrite(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu);
+
+BaseType_t xNormalDuEnqueue(struct ipcpNormalData_t *pxData,
+                            portId_t xN1PortId,
+                            struct du_t *pxDu);
+
+BaseType_t xNormalMgmtDuPost(struct ipcpNormalData_t *pxData, portId_t xPortId, struct du_t *pxDu);
 
 #endif

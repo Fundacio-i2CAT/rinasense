@@ -18,10 +18,10 @@
     const typeof( ((type *)0)->member ) *__mptr = (ptr); \
     (type *)( (char *)__mptr - offsetof(type,member) ); })
 
-#define PORT_ID_WRONG 0
-#define CEP_ID_WRONG 0
-#define ADDRESS_WRONG 0
-#define QOS_ID_WRONG 0
+#define PORT_ID_WRONG -1
+#define CEP_ID_WRONG -1
+#define ADDRESS_WRONG -1
+#define QOS_ID_WRONG -1
 
 typedef int32_t portId_t;
 

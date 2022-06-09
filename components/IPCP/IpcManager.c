@@ -246,7 +246,7 @@ void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, pidm_t *px
                                                    destinationInfo,
                                                    pxShimInstance->pxData))
     {
-        ESP_LOGI(TAG_IPCPNORMAL, "Flow Request Sended");
+        ESP_LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
         return pdTRUE;
     }
 
@@ -293,14 +293,14 @@ void vIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, struct efcpContain
     pxLocal->pcProcessInstance = "1";
     pxLocal->pcEntityName = "test";
     pxLocal->pcEntityInstance = "1";
-    pxRemote->pcProcessName = "Test";
-    pxRemote->pcProcessInstance = "1";
-    pxRemote->pcEntityName = "test";
-    pxRemote->pcEntityInstance = "1";
-    pxDIF->pcProcessName = "Irati";
-    pxDIF->pcProcessInstance = "1";
-    pxDIF->pcEntityName = "irati";
-    pxDIF->pcEntityInstance = "1";
+    pxRemote->pcProcessName = "sensor1";
+    pxRemote->pcProcessInstance = "";
+    pxRemote->pcEntityName = "";
+    pxRemote->pcEntityInstance = "";
+    pxDIF->pcProcessName = NORMAL_DIF_NAME;
+    pxDIF->pcProcessInstance = "";
+    pxDIF->pcEntityName = "";
+    pxDIF->pcEntityInstance = "";
 
     pxFlowAllocateRequest->pxDifName = pxDIF;
     pxFlowAllocateRequest->pxLocal = pxLocal;
@@ -327,7 +327,7 @@ void vIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, struct efcpContain
     // pxDtcpCfg = pvPortMalloc(sizeof(*pxDtcpCfg));
     // pxDtpCfg = pvPortMalloc(sizeof(*pxDtpCfg));
 
-    xPortId = 1;
+    xPortId = 33;
 
     // if (pxNormalInstance->pxOps->flowPrebind(pxNormalInstance->pxData, xPortId))
     //{
@@ -376,8 +376,8 @@ BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData)
     return pdTRUE;
 }
 
-void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t *pxNetworkBuffer);
-void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t *pxNetworkBuffer)
+void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
+void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer)
 {
     struct du_t *pxMessagePDU;
 
@@ -389,18 +389,9 @@ void vIpcManagerRINAPackettHandler(NetworkBufferDescriptor_t *pxNetworkBuffer)
     }
     pxMessagePDU->pxNetworkBuffer = pxNetworkBuffer;
 
-    ipcpInstance_t *pxShimInstance;
-    ipcpInstance_t *pxNormalInstance;
+    ESP_LOGI(TAG_IPCPMANAGER, "The RINA packet is a managment packet");
 
-    pxShimInstance = pvPortMalloc(sizeof(*pxShimInstance));
-    pxShimInstance = pxIpcManagerFindInstanceByType(eShimWiFi); // COuld come from other kind of Shim
-
-    pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
-    pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
-
-    ESP_LOGE(TAG_IPCPMANAGER, "The RINA packet is a managment packet");
-
-    if (!pxNormalInstance->pxOps->duEnqueue(pxNormalInstance->pxData, 1, pxMessagePDU))
+    if (!xNormalDuEnqueue(pxData, 1, pxMessagePDU))
     {
         ESP_LOGI(TAG_IPCPMANAGER, "Drop frame because there is not enough memory space");
         xDuDestroy(pxMessagePDU);

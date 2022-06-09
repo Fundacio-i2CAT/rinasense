@@ -258,14 +258,13 @@ static void prvIPCPTask(void *pvParameters)
 
         case eShimEnrolledEvent:
 
-            // xShimWiFiCreate(pxFactory, (MACAddress_t *) xReceivedEvent.pvData );
             /* Registering into the shim */
             if (!xNormalRegistering(pxShimInstance, pxIpcpData->pxDifName, pxIpcpData->pxName))
             {
                 ESP_LOGE(TAG_IPCPMANAGER, "IPCP not registered into the shim");
-            } // should be void, the Shim should control if there is an error.
+            } // should be void, the normal should control if there is an error.
 
-            (void)vIcpManagerEnrollmentFlowRequest(pxShimInstance, pxIpcManager->pxPidm, pxIpcpData->pxName); // changed pxFactories
+            (void)vIcpManagerEnrollmentFlowRequest(pxShimInstance, pxIpcManager->pxPidm, pxIpcpData->pxName);
 
             break;
         case eShimAppRegisteredEvent:
@@ -281,11 +280,12 @@ static void prvIPCPTask(void *pvParameters)
         case eShimFlowAllocatedEvent:
 
             /*Call to the method to init the enrollment*/
-            // xEnrollmentInit(xReceivedEvent.pvData);
-            (void)xNormalFlowBinding(pxIpcpData, 1, pxShimInstance);
-            (void)vIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, pxIpcpData->pxEfcpc, pxIpcpData);
 
-            ESP_LOGI(TAG_IPCPMANAGER, "Testing Flow Allocated Event");
+            (void)xNormalFlowBinding(pxIpcpData, 1, pxShimInstance);
+            (void)xEnrollmentInit(pxIpcpData, 1);
+            //(void)vIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, pxIpcpData->pxEfcpc, pxIpcpData);
+
+            // ESP_LOGI(TAG_IPCPMANAGER, "Testing Flow Allocated Event");
 
             break;
 
@@ -317,12 +317,13 @@ static void prvIPCPTask(void *pvParameters)
 
         case eStackFlowAllocateEvent:
 
-            ESP_LOGE(TAG_IPCPMANAGER, "Flow Allocate Received");
+            // ESP_LOGE(TAG_IPCPMANAGER, "Flow Allocate Received");
 
             // pxFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
             // pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
 
-            // xIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, pxFlowAllocateRequest);
+            vIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, pxIpcpData->pxEfcpc, pxIpcpData);
+            // vIpcpManagerAppFlowAllocateRequestHandle
 
             // xRINA_WeakUpUser(pxFlowAllocateRequest);
 
@@ -675,7 +676,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             // vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 
             // must be void function
-            vIpcManagerRINAPackettHandler(pxNetworkBuffer);
+            vIpcManagerRINAPackettHandler(pxIpcpData, pxNetworkBuffer);
 
             break;
 
@@ -1012,4 +1013,10 @@ void vIpcpInit(void)
     // pxIpcpData->pxIpcManager = pxIpcManager;
     /*Initialialise flows list*/
     vListInitialise(&(pxIpcpData->xFlowsList));
+}
+
+struct rmt_t *pxIPCPGetRmt(void);
+struct rmt_t *pxIPCPGetRmt(void)
+{
+    return pxIpcpData->pxRmt;
 }

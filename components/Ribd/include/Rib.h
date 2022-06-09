@@ -41,7 +41,7 @@ struct ribCallbackOps_t
 
     BaseType_t (*stop_response)(string_t pcRemoteAPName);
 
-    BaseType_t (*create_response)(serObjectValue_t *pxSerObjectValue);
+    BaseType_t (*create_response)(struct serObjectValue_t *pxSerObjectValue, int result);
 };
 
 struct ribObjOps_t

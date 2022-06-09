@@ -204,7 +204,7 @@ BaseType_t xShimFlowAllocateRequest(portId_t xPortId,
 									struct ipcpInstanceData_t *pxData)
 {
 
-	ESP_LOGI(TAG_SHIM, "Flow allocating request");
+	ESP_LOGI(TAG_SHIM, "New flow allocation request");
 
 	shimFlow_t *pxFlow;
 
@@ -305,7 +305,7 @@ BaseType_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceDa
 	shimFlow_t *pxFlow;
 	ipcpInstance_t *pxShimIpcp;
 
-	ESP_LOGI(TAG_SHIM, "SHIM Flow Allocate Response");
+	ESP_LOGI(TAG_SHIM, "Generating a Flow Allocate Response for a pending request");
 
 	if (!pxShimInstanceData)
 	{
@@ -366,6 +366,7 @@ BaseType_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceDa
 
 	if (pxFlow->ePortIdState == eALLOCATED)
 	{
+		ESP_LOGI(TAG_SHIM, "Flow with id:%d was allocated", pxFlow->xPortId);
 		xEnrollEvent.pvData = xPortId;
 		xSendEventStructToIPCPTask(&xEnrollEvent, xDontBlock);
 	}
@@ -498,7 +499,7 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 
 	// xSendEventToIPCPTask(eShimAppRegisteredEvent);
 
-	vARPPrintCache();
+	// vARPPrintCache();
 
 	return pdTRUE;
 
@@ -720,8 +721,7 @@ gpa_t *pxShimCreateGPA(const uint8_t *pucAddress, size_t uxLength)
 
 	memcpy(pxGPA->ucAddress, pucAddress, pxGPA->uxLength);
 
-	ESP_LOGI(TAG_SHIM, "CREATE GPA address: %s", pxGPA->ucAddress);
-	ESP_LOGI(TAG_SHIM, "CREATE GPA size: %d", pxGPA->uxLength);
+	ESP_LOGI(TAG_SHIM, "Created GPA address: %s with size %d", pxGPA->ucAddress, pxGPA->uxLength);
 
 	return pxGPA;
 }
@@ -1004,7 +1004,7 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 
 	unsigned char *pucArpPtr;
 
-	ESP_LOGI(TAG_SHIM, "Entered the sdu-write");
+	ESP_LOGI(TAG_SHIM, "SDU write received");
 
 	if (unlikely(!pxData))
 	{
@@ -1104,7 +1104,7 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 		return ESP_FAIL;
 	}
 
-	ESP_LOGE(TAG_SHIM, "Data sent to the IPCP TAsk");
+	ESP_LOGI(TAG_SHIM, "Data sent to the IPCP TAsk");
 
 	return pdTRUE;
 }

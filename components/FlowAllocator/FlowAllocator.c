@@ -39,7 +39,7 @@ BaseType_t xFlowAllocatorInit()
     pxFlowAllocator = pvPortMalloc(sizeof(*pxFlowAllocator));
 
     /* Create object in the Rib*/
-    pxRibCreateObject("/fa/flows", 0, "Flow_Allocator", "Flow", FLOW_ALLOCATOR);
+    pxRibCreateObject("/fa/flows/", 0, "Flow", "Flow", FLOW_ALLOCATOR);
 
     /*Init List*/
     // vListInitialise(&pxFlowAllocator->xFlowAllocatorInstances);
@@ -132,70 +132,86 @@ void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId
     cepId_t xCepSourceId;
     flowAllocatorInstace_t *pxFlowAllocatorInstance;
     connectionId_t *pxConnectionId;
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     /* Create a flow object and fill using the event FlowRequest */
     pxFlow = prvFlowAllocatorNewFlow(pxFlowRequest);
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     pxConnectionId = pvPortMalloc(sizeof(*pxConnectionId));
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     /* Create a FAI and fill the struct properly*/
     pxFlowAllocatorInstance = pvPortMalloc(sizeof(*pxFlowAllocatorInstance));
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     if (!pxFlowAllocatorInstance)
     {
         ESP_LOGE(TAG_FA, "FAI was not allocated");
     }
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     pxFlowAllocatorInstance->eFaiState = eFAI_NONE;
     pxFlowAllocatorInstance->xPortId = xPortId;
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     ESP_LOGE(TAG_FA, "GetNeighbor");
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
     pxFlow->xRemoteAddress = xEnrollmentGetNeighborAddress(pxFlow->pxDestInfo->pcProcessName);
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     pxFlow->xSourcePortId = xPortId;
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     if (pxFlow->xRemoteAddress == 0)
     {
         ESP_LOGE(TAG_FA, "Error to get Next Hop");
     }
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     /* Call EFCP to create an EFCP instance following the EFCP Config */
     ESP_LOGE(TAG_FA, "Calling EFCP");
-
-    xCepSourceId = xNormalConnectionCreateRequest(pxEfcpc, xPortId,
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+    xCepSourceId = xNormalConnectionCreateRequest(pxEfcpc, 1,
                                                   LOCAL_ADDRESS, pxFlow->xRemoteAddress, pxFlow->pxQosSpec->xQosId,
                                                   pxFlow->pxDtpConfig, pxFlow->pxDtcpConfig);
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     if (xCepSourceId == 0)
     {
         ESP_LOGE(TAG_FA, "CepId was not create properly");
     }
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     /* Fill the Flow connectionId */
     pxConnectionId->xSource = xCepSourceId;
     pxConnectionId->xQosId = pxFlow->pxQosSpec->xQosId;
 
     pxFlow->pxConnectionId = pxConnectionId;
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
 
     /* Send the flow message to the neighbor */
     // Serialize the pxFLow Struct into FlowMsg and Encode the FlowMsg as obj_value
     ESP_LOGE(TAG_FA, "EncodingFLow");
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     serObjectValue_t *pxObjVal = NULL;
 
-    ESP_LOGI(TAG_RIB, "Pointer Flow_t: %p", pxFlow);
-
+    // ESP_LOGI(TAG_RIB, "Pointer Flow_t: %p", pxFlow);
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     ESP_LOGE(TAG_FA, "Calling SerdesMsgFlow");
     pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
-
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     // Send using the ribd_send_req M_Create
     ESP_LOGE(TAG_FA, "SendingFlow");
-    // heap_caps_check_integrity_all(pdTRUE);
-    if (!xRibdSendRequest(pxIpcpData, "Flow_Allocator", "/fa/flows", -1, M_CREATE, xPortId, pxObjVal))
+
+    if (!xRibdSendRequest(pxIpcpData, "Flow", "/fa/flows/key=1-33", -1, M_CREATE, 1, pxObjVal))
     {
         ESP_LOGE(TAG_FA, "It was a problem to send the request");
         // return pdFALSE;
     }
     ESP_LOGE(TAG_FA, "end");
+}
+
+BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
+{
+    if (!pxSerObjValue)
+    {
+        ESP_LOGE(TAG_FA, "No Object Value");
+        return pdFALSE;
+    }
+
+    // Decode the FA message
+    ESP_LOGI(TAG_FA, "Decoding the Flow message...");
+    // Do something with the decode message.
+    return pdTRUE;
 }

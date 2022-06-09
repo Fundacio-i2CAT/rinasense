@@ -8,6 +8,7 @@
 #include "efcpStructures.h"
 #include "du.h"
 
+#include "normalIPCP.h"
 #define TAG_RMT "[RMT]"
 
 /* rmt_enqueue_policy return values */
@@ -108,7 +109,7 @@ BaseType_t xRmtSendPortId(rmt_t *pxRmtInstance,
 						  portId_t xPortId,
 						  struct du_t *pxDu);
 
-BaseType_t xRmtReceive(rmt_t *pxRmt, struct du_t *pxDu, portId_t xFrom);
+BaseType_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portId_t xFrom);
 BaseType_t xRmtAddressAdd(rmt_t *pxInstance, address_t xAddress);
 
 #endif /* COMPONENTS_RMT_INCLUDE_DU_H_ */
