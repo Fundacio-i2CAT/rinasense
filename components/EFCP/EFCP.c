@@ -494,8 +494,8 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               struct dtcpConfig_t *pxDtcpCfg)
 {
 
-        ESP_LOGE(TAG_EFCP, "xEfcpConnectionCreate");
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+        ESP_LOGI(TAG_EFCP, "Creating a new EFCP Connection");
+
         struct efcp_t *pxEfcp;
         connection_t *pxConnection = NULL;
         cepId_t xCepId;
@@ -509,8 +509,6 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         // struct rttq *       rttq;
         // struct delim * delim;
 
-        ESP_LOGE(TAG_EFCP, "Pointer EFCP:%p", pxEfcpContainer);
-
         if (!pxEfcpContainer)
         {
                 ESP_LOGE(TAG_EFCP, "Bogus container passed, bailing out");
@@ -518,12 +516,9 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         }
 
         pxConnection = pxConnectionCreate();
-        // configASSERT(pxConnection);
 
         if (!pxConnection)
                 return cep_id_bad();
-
-        // configASSERT(pxDtpCfg);
 
         pxConnection->xDestinationAddress = xDstAddr;
         pxConnection->xPortId = xPortId;
@@ -538,8 +533,6 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                 xConnectionDestroy(pxConnection);
                 return cep_id_bad();
         }
-
-        // pxEfcp->pxUserIpcp = xUserIpcp;
 
         // xCepId = cidm_allocate(container->cidm);
         //  hardcode to test
