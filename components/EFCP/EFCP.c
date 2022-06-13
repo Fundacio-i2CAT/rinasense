@@ -96,7 +96,7 @@ static struct efcp_t *pxEfcpCreate(void)
 
         pxEfcpInstance->pxDelim = NULL;
 
-        ESP_LOGI(TAG_EFCP, "Instance %pK initialized successfully", pxEfcpInstance);
+        ESP_LOGI(TAG_EFCP, "EFCP Instance %pK initialized successfully", pxEfcpInstance);
 
         return pxEfcpInstance;
 }
@@ -516,60 +516,55 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                 ESP_LOGE(TAG_EFCP, "Bogus container passed, bailing out");
                 return cep_id_bad();
         }
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
-        ESP_LOGE(TAG_EFCP, "xEfcpConnectionCreate: ConnectionCreate");
-        size_t Test = xPortGetFreeHeapSize();
-        ESP_LOGE(TAG_EFCP, "Memory size:%d", (int)Test);
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         pxConnection = pxConnectionCreate();
         // configASSERT(pxConnection);
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         if (!pxConnection)
                 return cep_id_bad();
 
         // configASSERT(pxDtpCfg);
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         pxConnection->xDestinationAddress = xDstAddr;
         pxConnection->xPortId = xPortId;
         pxConnection->xQosId = xQosId;
         pxConnection->xSourceCepId = xSrcCepId;
         pxConnection->xDestinationCepId = xDstCepId;
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
-        ESP_LOGE(TAG_EFCP, "xEfcpConnectionCreate: EfcpCreate");
+
         pxEfcp = pxEfcpCreate();
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         if (!pxEfcp)
         {
                 xConnectionDestroy(pxConnection);
                 return cep_id_bad();
         }
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         // pxEfcp->pxUserIpcp = xUserIpcp;
 
         // xCepId = cidm_allocate(container->cidm);
-        // hardcode to test
+        //  hardcode to test
         xCepId = 1;
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         if (!is_cep_id_ok(xCepId))
         {
                 ESP_LOGE(TAG_EFCP, "CIDM generated wrong CEP ID");
                 xEfcpDestroy(pxEfcp);
                 return cep_id_bad();
         }
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         /* We must ensure that the DTP is instantiated, at least ... */
 
         ESP_LOGE(TAG_EFCP, "xEfcpConnectionCreate: pxEfcpContainer");
         pxEfcp->pxEfcpContainer = pxEfcpContainer;
         pxConnection->xSourceCepId = xCepId;
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         if (!is_candidate_connection_ok((const struct connection_t *)pxConnection))
         {
                 ESP_LOGE(TAG_EFCP, "Bogus connection passed, bailing out");
                 xEfcpDestroy(pxEfcp);
                 return cep_id_bad();
         }
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         pxEfcp->pxConnection = pxConnection;
 
 #if 0
