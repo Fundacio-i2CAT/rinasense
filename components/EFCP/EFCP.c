@@ -659,7 +659,6 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
 #endif
 
         pxEfcp->pxDtp->pxEfcp = pxEfcp;
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
         /* FIXME: This is crap and have to be rethinked */
 
         /* FIXME: max pdu and sdu sizes are not stored anywhere. Maybe add them
@@ -691,7 +690,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         }
 
 #endif
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         if (!xEfcpImapAdd(xCepId, pxEfcp))
         {
 
@@ -701,7 +700,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                 xEfcpDestroy(pxEfcp);
                 return cep_id_bad();
         }
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         ESP_LOGI(TAG_EFCP, "Connection created ("
                            "Source address %d,"
                            "Destination address %d, "
@@ -712,7 +711,6 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                  pxConnection->xDestinationCepId,
                  pxConnection->xSourceCepId);
 
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
         return xCepId;
 }
 
