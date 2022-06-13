@@ -831,7 +831,7 @@ BaseType_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portI
     /*Decode CDAP Message*/
     pxDecodeCdap = prvRibdDecodeCDAP(pxDu->pxNetworkBuffer->pucDataBuffer, pxDu->pxNetworkBuffer->xDataLength);
 
-    vRibdPrintCdapMessage(pxDecodeCdap);
+    // vRibdPrintCdapMessage(pxDecodeCdap);
 
     if (!pxDecodeCdap)
     {
@@ -996,7 +996,6 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
 
         break;
     case M_CREATE_R:
-        ESP_LOGI(TAG_RIB, "Handling M_CREATE_R");
         pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
         pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result);
 

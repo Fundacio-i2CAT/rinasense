@@ -316,10 +316,13 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
     message.sourcePortId = pxMsg->xSourcePortId;
     message.sourceAddress = pxMsg->xSourceAddress;
 
+    message.connectionIds_count = 1;
     message.connectionIds->sourceCEPId = pxMsg->pxConnectionId->xSource;
     message.connectionIds->has_sourceCEPId = true;
     message.connectionIds->qosId = pxMsg->pxConnectionId->xQosId;
     message.connectionIds->has_qosId = true;
+    message.connectionIds->destinationCEPId = pxMsg->pxConnectionId->xDestination;
+    message.connectionIds->has_destinationCEPId = true;
 
     message.has_qosParameters = true;
     message.qosParameters.qosid = pxMsg->pxQosSpec->xQosId;

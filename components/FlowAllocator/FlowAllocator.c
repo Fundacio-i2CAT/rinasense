@@ -102,6 +102,7 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
     pxFlow->ulMaxCreateFlowRetries = 1;
     pxFlow->eState = eFA_ALLOCATION_IN_PROGRESS;
     pxFlow->xSourceAddress = LOCAL_ADDRESS;
+    pxFlow->ulCurrentConnectionId = 0;
 
     /* Select QoS Cube based on the FlowSpec Required */
     pxFlow->pxQosSpec = prvFlowAllocatorSelectQoSCube();
@@ -176,6 +177,7 @@ void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId
     /* Fill the Flow connectionId */
     pxConnectionId->xSource = xCepSourceId;
     pxConnectionId->xQosId = pxFlow->pxQosSpec->xQosId;
+    pxConnectionId->xDestination = 0;
 
     pxFlow->pxConnectionId = pxConnectionId;
     heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
@@ -204,14 +206,18 @@ void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId
 
 BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
 {
-    if (!pxSerObjValue)
+    /*if (!pxSerObjValue)
     {
         ESP_LOGE(TAG_FA, "No Object Value");
         return pdFALSE;
-    }
+    }*/
 
+    if (result != 0)
+    {
+        ESP_LOGI(TAG_FA, "Was not possible to create the Flow...");
+    }
     // Decode the FA message
-    ESP_LOGI(TAG_FA, "Decoding the Flow message...");
+    ESP_LOGI(TAG_FA, "CDAP Message Result: Flow allocated ");
     // Do something with the decode message.
     return pdTRUE;
 }
