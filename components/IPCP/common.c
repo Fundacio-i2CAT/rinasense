@@ -1,9 +1,9 @@
 #include <string.h>
 
-#include "Freertos/FreeRTOS.h"
-#include "Freertos/task.h"
-#include "Freertos/queue.h"
-#include "Freertos/semphr.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
 
 #include "esp_log.h"
 
