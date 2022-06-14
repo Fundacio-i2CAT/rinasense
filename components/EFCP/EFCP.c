@@ -483,7 +483,7 @@ BaseType_t xEfcpConnectionDestroy(struct efcpContainer_t *pxEfcpContainer,
         return pdTRUE;
 }
 
-cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxContainer,
+cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               address_t xSrcAddr,
                               address_t xDstAddr,
                               portId_t xPortId,
@@ -509,7 +509,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxContainer,
         // struct rttq *       rttq;
         // struct delim * delim;
 
-        if (!pxContainer)
+        if (!pxEfcpContainer)
         {
                 ESP_LOGE(TAG_EFCP, "Bogus container passed, bailing out");
                 return cep_id_bad();
@@ -548,7 +548,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxContainer,
         /* We must ensure that the DTP is instantiated, at least ... */
 
         ESP_LOGE(TAG_EFCP, "xEfcpConnectionCreate: pxContainer");
-        pxEfcp->pxContainer = pxContainer;
+        pxEfcp->pxEfcpContainer = pxEfcpContainer;
         pxConnection->xSourceCepId = xCepId;
 
         if (!is_candidate_connection_ok((const struct connection_t *)pxConnection))
