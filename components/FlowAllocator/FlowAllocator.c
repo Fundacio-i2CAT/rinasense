@@ -11,7 +11,7 @@
 #include "freertos/semphr.h"
 
 /* RINA includes. */
-#include "common.h"
+#include "rina_common.h"
 #include "configSensor.h"
 #include "configRINA.h"
 #include "Ribd.h"

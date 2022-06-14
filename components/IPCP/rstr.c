@@ -4,7 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "esp_heap_caps.h"
 
-#include "common.h"
+#include "rina_common.h"
 
 #include "esp_log.h"
 

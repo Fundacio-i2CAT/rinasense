@@ -7,7 +7,7 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 
-#include "common.h"
+#include "rina_common.h"
 #include "factoryIPCP.h"
 #include "IPCP.h"
 

@@ -19,7 +19,7 @@
 #include "freertos/semphr.h"
 
 #include "IPCP.h"
-#include "common.h"
+#include "rina_common.h"
 #include "factoryIPCP.h"
 #include "configRINA.h"
 #include "IpcManager.h"
