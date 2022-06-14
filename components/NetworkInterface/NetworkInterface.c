@@ -24,6 +24,7 @@
 /* ESP includes.*/
 #include "esp_log.h"
 #include "esp_wifi.h"
+#include "esp_mac.h"
 #include "esp_event.h"
 #include "esp_system.h"
 #include "esp_event_base.h"
@@ -308,7 +309,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
 		xRxEvent.pvData = (void *)pxNetworkBuffer;
 
-		ESP_LOGE(TAG_RINA, "pucEthernetBuffer and len: %p, %d", pxNetworkBuffer->pucEthernetBuffer, len);
+		// ESP_LOGE(TAG_RINA, "pucEthernetBuffer and len: %p, %d", pxNetworkBuffer->pucEthernetBuffer, len);
 
 		if (xSendEventStructToIPCPTask(&xRxEvent, xDescriptorWaitTime) == pdFAIL)
 		{

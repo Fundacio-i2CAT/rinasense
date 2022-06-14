@@ -21,6 +21,7 @@
 #include "common.h"
 #include "esp_log.h"
 #include "RINA_API.h"
+#include "rstr.h"
 
 struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t pcLocalApp, uint8_t Flags);
 
@@ -33,10 +34,10 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t
     /*Check Flags (RINA_F_NOWAIT)*/
 
     /*Create name_t objects*/
-    xDn = xRinaNameCreate();
-    xAppn = xRinaNameCreate();
-    xDan = xRinaNameCreate();
-
+    xDn = pxRStrNameCreate();
+    xAppn = pxRStrNameCreate();
+    xDan = pxRStrNameCreate();
+#if 0
     if (pcNameDif && xRinaNameFromString(pcNameDif, xDn))
     {
         ESP_LOGE(TAG_RINA, "DIFName incorrect");
@@ -62,7 +63,7 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t
     xRegAppRequest->xSrcIpcpId = 0;
     xRegAppRequest->xDestIpcpId = 0;
     xRegAppRequest->xDestPort = 1;
-    xRegAppRequest->xSrcPort = 1; //Should be random?
+    xRegAppRequest->xSrcPort = 1; // Should be random?
 
     xRegAppRequest->pxAppName = xAppn;
     xRegAppRequest->pxDifName = xDn;
@@ -72,10 +73,10 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t
 
     if (xSendEventStructToIPCPTask(&xStackAppRegistrationEvent, (TickType_t)0U) == pdPASS)
     {
-        return NULL; //Should return the object Application Registration.
-        //It's not clear how to wait until the response.
+        return NULL; // Should return the object Application Registration.
+        // It's not clear how to wait until the response.
     }
-
+#endif
     return NULL;
 }
 
@@ -118,14 +119,12 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
     ESP_LOGE(TAG_RINA, "pcNameDIF:%s", pcNameDIF);
     ESP_LOGE(TAG_RINA, "pcLocalApp:%s", pcLocalApp);
     ESP_LOGE(TAG_RINA, "pcRemoteApp:%s", pcRemoteApp);
-    //ESP_LOGE(TAG_RINA, "pxRemoteName->APName:%s", pxRemoteName->pcProcessName);
-
 
     if (xEventGroup == NULL)
     {
         vPortFree(pxFlowAllocateRequest);
         vPortFree(pxFlowSpecTmp);
-        //return -1;
+        // return -1;
     }
     else
     {
@@ -136,50 +135,53 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
         (void)memset(pxFlowAllocateRequest, 0, sizeof(*pxFlowAllocateRequest));
 
         /*Create objetcs type name_t from string_t*/
-        //ESP_LOGI(TAG_RINA, "FlowAllocate: NameCreate");
+        ESP_LOGI(TAG_RINA, "FlowAllocate: NameCreate");
 
-       /* pxDIFName = xRinaNameCreate();
-        pxLocalName = xRinaNameCreate();
-        pxRemoteName = xRinaNameCreate();
+        pxDIFName = pxRStrNameCreate();
+        pxLocalName = pxRStrNameCreate();
+        pxRemoteName = pxRStrNameCreate();
 
-        if (!pxDIFName && !pxLocalName && !pxRemoteName)
+        if (!pxDIFName || !pxLocalName || !pxRemoteName)
         {
-            ESP_LOGE(TAG_RINA, "Error");
+            ESP_LOGE(TAG_RINA, "Rina Names were not created properly");
         }
-        
 
-        if (!pcNameDIF && xRinaNameFromString(pcNameDIF, pxDIFName))
+        if (!pcNameDIF)
         {
             ESP_LOGE(TAG_RINA, "DIFName incorrect");
-            xRinaNameFree(pxDIFName);
-            return -1;
+            vRstrNameFree(pxDIFName);
+            // return -1;
         }
-        if (!pcLocalApp && xRinaNameFromString(pcLocalApp, pxLocalName))
+        if (!xRinaNameFromString(pcNameDIF, pxDIFName))
+        {
+            ESP_LOGE(TAG_RINA, "No possible to convert String to Rina Name");
+            vRstrNameFree(pxDIFName);
+        }
+
+        if (!pcLocalApp || !xRinaNameFromString(pcLocalApp, pxLocalName))
         {
             ESP_LOGE(TAG_RINA, "LocalName incorrect");
-            xRinaNameFree(pxDIFName);
-            xRinaNameFree(pxLocalName);
-            return -1;
+            vRstrNameFree(pxDIFName);
+            vRstrNameFree(pxLocalName);
+            // return -1;
         }
-        if (!pcRemoteApp && xRinaNameFromString(pcRemoteApp, pxRemoteName))
+        if (!pcRemoteApp || !xRinaNameFromString(pcRemoteApp, pxRemoteName))
         {
             ESP_LOGE(TAG_RINA, "RemoteName incorrect");
-            xRinaNameFree(pxDIFName);
-            //xRinaNameFree(pxDIFName);
-            xRinaNameFree(pxRemoteName);
-            return -1;
-        }*/
+            vRstrNameFree(pxDIFName);
+            vRstrNameFree(pxLocalName);
+            vRstrNameFree(pxRemoteName);
+            // return -1;
+        }
 
-        pxRemoteName = pvPortMalloc(sizeof(*pxRemoteName));
+        /*pxRemoteName = pvPortMalloc(sizeof(*pxRemoteName));
         pxRemoteName->pcProcessName = strdup(pcRemoteApp);
 
         pxLocalName = pvPortMalloc(sizeof(*pxLocalName));
         pxLocalName->pcProcessName = strdup(pcLocalApp);
 
         pxDIFName = pvPortMalloc(sizeof(*pxDIFName));
-        pxDIFName->pcProcessName = strdup(pcNameDIF);
-
-
+        pxDIFName->pcProcessName = strdup(pcNameDIF);*/
 
         /*xPortId set to zero until the TASK fill properly.*/
         xPortId = 0;
@@ -195,7 +197,7 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
             pxFlowAllocateRequest->pxLocal = pxLocalName;
             pxFlowAllocateRequest->pxRemote = pxRemoteName;
             pxFlowAllocateRequest->pxDifName = pxDIFName;
-            pxFlowAllocateRequest->pxFspec =pxFlowSpecTmp;
+            pxFlowAllocateRequest->pxFspec = pxFlowSpecTmp;
             pxFlowAllocateRequest->xPortId = xPortId;
 
             if (!xFlowSpec)
@@ -225,14 +227,26 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
                 pxFlowAllocateRequest->pxFspec->xMsgBoundaries = xFlowSpec->msg_boundaries;
             }
 
-            xStackFlowAllocateEvent.pvData = pxFlowAllocateRequest;
+            xStackFlowAllocateEvent.pvData = (void *)pxFlowAllocateRequest;
+            ESP_LOGE(TAG_FA, "-----RINA API----");
+            ESP_LOGE(TAG_FA, "pxLocal:%p", pxFlowAllocateRequest->pxLocal);
+            ESP_LOGE(TAG_FA, "pxRemote:%p", pxFlowAllocateRequest->pxRemote);
+            ESP_LOGE(TAG_FA, "-----DETAILS----");
+            ESP_LOGE(TAG_FA, "pxLocal_APName:%s", pxFlowAllocateRequest->pxLocal->pcProcessName);
+            ESP_LOGE(TAG_FA, "pxLocal_APInstance:%s", pxFlowAllocateRequest->pxLocal->pcProcessInstance);
+            ESP_LOGE(TAG_FA, "pxLocal_AEName:%s", pxFlowAllocateRequest->pxLocal->pcEntityName);
+            ESP_LOGE(TAG_FA, "pxLocal_AEInstance:%s", pxFlowAllocateRequest->pxLocal->pcEntityInstance);
+            ESP_LOGE(TAG_FA, "pxRemote_APName:%s", pxFlowAllocateRequest->pxRemote->pcProcessName);
+            ESP_LOGE(TAG_FA, "pxRemote_APInstance:%s", pxFlowAllocateRequest->pxRemote->pcProcessInstance);
+            ESP_LOGE(TAG_FA, "pxRemote_AEName:%s", pxFlowAllocateRequest->pxRemote->pcEntityName);
+            ESP_LOGE(TAG_FA, "pxRemote_AEInstnace:%s", pxFlowAllocateRequest->pxRemote->pcEntityInstance);
 
             if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, (TickType_t)0U) == pdFAIL)
             {
                 ESP_LOGE(TAG_RINA, "IPCP Task not working properly");
-                //return -1;
+                // return -1;
             }
-            #if 0
+#if 0
             else
             {
                 /* The IP-task will set the 'eFLOW_BOUND' bit when it has done its
@@ -249,12 +263,12 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
                 }*/
               return pxFlowAllocateRequest->xPortId;
             }
-            #endif
-           // return pxFlowAllocateRequest->xPortId;
+#endif
+            // return pxFlowAllocateRequest->xPortId;
         }
     }
 
-    //return -1;
+    // return -1;
 }
 
 BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength);
@@ -267,7 +281,7 @@ BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataL
     RINAStackEvent_t xStackTxEvent = {eStackTxEvent, NULL};
 
     /*Check that DataLength is not longer than MAX_SDU_SIZE*/
-    //This should not consider??? because the delimiter split into several packets??
+    // This should not consider??? because the delimiter split into several packets??
     if (uxTotalDataLength <= MAX_SDU_SIZE)
     {
         /*Check if the Flow is active*/
@@ -277,7 +291,7 @@ BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataL
 
         vTaskSetTimeOutState(&xTimeOut);
 
-        pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxTotalDataLength, xTicksToWait); //sizeof length DataUser packet.
+        pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxTotalDataLength, xTicksToWait); // sizeof length DataUser packet.
 
         if (pxNetworkBuffer != NULL)
         {

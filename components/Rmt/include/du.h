@@ -15,9 +15,12 @@
 
 struct du_t
 {
-	efcpConfig_t *pxCfg;						/**< Configuration of EFCP (Policies, QoS, etc). */
-	pci_t *pxPci;								/**< Protocol Control Information interpreted by the Protocol Machine. */
-	NetworkBufferDescriptor_t *pxNetworkBuffer; /**< Buffer that contain information about the Rina Packet */
+
+	// Configuration of EFCP (Policies, QoS, etc)
+	efcpConfig_t *pxCfg;						/*> EFCP Configuration associate to the RINA packet */
+	pci_t *pxPci;								/*> Header of the RINA packet */
+	NetworkBufferDescriptor_t *pxNetworkBuffer; /*> Pointer of the Network Buffer */
+	uint8_t *pxPDU;								/*> Pointer to the firts bit of Data Unit */
 };
 
 BaseType_t xDuDestroy(struct du_t *pxDu);
