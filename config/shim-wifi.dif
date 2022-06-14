@@ -1,0 +1,6 @@
+{
+    "difType" : "shim-wifi-ap",
+    "configParameters" : {
+    	"interface-name" : "wlan0"
+      }
+}

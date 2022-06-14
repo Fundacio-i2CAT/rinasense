@@ -4,7 +4,7 @@
 #include "common.h"
 #include "configRINA.h"
 #include "configSensor.h"
-#include "cepIdm.h"
+#include "cepidm.h"
 
 #include "esp_log.h"
 #define BITS_PER_BYTE (8)
@@ -50,8 +50,6 @@ BaseType_t xCepIdmAllocated(cepIdm_t *pxInstance, cepId_t xCepId)
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
 
-        pos = pvPortMalloc(sizeof(*pos));
-
         /* Find a way to iterate in the list and compare the addesss*/
 
         pxListEnd = listGET_END_MARKER(&pxInstance->xAllocatedCepIds);
@@ -60,7 +58,7 @@ BaseType_t xCepIdmAllocated(cepIdm_t *pxInstance, cepId_t xCepId)
         while (pxListItem != pxListEnd)
         {
 
-                pos = (allocCepId_t *)listGET_LIST_ITEM_VALUE(pxListItem);
+                pos = (allocCepId_t *)listGET_LIST_ITEM_OWNER(pxListItem);
 
                 if (pos)
                 {

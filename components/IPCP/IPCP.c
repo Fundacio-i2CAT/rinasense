@@ -20,7 +20,7 @@
 #include "RINA_API.h"
 
 #include "Enrollment.h"
-#include "ESP_log.h"
+#include "esp_log.h"
 
 MACAddress_t xlocalMACAddress = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 
