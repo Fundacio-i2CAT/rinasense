@@ -34,10 +34,6 @@ struct ipcpNormalData_t
     // ipcManager_t *pxIpcManager;
 };
 
-// ipcpInstance_t * pxNormalCreate(name_t *pxName, ipcProcessId_t xId);
-
-ipcpInstance_t *pxNormalCreate(struct ipcpFactory_t *pxFactory, ipcProcessId_t xIpcpId);
-
 BaseType_t xNormalFlowBinding(struct ipcpNormalData_t *pxUserData,
                               portId_t xPid,
                               ipcpInstance_t *pxN1Ipcp);
@@ -51,8 +47,6 @@ cepId_t xNormalConnectionCreateRequest(struct efcpContainer_t *pxEfcpc,
                                        struct dtcpConfig_t *pxDtcpCfg);
 
 BaseType_t xNormalTest(ipcpInstance_t *pxNormalInstance, ipcpInstance_t *pxN1Ipcp);
-
-// BaseType_t xNormalIPCPInitFactory(factories_t *pxFactoriesList);
 
 BaseType_t xNormalRegistering(ipcpInstance_t *pxShimInstance, name_t *pxDifName, name_t *pxName);
 
