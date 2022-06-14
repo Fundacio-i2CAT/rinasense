@@ -91,9 +91,9 @@ typedef struct _rina_messages_CDAPMessage {
     bool has_flags;
     rina_messages_flagValues_t flags; /* misc. flags */
     bool has_objClass;
-    char objClass[20]; /* Name of the object class of objName */
+    char objClass[40]; /* Name of the object class of objName */
     bool has_objName;
-    char objName[20]; /* Object name, unique in its class */
+    char objName[40]; /* Object name, unique in its class */
     bool has_objInst;
     int64_t objInst; /* Unique object instance */
     bool has_objValue;

@@ -74,40 +74,40 @@ typedef struct xRTTQ
 typedef struct xDTP_SV
 {
         /*Less or equal to those defined for the DIF*/
-        uint_t xMaxFlowPduSize;
-        uint_t xMaxFlowSduSize;
+        uint_t xMaxFlowPduSize; // OK
+        uint_t xMaxFlowSduSize; // OK
         // timeout_t    MPL;
         // timeout_t    R;
         // timeout_t    A;
         // timeout_t    tr;
-        seqNum_t xRcvLeftWindowEdge;
-        BaseType_t xWindowClosed;
+        seqNum_t xRcvLeftWindowEdge; // OK
+        BaseType_t xWindowClosed;    // OK
 
         /* Indicates that the next PDU sent should have the
         DRF set. */
-        BaseType_t xDrfFlag;
+        BaseType_t xDrfFlag; // OK
         /* used to notifies that a new connection will soon
         be needed to avoid sequence number rollover.*/
-        uint_t xSeqNumberRolloverThreshold;
+        uint_t xSeqNumberRolloverThreshold; // OK
         /* FIXME: we need to control rollovers...*/
         struct
         {
-                unsigned int drop_pdus;
-                unsigned int err_pdus;
-                unsigned int tx_pdus;
-                unsigned int tx_bytes;
-                unsigned int rx_pdus;
-                unsigned int rx_bytes;
+                unsigned int drop_pdus; // OK
+                unsigned int err_pdus;  // OK
+                unsigned int tx_pdus;   // ok
+                unsigned int tx_bytes;  // ok
+                unsigned int rx_pdus;   // ok
+                unsigned int rx_bytes;  // ok
         } stats;
-        seqNum_t xMaxSeqNumberRcvd;
-        seqNum_t xNextSeqNumberToSend;
-        seqNum_t xMaxSeqNumberToSend;
+        seqNum_t xMaxSeqNumberRcvd;    // ok
+        seqNum_t xNextSeqNumberToSend; // ok
+        seqNum_t xMaxSeqNumberToSend;  // ok
 
-        BaseType_t xWindowBased;
-        BaseType_t xRexmsnCtrl;
-        BaseType_t xRateBased;
-        BaseType_t xDrfRequired;
-        BaseType_t xRateFulfiled;
+        BaseType_t xWindowBased;  // ok
+        BaseType_t xRexmsnCtrl;   // ok
+        BaseType_t xRateBased;    // ok
+        BaseType_t xDrfRequired;  // ok
+        BaseType_t xRateFulfiled; // ok
 
 } dtpSv_t;
 
@@ -325,10 +325,10 @@ typedef struct xEFCP_IMAP_ROW
 struct efcpContainer_t
 {
         // struct rset *        rset;
-        efcpImapRow_t           *pxEfcpImap;
-        cepIdm_t                *pxCidm;
-        efcpConfig_t            *pxConfig;
-        struct rmt_t            *pxRmt;
+        efcpImapRow_t *pxEfcpImap;
+        cepIdm_t *pxCidm;
+        efcpConfig_t *pxConfig;
+        struct rmt_t *pxRmt;
         // struct kfa *         kfa;
         // spinlock_t           lock;
         // wait_queue_head_t    del_wq;
@@ -341,7 +341,7 @@ struct efcp_t
         ipcpInstance_t *pxUserIpcp; // IPCP NORMAL
         dtp_t *pxDtp;               // implement in EFCP Component
         delim_t *pxDelim;           // delimiting module
-        struct efcpContainer_t *pxContainer;
+        struct efcpContainer_t *pxEfcpContainer;
         eEfcpState_t xState;
 };
 

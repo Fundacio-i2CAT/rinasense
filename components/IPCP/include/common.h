@@ -47,11 +47,10 @@ typedef uint32_t seqNum_t;
 
 typedef struct xName_info
 {
-        // char*
-        string_t pcProcessName;     /**> Process Name*/
-        string_t pcProcessInstance; /**> Process Instance*/
-        string_t pcEntityName;      /**> Entity Name*/
-        string_t pcEntityInstance;  /**> Entity Instance*/
+        string_t pcProcessName;     /*> Process Name*/
+        string_t pcProcessInstance; /*> Process Instance*/
+        string_t pcEntityName;      /*> Entity Name*/
+        string_t pcEntityInstance;  /*> Entity Instance*/
 
 } name_t;
 
@@ -118,30 +117,35 @@ typedef struct xNETWORK_BUFFER
 {
         ListItem_t xBufferListItem; /**< Used to reference the buffer form the free buffer list or a socket. */
         uint8_t ulGpa;              /**< Source or destination Protocol address, depending on usage scenario. */
-        uint8_t *pucEthernetBuffer; /**< Pointer to the start of the Ethernet frame. */
-        uint8_t *pucRinaBuffer;     /**< Pointer to the start of the Rina packet. */
-        uint8_t *pucDataBuffer;     /**< Pointer to the start of the User Data Unit. */
-        size_t xEthernetDataLength; /**< Starts by holding the total Ethernet frame length, then the Rina payload length. */
-        size_t xRinaDataLength;     /**< Starts by holding the total Rina packet length, then the User Data payload length. */
-        size_t xDataLength;         /**< Starts by holding the total User Data Unit length. */
-        uint32_t ulPort;            /**< Source or destination port, depending on usage scenario. */
-        uint32_t ulBoundPort;       /**< The N-1 port to transmite. */
+        uint8_t *pucEthernetBuffer;
+        uint8_t *pucRinaBuffer;                                                        /**< Pointer to the start of the Rina packet. */
+        uint8_t *pucDataBuffer;                                                        /**< Pointer to the start of the User Data Unit. */
+        size_t xEthernetDataLength;                                                    /**< Starts by holding the total Ethernet frame length, then the Rina payload length. */
+        size_t xRinaDataLength;                                                        /**< Starts by holding the total Rina packet length, then the User Data payload length. */
+        size_t xDataLength; /**< Starts by holding the total User Data Unit length. */ /**< Pointer to the start of the Ethernet frame. */
+                                                                                       /**< Starts by holding the total Ethernet frame length, then the UDP/TCP payload length. */
+        uint32_t ulPort;                                                               /**< Source or destination port, depending on usage scenario. */
+        uint32_t ulBoundPort;                                                          /**< The N-1 port to transmite. */
 
 } NetworkBufferDescriptor_t;
 typedef enum FRAMES_PROCESSING
 {
-        eReleaseBuffer = 0,   /**< Processing the frame did not find anything to do - just release the buffer. */
-        eProcessBuffer,       /**< An Ethernet frame has a valid address - continue process its contents. */
-        eReturnEthernetFrame, /**< The Ethernet frame contains an ARP826 packet that can be returned to its source. */
-        eFrameConsumed        /**< Processing the Ethernet packet contents resulted in the payload being sent to the stack. */
+        eReleaseBuffer = 0,   /* Processing the frame did not find anything to do - just release the buffer. */
+        eProcessBuffer,       /* An Ethernet frame has a valid address - continue process its contents. */
+        eReturnEthernetFrame, /* The Ethernet frame contains an ARP826 packet that can be returned to its source. */
+        eFrameConsumed        /* Processing the Ethernet packet contents resulted in the payload being sent to the stack. */
 } eFrameProcessingResult_t;
 
 typedef struct xPOLICY
 {
+        /* The name of the policy */
+        string_t pcPolicyName;
 
-        string_t pcPolicyName;    /**< The name of the policy */
-        string_t pcPolicyVersion; /**< The version of the policy implementation */
-        List_t xParameters;       /**< The paramters of the policy */
+        /* The version of the policy implementation */
+        string_t pcPolicyVersion;
+
+        /* The paramters of the policy */
+        List_t xParameters;
 } policy_t;
 
 typedef struct xCONNECTION_ID
@@ -356,14 +360,14 @@ BaseType_t is_qos_id_ok(qosId_t id);
 
 BaseType_t is_ipcp_id_ok(ipcProcessId_t id);
 
-name_t *xRinaNameCreate(void);
+// name_t *xRinaNameCreate(void);
 
-BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName);
-void xRinaNameFree(name_t *xName);
+// BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName);
+// void xRinaNameFree(name_t *xName);
 
-BaseType_t xRINAStringDup(const string_t *pcSrc, string_t **pcDst);
+// BaseType_t xRINAStringDup(const string_t *pcSrc, string_t **pcDst);
 
-name_t *xRINAstringToName(const string_t *pxInput);
+// name_t *xRINAstringToName(const string_t *pxInput);
 
 void memcheck(void);
 

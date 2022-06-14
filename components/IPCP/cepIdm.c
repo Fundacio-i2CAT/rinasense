@@ -4,7 +4,7 @@
 #include "common.h"
 #include "configRINA.h"
 #include "configSensor.h"
-#include "cepIdm.h"
+#include "cepidm.h"
 
 #include "esp_log.h"
 #define BITS_PER_BYTE (8)
@@ -115,7 +115,6 @@ cepId_t xCepIdmAllocate(cepIdm_t *pxInstance)
 
         vListInitialiseItem(&pxNewPortId->xCepIdItem);
         pxNewPortId->xCepId = pid;
-        listSET_LIST_ITEM_OWNER(&(pxNewPortId->xCepIdItem), (void *)pxNewPortId);
         vListInsert(&pxInstance->xAllocatedCepIds, &pxNewPortId->xCepIdItem);
 
         pxInstance->xLastAllocated = pid;
