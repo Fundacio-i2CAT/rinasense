@@ -14,7 +14,7 @@
 #include "freertos/task.h"
 
 #include "IPCP.h"
-#include "factoryIPCP.h"
+
 #include "ARP826.h"
 #include "du.h"
 
@@ -154,7 +154,5 @@ ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId);
 BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_t *pxDu, BaseType_t uxBlocking);
 
 EthernetHeader_t *vCastConstPointerTo_EthernetHeader_t(const void *pvArgument);
-
-BaseType_t xShimIPCPInitFactory(factories_t *pxFactoriesList);
 
 #endif /* SHIM_IPCP_H__*/

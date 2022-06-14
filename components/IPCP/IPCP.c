@@ -8,7 +8,6 @@
 #include "freertos/semphr.h"
 
 #include "IPCP.h"
-#include "factoryIPCP.h"
 #include "ARP826.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
@@ -286,32 +285,6 @@ static void prvIPCPTask(void *pvParameters)
             //(void)vIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, pxIpcpData->pxEfcpc, pxIpcpData);
 
             // ESP_LOGI(TAG_IPCPMANAGER, "Testing Flow Allocated Event");
-
-            break;
-
-        case eFactoryInitEvent:
-
-            /* Create the IPCP Normal Instance calling the factory associated */
-
-            /*if (xIpcManagerCreateInstance(pxIpcManager->pxFactories, eFactoryNormal, pxIpcManager->pxIpcpIdm))
-            {
-                ESP_LOGI(TAG_IPCPMANAGER, "Normal IPCP was created sucessfully");
-            }
-            else
-            {
-                ESP_LOGI(TAG_IPCPMANAGER, "Normal IPCP was not created");
-            }*/
-
-#if SHIM_BLE_MODULE
-            if (xIpcManagerCreate(pxIpcpFactoriesList, pxInstancesMap, eShimBLE))
-            {
-                ESP_LOGI(TAG_IPCPMANAGER, "Shim WiFi was created sucessfully");
-            }
-            else
-            {
-                ESP_LOGI(TAG_IPCPMANAGER, "Shim WiFi was not created");
-            }
-#endif
 
             break;
 
