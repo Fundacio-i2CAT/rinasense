@@ -35,10 +35,13 @@ BaseType_t xFactoryIPCPInit(ipcpFactory_t  * pxFactory)
 
 ipcpFactory_t *pxFactoryIPCPFind(factories_t *pxFactoriesList, ipcpFactoryType_t xType)
 {
+
         ipcpFactory_t *pxFactoryIPCP;
 
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
+
+        pxFactoryIPCP = pvPortMalloc(sizeof(*pxFactoryIPCP));
 
         /* Find a way to iterate in the list and compare the addesss*/
 
@@ -55,7 +58,7 @@ ipcpFactory_t *pxFactoryIPCPFind(factories_t *pxFactoriesList, ipcpFactoryType_t
 
                         if (pxFactoryIPCP->xFactoryType == xType)
                         {
-                                //ESP_LOGI(TAG_IPCPFACTORY, "Factory founded %p, Type: %d", pxFactoryIPCP,pxFactoryIPCP->xFactoryType);
+                                // ESP_LOGI(TAG_IPCPFACTORY, "Factory founded %p, Type: %d", pxFactoryIPCP,pxFactoryIPCP->xFactoryType);
                                 return pxFactoryIPCP;
                         }
                 }
@@ -82,7 +85,7 @@ BaseType_t xFactoryIPCPRegister(factories_t *pxFactoriesList,
 {
         ipcpFactory_t *pxFactory;
 
-        //ESP_LOGI(TAG_IPCPFACTORY, "Registering new factory");
+        // ESP_LOGI(TAG_IPCPFACTORY, "Registering new factory");
 
         /*TODO: CHeck Name, Operations and List Factory*/
 
@@ -111,7 +114,7 @@ BaseType_t xFactoryIPCPRegister(factories_t *pxFactoriesList,
                 return pdFALSE;
         }
 
-        //ESP_LOGI(TAG_IPCPFACTORY, "Registering factory '%d'", xType);
+        // ESP_LOGI(TAG_IPCPFACTORY, "Registering factory '%d'", xType);
 
         pxFactory = pvPortMalloc(sizeof(*pxFactory));
         if (!pxFactory)
@@ -139,7 +142,7 @@ BaseType_t xFactoryIPCPRegister(factories_t *pxFactoriesList,
         vListInsert(&(pxFactoriesList->xFactoriesList), &(pxFactory->xIPCPFactoryItem));
 
         /* Double checking for bugs */
-        //ESP_LOGI(TAG_IPCPFACTORY, "Factory registered successfully");
+        // ESP_LOGI(TAG_IPCPFACTORY, "Factory registered successfully");
 
         return pdTRUE;
 }

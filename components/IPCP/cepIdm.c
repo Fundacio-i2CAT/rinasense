@@ -115,7 +115,6 @@ cepId_t xCepIdmAllocate(cepIdm_t *pxInstance)
 
         vListInitialiseItem(&pxNewPortId->xCepIdItem);
         pxNewPortId->xCepId = pid;
-        listSET_LIST_ITEM_OWNER(&(pxNewPortId->xCepIdItem), (void *)pxNewPortId);
         vListInsert(&pxInstance->xAllocatedCepIds, &pxNewPortId->xCepIdItem);
 
         pxInstance->xLastAllocated = pid;

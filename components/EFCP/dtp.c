@@ -13,34 +13,69 @@
 #include "Rmt.h"
 
 #define TAG_DTP "[DTP]"
-
+/*
 static dtpSv_t default_sv = {
-    .xNextSeqNumberToSend = 0,
-    .xMaxSeqNumberToSend = 0,
-    .xSeqNumberRolloverThreshold = 0,
-    .xMaxSeqNumberRcvd = 0,
+    .xNextSeqNumberToSend = 0,        // ok
+    .xMaxSeqNumberToSend = 0,         // ok
+    .xSeqNumberRolloverThreshold = 0, // ok
+    .xMaxSeqNumberRcvd = 0,           // ok
     .stats = {
-        .drop_pdus = 0,
-        .err_pdus = 0,
-        .tx_pdus = 0,
-        .tx_bytes = 0,
-        .rx_pdus = 0,
-        .rx_bytes = 0},
-    .xRexmsnCtrl = false,
-    .xRateBased = false,
-    .xWindowBased = false,
-    .xDrfRequired = true,
-    .xRateFulfiled = false,
-    .xMaxFlowPduSize = UINT_MAX,
-    .xMaxFlowSduSize = UINT_MAX,
+        .drop_pdus = 0,          // ok
+        .err_pdus = 0,           // ok
+        .tx_pdus = 0,            // ok
+        .tx_bytes = 0,           // ok
+        .rx_pdus = 0,            // ok
+        .rx_bytes = 0},          // ok
+    .xRexmsnCtrl = false,        // ok
+    .xRateBased = false,         // ok
+    .xWindowBased = false,       // ok
+    .xDrfRequired = true,        // ok
+    .xRateFulfiled = false,      // ok
+    .xMaxFlowPduSize = UINT_MAX, // ok
+    .xMaxFlowSduSize = UINT_MAX, // ok
     //.MPL                  = 1000,
     //.R                    = 100,
     //.A                    = 0,
     //.tr                   = 0,
-    .xRcvLeftWindowEdge = 0,
-    .xWindowClosed = false,
-    .xDrfFlag = true,
-};
+    .xRcvLeftWindowEdge = 0, // ok
+    .xWindowClosed = false,  // ok
+    .xDrfFlag = true,        // ok
+};*/
+
+dtpSv_t *pxDtpStateVectorInit(void);
+dtpSv_t *pxDtpStateVectorInit(void)
+{
+        dtpSv_t *pxDtpSv;
+        pxDtpSv = pvPortMalloc(sizeof(*pxDtpSv));
+
+        pxDtpSv->xNextSeqNumberToSend = 0;        // ok
+        pxDtpSv->xMaxSeqNumberToSend = 0;         // ok
+        pxDtpSv->xSeqNumberRolloverThreshold = 0; // ok
+        pxDtpSv->xMaxSeqNumberRcvd = 0;           // ok
+        pxDtpSv->stats.drop_pdus = 0;             // ok
+        pxDtpSv->stats.err_pdus = 0;              // ok
+        pxDtpSv->stats.tx_pdus = 0;               // ok
+        pxDtpSv->stats.tx_bytes = 0;              // ok
+        pxDtpSv->stats.rx_pdus = 0;               // ok
+        pxDtpSv->stats.rx_bytes = 0;
+        // ok
+        pxDtpSv->xRexmsnCtrl = false;        // ok
+        pxDtpSv->xRateBased = false;         // ok
+        pxDtpSv->xWindowBased = false;       // ok
+        pxDtpSv->xDrfRequired = true;        // ok
+        pxDtpSv->xRateFulfiled = false;      // ok
+        pxDtpSv->xMaxFlowPduSize = UINT_MAX; // ok
+        pxDtpSv->xMaxFlowSduSize = UINT_MAX; // ok
+        //.MPL                  = 1000,
+        //.R                    = 100,
+        //.A                    = 0,
+        //.tr                   = 0,
+        pxDtpSv->xRcvLeftWindowEdge = 0; // ok
+        pxDtpSv->xWindowClosed = false;  // ok
+        pxDtpSv->xDrfFlag = true;        // ok
+
+        return pxDtpSv;
+}
 
 BaseType_t xDtpPduSend(dtp_t *pxDtp, rmt_t *pxRmt, struct du_t *pxDu);
 
@@ -68,7 +103,7 @@ BaseType_t xDtpPduSend(dtp_t *pxDtp, rmt_t *pxRmt, struct du_t *pxDu)
 
         /* Local flow case */
         destCepId = pxDu;
-        pxEfcpContainer = pxDtp->pxEfcp->pxContainer;
+        pxEfcpContainer = pxDtp->pxEfcp->pxEfcpContainer;
         // pxEfcpContainer = pxDtp->pxEfcp->pxEfcpContainer;
         if (unlikely(!pxEfcpContainer || xDuDecap(pxDu) || !xDuIsOk(pxDu)))
         { /*Decap PDU */
@@ -126,7 +161,7 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
 
         sbytes = xDuLen(pxDu);
 
-        ESP_LOGI(TAG_DTP, "Calling DuEncap");
+        ESP_LOGI(TAG_DTP, "Calling DUEncap");
         ESP_LOGI(TAG_DTP, "Sbytes: %d", sbytes);
         if (!xDuEncap(pxDu, PDU_TYPE_DT))
         {
@@ -691,7 +726,7 @@ dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
 {
         dtp_t *pxDtp;
         string_t *psName;
-        dtcpSv_t *pxDtcpSv;
+        dtpSv_t *pxDtpSv;
 
         if (!pxEfcp)
         {
@@ -712,6 +747,7 @@ dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
         }
 
         pxDtp = pvPortMalloc(sizeof(*pxDtp));
+
         if (!pxDtp)
         {
                 ESP_LOGE(TAG_DTP, "Cannot create DTP instance");
@@ -727,9 +763,11 @@ dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
                 dtp_destroy(dtp);
                 return NULL;
         }*/
-
-        pxDtcpSv = pvPortMalloc(sizeof(*pxDtcpSv));
-        pxDtp->pxDtpStateVector = pxDtcpSv;
+        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+        // pxDtpSv = pvPortMalloc(sizeof(*pxDtpSv));
+        pxDtp->pxDtpStateVector = pxDtpStateVectorInit();
+        // pxDtp->pxDtpStateVector = pxDtpSv;
+        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
         if (!pxDtp->pxDtpStateVector)
         {
                 ESP_LOGE(TAG_DTP, "Cannot create DTP state-vector");
@@ -737,11 +775,12 @@ dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
                 xDtpDestroy(pxDtp);
                 return NULL;
         }
-        *pxDtp->pxDtpStateVector = default_sv;
+        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+        //*pxDtp->pxDtpStateVector = default_sv;
         /* FIXME: fixups to the state-vector should be placed here */
 
         // spin_lock_init(&dtp->sv_lock);
-
+        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
         pxDtp->pxDtpCfg = pxDtpCfg;
         pxDtp->pxRmt = pxRmt;
         // dtp->rttq = NULL;
