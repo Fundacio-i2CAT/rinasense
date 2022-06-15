@@ -1,4 +1,6 @@
 syntax="proto2";
+import "nanopb.proto";
+
 package rina.messages;
 option optimize_for = LITE_RUNTIME;
 
@@ -26,27 +28,39 @@ enum opCode_t {
 
 // Values for the flags field.
 enum flagValues_t {
-	F_NO_FLAGS = 0;							// The default value, no flags are set
-	F_SYNC = 1;								// set on READ/WRITE to request synchronous r/w
-	F_RD_INCOMPLETE = 2;					// set on all but final reply to an M_READ
+	F_NO_FLAGS = 0;							
+        // The default value, no flags are set
+	
+	F_SYNC = 1;
+	// set on READ/WRITE to request synchronous r/w
+
+	F_RD_INCOMPLETE = 2;
+	// set on all but final reply to an M_READ
 }
 
-message objVal_t {							// value of an object
+message objVal_t {// value of an object
 	optional int32	intval = 1;
 	optional sint32	sintval = 2;
 	optional int64	int64val = 3;
 	optional sint64	sint64val = 4;
-	optional string	strval = 5;
-	optional bytes	byteval = 6;			// arbitrary structure or message
+	optional string	strval = 5 [(nanopb).max_size = 10];
+	optional bytes	byteval = 6 [(nanopb).max_size = 256];
+	// arbitrary structure or message
+
 	optional fixed32 floatval = 7;
 	optional fixed64 doubleval = 8;
 	optional bool    boolval = 9;
 }
 
 message authPolicy_t {
-    	optional string name = 1;            // Policy name
-    	repeated string versions = 2;        // Supported versions
-    	optional bytes options = 3;          // Opaque policy-specific versions
+    	optional string name = 1 [(nanopb).max_size = 40];
+        // Policy name
+
+    	repeated string versions = 2 [(nanopb).max_size = 40, (nanopb).max_count = 1];
+        // Supported versions
+
+    	optional bytes options = 3;          
+	// Opaque policy-specific versions
 }
 
 // CDAP message field definition, can be used for all messages.
@@ -55,34 +69,79 @@ message authPolicy_t {
 // See the documentation for the complete field specification of each message type.
 //
 message CDAPMessage {
-	optional int32 absSyntax = 1;			// Abstract Syntax of messages, see text.
-	required opCode_t opCode = 2;			// op Code.
-	optional int32 invokeID = 3;			// Invoke ID, omitted if no reply desired.
-	optional flagValues_t flags = 4;		// misc. flags
-	optional string objClass = 5;			// Name of the object class of objName
-	optional string objName = 6;			// Object name, unique in its class
-	optional int64 objInst = 7;				// Unique object instance
-	optional objVal_t objValue = 8;			// value of object in read/write/etc.
-	optional int32 result = 9 [default = 0]; // result of operation, 0 == success
-	optional int32 scope = 10;				// scope of READ/WRITE operation
-	optional bytes filter = 11;				// filter script
-	optional authPolicy_t authPolicy = 18;		// Authentication policy information
-	optional string destAEInst = 19;		// Destination AE Instance name
-	optional string destAEName = 20;		// Destination AE name
-	optional string destApInst = 21;		// Destination Application Instance name
-	optional string destApName = 22;		// Destination Application name
-	optional string srcAEInst = 23;			// Source AE Instance name
-	optional string srcAEName = 24;			// Source AE name
-	optional string srcApInst = 25;			// Source Application Instance name
-	optional string srcApName = 26;			// Source Application name
-	optional string resultReason = 27;		// further explanation of result
-	optional int64 version = 28;			// For application use - RIB/class version.
+	optional int32 absSyntax = 1;			
+	// Abstract Syntax of messages, see text.
+	
+	required opCode_t opCode = 2;		
+	// op Code.
+	
+	optional int32 invokeID = 3;			
+	// Invoke ID, omitted if no reply desired.
+	
+	optional flagValues_t flags = 4;		
+	// misc. flags
+	
+	optional string objClass = 5 [(nanopb).max_size = 40];
+	// Name of the object class of objName
+	
+	optional string objName = 6 [(nanopb).max_size = 40];
+	// Object name, unique in its class
+
+	optional int64 objInst = 7;
+	// Unique object instance
+	
+	optional objVal_t objValue = 8;			
+	// value of object in read/write/etc.
+	
+	optional int32 result = 9 [default = 0]; 
+	// result of operation, 0 == success
+	
+	optional int32 scope = 10;				
+	// scope of READ/WRITE operation
+	
+	optional bytes filter = 11;				
+	// filter script
+	
+	optional authPolicy_t authPolicy = 18;		
+	// Authentication policy information
+	
+	optional string destAEInst = 19 [(nanopb).max_size = 20];
+	// Destination AE Instance name
+	
+	optional string destAEName = 20 [(nanopb).max_size = 20];
+	// Destination AE name
+	
+	optional string destApInst = 21 [(nanopb).max_size = 20];
+	// Destination Application Instance name
+	
+	optional string destApName = 22 [(nanopb).max_size = 20];
+	// Destination Application name
+		
+	optional string srcAEInst = 23 [(nanopb).max_size = 20];
+	// Source AE Instance name
+	
+	optional string srcAEName = 24 [(nanopb).max_size = 20];
+	// Source AE name
+	
+	optional string srcApInst = 25 [(nanopb).max_size = 20];
+	// Source Application Instance name
+	
+	optional string srcApName = 26 [(nanopb).max_size = 20];
+	// Source Application name
+	
+	optional string resultReason = 27 [(nanopb).max_size = 20];
+	// further explanation of result
+
+	optional int64 version = 28;			
+	// For application use - RIB/class version.
 }
 
 message int_t {  //information to identify an int
-	required uint32 value = 1; 				//value of the integer
+	required uint32 value = 1; 				
+	//value of the integer
 }
 
 message string_t {  //information to identify an string
-	required string value = 1; 				//value of the string
+	required string value = 1; 				
+	//value of the string
 }

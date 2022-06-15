@@ -102,7 +102,7 @@ BaseType_t xARPAddressGPAGrow(gpa_t *pxGpa, size_t uxLength, uint8_t ucFiller)
 		return pdTRUE;
 	}
 
-	configASSERT(uxLength > pxGpa->uxLength);
+	// configASSERT(uxLength > pxGpa->uxLength);
 
 	ESP_LOGD(TAG_ARP, "Growing GPA to %zd with filler 0x%02X", uxLength, ucFiller);
 	new_address = pvPortMalloc(uxLength);
@@ -332,7 +332,7 @@ BaseType_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 	/* This is called from the context of the IPCP event task, so a block time
 	 * must not be used. */
 
-	//ESP_LOGE(TAG_ARP, "Taking Buffer to send ARP Request: vARPSendRequest");
+	// ESP_LOGE(TAG_ARP, "Taking Buffer to send ARP Request: vARPSendRequest");
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, (TickType_t)0U); // sizeof length ARPPacket
 
 	if (pxNetworkBuffer != NULL)
@@ -423,8 +423,8 @@ static void prvARPGeneratePacket(NetworkBufferDescriptor_t *const pxNetworkBuffe
 
 	/* Buffer allocation ensures that buffers always have space
 	 * for an ARP packet.  */
-	configASSERT(pxNetworkBuffer != NULL);
-	configASSERT(pxNetworkBuffer->xDataLength >= uxLength);
+	// configASSERT(pxNetworkBuffer != NULL);
+	// configASSERT(pxNetworkBuffer->xDataLength >= uxLength);
 
 	pxARPPacket = vCastPointerTo_ARPPacket_t(pxNetworkBuffer->pucEthernetBuffer);
 
@@ -597,12 +597,11 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 	ucTpa = ucPtr;
 	ucPtr = ucPtr + pxARPHeader->ucPALength;
 
-	
-	pxTmpSpa = pxShimCreateGPA(ucSpa, (size_t)ucPlen+1);
+	pxTmpSpa = pxShimCreateGPA(ucSpa, (size_t)ucPlen);
 	pxTmpSha = pxShimCreateGHA(MAC_ADDR_802_3, (MACAddress_t *)ucSha);
-	pxTmpTpa = pxShimCreateGPA(ucTpa, (size_t)ucPlen+1);
+	pxTmpTpa = pxShimCreateGPA(ucTpa, (size_t)ucPlen);
 	pxTmpTha = pxShimCreateGHA(MAC_ADDR_802_3, (MACAddress_t *)ucTha);
-	vARPPrintCache();
+	// vARPPrintCache();
 
 	if (xARPAddressGPAShrink(pxTmpSpa, 0x00))
 	{
@@ -682,7 +681,10 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 
 		vARPAddCacheEntry(pxHandle, 3);
 
-		//vARPPrintCache(); // test
+		vShimGPADestroy(pxTmpTpa);
+		vShimGHADestroy(pxTmpTha);
+
+		// vARPPrintCache(); // test
 
 		eReturn = eProcessBuffer;
 
@@ -715,12 +717,12 @@ gha_t *pxARPLookupGHA(const gpa_t *pxGpaToLookup)
 
 		if (xARPCache[x].ucAge == 3)
 		{
-			//ESP_LOGE(TAG_ARP, "ARP Found: %s", xARPCache[x].pxProtocolAddress->ucAddress);
+			// ESP_LOGE(TAG_ARP, "ARP Found: %s", xARPCache[x].pxProtocolAddress->ucAddress);
 			pxGHA->xAddress = xARPCache[x].pxMACAddress->xAddress;
 			pxGHA->xType = xARPCache[x].pxMACAddress->xType;
 			return pxGHA;
 		}
-		//ESP_LOGE(TAG_ARP, "ARP not Found: %s", xARPCache[x].pxProtocolAddress->ucAddress);
+		// ESP_LOGE(TAG_ARP, "ARP not Found: %s", xARPCache[x].pxProtocolAddress->ucAddress);
 	}
 
 	return NULL;
@@ -836,7 +838,7 @@ struct rinarpHandle_t *pxARPAdd(gpa_t *pxPa, gha_t *pxHa)
 
 	pxHandle->pxHa = pxHa;
 	pxHandle->pxPa = pxPa;
-	vARPAddCacheEntry(pxHandle,1);
+	vARPAddCacheEntry(pxHandle, 1);
 
 	return pxHandle;
 }
@@ -882,10 +884,10 @@ BaseType_t xARPResolveGPA(const gpa_t *pxTpa, const gpa_t *pxSpa, const gha_t *p
 
 void vARPInitCache(void)
 {
-	const string_t pcAd = "NULL\0";
+	const string_t pcAd = {"\0"};
 
 	gha_t *pxTmp = pxARPCreateGHAUnknown(MAC_ADDR_802_3);
-	gpa_t *pxProtocolAddress = pxShimCreateGPA((uint8_t *)pcAd, 5);
+	gpa_t *pxProtocolAddress = pxShimCreateGPA((uint8_t *)pcAd, 5); //¿¿is it correct check????
 
 	ARPCacheRow_t xNullCacheEntry;
 
@@ -943,20 +945,21 @@ void vARPAddCacheEntry(struct rinarpHandle_t *pxHandle, uint8_t ucAge)
 	ARPCacheRow_t xCacheEntry;
 	BaseType_t x = 0;
 
-	xCacheEntry.pxProtocolAddress = pxHandle->pxPa;
+	/*xCacheEntry.pxProtocolAddress = pxHandle->pxPa;
 	xCacheEntry.pxMACAddress = pxHandle->pxHa;
 	xCacheEntry.ucAge = ucAge;
-	xCacheEntry.ucValid = 1;
+	xCacheEntry.ucValid = 1;*/
 
 	for (x = 0; x < ARP_CACHE_ENTRIES; x++)
 
 	{
 		if (xARPCache[x].ucValid == 0)
 		{
-			xARPCache[x].pxProtocolAddress = xCacheEntry.pxProtocolAddress;
-			xARPCache[x].pxMACAddress = xCacheEntry.pxMACAddress;
-			xARPCache[x].ucAge = xCacheEntry.ucAge;
-			xARPCache[x].ucValid = xCacheEntry.ucValid;
+			xARPCache[x].pxProtocolAddress = pxShimCreateGPA(pxHandle->pxPa->ucAddress,
+															 pxHandle->pxPa->uxLength);
+			xARPCache[x].pxMACAddress = pxHandle->pxHa;
+			xARPCache[x].ucAge = ucAge;
+			xARPCache[x].ucValid = 1;
 			ESP_LOGD(TAG_ARP, "ARP Entry successful");
 
 			break;

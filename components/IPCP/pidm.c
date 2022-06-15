@@ -1,10 +1,10 @@
 /**
-*
-*        Port Id Manager:
-*       Managing the PortIds allocated in the whole stack. PortIds in IPCP Normal
-*       and Shim Wifi.
-*
-**/
+ *
+ *        Port Id Manager:
+ *       Managing the PortIds allocated in the whole stack. PortIds in IPCP Normal
+ *       and Shim Wifi.
+ *
+ **/
 #include "freertos/FreeRTOS.h"
 
 #include "common.h"
@@ -15,7 +15,6 @@
 #include "esp_log.h"
 #define BITS_PER_BYTE (8)
 #define MAX_PORT_ID (((2 << BITS_PER_BYTE) * sizeof(portId_t)) - 1)
-
 
 /** @brief pxPidmCreate.
  * Create the instance of Port Id manager. This instance is register in the
@@ -28,11 +27,11 @@ pidm_t *pxPidmCreate(void)
         if (!pxPidmInstance)
                 return NULL;
 
-        //Initializing the list of Allocated Ports
+        // Initializing the list of Allocated Ports
         vListInitialise(&(pxPidmInstance->xAllocatedPorts));
-        if(listLIST_IS_INITIALISED(&(pxPidmInstance->xAllocatedPorts)))
+        if (listLIST_IS_INITIALISED(&(pxPidmInstance->xAllocatedPorts)))
         {
-                ESP_LOGE(TAG_IPCPMANAGER,"List initialized properly");
+                ESP_LOGE(TAG_IPCPMANAGER, "List initialized properly");
         }
         pxPidmInstance->xLastAllocated = 0;
 
@@ -52,7 +51,7 @@ BaseType_t xPidmDestroy(pidm_t *pxInstance)
         }
 
         //  list_for_each_entry_safe(pos, next, &pxInstance->xAllocatedPorts, list) {
-        //vPortFree(pxPos);
+        // vPortFree(pxPos);
         //}
 
         vPortFree(pxInstance);
@@ -65,7 +64,6 @@ BaseType_t xPidmDestroy(pidm_t *pxInstance)
 BaseType_t xPidmAllocated(pidm_t *pxInstance, portId_t xPortId)
 {
         allocPid_t *pos;
- 
 
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
@@ -94,7 +92,6 @@ BaseType_t xPidmAllocated(pidm_t *pxInstance, portId_t xPortId)
         }
         vPortFree(pos);
         return pdFALSE;
-
 }
 
 /** @brief xPidmAllocate.
@@ -136,13 +133,14 @@ portId_t xPidmAllocate(pidm_t *pxInstance)
 
         pxNewPortId = pvPortMalloc(sizeof(*pxNewPortId));
         if (!pxNewPortId)
-        {       ESP_LOGE(TAG_IPCPMANAGER,"It was not allocated properly");
+        {
+                ESP_LOGE(TAG_IPCPMANAGER, "It was not allocated properly");
                 return port_id_bad();
         }
         pxNewPortId->xPid = pid;
         vListInitialiseItem(&(pxNewPortId->xPortIdItem));
         listSET_LIST_ITEM_OWNER(&(pxNewPortId->xPortIdItem), (void *)pxNewPortId);
-        vListInsert( &(pxInstance->xAllocatedPorts),&(pxNewPortId->xPortIdItem));
+        vListInsert(&(pxInstance->xAllocatedPorts), &(pxNewPortId->xPortIdItem));
 
         pxInstance->xLastAllocated = pid;
 
@@ -172,8 +170,8 @@ BaseType_t xPidmRelease(pidm_t *pxInstance,
 
         /*list_for_each_entry_safe(pos, next, &instance->allocated_ports, list) {
                 if (pos->pid == id) {
-                	list_del(&pos->list);
-                	rkfree(pos);
+                        list_del(&pos->list);
+                        rkfree(pos);
                         found = 1;
                 }
         }*/

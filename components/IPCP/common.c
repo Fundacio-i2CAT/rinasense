@@ -1,9 +1,9 @@
 #include <string.h>
 
-#include "Freertos/FreeRTOS.h"
-#include "Freertos/task.h"
-#include "Freertos/queue.h"
-#include "Freertos/semphr.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
 
 #include "esp_log.h"
 
@@ -16,17 +16,17 @@ portId_t port_id_bad(void)
 
 BaseType_t is_port_id_ok(portId_t id)
 {
-        return id >= 0 ? pdTRUE : pdFALSE;
+        return id > 0 ? pdTRUE : pdFALSE;
 }
 
 BaseType_t is_cep_id_ok(cepId_t id)
 {
-        return id >= 0 ? pdTRUE : pdFALSE;
+        return id > 0 ? pdTRUE : pdFALSE;
 }
 
 BaseType_t is_ipcp_id_ok(ipcProcessId_t id)
 {
-        return id >= 0 ? pdTRUE : pdFALSE;
+        return id > 0 ? pdTRUE : pdFALSE;
 }
 
 cepId_t cep_id_bad(void)
@@ -54,7 +54,7 @@ BaseType_t is_qos_id_ok(qosId_t id)
         return id != QOS_ID_WRONG ? pdTRUE : pdFALSE;
 }
 
-name_t *xRinaNameCreate(void);
+/*name_t *xRinaNameCreate(void);
 
 char *xRINAstrdup(const char *s);
 
@@ -150,11 +150,11 @@ BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName)
         aen = strsep(strp, "|");
         aei = strsep(strp, "|");
 
-        
-	if (!apn) {
-		vPortFree(strc_orig);
-		return pdFALSE;
-	}
+
+        if (!apn) {
+                vPortFree(strc_orig);
+                return pdFALSE;
+        }
 
 
 
@@ -220,8 +220,8 @@ BaseType_t xRINAStringDup(const string_t *src, string_t **dst)
         }
 
         return pdTRUE;
-}
-
+}*/
+#if 0
 name_t *xRINANameInitFrom(name_t *dst,
 					   const string_t *process_name,
 					   const string_t *process_instance,
@@ -301,28 +301,32 @@ name_t *xRINAstringToName(const string_t *pxInput)
 
 	return pxName;
 }
-
-void memcheck(void){
-	// perform free memory check
-	int blockSize = 16;
-	int i = 1;
+#endif
+void memcheck(void)
+{
+        // perform free memory check
+        int blockSize = 16;
+        int i = 1;
         static int size = 0;
-	printf("Checking memory with blocksize %d char ...\n", blockSize);
-	while (true) {
-		char *p = (char *) malloc(i * blockSize);
-		if (p == NULL){
-			break;
-		}
-		free(p);
-		++i;
-	}
-	printf("Ok for %d char\n", (i - 1) * blockSize);
-    if (size != (i - 1) * blockSize) printf("There is a possible memory leak because the last memory size was %d and now is %d\n",size,(i - 1) * blockSize);
-    size = (i - 1) * blockSize;
+        printf("Checking memory with blocksize %d char ...\n", blockSize);
+        while (true)
+        {
+                char *p = (char *)malloc(i * blockSize);
+                if (p == NULL)
+                {
+                        break;
+                }
+                free(p);
+                ++i;
+        }
+        printf("Ok for %d char\n", (i - 1) * blockSize);
+        if (size != (i - 1) * blockSize)
+                printf("There is a possible memory leak because the last memory size was %d and now is %d\n", size, (i - 1) * blockSize);
+        size = (i - 1) * blockSize;
 }
 
 static int invoke_id = 1;
-int get_next_invoke_id( void )
+int get_next_invoke_id(void)
 {
-    return (invoke_id % INT_MAX == 0) ? (invoke_id = 1) : invoke_id++;
+        return (invoke_id % INT_MAX == 0) ? (invoke_id = 1) : invoke_id++;
 }

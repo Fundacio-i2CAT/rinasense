@@ -9,6 +9,7 @@
 #define ENROLLMENT_H_INCLUDED
 
 #include "Rib.h"
+#include "normalIPCP.h"
 
 /*-----------------------------------------------------------*/
 /* Miscellaneous structure and definitions. */
@@ -75,12 +76,12 @@ typedef struct xNEIGHBOR_ROW
 
 } neighborsTableRow_t;
 
-void xEnrollmentInit(portId_t xPortId);
+void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xPortId);
 
 BaseType_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
                                string_t pcLocalApName, int invokeId, portId_t xN1Port);
 
-BaseType_t xEnrollmentHandleConnectR(string_t pcRemoteProcessName, portId_t xN1Port);
+BaseType_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t pcRemoteProcessName, portId_t xN1Port);
 BaseType_t xEnrollmentHandleStartR(string_t pcRemoteApName, serObjectValue_t *pxSerObjValue);
 BaseType_t xEnrollmentHandleStopR(string_t pcRemoteApName);
 
@@ -88,8 +89,8 @@ BaseType_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
                                  serObjectValue_t *pxObjValue, string_t pcRemoteApName,
                                  string_t pcLocalProcessName, int invokeId, portId_t xN1Port);
 
-BaseType_t xEnrollmentHandleOperationalStart(struct ribObject_t * pxOperRibObj, serObjectValue_t *pxSerObjectValue, string_t pcRemoteApName,
-                 string_t pxLocalApName, int invokeId, portId_t xN1Port);
+BaseType_t xEnrollmentHandleOperationalStart(struct ribObject_t *pxOperRibObj, serObjectValue_t *pxSerObjectValue, string_t pcRemoteApName,
+                                             string_t pxLocalApName, int invokeId, portId_t xN1Port);
 
 address_t xEnrollmentGetNeighborAddress(string_t pcRemoteApName);
 
