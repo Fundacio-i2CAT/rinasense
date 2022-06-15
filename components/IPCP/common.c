@@ -7,7 +7,7 @@
 
 #include "esp_log.h"
 
-#include "common.h"
+#include "rina_common.h"
 
 portId_t port_id_bad(void)
 {

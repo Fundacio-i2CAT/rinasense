@@ -19,7 +19,7 @@
 #include "EFCP.h"
 #include "du.h"
 #include "Rmt.h"
-#include "common.h"
+#include "rina_common.h"
 #include "delim.h"
 #include "cepidm.h"
 
