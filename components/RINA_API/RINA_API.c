@@ -18,7 +18,7 @@
 
 #include "BufferManagement.h"
 #include "configSensor.h"
-#include "common.h"
+#include "rina_common.h"
 #include "esp_log.h"
 #include "RINA_API.h"
 #include "rstr.h"

@@ -8,7 +8,7 @@
 #ifndef COMPONENTS_RMT_INCLUDE_PCI_H_
 #define COMPONENTS_RMT_INCLUDE_PCI_H_
 
-#include "common.h"
+#include "rina_common.h"
 
 /**** Constants PCI dataTypes***/
 

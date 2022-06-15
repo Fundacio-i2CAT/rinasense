@@ -18,7 +18,7 @@
 
 #include "Rmt.h"
 #include "configSensor.h"
-#include "common.h"
+#include "rina_common.h"
 #include "du.h"
 
 #include "efcpStructures.h"

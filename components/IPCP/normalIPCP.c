@@ -10,7 +10,7 @@
 #include "IPCP.h"
 #include "EFCP.h"
 #include "Rmt.h"
-#include "common.h"
+#include "rina_common.h"
 #include "du.h"
 #include "configRINA.h"
 #include "Ribd.h"

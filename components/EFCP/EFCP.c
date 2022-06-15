@@ -18,7 +18,7 @@
 #include "du.h"
 #include "efcpStructures.h"
 #include "dtp.h"
-#include "common.h"
+#include "rina_common.h"
 #include "connection.h"
 #include "configSensor.h"
 #include "cepidm.h"

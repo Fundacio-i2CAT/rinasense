@@ -8,7 +8,7 @@
 #include "freertos/semphr.h"
 
 #include "IPCP.h"
-#include "common.h"
+#include "rina_common.h"
 #include "configRINA.h"
 #include "BufferManagement.h"
 #include "CDAP.pb.h"

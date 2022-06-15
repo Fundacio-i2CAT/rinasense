@@ -9,7 +9,7 @@
 #define COMPONENTS_EFCP_INCLUDE_CONNECTION_H_
 
 
-#include "common.h"
+#include "rina_common.h"
 #include "freertos/FreeRTOS.h"
 
 connection_t *  pxConnectionCreate(void);
