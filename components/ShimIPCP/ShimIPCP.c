@@ -8,7 +8,6 @@
 #include "freertos/semphr.h"
 
 #include "ShimIPCP.h"
-#include "factoryIPCP.h"
 #include "ARP826.h"
 #include "IPCP.h"
 #include "NetworkInterface.h"
@@ -1262,25 +1261,4 @@ void vShimWiFiInit(ipcpInstance_t *pxShimWiFiInstance)
 	}
 
 	// return pdPASS;
-}
-
-static ipcpFactoryOps_t xFactoryShimWifiOps = {
-	.init = vShimWiFiInit,
-	.fini = NULL,
-	.create = pxShimWiFiCreate,
-	//.destroy = NULL,
-};
-
-BaseType_t xShimIPCPInitFactory(factories_t *pxFactoriesList);
-
-BaseType_t xShimIPCPInitFactory(factories_t *pxFactoriesList)
-
-{
-	ESP_LOGI(TAG_SHIM, "Registering Shim WiFi Factory");
-
-	if (xFactoryIPCPRegister(pxFactoriesList, eFActoryShimWiFi, &xFactoryShimWifiData, &xFactoryShimWifiOps))
-	{
-		return pdTRUE;
-	}
-	return pdFALSE;
 }

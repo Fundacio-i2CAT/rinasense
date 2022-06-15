@@ -16,7 +16,7 @@
 #include "NetworkInterface.h"
 #include "ShimIPCP.h"
 #include "configSensor.h"
-#include "common.h"
+#include "rina_common.h"
 #include "IPCP.h"
 
 #include "esp_log.h"

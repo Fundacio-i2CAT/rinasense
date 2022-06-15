@@ -19,8 +19,7 @@
 #include "freertos/semphr.h"
 
 #include "IPCP.h"
-#include "common.h"
-#include "factoryIPCP.h"
+#include "rina_common.h"
 #include "configRINA.h"
 #include "IpcManager.h"
 #include "normalIPCP.h"
@@ -158,71 +157,6 @@ static ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
     return NULL;
 }
 
-/**
- * @brief create an IPCP instance depending on the config File. Search the correct factory
- * depending on the factory type. Then, request allocate a new IPCP id. Request to the factory
- * create the instance. The IPCP instance created is registered into the IPCP table.
- * @param pxFactories list of factories registered to create the IPCP requiered
- * @param xFactoryType Type of factory requiered to create the IPCP
- * @param pxIpcpIdManager Ipcp Ids Manager to request allocated new IPCP id
- *
- */
-BaseType_t xIpcManagerCreateInstance(factories_t *pxFactories, ipcpFactoryType_t xFactoryType, ipcpIdm_t *pxIpcpIdManager)
-{
-    ipcpFactory_t *pxFactory;
-    ipcpInstance_t *pxInstance;
-    ipcProcessId_t xIpcpId;
-
-    pxFactory = pvPortMalloc(sizeof(*pxFactory));
-    pxInstance = pvPortMalloc(sizeof(*pxInstance));
-
-    /*Find the Factory required depending on the IPCP Type*/
-    pxFactory = pxFactoryIPCPFind(pxFactories, xFactoryType);
-
-    if (!pxFactory)
-    {
-        ESP_LOGE(TAG_IPCPMANAGER, "Cannot find factory '%d'", xFactoryType);
-        return 0;
-    }
-
-    xIpcpId = xIpcpIdmAllocate(pxIpcpIdManager);
-    ESP_LOGD(TAG_IPCPMANAGER, "IPCP id to be ADD: %d", xIpcpId);
-
-    pxInstance = pxFactory->pxFactoryOps->create(pxFactory->pxFactoryData, xIpcpId);
-
-    if (!pxInstance)
-    {
-        return pdFALSE;
-    }
-    // ESP_LOGI(TAG_IPCPMANAGER,"Adding IPCP instance into the IMAP Table");
-    /* Should send add the instance into the IMAP List*/
-    vIpcpManagerAddInstanceEntry(pxInstance);
-
-    return pdTRUE;
-}
-
-BaseType_t xIcpManagerNormalRegister(factories_t *pxFactories, ipcpFactoryType_t xFactoryTypeFrom, ipcpFactoryType_t xFactoryTypeTo)
-{
-    ipcpInstance_t *pxInstanceFrom;
-    ipcpInstance_t *pxInstanceTo;
-
-    pxInstanceFrom = pvPortMalloc(sizeof(*pxInstanceFrom));
-    pxInstanceTo = pvPortMalloc(sizeof(*pxInstanceTo));
-
-    pxInstanceFrom = pxIpcManagerFindInstanceByType(xFactoryTypeFrom);
-    pxInstanceTo = pxIpcManagerFindInstanceByType(xFactoryTypeTo);
-
-    // ESP_LOGI(TAG_IPCPMANAGER, "pxInstanceFrom: %p",pxInstanceFrom);
-    // ESP_LOGI(TAG_IPCPMANAGER, "pxInstanceTo: %p",pxInstanceTo);
-
-    // if (xNormalRegistering(pxInstanceFrom, pxInstanceTo))
-    //{
-    //   return pdTRUE;
-    // }
-
-    return pdFALSE;
-}
-
 void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, pidm_t *pxPidm, name_t *pxIPCPName)
 {
 
@@ -249,23 +183,6 @@ void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, pidm_t *px
         ESP_LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
         return pdTRUE;
     }
-
-    return pdFALSE;
-}
-
-BaseType_t xIpcpManagerShimAllocateResponseHandle(factories_t *pxFactories, ipcpFactoryType_t xShimType)
-{
-    ipcpInstance_t *pxShimInstance;
-    ipcpInstance_t *pxNormalInstance;
-
-    pxShimInstance = pvPortMalloc(sizeof(*pxShimInstance));
-    pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
-
-    pxShimInstance = pxIpcManagerFindInstanceByType(xShimType);
-    pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
-
-    /*Searching in table for the flow - portId, which is waiting for results*/
-    /*portId Hardcode for a while*/
 
     return pdFALSE;
 }
@@ -337,43 +254,6 @@ void vIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, struct efcpContain
 
     //}
     ESP_LOGE(TAG_IPCPMANAGER, "end");
-}
-
-BaseType_t xIpcpManagerPreBindFlow(factories_t *pxFactories, ipcpFactoryType_t xNormalType)
-{
-
-    ipcpInstance_t *pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
-
-    pxNormalInstance = pxIpcManagerFindInstanceByType(xNormalType);
-
-    if (pxNormalInstance->pxOps->flowPrebind(pxNormalInstance->pxData, 1))
-    {
-        return pdTRUE;
-    }
-
-    return pdFALSE;
-}
-
-BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData);
-BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData)
-{
-    struct du_t *pxDu;
-    pxDu = (struct du_t *)(pxData);
-
-    ipcpInstance_t *pxShimInstance;
-    ipcpInstance_t *pxNormalInstance;
-
-    pxShimInstance = pvPortMalloc(sizeof(*pxShimInstance));
-    pxShimInstance = pxIpcManagerFindInstanceByType(xType);
-
-    pxNormalInstance = pvPortMalloc(sizeof(*pxNormalInstance));
-    pxNormalInstance = pxIpcManagerFindInstanceByType(eNormal);
-
-    // ESP_LOGE(TAG_IPCPMANAGER,"Calling xNormalMgmtDuWrite");
-
-    pxNormalInstance->pxOps->mgmtDuWrite(pxNormalInstance->pxData, pxDu->pxNetworkBuffer->ulBoundPort, pxDu);
-
-    return pdTRUE;
 }
 
 void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);

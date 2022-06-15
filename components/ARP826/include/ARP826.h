@@ -12,7 +12,7 @@
 /* Miscellaneous structure and definitions. */
 /*-----------------------------------------------------------*/
 
-#include "common.h"
+#include "rina_common.h"
 #include "IPCP.h"
 
 // enum MAC Address

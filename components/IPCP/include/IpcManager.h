@@ -43,17 +43,6 @@ typedef struct xIPC_MANAGER
 } ipcManager_t;
 
 BaseType_t xIpcManagerInit(ipcManager_t *pxIpcManager);
-#if 0
-
-BaseType_t xIcpManagerNormalRegister(factories_t *pxFactories, ipcpFactoryType_t xFactoryTypeFrom, ipcpFactoryType_t xFactoryTypeTo);
-
-BaseType_t xIpcManagerCreateInstance(factories_t *pxFactories, ipcpFactoryType_t xFactoryType, ipcpIdm_t *pxIpcpIdManager);
-
-
-
-BaseType_t xIpcpManagerShimAllocateResponseHandle(factories_t *pxFactories, ipcpFactoryType_t xShimType);
-BaseType_t xIpcpManagerPreBindFlow(factories_t *pxFactories, ipcpFactoryType_t xNormalType);
-#endif
 
 void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, pidm_t *pxPidm, name_t *pxIPCPName);
 

@@ -10,7 +10,7 @@
  */
 #include "freertos/FreeRTOS.h"
 
-#include "common.h"
+#include "rina_common.h"
 #include "configRINA.h"
 #include "configSensor.h"
 #include "ipcpIdm.h"

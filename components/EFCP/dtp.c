@@ -9,7 +9,7 @@
 #include "esp_log.h"
 
 #include "du.h"
-#include "common.h"
+#include "rina_common.h"
 #include "Rmt.h"
 
 #define TAG_DTP "[DTP]"
@@ -102,7 +102,7 @@ BaseType_t xDtpPduSend(dtp_t *pxDtp, rmt_t *pxRmt, struct du_t *pxDu)
         }
 
         /* Local flow case */
-        destCepId = pxDu;
+        destCepId = pxDu->pxPci->connectionId_t.xDestination;
         pxEfcpContainer = pxDtp->pxEfcp->pxEfcpContainer;
         // pxEfcpContainer = pxDtp->pxEfcp->pxEfcpContainer;
         if (unlikely(!pxEfcpContainer || xDuDecap(pxDu) || !xDuIsOk(pxDu)))

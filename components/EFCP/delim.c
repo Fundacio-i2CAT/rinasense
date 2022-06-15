@@ -9,7 +9,7 @@
 #include "esp_log.h"
 
 #include "du.h"
-#include "common.h"
+#include "rina_common.h"
 #include "efcpStructures.h"
 
 

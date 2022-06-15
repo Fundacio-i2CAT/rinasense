@@ -10,7 +10,7 @@
 
 #include "Rmt.h"
 #include "IPCP.h"
-#include "common.h"
+#include "rina_common.h"
 #include "pci.h"
 
 struct du_t
