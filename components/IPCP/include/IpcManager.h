@@ -7,6 +7,7 @@
 #include "RINA_API.h"
 #include "EFCP.h"
 #include "normalIPCP.h"
+#include "rina_buffers.h"
 
 typedef struct xINSTANCE_TABLE_ROW
 {

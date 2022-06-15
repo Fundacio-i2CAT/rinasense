@@ -35,6 +35,9 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   #
   set(configSensor_INCLUDES     "${CMAKE_CURRENT_SOURCE_DIR}/components/configSensor/include")
   set(Common_INCLUDES           "${CMAKE_CURRENT_SOURCE_DIR}/components/Common/include")
+  set(ARP826_INCLUDES           "${CMAKE_CURRENT_SOURCE_DIR}/components/ARP826/include")
+  set(BufferManagement_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/BufferManagement/include")
+  set(IPCP_INCLUDES             "${CMAKE_CURRENT_SOURCE_DIR}/components/IPCP/include")
 
   #
   # Portability layer, target specific
@@ -71,6 +74,29 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${configSensor_INCLUDES}
   )
   include("${Common_TEST_DIR}/CMakeLists.txt")
+
+  #
+  # Component: BufferManagement
+  #
+  set(BufferManagement_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/BufferManagement")
+  set(BufferManagement_TEST_DIR "${BufferManagement_DIR}/tests")
+  file(GLOB BufferManagement_SOURCES
+    "${BufferManagement_DIR}/*.c"
+  )
+  add_library(BufferManagement STATIC ${BufferManagement_SOURCES})
+  target_include_directories(BufferManagement PUBLIC
+    ${BufferManagement_INCLUDES}
+    ${configSensor_INCLUDES}
+    ${ARP826_INCLUDES}
+    ${Common_INCLUDES}
+    #    ${EFCP_INCLUDES}
+    ${IPCP_INCLUDES}
+    #    ${NetworkInterface_INCLUDES}
+    #    ${Rmt_INCLUDES}
+    #    ${ShimIPCP_INCLUDES}
+    ${Portability_INCLUDES}
+  )
+  include("${BufferManagement_TEST_DIR}/CMakeLists.txt")
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h")
 

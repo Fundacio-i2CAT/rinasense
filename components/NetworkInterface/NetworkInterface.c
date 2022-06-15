@@ -288,6 +288,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
 	RINAStackEvent_t xRxEvent = {eNetworkRxEvent, NULL};
 	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(250);
+    struct timespec ts;
 
 	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
 	{
@@ -296,7 +297,10 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 		return ESP_OK;
 	}
 
-	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, xDescriptorWaitTime);
+    if (!rstime_waitmsec(&ts, 250))
+        return ESP_FAIL;
+
+    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, &ts);
 	// ESP_LOGE(TAG_WIFI,"xNetworkInterfaceInput Taking buffer to copy wifidriver buffer");
 
 	if (pxNetworkBuffer != NULL)

@@ -22,6 +22,7 @@
 #include "esp_log.h"
 #include "RINA_API.h"
 #include "rstr.h"
+#include "IPCP.h"
 
 struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t pcLocalApp, uint8_t Flags);
 
