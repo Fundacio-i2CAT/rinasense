@@ -251,6 +251,14 @@ typedef struct xIPCP_TIMER
     TickType_t ulReloadTime;    /**< The value of reload time. */
 } IPCPTimer_t;
 
+typedef struct xRESPONSE_HANDLER_ROW
+{
+    int32_t invokeID;
+    struct ribCallbackOps_t *pxCallbackHandler;
+    BaseType_t xValid;
+
+} responseHandlersRow_t;
+
 /*
  * Send the event eEvent to the IPCP task event queue, using a block time of
  * zero.  Return pdPASS if the message was sent successfully, otherwise return

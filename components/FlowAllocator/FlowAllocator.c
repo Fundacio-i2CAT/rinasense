@@ -84,18 +84,6 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 
     // ESP_LOGI(TAG_FA, "DEst:%s", strdup(pxFlowRequest->pxRemote));
 
-    ESP_LOGE(TAG_FA, "pxLocal:%p", pxFlowRequest->pxLocal);
-    ESP_LOGE(TAG_FA, "pxRemote:%p", pxFlowRequest->pxRemote);
-    ESP_LOGE(TAG_FA, "-----DETAILS----");
-    ESP_LOGE(TAG_FA, "pxLocal_APName:%s", pxFlowRequest->pxLocal->pcProcessName);
-    ESP_LOGE(TAG_FA, "pxLocal_APInstance:%s", pxFlowRequest->pxLocal->pcProcessInstance);
-    ESP_LOGE(TAG_FA, "pxLocal_AEName:%s", pxFlowRequest->pxLocal->pcEntityName);
-    ESP_LOGE(TAG_FA, "pxLocal_AEInstance:%s", pxFlowRequest->pxLocal->pcEntityInstance);
-    ESP_LOGE(TAG_FA, "pxRemote_APName:%s", pxFlowRequest->pxRemote->pcProcessName);
-    ESP_LOGE(TAG_FA, "pxRemote_APInstance:%s", pxFlowRequest->pxRemote->pcProcessInstance);
-    ESP_LOGE(TAG_FA, "pxRemote_AEName:%s", pxFlowRequest->pxRemote->pcEntityName);
-    ESP_LOGE(TAG_FA, "pxRemote_AEInstnace:%s", pxFlowRequest->pxRemote->pcEntityInstance);
-
     pxFlow->pxSourceInfo = pxFlowRequest->pxLocal;
     pxFlow->pxDestInfo = pxFlowRequest->pxRemote;
     pxFlow->ulHopCount = 3;
@@ -127,72 +115,71 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
  * if it is well-formed, create a new FlowAllocator-Instance*/
 void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest, struct ipcpNormalData_t *pxIpcpData)
 {
-    ESP_LOGE(TAG_FA, "calling:%s", __func__);
+    ESP_LOGI(TAG_FA, "Handling the Flow Allocation Request");
 
     flow_t *pxFlow;
     cepId_t xCepSourceId;
     flowAllocatorInstace_t *pxFlowAllocatorInstance;
     connectionId_t *pxConnectionId;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+    string_t pcNeighbor;
+
     /* Create a flow object and fill using the event FlowRequest */
     pxFlow = prvFlowAllocatorNewFlow(pxFlowRequest);
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     pxConnectionId = pvPortMalloc(sizeof(*pxConnectionId));
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     /* Create a FAI and fill the struct properly*/
     pxFlowAllocatorInstance = pvPortMalloc(sizeof(*pxFlowAllocatorInstance));
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     if (!pxFlowAllocatorInstance)
     {
         ESP_LOGE(TAG_FA, "FAI was not allocated");
     }
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+    // heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     pxFlowAllocatorInstance->eFaiState = eFAI_NONE;
     pxFlowAllocatorInstance->xPortId = xPortId;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
-    ESP_LOGE(TAG_FA, "GetNeighbor");
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
+    // Query NameManager to getting neighbor how knows the destination requested
+    // pcNeighbor = xNmsGetNextHop(pxFlow->pxDesInfo->pcProcessName;
+
+    pcNeighbor = "ar1.mobile"; // Hardcode for testing
+    ESP_LOGI(TAG_FA, "Getting Neighbor");
+
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
-    pxFlow->xRemoteAddress = xEnrollmentGetNeighborAddress(pxFlow->pxDestInfo->pcProcessName);
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+    pxFlow->xRemoteAddress = xEnrollmentGetNeighborAddress(pcNeighbor);
+
     pxFlow->xSourcePortId = xPortId;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     if (pxFlow->xRemoteAddress == 0)
     {
         ESP_LOGE(TAG_FA, "Error to get Next Hop");
     }
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     /* Call EFCP to create an EFCP instance following the EFCP Config */
-    ESP_LOGE(TAG_FA, "Calling EFCP");
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+    ESP_LOGI(TAG_FA, "Creating a Connection");
+
     xCepSourceId = xNormalConnectionCreateRequest(pxEfcpc, 1,
                                                   LOCAL_ADDRESS, pxFlow->xRemoteAddress, pxFlow->pxQosSpec->xQosId,
                                                   pxFlow->pxDtpConfig, pxFlow->pxDtcpConfig);
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     if (xCepSourceId == 0)
     {
         ESP_LOGE(TAG_FA, "CepId was not create properly");
     }
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     /* Fill the Flow connectionId */
     pxConnectionId->xSource = xCepSourceId;
     pxConnectionId->xQosId = pxFlow->pxQosSpec->xQosId;
     pxConnectionId->xDestination = 0;
 
     pxFlow->pxConnectionId = pxConnectionId;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
 
     /* Send the flow message to the neighbor */
     // Serialize the pxFLow Struct into FlowMsg and Encode the FlowMsg as obj_value
-    ESP_LOGE(TAG_FA, "EncodingFLow");
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     serObjectValue_t *pxObjVal = NULL;
 
-    // ESP_LOGI(TAG_RIB, "Pointer Flow_t: %p", pxFlow);
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
-    ESP_LOGE(TAG_FA, "Calling SerdesMsgFlow");
     pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     // Send using the ribd_send_req M_Create
     ESP_LOGE(TAG_FA, "SendingFlow");
 
@@ -201,7 +188,6 @@ void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId
         ESP_LOGE(TAG_FA, "It was a problem to send the request");
         // return pdFALSE;
     }
-    ESP_LOGE(TAG_FA, "end");
 }
 
 BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)

@@ -290,13 +290,18 @@ static void prvIPCPTask(void *pvParameters)
 
         case eStackFlowAllocateEvent:
 
-            // ESP_LOGE(TAG_IPCPMANAGER, "Flow Allocate Received");
+            ESP_LOGI(TAG_IPCPMANAGER, "---------- Flow Allocation -------");
+            ESP_LOGI(TAG_IPCPMANAGER, "App Request a Flow");
 
-            // pxFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
-            // pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
+            pxFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
+            pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
 
-            vIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, pxIpcpData->pxEfcpc, pxIpcpData);
-            // vIpcpManagerAppFlowAllocateRequestHandle
+            // store the request and response when the flow is allocated.
+
+            pxFlowAllocateRequest->xPortId = xIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm,
+                                                                                      pxIpcpData->pxEfcpc,
+                                                                                      pxIpcpData,
+                                                                                      pxFlowAllocateRequest);
 
             // xRINA_WeakUpUser(pxFlowAllocateRequest);
 
@@ -307,6 +312,11 @@ static void prvIPCPTask(void *pvParameters)
             /*Call to IpcManger mgmt handle */
             // xIpcManagerWriteMgmtHandler(eShimWiFi, xReceivedEvent.pvData);
 
+            break;
+
+        case eStackTxEvent:
+
+            // call Efcp to write SDU.
             break;
 
         case eNoEvent:

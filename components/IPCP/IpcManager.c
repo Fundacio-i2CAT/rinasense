@@ -189,71 +189,25 @@ void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, pidm_t *px
 
 /* Handle a Flow allocation request sended by the User throught the RINA API.
  * Return a the Flow xPortID that the RINA API is going to use to send data. */
-void vIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, struct efcpContainer_t *pxEfcpc, struct ipcpNormalData_t *pxIpcpData)
+portId_t xIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm,
+                                                  struct efcpContainer_t *pxEfcpc,
+                                                  struct ipcpNormalData_t *pxIpcpData,
+                                                  flowAllocateHandle_t *pxFlowAllocateRequest)
 {
 
     portId_t xPortId;
 
-    flowAllocateHandle_t *pxFlowAllocateRequest;
-    pxFlowAllocateRequest = pvPortMalloc(sizeof(*pxFlowAllocateRequest));
-
-    struct flowSpec_t *pxFlowSpecTmp;
-    pxFlowSpecTmp = pvPortMalloc(sizeof(*pxFlowSpecTmp));
-    pxFlowAllocateRequest->pxFspec = pxFlowSpecTmp;
-
-    name_t *pxLocal, *pxRemote, *pxDIF;
-    pxLocal = pvPortMalloc(sizeof(*pxLocal));
-    pxRemote = pvPortMalloc(sizeof(*pxRemote));
-    pxDIF = pvPortMalloc(sizeof(*pxDIF));
-
-    pxLocal->pcProcessName = "Test";
-    pxLocal->pcProcessInstance = "1";
-    pxLocal->pcEntityName = "test";
-    pxLocal->pcEntityInstance = "1";
-    pxRemote->pcProcessName = "sensor1";
-    pxRemote->pcProcessInstance = "";
-    pxRemote->pcEntityName = "";
-    pxRemote->pcEntityInstance = "";
-    pxDIF->pcProcessName = NORMAL_DIF_NAME;
-    pxDIF->pcProcessInstance = "";
-    pxDIF->pcEntityName = "";
-    pxDIF->pcEntityInstance = "";
-
-    pxFlowAllocateRequest->pxDifName = pxDIF;
-    pxFlowAllocateRequest->pxLocal = pxLocal;
-    pxFlowAllocateRequest->pxRemote = pxRemote;
-    pxFlowAllocateRequest->pxFspec->ulAverageBandwidth = 0;
-    pxFlowAllocateRequest->pxFspec->ulAverageSduBandwidth = 0;
-    pxFlowAllocateRequest->pxFspec->ulDelay = 0;
-    pxFlowAllocateRequest->pxFspec->ulJitter = 0;
-    pxFlowAllocateRequest->pxFspec->usLoss = 10000;
-    pxFlowAllocateRequest->pxFspec->ulMaxAllowableGap = 10;
-    pxFlowAllocateRequest->pxFspec->xOrderedDelivery = false;
-    pxFlowAllocateRequest->pxFspec->ulUndetectedBitErrorRate = 0;
-    pxFlowAllocateRequest->pxFspec->xPartialDelivery = true;
-    pxFlowAllocateRequest->pxFspec->xMsgBoundaries = false;
-
-    // dtpConfig_t *pxDtpCfg;
-    // struct dtcpConfig_t *pxDtcpCfg;
-
-    /* This shouldbe read from configRINA.h */
-    // address_t xSource = 10;
-    // address_t xDest = 3;
-    // qosId_t xQosId = 1;
-
-    // pxDtcpCfg = pvPortMalloc(sizeof(*pxDtcpCfg));
-    // pxDtpCfg = pvPortMalloc(sizeof(*pxDtpCfg));
-
+    // pidm must assign a valid and available port Id
     xPortId = 33;
-
-    // if (pxNormalInstance->pxOps->flowPrebind(pxNormalInstance->pxData, xPortId))
-    //{
 
     // call to FlowAllocator.
     vFlowAllocatorFlowRequest(pxEfcpc, xPortId, pxFlowAllocateRequest, pxIpcpData);
 
-    //}
+    (void)xNormalFlowPrebind(pxIpcpData, xPortId);
+
     ESP_LOGE(TAG_IPCPMANAGER, "end");
+
+    return xPortId;
 }
 
 void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);

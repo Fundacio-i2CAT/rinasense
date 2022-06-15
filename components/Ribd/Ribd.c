@@ -1003,44 +1003,8 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
     // for testing purposes
     case M_WRITE:
 
-        // send a message to the IPCP task a release a FlowAllocationRequest
         ESP_LOGE(TAG_RIB, "-------Handling M_WRITE----------");
-        if (n != 0)
-        {
-            RINAStackEvent_t xStackFlowAllocateEvent = {eStackFlowAllocateEvent, NULL};
-            flowAllocateHandle_t *pxFlowAllocateRequest;
-            name_t *pxDIFName, *pxLocalName, *pxRemoteName;
-
-            pxFlowAllocateRequest = pvPortMalloc(sizeof(*pxFlowAllocateRequest));
-            (void)memset(pxFlowAllocateRequest, 0, sizeof(*pxFlowAllocateRequest));
-
-            pxDIFName = pvPortMalloc(sizeof(*pxDIFName));
-            (void)memset(pxDIFName, 0, sizeof(*pxDIFName));
-            pxLocalName = pvPortMalloc(sizeof(*pxLocalName));
-            (void)memset(pxLocalName, 0, sizeof(*pxLocalName));
-            pxRemoteName = pvPortMalloc(sizeof(*pxRemoteName));
-            (void)memset(pxRemoteName, 0, sizeof(*pxRemoteName));
-
-            pxDIFName->pcProcessName = "irati";
-            pxLocalName->pcProcessName = "Test";
-            pxRemoteName->pcProcessName = "ar1.mobile";
-            pxFlowAllocateRequest->pxDifName = pxDIFName;
-            pxFlowAllocateRequest->pxLocal = pxLocalName;
-            pxFlowAllocateRequest->pxRemote = pxRemoteName;
-            pxFlowAllocateRequest->xPortId = 51;
-
-            ESP_LOGE(TAG_RIB, "Pointer pxLocalName:%p", pxLocalName);
-            ESP_LOGE(TAG_RIB, "Pointer pxRemoteName:%p", pxRemoteName);
-
-            xStackFlowAllocateEvent.pvData = pxFlowAllocateRequest;
-
-            if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, (TickType_t)0U) == pdFAIL)
-            {
-                ESP_LOGE(TAG_RINA, "IPCP Task not working properly");
-                // return -1;
-            }
-        }
-        n = 1;
+        // must write into the object
 
         break;
 
@@ -1067,7 +1031,7 @@ BaseType_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objIn
         pxMsgCdap = prvRibdFillEnrollMsgStart(pcObjClass, pcObjName, objInst, eOpCode, pxObjVal,
                                               result, pcResultReason, invokeId);
     case M_STOP_R:
-        ESP_LOGE(TAG_RIB, "FLAG1");
+
         pxMsgCdap = prvRibdFillEnrollMsgStop(pcObjClass, pcObjName, objInst, eOpCode, pxObjVal,
                                              result, pcResultReason, invokeId);
         break;

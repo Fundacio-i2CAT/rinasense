@@ -16,6 +16,8 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 
+#define TAG_APP "[Sensor-APP]"
+
 void app_main(void)
 {
 	nvs_flash_init();
@@ -28,11 +30,25 @@ void app_main(void)
 
 	RINA_IPCPInit();
 
-	// portId_t test = 0;
-	// struct rinaFlowSpec_t *xFlowSpec = pvPortMalloc(sizeof(*xFlowSpec));
-	// uint8_t Flags=1;
+	portId_t xAppPortId;
+	struct rinaFlowSpec_t *xFlowSpec = pvPortMalloc(sizeof(*xFlowSpec));
+	uint8_t Flags = 1;
+	int i;
+	char *temperature;
 
-	// vTaskDelay(1000);
+	vTaskDelay(1000);
 
-	// RINA_flow_alloc("mobile.DIF", "TestLocal", "ar1.mobile", xFlowSpec, Flags);
+	xAppPortId = RINA_flow_alloc("mobile.DIF", "Temperature", "sensor1", xFlowSpec, Flags);
+
+	if (xAppPortId != -1)
+	{
+		for (i = 0; i > 10; i++)
+		{
+			temperature = "32 Celsius";
+			if (RINA_flow_write(xAppPortId, (void *)temperature, sizeof(temperature)))
+			{
+				ESP_LOGI(TAG_APP, "Sent Data: %s successfully", temperature);
+			}
+		}
+	}
 }

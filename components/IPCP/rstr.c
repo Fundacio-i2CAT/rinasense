@@ -259,7 +259,7 @@ name_t *xRINAstringToName(const string_t *pxInput)
  */
 BaseType_t xRinaNameFromString(const string_t pcString, name_t *pxName)
 {
-        ESP_LOGE(TAG_RINA, "Calling: %s", __func__);
+        // ESP_LOGE(TAG_RINA, "Calling: %s", __func__);
         char *apn, *api, *aen, *aei;
         char *strc = pcRstrDup(pcString);
         char *strc_orig = strc;
@@ -285,11 +285,6 @@ BaseType_t xRinaNameFromString(const string_t pcString, name_t *pxName)
         pxName->pcProcessInstance = (api && strlen(api)) ? pcRstrDup(api) : NULL;
         pxName->pcEntityName = (aen && strlen(aen)) ? pcRstrDup(aen) : NULL;
         pxName->pcEntityInstance = (aei && strlen(aei)) ? pcRstrDup(aei) : NULL;
-
-        ESP_LOGE(TAG_FA, "RinaNameFromString - pcProcessName:%s", pxName->pcProcessName);
-        ESP_LOGE(TAG_FA, "RinaNameFromString - pcProcessInstance:%s", pxName->pcProcessInstance);
-        ESP_LOGE(TAG_FA, "RinaNameFromString - pcEntityName:%s", pxName->pcEntityName);
-        ESP_LOGE(TAG_FA, "RinaNameFromString - pcEntityInstance:%s", pxName->pcEntityInstance);
 
         if ((apn && strlen(apn) && !pxName->pcProcessName) ||
             (api && strlen(api) && !pxName->pcProcessInstance) ||

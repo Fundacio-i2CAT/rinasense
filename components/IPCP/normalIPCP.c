@@ -226,7 +226,7 @@ BaseType_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
         return pdTRUE;
 }*/
 
-BaseType_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
+BaseType_t xNormalFlowPrebind(struct ipcpNormalData_t *pxData,
                               portId_t xPortId)
 {
 
@@ -250,7 +250,7 @@ BaseType_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
         /*KFA should be the user. Implement this when the KFA is implemented*/
         // pxFlow->pxUserIpcp = kfa;
 
-        // ESP_LOGI(TAG_IPCPNORMAL, "Flow: %p portID: %d portState: %d", pxFlow, pxFlow->xPortId, pxFlow->eState);
+        ESP_LOGI(TAG_IPCPNORMAL, "Flow: %p portID: %d portState: %d", pxFlow, pxFlow->xPortId, pxFlow->eState);
         vListInitialiseItem(&(pxFlow->xFlowListItem));
         listSET_LIST_ITEM_OWNER(&(pxFlow->xFlowListItem), (void *)pxFlow);
         vListInsert(&(pxData->xFlowsList), &(pxFlow->xFlowListItem));
@@ -271,20 +271,16 @@ cepId_t xNormalConnectionCreateRequest(struct efcpContainer_t *pxEfcpc,
         struct cepIdsEntry_t *pxCepEntry;
         ipcpInstance_t *pxIpcp;
 
-        ESP_LOGE(TAG_EFCP, "Pointer EFCP:%p", pxEfcpc);
-
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
         xCepId = xEfcpConnectionCreate(pxEfcpc, xSource, xDest,
                                        xPortId, xQosId,
                                        cep_id_bad(), cep_id_bad(),
                                        pxDtpCfg, pxDtcpCfg);
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
         if (!is_cep_id_ok(xCepId))
         {
                 ESP_LOGE(TAG_IPCPNORMAL, "Failed EFCP connection creation");
                 return cep_id_bad();
         }
-        heap_caps_check_integrity_all(pdTRUE);
 
         /*        pxCepEntry = pvPortMalloc(sizeof(*pxCepEntry)); // error
                 if (!pxCepEntry)

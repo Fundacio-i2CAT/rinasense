@@ -293,22 +293,21 @@ static rina_messages_Flow prvSerdesMsgEncodeFlow(flow_t *pxMsg)
 
 serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 {
-    ESP_LOGI(TAG_RIB, "Calling: %s", __func__);
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+    ESP_LOGI(TAG_RIB, "Encoding flow message");
+
     BaseType_t status;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     rina_messages_Flow message = rina_messages_Flow_init_zero;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     // Allocate space on the stack to store the message data.
     uint8_t *pucBuffer[1500];
     int maxLength = MTU;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     if (!pxMsg)
     {
         ESP_LOGE(TAG_RIB, "No flow message to be sended");
         return NULL;
     }
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     // Fill required attributes
     strcpy(message.sourceNamingInfo.applicationProcessName, pxMsg->pxSourceInfo->pcProcessName);
     strcpy(message.destinationNamingInfo.applicationProcessName, pxMsg->pxDestInfo->pcProcessName);
@@ -347,25 +346,23 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 
     message.dtpConfig.dtcpPresent = pxMsg->pxDtpConfig->xDtcpPresent;
     message.dtpConfig.has_dtcpPresent = true;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     // Create a stream that writes to our buffer.
     pb_ostream_t stream = pb_ostream_from_buffer((pb_byte_t *)pucBuffer, sizeof(pucBuffer));
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     // Now we are ready to encode the message.
     status = pb_encode(&stream, rina_messages_Flow_fields, &message);
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     // Check for errors...
     if (!status)
     {
         ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return NULL;
     }
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
     serObjectValue_t *pxSerValue = pvPortMalloc(sizeof(*pxSerValue));
     pxSerValue->pvSerBuffer = pucBuffer;
     pxSerValue->xSerLength = stream.bytes_written;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
-    ESP_LOGE(TAG_ENROLLMENT, "Encoding Flow Message ok");
 
     return pxSerValue;
 }
