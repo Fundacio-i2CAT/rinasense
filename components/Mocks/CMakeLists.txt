@@ -27,17 +27,17 @@ if(NOT ${TARGET_TYPE} STREQUAL "freertos_idf")
     ${IPCP_INCLUDES}
   )
 
-  file(GLOB mock_RIBD_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/components/Mocks/Ribd/*.c"
-  )
-  add_library(mock_Ribd STATIC ${mock_RIBD_SOURCES})
-  target_include_directories(mock_Ribd PUBLIC
-    ${configSensor_INCLUDES}
-    ${Common_INCLUDES}
-    ${EFCP_INCLUDES}
-    ${BufferManagement_INCLUDES}
-    ${Portability_INCLUDES}
-    ${IPCP_INCLUDES}
-    ${Rmt_INCLUDES}
-  )
+  # file(GLOB mock_RIBD_SOURCES
+  #   "${CMAKE_CURRENT_SOURCE_DIR}/components/Mocks/Ribd/*.c"
+  # )
+  # add_library(mock_Ribd STATIC ${mock_RIBD_SOURCES})
+  # target_include_directories(mock_Ribd PUBLIC
+  #   ${configSensor_INCLUDES}
+  #   ${Common_INCLUDES}
+  #   ${EFCP_INCLUDES}
+  #   ${BufferManagement_INCLUDES}
+  #   ${Portability_INCLUDES}
+  #   ${IPCP_INCLUDES}
+  #   ${Rmt_INCLUDES}
+  # )
 endif()
