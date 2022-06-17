@@ -52,6 +52,11 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   include("${CMAKE_CURRENT_SOURCE_DIR}/components/Portability/tests/CMakeLists.txt")
 
   #
+  # Mock objects
+  #
+  include("${CMAKE_CURRENT_SOURCE_DIR}/components/Mocks/CMakeLists.txt")
+
+  #
   # Component: configSensor
   #
   file(GLOB configSensor_SOURCES
