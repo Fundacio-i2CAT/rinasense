@@ -26,8 +26,10 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
 
   include(CTest)
 
+  add_compile_definitions(configUSE_POSIX_ERRNO=1)
+
   set(CMAKE_VERBOSE_MAKEFILE ON)
-  set(CMAKE_C_COMPILER "gcc")
+  #set(CMAKE_C_COMPILER "/ugcc")
 
   #
   # Set all include path variables here so as to avoid circular
@@ -79,7 +81,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   # Component: BufferManagement
   #
   set(BufferManagement_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/BufferManagement")
-  set(BufferManagement_TEST_DIR "${BufferManagement_DIR}/tests")
+  set(BufferManagement_TEST_DIR "${BufferManagement_DIR}/test")
   file(GLOB BufferManagement_SOURCES
     "${BufferManagement_DIR}/*.c"
   )
@@ -99,6 +101,8 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   include("${BufferManagement_TEST_DIR}/CMakeLists.txt")
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h")
+
+  add_subdirectory(unity)
 
 else()
   message("Unknown target ${TARGET_TYPE}")
