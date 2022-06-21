@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "mac.h"
 #include "rina_gpha.h"
 #include "portability/port.h"
 
@@ -33,7 +34,7 @@ char *xGPAAddressToString(const gpa_t *pxGpa)
 gpa_t *pxNameToGPA(const name_t *pcName)
 {
 	gpa_t *pxGpa;
-	char *pcTmp;
+	string_t pcTmp;
 
 	pcTmp = pcNameToString(pcName);
 
@@ -44,7 +45,7 @@ gpa_t *pxNameToGPA(const name_t *pcName)
 	}
 
 	// Convert the IPCPAddress Concatenated to bits
-	pxGpa = pxCreateGPA(pcTmp, strlen(pcTmp)); //considering the null terminated
+	pxGpa = pxCreateGPA((buffer_t)pcTmp, strlen(pcTmp)); //considering the null terminated
 
 	if (!pxGpa)
 	{
@@ -58,9 +59,9 @@ gpa_t *pxNameToGPA(const name_t *pcName)
 	return pxGpa;
 }
 
-char *pucCreateAddress(size_t uxLength)
+buffer_t pucCreateAddress(size_t uxLength)
 {
-	char *pucAddress;
+	buffer_t pucAddress;
 
 	pucAddress = pvRsMemAlloc(uxLength);
     memset(pucAddress, 0, uxLength);
@@ -68,7 +69,7 @@ char *pucCreateAddress(size_t uxLength)
 	return pucAddress;
 }
 
-gpa_t *pxCreateGPA(const char *pucAddress, size_t uxLength)
+gpa_t *pxCreateGPA(const buffer_t pucAddress, size_t uxLength)
 {
 	gpa_t *pxGPA;
 

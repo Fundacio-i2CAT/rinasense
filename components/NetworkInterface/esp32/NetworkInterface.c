@@ -12,7 +12,7 @@
 #include "freertos/event_groups.h"
 
 /* RINA Components includes. */
-#include "ARP826.h"
+//#include "ARP826.h"
 #include "ShimIPCP.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
@@ -20,6 +20,8 @@
 #include "configSensor.h"
 
 #include "IPCP.h" //temporal
+#include "IPCP_api.h"
+#include "IPCP_events.h"
 
 /* ESP includes.*/
 #include "esp_log.h"
@@ -288,6 +290,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
 	RINAStackEvent_t xRxEvent = {eNetworkRxEvent, NULL};
 	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(250);
+    struct timespec ts;
 
 	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
 	{
@@ -296,7 +299,10 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 		return ESP_OK;
 	}
 
-	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, xDescriptorWaitTime);
+    if (!rstime_waitmsec(&ts, 250))
+        return ESP_FAIL;
+
+    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, &ts);
 	// ESP_LOGE(TAG_WIFI,"xNetworkInterfaceInput Taking buffer to copy wifidriver buffer");
 
 	if (pxNetworkBuffer != NULL)

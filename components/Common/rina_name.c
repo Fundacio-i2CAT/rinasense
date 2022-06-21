@@ -115,7 +115,7 @@ char *pcRstrDup(const char *s)
         return buf;
 }
 
-bool_t xRstringDup(const char * pxSrc, char * *pxDst)
+bool_t xRstringDup(const string_t pxSrc, string_t *pxDst)
 {
 #ifdef __FREERTOS__
         LOGE(TAG_RINA, "Free Heap Size: %d", xPortGetFreeHeapSize());
@@ -175,10 +175,10 @@ bool_t xRstrNameCpy(const name_t *pxSrc, name_t *pxDst)
 }
 
 name_t *xRINANameInitFrom(name_t *pxDst,
-                          const char * process_name,
-                          const char * process_instance,
-                          const char * entity_name,
-                          const char * entity_instance)
+                          const string_t process_name,
+                          const string_t process_instance,
+                          const string_t entity_name,
+                          const string_t entity_instance)
 {
         if (!pxDst)
                 return NULL;
@@ -202,7 +202,7 @@ name_t *xRINANameInitFrom(name_t *pxDst,
         return pxDst;
 }
 
-name_t *xRINAstringToName(const char * pxInput)
+name_t *xRINAstringToName(const string_t pxInput)
 {
         name_t *pxName;
 
@@ -254,7 +254,7 @@ name_t *xRINAstringToName(const char * pxInput)
         return pxName;
 }
 
-bool_t xRinaNameFromString(const char * pcString, name_t *pxName)
+bool_t xRinaNameFromString(const string_t pcString, name_t *pxName)
 {
         LOGE(TAG_RINA, "Calling: %s", __func__);
 
@@ -328,7 +328,7 @@ name_t *pxRstrNameDup(const name_t *pxSrc)
         return pxTmp;
 }
 
-char * pcNameToString(const name_t *n)
+string_t pcNameToString(const name_t *n)
 {
     char *       tmp;
     size_t       size;
@@ -378,3 +378,4 @@ char * pcNameToString(const name_t *n)
 
     return tmp;
 }
+

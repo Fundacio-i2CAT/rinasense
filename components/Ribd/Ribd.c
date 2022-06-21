@@ -8,6 +8,8 @@
 #include "freertos/semphr.h"
 
 #include "IPCP.h"
+#include "IPCP_events.h"
+#include "IPCP_api.h"
 #include "rina_common.h"
 #include "configRINA.h"
 #include "BufferManagement.h"

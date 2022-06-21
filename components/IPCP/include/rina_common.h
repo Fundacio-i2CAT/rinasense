@@ -13,46 +13,12 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+#include "rina_ids.h"
+
 #define offsetof(TYPE, MEMBER) ((size_t) & ((TYPE *)0)->MEMBER)
 #define container_of(ptr, type, member) ({         \
     const typeof( ((type *)0)->member ) *__mptr = (ptr); \
     (type *)( (char *)__mptr - offsetof(type,member) ); })
-
-#define PORT_ID_WRONG -1
-#define CEP_ID_WRONG -1
-#define ADDRESS_WRONG -1
-#define QOS_ID_WRONG -1
-
-typedef int32_t portId_t;
-
-typedef uint32_t seqNum_t;
-
-/* CEPIdLength field 1 Byte*/
-typedef uint8_t cepId_t;
-
-/* QoSIdLength field 1 Byte*/
-typedef uint8_t qosId_t;
-
-/* QoSIdLength field 1 Byte*/
-typedef uint8_t address_t;
-
-typedef uint16_t ipcProcessId_t;
-
-typedef char *string_t;
-typedef unsigned int uint_t;
-typedef unsigned int timeout_t;
-/* SeqNumLength field 4 Byte*/
-typedef uint32_t seqNum_t;
-;
-
-typedef struct xName_info
-{
-        string_t pcProcessName;     /*> Process Name*/
-        string_t pcProcessInstance; /*> Process Instance*/
-        string_t pcEntityName;      /*> Entity Name*/
-        string_t pcEntityInstance;  /*> Entity Instance*/
-
-} name_t;
 
 struct flowSpec_t
 {
@@ -113,21 +79,6 @@ struct flowSpec_t
         BaseType_t xMsgBoundaries;
 };
 
-typedef struct xNETWORK_BUFFER
-{
-        ListItem_t xBufferListItem; /**< Used to reference the buffer form the free buffer list or a socket. */
-        uint8_t ulGpa;              /**< Source or destination Protocol address, depending on usage scenario. */
-        uint8_t *pucEthernetBuffer;
-        uint8_t *pucRinaBuffer;                                                        /**< Pointer to the start of the Rina packet. */
-        uint8_t *pucDataBuffer;                                                        /**< Pointer to the start of the User Data Unit. */
-        size_t xEthernetDataLength;                                                    /**< Starts by holding the total Ethernet frame length, then the Rina payload length. */
-        size_t xRinaDataLength;                                                        /**< Starts by holding the total Rina packet length, then the User Data payload length. */
-        size_t xDataLength; /**< Starts by holding the total User Data Unit length. */ /**< Pointer to the start of the Ethernet frame. */
-                                                                                       /**< Starts by holding the total Ethernet frame length, then the UDP/TCP payload length. */
-        uint32_t ulPort;                                                               /**< Source or destination port, depending on usage scenario. */
-        uint32_t ulBoundPort;                                                          /**< The N-1 port to transmite. */
-
-} NetworkBufferDescriptor_t;
 typedef enum FRAMES_PROCESSING
 {
         eReleaseBuffer = 0,   /* Processing the frame did not find anything to do - just release the buffer. */
@@ -332,33 +283,6 @@ typedef struct xAUTH_POLICY
         uint8_t ucAbsSyntax;
 
 } authPolicy_t;
-
-// Structure MAC ADDRESS
-typedef struct xMAC_ADDRESS
-{
-        uint8_t ucBytes[MAC_ADDRESS_LENGTH_BYTES]; /**< Byte array of the MAC address */
-} MACAddress_t;
-
-/* ALWAYS use this function to check if the id looks good */
-BaseType_t is_port_id_ok(portId_t id);
-
-/* ALWAYS use this function to get a bad id */
-portId_t port_id_bad(void);
-
-/* ALWAYS use this function to check if the id looks good */
-BaseType_t is_cep_id_ok(cepId_t id);
-
-/* ALWAYS use this function to get a bad id */
-cepId_t cep_id_bad(void);
-
-BaseType_t is_address_ok(address_t address);
-
-address_t address_bad(void);
-
-/* ALWAYS use this function to check if the id looks good */
-BaseType_t is_qos_id_ok(qosId_t id);
-
-BaseType_t is_ipcp_id_ok(ipcProcessId_t id);
 
 // name_t *xRinaNameCreate(void);
 
