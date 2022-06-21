@@ -1,3 +1,3 @@
-idf_component_register(SRCS "./example_unit_test.c"
+idf_component_register(SRCS "./test_runner.c"
   INCLUDE_DIRS "."
 )
