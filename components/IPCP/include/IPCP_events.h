@@ -1,15 +1,6 @@
 #ifndef _COMPONENTS_IPCP_EVENTS_H
 #define _COMPONENTS_IPCP_EVENTS_H
 
-/**
- * Structure for the information of the commands issued to the RINA task.
- */
-typedef struct xRINA_TASK_COMMANDS
-{
-    eRINAEvent_t eEventType; /**< The event-type enum */
-    void *pvData;            /**< The data in the event */
-} RINAStackEvent_t;
-
 typedef enum RINA_EVENTS
 {
     eNoEvent = -1,
@@ -29,5 +20,14 @@ typedef enum RINA_EVENTS
     eSendMgmtEvent,             /* 13: Send Mgmt PDU */
 
 } eRINAEvent_t;
+
+/**
+ * Structure for the information of the commands issued to the RINA task.
+ */
+typedef struct xRINA_TASK_COMMANDS
+{
+    eRINAEvent_t eEventType; /**< The event-type enum */
+    void *pvData;            /**< The data in the event */
+} RINAStackEvent_t;
 
 #endif // _COMPONENTS_IPCP_EVENTS_H

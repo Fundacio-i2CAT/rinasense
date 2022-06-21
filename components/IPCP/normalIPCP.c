@@ -14,7 +14,7 @@
 #include "du.h"
 #include "configRINA.h"
 #include "Ribd.h"
-#include "rstr.h"
+#include "rina_name.h"
 #include "IpcManager.h"
 
 #include "BufferManagement.h"

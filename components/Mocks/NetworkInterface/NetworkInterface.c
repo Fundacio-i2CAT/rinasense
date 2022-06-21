@@ -1,4 +1,4 @@
-#include "buffer.h"
+#include "rina_buffers.h"
 
 static NetworkBufferDescriptor_t *lastBufferOutput = NULL;
 

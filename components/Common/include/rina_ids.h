@@ -26,6 +26,9 @@ typedef uint16_t ipcProcessId_t;
 
 typedef uint16_t ipcpInstanceId_t;
 
+typedef unsigned int uint_t; // WHY?
+typedef unsigned int timeout_t;
+
 static inline portId_t port_id_bad(void)
 {
         return PORT_ID_WRONG;

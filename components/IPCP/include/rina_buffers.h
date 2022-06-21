@@ -1,6 +1,8 @@
 #ifndef _COMPONENTS_IPCP_INCLUDE_COMMON_RINA_BUFFERS_H_
 #define _COMPONENTS_IPCP_INCLUDE_COMMON_RINA_BUFFERS_H_
 
+#include "portability/port.h"
+
 typedef struct xNETWORK_BUFFER
 {
         RsListItem_t xBufferListItem; /**< Used to reference the buffer form the free buffer list or a socket. */

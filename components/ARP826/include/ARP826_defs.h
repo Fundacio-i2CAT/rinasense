@@ -1,13 +1,10 @@
 #ifndef _ARP_DEFS_H_INCLUDED
 #define _ARP_DEFS_H_INCLUDED
 
-#include "configSensor.h"
+#include <stdint.h>
 
-// Structure MAC ADDRESS
-typedef struct xMAC_ADDRESS
-{
-        uint8_t ucBytes[MAC_ADDRESS_LENGTH_BYTES]; /**< Byte array of the MAC address */
-} MACAddress_t;
+#include "mac.h"
+#include "configSensor.h"
 
 // Structure Ethernet Header
 typedef struct __attribute__((packed))

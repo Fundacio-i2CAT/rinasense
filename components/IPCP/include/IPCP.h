@@ -9,6 +9,7 @@
 #include "ARP826.h"
 #include "pci.h"
 #include "rina_common.h"
+#include "rina_name.h"
 //#include "Rmt.h"
 
 /*-----------------------------------------------------------*/

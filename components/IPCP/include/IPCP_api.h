@@ -1,6 +1,8 @@
 #ifndef _COMPONENTS_IPCP_API_H
 #define _COMPONENTS_IPCP_API_H
 
+#include "IPCP_events.h"
+
 /*
  * Send the event eEvent to the IPCP task event queue, using a block time of
  * zero.  Return pdPASS if the message was sent successfully, otherwise return

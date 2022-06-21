@@ -22,6 +22,7 @@
 #include "rina_common.h"
 #include "delim.h"
 #include "cepidm.h"
+#include "rina_ids.h"
 
 /* Retransmission Queue RTXQ used to buffer those PDUs
  * that may require retransmission */

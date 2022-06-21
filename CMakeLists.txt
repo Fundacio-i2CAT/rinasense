@@ -40,6 +40,10 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   set(ARP826_INCLUDES           "${CMAKE_CURRENT_SOURCE_DIR}/components/ARP826/include")
   set(BufferManagement_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/BufferManagement/include")
   set(IPCP_INCLUDES             "${CMAKE_CURRENT_SOURCE_DIR}/components/IPCP/include")
+  set(NetworkInterface_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface/include")
+  set(NetworkInterface_MQ_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface/mq/include")
+
+  set(mock_IPCP_INCLUDES        "${CMAKE_CURRENT_SOURCE_DIR}/components/Mocks/IPCP/include")
 
   #
   # Portability layer, target specific
@@ -70,7 +74,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   # Component: Common
   #
   set(Common_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/Common")
-  set(Common_TEST_DIR "${Common_DIR}/tests")
+  set(Common_TEST_DIR "${Common_DIR}/test")
   file(GLOB Common_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/components/Common/*.c"
   )
@@ -104,6 +108,32 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${Portability_INCLUDES}
   )
   include("${BufferManagement_TEST_DIR}/CMakeLists.txt")
+
+  #
+  # Component: NetworkInterface
+  #
+  # FIXME: The 'mq' NetworkInterface is for testing only. We need to
+  # figure out how to support multiple type of NetworkInterface.
+  set(NetworkInterface_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface")
+  file(GLOB NetworkInterface_SOURCES
+    "${NetworkInterface_DIR}/mq/*.c"
+  )
+  add_library(NetworkInterface STATIC ${NetworkInterface_SOURCES})
+  target_include_directories(NetworkInterface PUBLIC
+    ${Common_INCLUDES}
+    ${configRINA_INCLUDES}
+    ${BufferManagement_INCLUDES}
+    ${NetworkInterface_INCLUDES}
+    ${NetworkInterface_MQ_INCLUDES}
+    ${ARP826_INCLUDES}
+    ${IPCP_INCLUDES}
+    ${configSensor_INCLUDES}
+    ${Rmt_INCLUDES}
+    ${ShimIPCP_INCLUDES}
+    ${EFCP_INCLUDES}
+    ${Portability_INCLUDES}
+  )
+  include("${NetworkInterface_DIR}/mq/test/CMakeLists.txt")
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h")
 
