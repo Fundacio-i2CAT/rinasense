@@ -96,7 +96,7 @@ gpa_t *pxCreateGPA(const buffer_t pucAddress, size_t uxLength)
 	memcpy(pxGPA->pucAddress, pucAddress, pxGPA->uxLength);
 
 	LOGI(TAG_SHIM, "CREATE GPA address: %s", pxGPA->pucAddress);
-	LOGI(TAG_SHIM, "CREATE GPA size: %d", pxGPA->uxLength);
+	LOGI(TAG_SHIM, "CREATE GPA size: %u", pxGPA->uxLength);
 
 	return pxGPA;
 }

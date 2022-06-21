@@ -4,9 +4,7 @@
 #include "portability/port.h"
 
 #include "unity.h"
-#ifndef TEST_CASE
 #include "unity_fixups.h"
-#endif
 
 void setUp() {
     xNetworkBuffersInitialise();

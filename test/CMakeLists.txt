@@ -5,6 +5,7 @@ if(NOT $ENV{IDF_PATH} STREQUAL "")
 
   set(TEST_COMPONENTS
     "BufferManagement"
+    "Common"
     CACHE STRING "List of components to test")
 
   # Include path for unity_config.h
