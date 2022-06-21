@@ -47,6 +47,7 @@ else()
   target_link_libraries(test_rina_name
     Common
     portability
+    unity
   )
 
   add_executable(test_rina_gpha "${CMAKE_CURRENT_LIST_DIR}/test_rina_gpha.c")
