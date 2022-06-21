@@ -13,46 +13,12 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+#include "rina_ids.h"
+
 #define offsetof(TYPE, MEMBER) ((size_t) & ((TYPE *)0)->MEMBER)
 #define container_of(ptr, type, member) ({         \
     const typeof( ((type *)0)->member ) *__mptr = (ptr); \
     (type *)( (char *)__mptr - offsetof(type,member) ); })
-
-#define PORT_ID_WRONG -1
-#define CEP_ID_WRONG -1
-#define ADDRESS_WRONG -1
-#define QOS_ID_WRONG -1
-
-typedef int32_t portId_t;
-
-typedef uint32_t seqNum_t;
-
-/* CEPIdLength field 1 Byte*/
-typedef uint8_t cepId_t;
-
-/* QoSIdLength field 1 Byte*/
-typedef uint8_t qosId_t;
-
-/* QoSIdLength field 1 Byte*/
-typedef uint8_t address_t;
-
-typedef uint16_t ipcProcessId_t;
-
-typedef char *string_t;
-typedef unsigned int uint_t;
-typedef unsigned int timeout_t;
-/* SeqNumLength field 4 Byte*/
-typedef uint32_t seqNum_t;
-;
-
-typedef struct xName_info
-{
-        string_t pcProcessName;     /*> Process Name*/
-        string_t pcProcessInstance; /*> Process Instance*/
-        string_t pcEntityName;      /*> Entity Name*/
-        string_t pcEntityInstance;  /*> Entity Instance*/
-
-} name_t;
 
 struct flowSpec_t
 {
@@ -317,27 +283,6 @@ typedef struct xAUTH_POLICY
         uint8_t ucAbsSyntax;
 
 } authPolicy_t;
-
-/* ALWAYS use this function to check if the id looks good */
-BaseType_t is_port_id_ok(portId_t id);
-
-/* ALWAYS use this function to get a bad id */
-portId_t port_id_bad(void);
-
-/* ALWAYS use this function to check if the id looks good */
-BaseType_t is_cep_id_ok(cepId_t id);
-
-/* ALWAYS use this function to get a bad id */
-cepId_t cep_id_bad(void);
-
-BaseType_t is_address_ok(address_t address);
-
-address_t address_bad(void);
-
-/* ALWAYS use this function to check if the id looks good */
-BaseType_t is_qos_id_ok(qosId_t id);
-
-BaseType_t is_ipcp_id_ok(ipcProcessId_t id);
 
 // name_t *xRinaNameCreate(void);
 

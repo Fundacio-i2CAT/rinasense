@@ -9,6 +9,7 @@
 #include "ARP826.h"
 #include "pci.h"
 #include "rina_common.h"
+#include "rina_name.h"
 //#include "Rmt.h"
 
 /*-----------------------------------------------------------*/
@@ -23,34 +24,6 @@ typedef struct xQUEUE_FIFO
 
 } rfifo_t;
 
-typedef enum RINA_EVENTS
-{
-    eNoEvent = -1,
-    eNetworkDownEvent,          /* 0: The network interface has been lost and/or needs [re]connecting. */
-    eNetworkRxEvent,            /* 1: The network interface has queued a received Ethernet frame. */
-    eNetworkTxEvent,            /* 2: Let the Shim-task send a network packet. */
-    eShimEnrolledEvent,         /* 3: Shim Enrolled: network Interface Init*/
-    eARPTimerEvent,             /* 4: The ARP timer expired. */
-    eStackTxEvent,              /* 5: The software stack IPCP has queued a packet to transmit. */
-    eEFCPTimerEvent,            /* 6: See if any IPCP socket needs attention. */
-    eEFCPAcceptEvent,           /* 7: Client API FreeRTOS_accept() waiting for client connections. */
-    eShimFlowAllocatedEvent,    /* 8: A flow has been allocated on the shimWiFi*/
-    eStackFlowAllocateEvent,    /*9: The Software stack IPCP has received a Flow allocate request. */
-    eStackAppRegistrationEvent, /*10: The Software stack IPCP has received a AppRegistration Event*/
-    eFactoryInitEvent,          /*11: The IPCP factories has been initialized. */
-    eShimAppRegisteredEvent,    /* 12: The Normal IPCP has been registered into the Shim*/
-    eSendMgmtEvent,             /* 13: Send Mgmt PDU */
-
-} eRINAEvent_t;
-
-/**
- * Structure for the information of the commands issued to the RINA task.
- */
-typedef struct xRINA_TASK_COMMANDS
-{
-    eRINAEvent_t eEventType; /**< The event-type enum */
-    void *pvData;            /**< The data in the event */
-} RINAStackEvent_t;
 
 // typedef uint16_t ipcProcessId_t;
 
@@ -251,22 +224,5 @@ typedef struct xIPCP_TIMER
     TickType_t ulReloadTime;    /**< The value of reload time. */
 } IPCPTimer_t;
 
-/*
- * Send the event eEvent to the IPCP task event queue, using a block time of
- * zero.  Return pdPASS if the message was sent successfully, otherwise return
- * pdFALSE.
- */
-BaseType_t xSendEventToIPCPTask(eRINAEvent_t eEvent);
-
-/* Returns pdTRUE is this function is called from the IPCP-task */
-BaseType_t xIsCallingFromIPCPTask(void);
-
-BaseType_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
-                                      TickType_t uxTimeout);
-
-eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer);
-
-BaseType_t RINA_IPCPInit(void);
-struct rmt_t *pxIPCPGetRmt(void);
 
 #endif

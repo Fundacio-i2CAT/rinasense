@@ -12,7 +12,7 @@
 #include "freertos/event_groups.h"
 
 /* RINA Components includes. */
-#include "ARP826.h"
+//#include "ARP826.h"
 #include "ShimIPCP.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
@@ -20,6 +20,8 @@
 #include "configSensor.h"
 
 #include "IPCP.h" //temporal
+#include "IPCP_api.h"
+#include "IPCP_events.h"
 
 /* ESP includes.*/
 #include "esp_log.h"

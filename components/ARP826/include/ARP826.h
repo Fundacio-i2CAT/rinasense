@@ -13,28 +13,10 @@
 /*-----------------------------------------------------------*/
 
 #include "ARP826_defs.h"
+#include "mac.h"
+#include "rina_gpha.h"
 #include "rina_common.h"
 #include "IPCP.h"
-
-// enum MAC Address
-typedef enum
-{
-	MAC_ADDR_802_3
-} eGHAType_t;
-
-// Structure Generic Protocol Address
-typedef struct xGENERIC_PROTOCOL_ADDRESS
-{
-	uint8_t *ucAddress;
-	size_t uxLength;
-} gpa_t;
-
-// Structure Generic Hardware Address
-typedef struct xGENERIC_HARDWARE_ADDRESS
-{
-	eGHAType_t xType;
-	MACAddress_t xAddress;
-} gha_t;
 
 // DECL_CAST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
 // DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
