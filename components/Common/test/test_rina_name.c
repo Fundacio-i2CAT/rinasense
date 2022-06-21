@@ -62,6 +62,7 @@ RS_TEST_CASE(RinaStringToName, "Conversion ot string to RINA name")
     vRstrNameDestroy(n1);
 }
 
+#ifndef TEST_CASE
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_StringDup);
@@ -70,3 +71,4 @@ int main() {
     RUN_TEST(test_RinaStringToName);
     return UNITY_END();
 }
+#endif
