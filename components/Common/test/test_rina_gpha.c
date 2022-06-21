@@ -28,7 +28,7 @@ RS_TEST_CASE(SimpleGPA, "Simple GPA manipulations")
 
     TEST_ASSERT((gpa = pxCreateGPA((buffer_t)addr, strlen(addr))) != NULL);
     TEST_ASSERT(strcmp((string_t)gpa->pucAddress, "address") == 0);
-    TEST_ASSERT(gpa->uxLength == 8);
+    TEST_ASSERT(gpa->uxLength == 7);
     TEST_ASSERT(xIsGPAOK(gpa) == true);
 >>>>>>> 8f2bb95 (Ported "Common" unit tests to the Unity on-device test)
     vGPADestroy(gpa);
