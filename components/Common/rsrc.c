@@ -411,7 +411,7 @@ void vRsrcDefaultPrintPoolHelper (rsrcPoolP_t pxOwningPool, void *pxPool2Print)
 {
 	rsrcPoolP_t pxPool = (rsrcPoolP_t) pxPool2Print;
 	
-	logPrintf(TAG, "=== Pool %s: %llu(Tot), %u(A), %u(AHi), %u(F), %u(FLo)\n",
+	logPrintf(TAG, "=== Pool %s: %llu(Tot), %u(A), %u(AHi), %u(F), %u(FLo)",
 			  pxPool->pcName, pxPool->ulTotalAllocs, pxPool->uiNumInUse,
 			  pxPool->uiHiWater, pxPool->uiNumFree, pxPool->uiLowWater);
 }
@@ -452,8 +452,6 @@ void prvvRsrcPrintCom (rsrcPoolP_t pxPool2Print, int iPrintRsrcs)
 							  pcComma, r->pcResName, &r->ucPayload, r);
 				pcComma = ", ";
 			}
-			if (!pxPool->pxPrintHelper)	// avoid annoying run-on lines
-				logPrintf(TAG, ".\n");
 		}
 	}
 	// logPrintf(TAG, "\n");
