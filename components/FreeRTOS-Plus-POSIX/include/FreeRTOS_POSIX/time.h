@@ -39,7 +39,6 @@ extern "C" {
 
 /* FreeRTOS+POSIX includes. */
 #include "FreeRTOS_POSIX/sys/types.h"
-#include "FreeRTOS_POSIX/signal.h"
 
 /**
  * @name Unit conversion constants.
