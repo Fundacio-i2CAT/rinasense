@@ -53,8 +53,8 @@ extern "C" {
  * @name Clock identifiers.
  */
 /**@{ */
-#define CLOCK_REALTIME     0     /**< The identifier of the system-wide clock measuring real time. */
-#define CLOCK_MONOTONIC    1     /**< The identifier for the system-wide monotonic clock.*/
+#define CLOCK_REALTIME     1     /**< The identifier of the system-wide clock measuring real time. */
+#define CLOCK_MONOTONIC    4     /**< The identifier for the system-wide monotonic clock.*/
 /**@} */
 
 /**
