@@ -299,9 +299,9 @@ void vRsrcFree (void *pvResPayload)
 	struct rsrcPool *pxPool = pxRsrc->pxPool;
 	
 	if (pxRsrc->pvFlag == RESFREE_MAGIC) {
-		logPrintf(TAG, "freeRsrc: double-free attempt on object at %p, trying to print:\n",
+		logPrintf(TAG, "freeRsrc: double-free attempt on object at %p, trying to print:",
 				  pvResPayload);
-		logPrintf(TAG, "rsrc %p, rsrc->name '%s', rsrc->pool->name %s\n", pxRsrc,
+		logPrintf(TAG, "rsrc %p, rsrc->name '%s', rsrc->pool->name %s", pxRsrc,
 				  (pxRsrc->pcResName?pxRsrc->pcResName:"NULL"), (pxPool->pcName?pxPool->pcName:"NULL"));
 		// invoke the debugger here
 		abort();
@@ -395,7 +395,7 @@ void vRsrcPrintResource (const char *pcExplanation, void *pvRsrcpayload)
 		punctuation = ':';
 	else
 		punctuation = '.';
-	logPrintf (TAG, "%s in pool %s: '%s'(%p) @%p%c\n", pcExplanation, pxPool->pcName,
+	logPrintf (TAG, "%s in pool %s: '%s'(%p) @%p%c", pcExplanation, pxPool->pcName,
 			   pxRsrc->pcResName, pxRsrc, pvRsrcpayload, punctuation);
 	if (pxPool->pxPrintHelper)
 		pxPool->pxPrintHelper (pxPool, pvRsrcpayload);
@@ -454,7 +454,6 @@ void prvvRsrcPrintCom (rsrcPoolP_t pxPool2Print, int iPrintRsrcs)
 			}
 		}
 	}
-	// logPrintf(TAG, "\n");
 }
 
 /** ----------------------------------------------------------------------------------
