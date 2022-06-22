@@ -173,7 +173,7 @@ neighborInfo_t *pxEnrollmentCreateNeighInfo(string_t pcApName, portId_t xN1Port)
 }
 
 /*EnrollmentInit should create neighbor and enrollment object into the RIB*/
-void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xPortId)
+void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xN1PortId)
 {
 
         ESP_LOGI(TAG_ENROLLMENT, "-------- Init Enrollment Task --------");
@@ -212,7 +212,7 @@ void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xPortId)
         /*Creating Operational Status into the the RIB*/
         pxRibCreateObject("/difm/ops", 1, "OperationalStatus", "OperationalStatus", OPERATIONAL);
 
-        (void)xRibdConnectToIpcp(pxIpcpData, pxSource, pxDestInfo, xPortId, pxAuth);
+        (void)xRibdConnectToIpcp(pxIpcpData, pxSource, pxDestInfo, xN1PortId, pxAuth);
 }
 
 BaseType_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
@@ -308,6 +308,7 @@ BaseType_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t p
 {
 
         neighborInfo_t *pxNeighbor = NULL;
+        struct rmt_t *pxRmt;
 
         // Check if the neighbor is already in the neighbor list, add it if not
         pxNeighbor = pxEnrollmentFindNeighbor(pcRemoteApName);
@@ -321,13 +322,15 @@ BaseType_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t p
 
         pxNeighbor->eEnrollmentState = eENROLLMENT_IN_PROGRESS;
 
+        pxRmt = pxIPCPGetRmt();
+
         // Send M_START to the enroller if not enrolled
         enrollmentMessage_t *pxEnrollmentMsg = pvPortMalloc(sizeof(*pxEnrollmentMsg));
         pxEnrollmentMsg->ullAddress = LOCAL_ADDRESS;
 
         serObjectValue_t *pxObjVal = pxSerdesMsgEnrollmentEncode(pxEnrollmentMsg);
 
-        if (!xRibdSendRequest(pxData->pxRmt, "Enrollment", "/difm/enr", -1, M_START, xN1Port, pxObjVal))
+        if (!xRibdSendRequest("Enrollment", "/difm/enr", -1, M_START, xN1Port, pxObjVal))
         {
                 ESP_LOGE(TAG_ENROLLMENT, "It was a problem to sen the request");
                 return pdFALSE;

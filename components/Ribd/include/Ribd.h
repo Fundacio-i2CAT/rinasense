@@ -108,7 +108,7 @@ typedef struct xMESSAGE_CDAP
 BaseType_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth);
 BaseType_t xRibdDisconnectToIpcp(portId_t xN1flowPortId);
 BaseType_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
-BaseType_t xRibdSendRequest(struct ipcpNormalData_t *pxIpcpData, string_t pcObjClass, string_t pcObjName, long objInst,
+BaseType_t xRibdSendRequest(string_t pcObjClass, string_t pcObjName, long objInst,
                             opCode_t eOpCode, portId_t xN1flowPortId, serObjectValue_t *pxObjVal);
 
 BaseType_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objInst,

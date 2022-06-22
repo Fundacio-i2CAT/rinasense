@@ -157,25 +157,21 @@ static ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
     return NULL;
 }
 
-void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, pidm_t *pxPidm, name_t *pxIPCPName)
+void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName)
 {
 
-    portId_t xPortId;
-
-    /*This should be proposed by the Flow Allocator?*/
     name_t *destinationInfo = pvPortMalloc(sizeof(*destinationInfo));
+
     destinationInfo->pcProcessName = REMOTE_ADDRESS_AP_NAME;
     destinationInfo->pcEntityName = "";
     destinationInfo->pcProcessInstance = REMOTE_ADDRESS_AP_INSTANCE;
     destinationInfo->pcEntityInstance = "";
 
-    xPortId = xPidmAllocate(pxPidm);
-
     if (pxShimInstance->pxOps->flowAllocateRequest == NULL)
     {
         ESP_LOGI(TAG_IPCPNORMAL, "There is not Flow Allocate Request API");
     }
-    if (pxShimInstance->pxOps->flowAllocateRequest(xPortId,
+    if (pxShimInstance->pxOps->flowAllocateRequest(xN1PortId,
                                                    pxIPCPName,
                                                    destinationInfo,
                                                    pxShimInstance->pxData))
@@ -189,25 +185,21 @@ void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, pidm_t *px
 
 /* Handle a Flow allocation request sended by the User throught the RINA API.
  * Return a the Flow xPortID that the RINA API is going to use to send data. */
-portId_t xIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm,
-                                                  struct efcpContainer_t *pxEfcpc,
-                                                  struct ipcpNormalData_t *pxIpcpData,
-                                                  flowAllocateHandle_t *pxFlowAllocateRequest)
+void vIpcpManagerAppFlowAllocateRequestHandle(flowAllocateHandle_t *pxFlowRequest)
 {
 
-    portId_t xPortId;
+    portId_t xAppPortId;
 
     // pidm must assign a valid and available port Id
-    xPortId = 33;
+    xAppPortId = 33;
 
     // call to FlowAllocator.
-    vFlowAllocatorFlowRequest(pxEfcpc, xPortId, pxFlowAllocateRequest, pxIpcpData);
 
-    (void)xNormalFlowPrebind(pxIpcpData, xPortId);
+    vFlowAllocatorFlowRequest(xAppPortId, pxFlowRequest);
+
+    //(void)xNormalFlowPrebind(pxIpcpData, xAppPortId);
 
     ESP_LOGE(TAG_IPCPMANAGER, "end");
-
-    return xPortId;
 }
 
 void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);

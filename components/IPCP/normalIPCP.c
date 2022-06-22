@@ -16,19 +16,13 @@
 #include "Ribd.h"
 #include "rstr.h"
 #include "IpcManager.h"
+#include "FlowAllocator.h"
 
 #include "BufferManagement.h"
 
 #include "esp_log.h"
 
-typedef enum eNormal_Flow_State
-{
-        ePORT_STATE_NULL = 1,
-        ePORT_STATE_PENDING,
-        ePORT_STATE_ALLOCATED,
-        ePORT_STATE_DEALLOCATED,
-        ePORT_STATE_DISABLED
-} eNormalFlowState_t;
+extern struct ipcpNormalData_t *pxIpcpData;
 
 struct cepIdsEntry_t
 {
@@ -151,12 +145,19 @@ static ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t *pxFac
 static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
                                               portId_t xPortId)
 {
+        ESP_LOGI(TAG_IPCPNORMAL, "Finding a Flow in the normal IPCP list");
 
         struct normalFlow_t *pxFlow;
         // shimFlow_t *pxFlowNext;
 
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
+
+        if (listLIST_IS_EMPTY(&pxData->xFlowsList) == pdTRUE)
+        {
+                ESP_LOGI(TAG_IPCPNORMAL, "Flow list is empty");
+                return NULL;
+        }
 
         pxFlow = pvPortMalloc(sizeof(*pxFlow));
 
@@ -227,10 +228,12 @@ BaseType_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
 }*/
 
 BaseType_t xNormalFlowPrebind(struct ipcpNormalData_t *pxData,
-                              portId_t xPortId)
+                              portId_t xAppPortId)
 {
 
         struct normalFlow_t *pxFlow;
+
+        ESP_LOGI(TAG_IPCPNORMAL, "Binding the flow with port id:%d", xAppPortId);
 
         if (!pxData)
         {
@@ -245,7 +248,7 @@ BaseType_t xNormalFlowPrebind(struct ipcpNormalData_t *pxData,
                 return pdFALSE;
         }
 
-        pxFlow->xPortId = xPortId;
+        pxFlow->xPortId = xAppPortId;
         pxFlow->eState = ePORT_STATE_PENDING;
         /*KFA should be the user. Implement this when the KFA is implemented*/
         // pxFlow->pxUserIpcp = kfa;
@@ -708,3 +711,37 @@ xNormalConnectionCreateRequest(pxNormalInstance->pxData, xPortId,
                                pxDtcpCfg);
 
 #endif
+BaseType_t xNormalUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlowstate)
+{
+        struct normalFlow_t *pxFlow = NULL;
+
+        pxFlow = prvNormalFindFlow(pxIpcpData, xPortId);
+        if (!pxFlow)
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "Flow not found");
+                return pdFALSE;
+        }
+        pxFlow->eState = eNewFlowstate;
+        ESP_LOGI(TAG_IPCPNORMAL, "Flow state updated");
+
+        return pdTRUE;
+}
+
+BaseType_t xNormalIsFlowAllocated(portId_t xPortId)
+{
+        struct normalFlow_t *pxFlow = NULL;
+
+        pxFlow = prvNormalFindFlow(pxIpcpData, xPortId);
+        if (!pxFlow)
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "Flow not found");
+                return pdFALSE;
+        }
+        if (pxFlow->eState == ePORT_STATE_ALLOCATED)
+        {
+                ESP_LOGI(TAG_IPCPNORMAL, "Flow is already allocated");
+                return pdTRUE;
+        }
+
+        return pdFALSE;
+}

@@ -43,8 +43,8 @@ message objVal_t {// value of an object
 	optional sint32	sintval = 2;
 	optional int64	int64val = 3;
 	optional sint64	sint64val = 4;
-	optional string	strval = 5 [(nanopb).max_size = 10];
-	optional bytes	byteval = 6 [(nanopb).max_size = 256];
+	optional string	strval = 5 [(nanopb).max_size = 20];
+	optional bytes	byteval = 6 [(nanopb).max_size = 512];
 	// arbitrary structure or message
 
 	optional fixed32 floatval = 7;
@@ -90,7 +90,7 @@ message CDAPMessage {
 	optional int64 objInst = 7;
 	// Unique object instance
 	
-	optional objVal_t objValue = 8;			
+	optional objVal_t objValue = 8 [(nanopb).max_size = 512];			
 	// value of object in read/write/etc.
 	
 	optional int32 result = 9 [default = 0]; 

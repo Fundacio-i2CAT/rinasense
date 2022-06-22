@@ -281,7 +281,6 @@ messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
 
         memcpy(pxMessageCdap->pxObjValue->pvSerBuffer, message.objValue.byteval.bytes,
                pxMessageCdap->pxObjValue->xSerLength);
-        // ESP_LOGE(TAG_RIB,"It has object Value!!!!!!!!!!!!!!!");
     }
 
     return pxMessageCdap;
@@ -555,7 +554,7 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
 
 messageCdap_t *prvRibdDecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength)
 {
-    ESP_LOGI(TAG_RIB, "Decoding CDAP Message");
+    ESP_LOGI(TAG_RIB, "Decoding CDAP Message with length:%d", xMessageLength);
 
     BaseType_t status;
 
@@ -804,6 +803,7 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
     ESP_LOGE(TAG_RIB, "Dest AEN: %s", pxDecodeCdap->pxDestinationInfo->pcEntityName);
     ESP_LOGE(TAG_RIB, "Dest API: %s", pxDecodeCdap->pxDestinationInfo->pcProcessInstance);
     ESP_LOGE(TAG_RIB, "Dest APN: %s", pxDecodeCdap->pxDestinationInfo->pcProcessName);
+    ESP_LOGE(TAG_RIB, "Result: %d", pxDecodeCdap->result);
 
     // configASSERT(pxDecodeCdap->xObjName == NULL);
 
@@ -831,7 +831,7 @@ BaseType_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portI
     /*Decode CDAP Message*/
     pxDecodeCdap = prvRibdDecodeCDAP(pxDu->pxNetworkBuffer->pucDataBuffer, pxDu->pxNetworkBuffer->xDataLength);
 
-    // vRibdPrintCdapMessage(pxDecodeCdap);
+    vRibdPrintCdapMessage(pxDecodeCdap);
 
     if (!pxDecodeCdap)
     {
@@ -847,6 +847,31 @@ BaseType_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portI
     vRibHandleMessage(pxData, pxDecodeCdap, xN1flowPortId);
 
     return pdTRUE;
+}
+
+void prvRibdHandledAData(serObjectValue_t *pxObjValue)
+{
+    messageCdap_t *pxDecodeCdap;
+    struct ribObject_t *pxRibObject;
+    struct ribCallbackOps_t *pxCallback;
+
+    pxDecodeCdap = prvRibdDecodeCDAP(pxObjValue->pvSerBuffer, pxObjValue->xSerLength);
+
+    vRibdPrintCdapMessage(pxDecodeCdap);
+
+    if (pxDecodeCdap->eOpCode > MAX_CDAP_OPCODE)
+    {
+        ESP_LOGE(TAG_RIB, "Invalid opcode %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
+        vPortFree(pxDecodeCdap);
+    }
+
+    ESP_LOGI(TAG_RIB, "Handling CDAP Message: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
+
+    pxRibObject = pxRibFindObject(pxDecodeCdap->pcObjName);
+
+    pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
+    ESP_LOGI(TAG_RIB, "Result:%d", pxDecodeCdap->result);
+    pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result);
 }
 
 void vPrintAppConnection(appConnection_t *pxAppConnection)
@@ -997,6 +1022,7 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
         break;
     case M_CREATE_R:
         pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
+        ESP_LOGI(TAG_RIB, "Result:%d", pxDecodeCdap->result);
         pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result);
 
         break;
@@ -1005,6 +1031,11 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
 
         ESP_LOGE(TAG_RIB, "-------Handling M_WRITE----------");
         // must write into the object
+        if (strcmp(pxDecodeCdap->pcObjName, "a_data") == 0)
+        {
+            ESP_LOGI(TAG_RIB, "Handling M_WRITE a_data sending to decode");
+            prvRibdHandledAData(pxDecodeCdap->pxObjValue);
+        }
 
         break;
 
@@ -1055,7 +1086,7 @@ BaseType_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objIn
     return pdTRUE;
 }
 
-BaseType_t xRibdSendRequest(struct ipcpNormalData_t *pxIpcpData, string_t pcObjClass, string_t pcObjName, long objInst,
+BaseType_t xRibdSendRequest(string_t pcObjClass, string_t pcObjName, long objInst,
                             opCode_t eOpCode, portId_t xN1flowPortId, serObjectValue_t *pxObjVal)
 {
     messageCdap_t *pxMsgCdap = NULL;

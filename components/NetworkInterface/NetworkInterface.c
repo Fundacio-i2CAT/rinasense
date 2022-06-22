@@ -105,7 +105,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
  * */
 BaseType_t xNetworkInterfaceInitialise(const MACAddress_t *pxPhyDev)
 {
-	ESP_LOGI(TAG_WIFI, "%s", __func__);
+	ESP_LOGI(TAG_WIFI, "Initializing the network interface");
 	uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES];
 
 	esp_efuse_mac_get_default(ucMACAddress);

@@ -30,21 +30,61 @@
 
 #include "esp_log.h"
 
+static FlowRequestRow_t xFlowRequestTable[FLOWS_REQUEST];
+
+void prvAddFlowRequestEntry(flowAllocatorInstance_t *pxFAI)
+{
+
+    BaseType_t x = 0;
+
+    for (x = 0; x < FLOWS_REQUEST; x++)
+    {
+        if (xFlowRequestTable[x].xValid == pdFALSE)
+        {
+            xFlowRequestTable[x].pxFAI = pxFAI;
+            xFlowRequestTable[x].xValid = pdTRUE;
+
+            break;
+        }
+    }
+}
+
+flowAllocateHandle_t *prvGetPendingFlowRequest(portId_t xPortId)
+{
+    BaseType_t x = 0;
+    flowAllocateHandle_t *pxFlowAllocateRequest;
+    flowAllocatorInstance_t *pxFAI;
+
+    for (x = 0; x < FLOWS_REQUEST; x++)
+    {
+        if (xFlowRequestTable[x].xValid == pdTRUE)
+        {
+            pxFAI = xFlowRequestTable->pxFAI;
+            if (pxFAI->xPortId == xPortId) // ad xPortId
+            {
+
+                pxFlowAllocateRequest = pxFAI->pxFlowAllocatorHandle;
+                return pxFlowAllocateRequest;
+            }
+        }
+    }
+    return NULL;
+}
+
 /* Create_Request: handle the request send by other IPCP. Consults the local
  * directory Forwarding Table. It is to me, create a FAI*/
 
-BaseType_t xFlowAllocatorInit()
+flowAllocator_t *pxFlowAllocatorInit(void)
 {
     flowAllocator_t *pxFlowAllocator;
     pxFlowAllocator = pvPortMalloc(sizeof(*pxFlowAllocator));
 
     /* Create object in the Rib*/
-    pxRibCreateObject("/fa/flows/", 0, "Flow", "Flow", FLOW_ALLOCATOR);
 
     /*Init List*/
-    // vListInitialise(&pxFlowAllocator->xFlowAllocatorInstances);
+    vListInitialise(&pxFlowAllocator->xFlowAllocatorInstances);
 
-    return pdTRUE;
+    return pxFlowAllocator;
 }
 
 static qosSpec_t *prvFlowAllocatorSelectQoSCube(void)
@@ -113,15 +153,19 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 
 /*Allocate_Request: Handle the request send by the application
  * if it is well-formed, create a new FlowAllocator-Instance*/
-void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest, struct ipcpNormalData_t *pxIpcpData)
+
+void vFlowAllocatorFlowRequest(
+    portId_t xAppPortId,
+    flowAllocateHandle_t *pxFlowRequest)
 {
     ESP_LOGI(TAG_FA, "Handling the Flow Allocation Request");
 
     flow_t *pxFlow;
     cepId_t xCepSourceId;
-    flowAllocatorInstace_t *pxFlowAllocatorInstance;
+    flowAllocatorInstance_t *pxFlowAllocatorInstance;
     connectionId_t *pxConnectionId;
     string_t pcNeighbor;
+    struct efcpContainter_t *pxEfcpc;
 
     /* Create a flow object and fill using the event FlowRequest */
     pxFlow = prvFlowAllocatorNewFlow(pxFlowRequest);
@@ -137,7 +181,10 @@ void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId
     }
     // heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     pxFlowAllocatorInstance->eFaiState = eFAI_NONE;
-    pxFlowAllocatorInstance->xPortId = xPortId;
+    pxFlowAllocatorInstance->xPortId = xAppPortId;
+
+    prvAddFlowRequestEntry(pxFlowAllocatorInstance);
+    ESP_LOGE(TAG_FA, "FAI added properly");
 
     // Query NameManager to getting neighbor how knows the destination requested
     // pcNeighbor = xNmsGetNextHop(pxFlow->pxDesInfo->pcProcessName;
@@ -148,7 +195,7 @@ void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
     pxFlow->xRemoteAddress = xEnrollmentGetNeighborAddress(pcNeighbor);
 
-    pxFlow->xSourcePortId = xPortId;
+    pxFlow->xSourcePortId = xAppPortId;
 
     if (pxFlow->xRemoteAddress == 0)
     {
@@ -157,6 +204,8 @@ void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId
 
     /* Call EFCP to create an EFCP instance following the EFCP Config */
     ESP_LOGI(TAG_FA, "Creating a Connection");
+
+    pxEfcpc = pxIPCPGetEfcpc();
 
     xCepSourceId = xNormalConnectionCreateRequest(pxEfcpc, 1,
                                                   LOCAL_ADDRESS, pxFlow->xRemoteAddress, pxFlow->pxQosSpec->xQosId,
@@ -181,9 +230,8 @@ void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId
     pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
 
     // Send using the ribd_send_req M_Create
-    ESP_LOGE(TAG_FA, "SendingFlow");
 
-    if (!xRibdSendRequest(pxIpcpData, "Flow", "/fa/flows/key=1-33", -1, M_CREATE, 1, pxObjVal))
+    if (!xRibdSendRequest("Flow", "/fa/flows/key=1-33", -1, M_CREATE, 1, pxObjVal)) // fixing key= <source IPCP @>-<source port_id>
     {
         ESP_LOGE(TAG_FA, "It was a problem to send the request");
         // return pdFALSE;
@@ -192,18 +240,43 @@ void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId
 
 BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
 {
-    /*if (!pxSerObjValue)
-    {
-        ESP_LOGE(TAG_FA, "No Object Value");
-        return pdFALSE;
-    }*/
+    portId_t xAppPortId;
+    flowAllocateHandle_t *pxFlowAllocateRequest;
 
-    if (result != 0)
+    xAppPortId = 33; // decoding the object name gettinh the port Id
+    if (pxSerObjValue == NULL)
+    {
+        ESP_LOGI(TAG_FA, "no object value ");
+    }
+
+    ESP_LOGI(TAG_FA, "Result:%d", result);
+
+    if (result != -4)
     {
         ESP_LOGI(TAG_FA, "Was not possible to create the Flow...");
+        return pdFALSE;
     }
     // Decode the FA message
-    ESP_LOGI(TAG_FA, "CDAP Message Result: Flow allocated ");
+    // ESP_LOGI(TAG_FA, "CDAP Message Result: Flow allocated ");
+    pxFlowAllocateRequest = prvGetPendingFlowRequest(xAppPortId);
+
+    if (!pxFlowAllocateRequest)
+    {
+        ESP_LOGE(TAG_FA, "Flow Allocate Request was not founded ");
+        return pdFALSE;
+    }
+
+    if (!xNormalUpdateFlowStatus(xAppPortId, ePORT_STATE_ALLOCATED))
+    {
+        ESP_LOGE(TAG_FA, "It was not possible to update the Flow state");
+        return pdFALSE;
+    }
+    ESP_LOGE(TAG_FA, "Flow state updated to Allocated");
+
+    // pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
+
+    // vRINA_WeakUpUser(pxFlowAllocateRequest);
+
     // Do something with the decode message.
     return pdTRUE;
 }

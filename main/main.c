@@ -38,9 +38,11 @@ void app_main(void)
 
 	vTaskDelay(1000);
 
+	ESP_LOGI(TAG_APP, "----------- Requesting a Flow ----- ");
+
 	xAppPortId = RINA_flow_alloc("mobile.DIF", "Temperature", "sensor1", xFlowSpec, Flags);
 
-	if (xAppPortId != -1)
+	/*if (xAppPortId != -1)
 	{
 		for (i = 0; i > 10; i++)
 		{
@@ -50,5 +52,5 @@ void app_main(void)
 				ESP_LOGI(TAG_APP, "Sent Data: %s successfully", temperature);
 			}
 		}
-	}
+	}*/
 }

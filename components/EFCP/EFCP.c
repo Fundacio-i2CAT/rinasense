@@ -547,8 +547,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
 
         /* We must ensure that the DTP is instantiated, at least ... */
 
-        ESP_LOGE(TAG_EFCP, "xEfcpConnectionCreate: pxContainer");
-        pxEfcp->pxEfcpContainer = pxEfcpContainer;
+               pxEfcp->pxEfcpContainer = pxEfcpContainer;
         pxConnection->xSourceCepId = xCepId;
 
         if (!is_candidate_connection_ok((const struct connection_t *)pxConnection))

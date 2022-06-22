@@ -9,7 +9,6 @@
 #include "ARP826.h"
 #include "pci.h"
 #include "common.h"
-//#include "Rmt.h"
 
 /*-----------------------------------------------------------*/
 /* Miscellaneous structure and definitions. */
@@ -32,14 +31,13 @@ typedef enum RINA_EVENTS
     eShimEnrolledEvent,         /* 3: Shim Enrolled: network Interface Init*/
     eARPTimerEvent,             /* 4: The ARP timer expired. */
     eStackTxEvent,              /* 5: The software stack IPCP has queued a packet to transmit. */
-    eEFCPTimerEvent,            /* 6: See if any IPCP socket needs attention. */
-    eEFCPAcceptEvent,           /* 7: Client API FreeRTOS_accept() waiting for client connections. */
+    eFATimerEvent,              /* 6: See if any IPCP socket needs attention. */
+    eFlowBindEvent,             /* 7: Client API request to bind a flow. */
     eShimFlowAllocatedEvent,    /* 8: A flow has been allocated on the shimWiFi*/
     eStackFlowAllocateEvent,    /*9: The Software stack IPCP has received a Flow allocate request. */
     eStackAppRegistrationEvent, /*10: The Software stack IPCP has received a AppRegistration Event*/
-    eFactoryInitEvent,          /*11: The IPCP factories has been initialized. */
-    eShimAppRegisteredEvent,    /* 12: The Normal IPCP has been registered into the Shim*/
-    eSendMgmtEvent,             /* 13: Send Mgmt PDU */
+    eShimAppRegisteredEvent,    /* 11: The Normal IPCP has been registered into the Shim*/
+    eSendMgmtEvent,             /* 12: Send Mgmt PDU */
 
 } eRINAEvent_t;
 
@@ -251,14 +249,6 @@ typedef struct xIPCP_TIMER
     TickType_t ulReloadTime;    /**< The value of reload time. */
 } IPCPTimer_t;
 
-typedef struct xRESPONSE_HANDLER_ROW
-{
-    int32_t invokeID;
-    struct ribCallbackOps_t *pxCallbackHandler;
-    BaseType_t xValid;
-
-} responseHandlersRow_t;
-
 /*
  * Send the event eEvent to the IPCP task event queue, using a block time of
  * zero.  Return pdPASS if the message was sent successfully, otherwise return
@@ -276,5 +266,12 @@ eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEth
 
 BaseType_t RINA_IPCPInit(void);
 struct rmt_t *pxIPCPGetRmt(void);
+struct efpcContainer_t *pxIPCPGetEfcpc(void);
+struct ipcpNormalInstance_t *pxIpcpGetData(void);
+
+// normalFlow_t *pxIpcpFindFlow(portId_t xPortId);
+// BaseType_t xNormalIsFlowAllocated(portId_t xPortId);
+
+// BaseType_t xIpcpUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlowstate);
 
 #endif

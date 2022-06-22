@@ -44,12 +44,9 @@ typedef struct xIPC_MANAGER
 
 BaseType_t xIpcManagerInit(ipcManager_t *pxIpcManager);
 
-void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, pidm_t *pxPidm, name_t *pxIPCPName);
+void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName);
 
-portId_t xIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm,
-												  struct efcpContainer_t *pxEfcpc,
-												  struct ipcpNormalData_t *pxIpcpData,
-												  flowAllocateHandle_t *pxFlowAllocateRequest);
+void vIpcpManagerAppFlowAllocateRequestHandle(flowAllocateHandle_t *pxFlowAllocateRequest);
 
 // BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData);
 

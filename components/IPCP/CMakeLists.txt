@@ -1,4 +1,3 @@
 idf_component_register(SRCS "rstr.c" "ipcpIdm.c" "cepIdm.c" "pidm.c" "IpcManager.c" "normalIPCP.c" "IPCP.c" "common.c"
-                    INCLUDE_DIRS "include"
-                    REQUIRES configSensor NetworkInterface ShimIPCP BufferManagement ARP826 Rmt RINA_API EFCP Enrollment Ribd FlowAllocator)
-
+    INCLUDE_DIRS "include"
+    REQUIRES configSensor NetworkInterface ShimIPCP BufferManagement ARP826 Rmt RINA_API EFCP Enrollment Ribd FlowAllocator)

@@ -16,6 +16,7 @@
 #include "IPCP.h"
 #include "RINA_API.h"
 #include "normalIPCP.h"
+#include "Rib.h"
 
 typedef enum
 {
@@ -46,7 +47,10 @@ typedef struct xFLOW_ALLOCATOR_INSTANCE
     /* State */
     eFaiState_t eFaiState;
 
-} flowAllocatorInstace_t;
+    /* Flow Allocator Request*/
+    flowAllocateHandle_t *pxFlowAllocatorHandle;
+
+} flowAllocatorInstance_t;
 
 typedef struct xFLOW_ALLOCATOR
 {
@@ -113,7 +117,18 @@ typedef struct xFLOW_MESSAGE
 
 } flow_t;
 
-void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest, struct ipcpNormalData_t *pxIpcpData);
+typedef struct xREQUEST_HANDLER_ROW
+{
+    flowAllocatorInstance_t *pxFAI;
+    BaseType_t xValid;
+
+} FlowRequestRow_t;
+
+// flowAllocator_t *pxFlowAllocatorInit(void);
+
+void vFlowAllocatorFlowRequest(
+    portId_t xAppPortId,
+    flowAllocateHandle_t *pxFlowRequest);
 BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
 
 #endif

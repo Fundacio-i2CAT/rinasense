@@ -37,6 +37,9 @@ static BaseType_t xIPCPTaskInitialised = pdFALSE;
  * down (connected, not connected) respectively. */
 static BaseType_t xNetworkUp = pdFALSE;
 
+static portId_t xN1PortId;
+static portId_t xAppPortId;
+
 /** @brief Used to ensure network down events cannot be missed when they cannot be
  * posted to the network event queue because the network event queue is already
  * full. */
@@ -79,6 +82,8 @@ DECL_CAST_PTR_FUNC_FOR_TYPE(NetworkBufferDescriptor_t)
 /** @brief ARP timer, to check its table entries. */
 static IPCPTimer_t xARPTimer;
 
+static IPCPTimer_t xFATimer;
+
 void RINA_NetworkDown(void);
 
 void vIpcpInit(void);
@@ -98,6 +103,8 @@ EthernetHeader_t *vCastPointerTo_EthernetPacket_t(const void *pvArgument);
 static void prvIPCPTask(void *pvParameters);
 
 static BaseType_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer);
+
+void vIpcpSetFATimerExpiredState(BaseType_t xExpiredState);
 
 /*
  * Utility functions for the light weight IP timers.
@@ -132,11 +139,6 @@ static TickType_t prvCalculateSleepTime(void);
  * when the network connection is lost.
  */
 static void prvProcessNetworkDownEvent(void);
-
-/*
- * Called to initialize the Factories. Create the Normal y ShimWifi Factories.
- */
-void vInitFactories(void);
 
 BaseType_t xCreateIPCPModules(void);
 
@@ -184,6 +186,7 @@ static void prvIPCPTask(void *pvParameters)
     {
         ESP_LOGE(TAG_IPCPMANAGER, "Error to initializing IPC Manager");
     }
+
     /* Initialization is complete and events can now be processed. */
     xIPCPTaskInitialised = pdTRUE;
 
@@ -262,17 +265,10 @@ static void prvIPCPTask(void *pvParameters)
             {
                 ESP_LOGE(TAG_IPCPMANAGER, "IPCP not registered into the shim");
             } // should be void, the normal should control if there is an error.
+            // xN1PortId = xPidmAllocate(pxIpcManager->pxIpcpIdm);
+            xN1PortId = 1;
 
-            (void)vIcpManagerEnrollmentFlowRequest(pxShimInstance, pxIpcManager->pxPidm, pxIpcpData->pxName);
-
-            break;
-        case eShimAppRegisteredEvent:
-
-            // Should create the enrollment object and initialize it
-            // The enrollment object during the process of initialization should request the flow to the IpcManager.
-            // By the moment the IpcManager do this action.
-            ESP_LOGI(TAG_IPCPMANAGER, "Enrollment Request a Flow");
-            // xIcpManagerEnrollmentFlowRequest(pxIpcManager->pxFactories, eNormal, eShimWiFi, pxIpcManager->pxPidm); // changed pxFactories
+            (void)vIcpManagerEnrollmentFlowRequest(pxShimInstance, xN1PortId, pxIpcpData->pxName);
 
             break;
 
@@ -280,30 +276,45 @@ static void prvIPCPTask(void *pvParameters)
 
             /*Call to the method to init the enrollment*/
 
-            (void)xNormalFlowBinding(pxIpcpData, 1, pxShimInstance);
-            (void)xEnrollmentInit(pxIpcpData, 1);
-            //(void)vIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm, pxIpcpData->pxEfcpc, pxIpcpData);
-
-            // ESP_LOGI(TAG_IPCPMANAGER, "Testing Flow Allocated Event");
+            (void)xNormalFlowBinding(pxIpcpData, xN1PortId, pxShimInstance);
+            (void)xEnrollmentInit(pxIpcpData, xN1PortId);
 
             break;
+        case eFATimerEvent:
+            ESP_LOGI(TAG_IPCPMANAGER, "Setting FA timer to expired");
+            vIpcpSetFATimerExpiredState(pdTRUE);
 
+            break;
         case eStackFlowAllocateEvent:
 
             ESP_LOGI(TAG_IPCPMANAGER, "---------- Flow Allocation -------");
             ESP_LOGI(TAG_IPCPMANAGER, "App Request a Flow");
 
-            pxFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
-            pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
+            // pxFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
+
+            //(void)xNormalFlowPrebind(pxData, xPortId);
+            // pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
 
             // store the request and response when the flow is allocated.
 
-            pxFlowAllocateRequest->xPortId = xIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm,
-                                                                                      pxIpcpData->pxEfcpc,
-                                                                                      pxIpcpData,
-                                                                                      pxFlowAllocateRequest);
+            /* vIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm,
+                                                     pxIpcpData->pxEfcpc,
+                                                     pxIpcpData,
+                                                     pxFlowAllocateRequest);*/
 
             // xRINA_WeakUpUser(pxFlowAllocateRequest);
+
+            break;
+
+        case eFlowBindEvent:
+
+            pxFlowAllocateRequest = ((flowAllocateHandle_t *)xReceivedEvent.pvData);
+
+            (void)xNormalFlowPrebind(pxIpcpData, pxFlowAllocateRequest->xPortId);
+
+            pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
+
+            vRINA_WeakUpUser(pxFlowAllocateRequest);
 
             break;
 
@@ -868,6 +879,25 @@ static BaseType_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer)
 }
 
 /**
+ * @brief Enable/disable the Flow Allocator timer.
+ *
+ * @param[in] xExpiredState: pdTRUE - set as expired; pdFALSE - set as non-expired.
+ */
+void vIpcpSetFATimerExpiredState(BaseType_t xExpiredState)
+{
+    xFATimer.bActive = pdTRUE_UNSIGNED;
+
+    if (xExpiredState != pdFALSE)
+    {
+        xFATimer.bExpired = pdTRUE_UNSIGNED;
+    }
+    else
+    {
+        xFATimer.bExpired = pdFALSE_UNSIGNED;
+    }
+}
+
+/**
  * @brief Start an IP timer. The IP-task has its own implementation of a timer
  *        called 'IPTimer_t', which is based on the FreeRTOS 'TimeOut_t'.
  *
@@ -953,6 +983,7 @@ void vIpcpInit(void)
     /*** IPCP Modules ***/
     /* RMT module */
     rmt_t *pxRmt;
+    // flowAllocator_t *pxFlowAllocator;
 
     /* EFCP Container */
     struct efcpContainer_t *pxEfcpContainer;
@@ -993,13 +1024,101 @@ void vIpcpInit(void)
     pxIpcpData->pxEfcpc = pxEfcpContainer;
     pxIpcpData->pxRmt = pxRmt;
     pxIpcpData->xAddress = LOCAL_ADDRESS;
+
+    // pxIpcpData->pxFa = pxFlowAllocatorInit();
+
     // pxIpcpData->pxIpcManager = pxIpcManager;
     /*Initialialise flows list*/
     vListInitialise(&(pxIpcpData->xFlowsList));
 }
+#if 0
+struct normalFlow_t *pxIpcpFindFlow(portId_t xPortId)
+{
+    ESP_LOGI(TAG_IPCPNORMAL, "Finding a Flow in the normal IPCP list");
 
+    struct normalFlow_t *pxFlow;
+    // shimFlow_t *pxFlowNext;
+
+    ListItem_t *pxListItem;
+    ListItem_t const *pxListEnd;
+
+    if (listLIST_IS_EMPTY(&pxIpcpData->xFlowsList) == pdTRUE)
+    {
+        ESP_LOGI(TAG_IPCPNORMAL, "Flow list is empty");
+        return NULL;
+    }
+
+    pxFlow = pvPortMalloc(sizeof(*pxFlow));
+
+    /* Find a way to iterate in the list and compare the addesss*/
+    pxListEnd = listGET_END_MARKER(&pxIpcpData->xFlowsList);
+    pxListItem = listGET_HEAD_ENTRY(&pxIpcpData->xFlowsList);
+
+    while (pxListItem != pxListEnd)
+    {
+
+        pxFlow = (struct normalFlow_t *)listGET_LIST_ITEM_OWNER(pxListItem);
+
+        if (pxFlow && pxFlow->xPortId == xPortId)
+        {
+
+            // ESP_LOGI(TAG_IPCPNORMAL, "Flow founded %p, portID: %d, portState:%d", pxFlow, pxFlow->xPortId, pxFlow->eState);
+            return pxFlow;
+        }
+
+        pxListItem = listGET_NEXT(pxListItem);
+    }
+
+    ESP_LOGI(TAG_IPCPNORMAL, "Flow not founded");
+    return NULL;
+}
+
+BaseType_t xIpcpUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlowstate)
+{
+    struct normalFlow_t *pxFlow;
+
+    pxFlow = pxIpcpFindFlow(pxIpcpData, xPortId);
+    if (!pxFlow)
+    {
+        ESP_LOGE(TAG_IPCPNORMAL, "Flow not found");
+        return pdFALSE;
+    }
+    pxFlow->eState = eNewFlowstate;
+    ESP_LOGI(TAG_IPCPNORMAL, "Flow state updated");
+
+    return pdTRUE;
+}
+
+BaseType_t xNormalIsFlowAllocated(portId_t xPortId)
+{
+    struct normalFlow_t *pxFlow;
+
+    pxFlow = prvNormalFindFlow(pxIpcpData, xPortId);
+    if (!pxFlow)
+    {
+        ESP_LOGE(TAG_IPCPNORMAL, "Flow not found");
+        return pdFALSE;
+    }
+    if (pxFlow->eState == ePORT_STATE_ALLOCATED)
+    {
+        return pdTRUE;
+    }
+
+    return pdFALSE;
+}
+#endif
 struct rmt_t *pxIPCPGetRmt(void);
 struct rmt_t *pxIPCPGetRmt(void)
 {
     return pxIpcpData->pxRmt;
+}
+
+struct efpcContainer_t *pxIPCPGetEfcpc(void)
+{
+    return pxIpcpData->pxEfcpc;
+}
+
+struct ipcpNormalInstance_t *pxIpcpGetData(void)
+{
+    return pxIpcpData;
 }

@@ -1243,7 +1243,7 @@ void vShimWiFiInit(ipcpInstance_t *pxShimWiFiInstance)
 	 * Update de MacAddress variable depending on the WiFi drivers. Sent this variable
 	 * as event data to be used when the shimWiFi DIF will be created.*/
 
-	ESP_LOGI(TAG_SHIM, "SHIMWiFIInit NEW");
+	ESP_LOGI(TAG_SHIM, "Initializing shim WiFi....");
 	RINAStackEvent_t xEnrollEvent = {eShimEnrolledEvent, NULL};
 	const TickType_t xDontBlock = pdMS_TO_TICKS(50);
 
