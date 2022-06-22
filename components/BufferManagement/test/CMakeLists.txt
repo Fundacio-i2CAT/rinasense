@@ -1,4 +1,3 @@
-message("TARGET_TYPE IS $ENV{TARGET_TYPE}")
 if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
   idf_component_register(SRC_DIRS "."
     INCLUDE_DIRS "."

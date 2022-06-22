@@ -30,6 +30,7 @@
 
 /* C standard library includes. */
 #include <string.h>
+#include <time.h>
 
 /* FreeRTOS+POSIX includes. */
 #include "FreeRTOS_POSIX.h"

@@ -1,6 +1,14 @@
 #include <stdio.h>
 #include "portability/port.h"
 
+#include "unity.h"
+#include "unity_fixups.h"
+
+#ifndef TEST_CASE
+void setUp() {}
+void tearDown() {}
+#endif
+
 struct item {
     int n;
     RsListItem_t item;
@@ -8,6 +16,7 @@ struct item {
 
 struct item i1 = { 1 }, i2 = { 3 };
 
+/* This ain't a test! */
 void addBogusItems(RsList_t *lst)
 {
     vRsListInit(lst);
@@ -20,7 +29,7 @@ void addBogusItems(RsList_t *lst)
 }
 
 /* Test simple allocation removals. */
-void testListBasics()
+RS_TEST_CASE(ListBasics, "Linked lists -- Basic features")
 {
     RsList_t lst;
     RsListItem_t *pLstItem = NULL;
@@ -29,36 +38,36 @@ void testListBasics()
     addBogusItems(&lst);
 
     /* Basic stuff. */
-    RsAssert(pRsListGetListItemOwner(&i1.item) == &i1);
-    RsAssert(pRsListGetListItemOwner(&i2.item) == &i2);
+    TEST_ASSERT(pRsListGetListItemOwner(&i1.item) == &i1);
+    TEST_ASSERT(pRsListGetListItemOwner(&i2.item) == &i2);
 
     /* Check the length of the list. */
-    RsAssert(unRsListCurrentListLength(&lst) == 2);
+    TEST_ASSERT(unRsListCurrentListLength(&lst) == 2);
 
     /* Get the first item. */
     pLstItem = pRsListGetHeadEntry(&lst);
-    RsAssert(pLstItem == &i1.item);
+    TEST_ASSERT(pLstItem == &i1.item);
 
     /* Get the first owner structure. */
     pItem = pRsListGetOwnerOfHeadEntry(&lst);
-    RsAssert(pItem->n == 1);
+    TEST_ASSERT(pItem->n == 1);
 
     /* Remove the first item */
     vRsListRemoveItem(&(i1.item));
-    RsAssert(unRsListCurrentListLength(&lst) == 1);
+    TEST_ASSERT(unRsListCurrentListLength(&lst) == 1);
 
     /* Check that the first item in the list is now the second item we
      * inserted. */
     pLstItem = pRsListGetHeadEntry(&lst);
-    RsAssert(pLstItem == &i2.item);
+    TEST_ASSERT(pLstItem == &i2.item);
 
     /* Remove the last item */
     vRsListRemoveItem(&(i2.item));
-    RsAssert(unRsListCurrentListLength(&lst) == 0);
+    TEST_ASSERT(unRsListCurrentListLength(&lst) == 0);
 }
 
 /* Test iterating through a list. */
-void testListIteration()
+RS_TEST_CASE(ListIteration, "Linked lists -- Iteration")
 {
     RsList_t lst;
     struct item *pos;
@@ -78,10 +87,14 @@ void testListIteration()
         pItem = pRsListGetNext(pItem);
     }
 
-    RsAssert(n == 4);
+    TEST_ASSERT(n == 4);
 }
 
+#ifndef TEST_CASE
 int main() {
-    testListBasics();
-    testListIteration();
+    UNITY_BEGIN();
+    RUN_TEST(test_ListBasics);
+    RUN_TEST(test_ListIteration);
+    return UNITY_END();
 }
+#endif

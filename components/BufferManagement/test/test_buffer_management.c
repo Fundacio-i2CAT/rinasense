@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <time.h>
+#include <errno.h>
+
 #include "BufferManagement.h"
 #include "portability/port.h"
 
 #include "unity.h"
-#ifndef TEST_CASE
 #include "unity_fixups.h"
-#endif
 
 void setUp() {
     xNetworkBuffersInitialise();
@@ -30,11 +31,14 @@ RS_TEST_CASE(GetNetworkBuffer, "Calls GetNetworkBuffer")
 /*void testGetNetworkBufferWithDescriptors()*/
 RS_TEST_CASE(GetNetworkBufferWithDescriptor, "Calls GetNetworkBufferWithDescriptors")
 {
+    int n;
     size_t s = 10;
     NetworkBufferDescriptor_t *pB1, *pB2;
     struct timespec ts;
 
-    TEST_ASSERT(rstime_waitmsec(&ts, 10));
+    n = rstime_waitmsec(&ts, 10);
+    TEST_ASSERT_EQUAL_INT(true, n);
+    TEST_ASSERT_EQUAL_INT(0, errno);
 
     TEST_ASSERT((pB1 = pxGetNetworkBufferWithDescriptor(s, &ts)) != NULL);
     TEST_ASSERT((pB2 = pxGetNetworkBufferWithDescriptor(s, &ts)) != NULL);
