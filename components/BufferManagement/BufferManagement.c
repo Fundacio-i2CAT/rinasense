@@ -3,19 +3,17 @@
 #include <stdint.h>
 #include <string.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
+/* Portability */
+#include "portability/port.h"
+#include "portability/posix/semaphore.h"
+#include "portability/posix/pthread.h"
 
-/* RINA includes. */
-#include "ARP826.h"
-#include "ShimIPCP.h"
-#include "NetworkInterface.h"
-#include "BufferManagement.h"
 #include "configSensor.h"
 
-#include "esp_log.h"
+/* RINA includes. */
+#include "ARP826_defs.h"
+#include "BufferManagement.h"
+#include "rina_buffers.h"
 
 /* The obtained network buffer must be large enough to hold a packet that might
  * replace the packet that was requested to be sent. */
@@ -39,12 +37,13 @@
 STATIC_ASSERT(ipconfigETHERNET_MINIMUM_PACKET_BYTES <= baMINIMAL_BUFFER_SIZE);
 #endif
 
+
 #define BUFFER_PADDING 0U
 
 int count = 0;
 
 /* A list of free (available) NetworkBufferDescriptor_t structures. */
-static List_t xFreeBuffersList;
+static RsList_t xFreeBuffersList;
 
 /* Some statistics about the use of buffers. */
 static size_t uxMinimumFreeNetworkBuffers;
@@ -58,88 +57,78 @@ static NetworkBufferDescriptor_t xNetworkBufferDescriptors[NUM_NETWORK_BUFFER_DE
 
 /* This constant is defined as false to let FreeRTOS_TCP_IP.c know that the
  * network buffers have a variable size: resizing may be necessary */
-const BaseType_t xBufferAllocFixedSize = pdFALSE;
+const bool_t xBufferAllocFixedSize = false;
+
+bool_t semInitialized = false;
 
 /* The semaphore used to obtain network buffers. */
-static SemaphoreHandle_t xNetworkBufferSemaphore = NULL;
+//static SemaphoreHandle_t xNetworkBufferSemaphore = NULL;
+static sem_t xNetworkBufferSemaphore;
 
-static portMUX_TYPE mutex = portMUX_INITIALIZER_UNLOCKED;
+//static portMUX_TYPE mutex = portMUX_INITIALIZER_UNLOCKED;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*-----------------------------------------------------------*/
 
-BaseType_t xNetworkBuffersInitialise(void)
+
+bool_t xNetworkBuffersInitialise( void )
 {
-    BaseType_t xReturn;
+    bool_t xReturn;
     uint32_t x;
+    int semInitReturn = -1;
 
     /* Only initialise the buffers and their associated kernel objects if they
      * have not been initialised before. */
 
-    if (xNetworkBufferSemaphore == NULL)
+    if (!semInitialized)
     {
-#if (SUPPORT_STATIC_ALLOCATION == 1)
-        {
-            static StaticSemaphore_t xNetworkBufferSemaphoreBuffer;
-            xNetworkBufferSemaphore = xSemaphoreCreateCountingStatic(
-                NUM_NETWORK_BUFFER_DESCRIPTORS,
-                NUM_NETWORK_BUFFER_DESCRIPTORS,
-                &xNetworkBufferSemaphoreBuffer);
-        }
-#else
-        {
-            xNetworkBufferSemaphore = xSemaphoreCreateCounting(NUM_NETWORK_BUFFER_DESCRIPTORS, NUM_NETWORK_BUFFER_DESCRIPTORS);
-        }
-#endif /* configSUPPORT_STATIC_ALLOCATION */
-
-        configASSERT(xNetworkBufferSemaphore != NULL);
-
-        if (xNetworkBufferSemaphore != NULL)
-        {
-#if (QUEUE_REGISTRY_SIZE > 0)
+        #if ( SUPPORT_STATIC_ALLOCATION == 1 )
             {
-                vQueueAddToRegistry(xNetworkBufferSemaphore, "NetBufSem");
+                static StaticSemaphore_t xNetworkBufferSemaphoreBuffer;
+                xNetworkBufferSemaphore = xSemaphoreCreateCountingStatic(
+                    NUM_NETWORK_BUFFER_DESCRIPTORS,
+                    NUM_NETWORK_BUFFER_DESCRIPTORS,
+                    &xNetworkBufferSemaphoreBuffer );
             }
-#endif /* configQUEUE_REGISTRY_SIZE */
-
-/* If the trace recorder code is included name the semaphore for viewing
- * in FreeRTOS+Trace.  */
-#if (ipconfigINCLUDE_EXAMPLE_FREERTOS_PLUS_TRACE_CALLS == 1)
+        #else
             {
-                extern QueueHandle_t xNetworkEventQueue;
-                vTraceSetQueueName(xNetworkEventQueue, "IPStackEvent");
-                vTraceSetQueueName(xNetworkBufferSemaphore, "NetworkBufferCount");
+                semInitReturn = sem_init(&xNetworkBufferSemaphore, 0, NUM_NETWORK_BUFFER_DESCRIPTORS);
             }
-#endif /*  ipconfigINCLUDE_EXAMPLE_FREERTOS_PLUS_TRACE_CALLS == 1 */
+        #endif /* configSUPPORT_STATIC_ALLOCATION */
 
-            vListInitialise(&xFreeBuffersList);
+
+        if ( semInitReturn == 0 ) {
+            vRsListInit( &xFreeBuffersList );
 
             /* Initialise all the network buffers.  No storage is allocated to
              * the buffers yet. */
             for (x = 0U; x < NUM_NETWORK_BUFFER_DESCRIPTORS; x++)
             {
                 /* Initialise and set the owner of the buffer list items. */
-                xNetworkBufferDescriptors[x].pucEthernetBuffer = NULL;
-                vListInitialiseItem(&(xNetworkBufferDescriptors[x].xBufferListItem));
-                listSET_LIST_ITEM_OWNER(&(xNetworkBufferDescriptors[x].xBufferListItem), &xNetworkBufferDescriptors[x]);
+                xNetworkBufferDescriptors[ x ].pucEthernetBuffer = NULL;
+                vRsListInitItem( &( xNetworkBufferDescriptors[ x ].xBufferListItem ) );
+                vRsListSetListItemOwner( &( xNetworkBufferDescriptors[ x ].xBufferListItem ), &xNetworkBufferDescriptors[ x ] );
 
                 /* Currently, all buffers are available for use. */
-                vListInsert(&xFreeBuffersList, &(xNetworkBufferDescriptors[x].xBufferListItem));
+                vRsListInsert( &xFreeBuffersList, &( xNetworkBufferDescriptors[ x ].xBufferListItem ) );
             }
 
             uxMinimumFreeNetworkBuffers = NUM_NETWORK_BUFFER_DESCRIPTORS;
         }
     }
 
-    if (xNetworkBufferSemaphore == NULL)
+    if (semInitReturn > 0)
     {
-        xReturn = pdFAIL;
+        xReturn = false;
     }
     else
     {
-        xReturn = pdPASS;
+        xReturn = true;
     }
 
-    ESP_LOGD(TAG_NETBUFFER, "Initialized Buffers");
+    semInitialized = xReturn;
+
+    LOGD(TAG_NETBUFFER, "Initialized Buffers");
 
     return xReturn;
 }
@@ -169,8 +158,7 @@ uint8_t *pucGetNetworkBuffer(size_t *pxRequestedSizeBytes)
     /* Allocate a buffer large enough to store the requested Ethernet frame size
      * and a pointer to a network buffer structure (hence the addition of
      * ipBUFFER_PADDING bytes). */
-    pucEthernetBuffer = (uint8_t *)pvPortMalloc(xSize + BUFFER_PADDING);
-    configASSERT(pucEthernetBuffer != NULL);
+    pucEthernetBuffer = ( uint8_t * ) pvRsMemAlloc( xSize + BUFFER_PADDING );
 
     if (pucEthernetBuffer != NULL)
     {
@@ -192,32 +180,37 @@ void vReleaseNetworkBuffer(uint8_t *pucEthernetBuffer)
     if (pucEthernetBuffer != NULL)
     {
         pucEthernetBuffer -= BUFFER_PADDING;
-        vPortFree((void *)pucEthernetBuffer);
+        //vPortFree( ( void * ) pucEthernetBuffer );
+        vRsMemFree( ( void * ) pucEthernetBuffer );
     }
 }
 /*-----------------------------------------------------------*/
 
-NetworkBufferDescriptor_t *pxGetNetworkBufferWithDescriptor(size_t xRequestedSizeBytes,
-                                                            TickType_t xBlockTimeTicks)
+NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedSizeBytes,
+                                                              const struct timespec * pTimespec )
 {
     NetworkBufferDescriptor_t *pxReturn = NULL;
     size_t uxCount;
+    struct timespec *ts;
 
-    if (xNetworkBufferSemaphore != NULL)
+    /* sem_timedwait does not deal well with pTimespec being NULL. */
+    if ( pTimespec == NULL ) return NULL;
+
+    if( semInitialized )
     {
         /* If there is a semaphore available, there is a network buffer available. */
-        if (xSemaphoreTake(xNetworkBufferSemaphore, xBlockTimeTicks) == pdPASS)
+        if( sem_timedwait( &xNetworkBufferSemaphore, pTimespec ) == 0 )
         {
             /* Protect the structure as it is accessed from tasks and interrupts. */
-            taskENTER_CRITICAL(&mutex);
+            pthread_mutex_lock( &mutex );
             {
-                pxReturn = (NetworkBufferDescriptor_t *)listGET_OWNER_OF_HEAD_ENTRY(&xFreeBuffersList);
-                (void)uxListRemove(&(pxReturn->xBufferListItem));
+                pxReturn = ( NetworkBufferDescriptor_t * ) pRsListGetOwnerOfHeadEntry( &xFreeBuffersList );
+                vRsListRemoveItem( &( pxReturn->xBufferListItem ) );
             }
-            taskEXIT_CRITICAL(&mutex);
+            pthread_mutex_unlock( &mutex );
 
             /* Reading UBaseType_t, no critical section needed. */
-            uxCount = listCURRENT_LIST_LENGTH(&xFreeBuffersList);
+            uxCount = unRsListCurrentListLength( &xFreeBuffersList );
 
             if (uxMinimumFreeNetworkBuffers > uxCount)
             {
@@ -225,9 +218,7 @@ NetworkBufferDescriptor_t *pxGetNetworkBufferWithDescriptor(size_t xRequestedSiz
             }
 
             /* Allocate storage of exactly the requested size to the buffer. */
-            configASSERT(pxReturn->pucEthernetBuffer == NULL);
-
-            if (xRequestedSizeBytes > 0U)
+            if( xRequestedSizeBytes > 0U )
             {
                 if ((xRequestedSizeBytes < (size_t)baMINIMAL_BUFFER_SIZE))
                 {
@@ -247,7 +238,7 @@ NetworkBufferDescriptor_t *pxGetNetworkBufferWithDescriptor(size_t xRequestedSiz
 
                 /* Extra space is obtained so a pointer to the network buffer can
                  * be stored at the beginning of the buffer. */
-                pxReturn->pucEthernetBuffer = (uint8_t *)pvPortMalloc(xRequestedSizeBytes + BUFFER_PADDING);
+                pxReturn->pucEthernetBuffer = ( uint8_t * ) pvRsMemAlloc(xRequestedSizeBytes + BUFFER_PADDING );
 
                 if (pxReturn->pucEthernetBuffer == NULL)
                 {
@@ -293,9 +284,9 @@ NetworkBufferDescriptor_t *pxGetNetworkBufferWithDescriptor(size_t xRequestedSiz
     {
         /* No action. */
     }
-    count = count + 1;
-    // ESP_LOGI(TAG_NETBUFFER, "Taking Buffer");
-    // ESP_LOGI(TAG_NETBUFFER, "Count:%d", count);
+    //count = count + 1;
+    //ESP_LOGI(TAG_NETBUFFER, "Taking Buffer");
+    //ESP_LOGI(TAG_NETBUFFER, "Count:%d", count);
 
     return pxReturn;
 }
@@ -303,7 +294,7 @@ NetworkBufferDescriptor_t *pxGetNetworkBufferWithDescriptor(size_t xRequestedSiz
 
 void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 {
-    BaseType_t xListItemAlreadyInFreeList;
+    bool_t xListItemAlreadyInFreeList;
 
     /* Ensure the buffer is returned to the list of free buffers before the
      * counting semaphore is 'given' to say a buffer is available.  Release the
@@ -314,24 +305,24 @@ void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetwo
     pxNetworkBuffer->pucEthernetBuffer = NULL;
     pxNetworkBuffer->xDataLength = 0U;
 
-    taskENTER_CRITICAL(&mutex);
+    pthread_mutex_lock( &mutex );
     {
-        xListItemAlreadyInFreeList = listIS_CONTAINED_WITHIN(&xFreeBuffersList, &(pxNetworkBuffer->xBufferListItem));
+        xListItemAlreadyInFreeList = vRsListIsContainedWithin( &xFreeBuffersList, &( pxNetworkBuffer->xBufferListItem ));
 
-        if (xListItemAlreadyInFreeList == pdFALSE)
+        if( xListItemAlreadyInFreeList == false )
         {
-            vListInsertEnd(&xFreeBuffersList, &(pxNetworkBuffer->xBufferListItem));
+            vRsListInsertEnd( &xFreeBuffersList, &( pxNetworkBuffer->xBufferListItem ) );
         }
     }
-    taskEXIT_CRITICAL(&mutex);
+    pthread_mutex_unlock( &mutex );
 
     /*
      * Update the network state machine, unless the program fails to release its 'xNetworkBufferSemaphore'.
      * The program should only try to release its semaphore if 'xListItemAlreadyInFreeList' is false.
      */
-    if (xListItemAlreadyInFreeList == pdFALSE)
+    if( xListItemAlreadyInFreeList == false )
     {
-        if (xSemaphoreGive(xNetworkBufferSemaphore) == pdTRUE)
+        if( sem_post( &xNetworkBufferSemaphore ) == 0 )
         {
         }
     }
@@ -348,13 +339,13 @@ void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetwo
 /*
  * Returns the number of free network buffers
  */
-UBaseType_t uxGetNumberOfFreeNetworkBuffers(void)
+size_t uxGetNumberOfFreeNetworkBuffers( void )
 {
-    return listCURRENT_LIST_LENGTH(&xFreeBuffersList);
+    return unRsListCurrentListLength( &xFreeBuffersList );
 }
 /*-----------------------------------------------------------*/
 
-UBaseType_t uxGetMinimumFreeNetworkBuffers(void)
+size_t uxGetMinimumFreeNetworkBuffers( void )
 {
     return uxMinimumFreeNetworkBuffers;
 }

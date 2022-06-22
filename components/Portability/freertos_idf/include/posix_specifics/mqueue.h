@@ -1,5 +1,5 @@
-#ifndef _PORT_FREERTOS_SEMAPHORE_H
-#define _PORT_FREERTOS_SEMAPHORE_H
+#ifndef _PORT_FREERTOS_MQUEUE_H
+#define _PORT_FREERTOS_MQUEUE_H
 
 #include "freertos/FreeRTOS.h"
 #include "FreeRTOS_POSIX.h"

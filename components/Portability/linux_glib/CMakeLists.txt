@@ -4,6 +4,7 @@ if(NOT ${TARGET_TYPE} STREQUAL "idf")
 
   file(GLOB portability_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/components/Portability/${TARGET_TYPE}/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/Portability/posix/*.c"
   )
   set(Portability_INCLUDES
     "${CMAKE_CURRENT_SOURCE_DIR}/components/Portability/include"

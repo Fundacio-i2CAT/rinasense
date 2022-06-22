@@ -11,4 +11,12 @@
 #error Port undefined: num_t
 #endif
 
+#ifndef PORT_HAS_STRING_T
+#error Port undefined: string_t
+#endif
+
+#ifndef PORT_HAS_BUFFER_T
+#error Port undefined: buffer_t
+#endif
+
 #endif // _PORT_DEFS_H

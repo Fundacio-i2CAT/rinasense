@@ -8,6 +8,7 @@
 #include "freertos/semphr.h"
 
 #include "IPCP.h"
+#include "IPCP_api.h"
 #include "ARP826.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"

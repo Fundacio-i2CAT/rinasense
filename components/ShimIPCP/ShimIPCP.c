@@ -10,15 +10,18 @@
 #include "ShimIPCP.h"
 #include "ARP826.h"
 #include "IPCP.h"
+#include "IPCP_api.h"
+#include "IPCP_events.h"
 #include "NetworkInterface.h"
 #include "configRINA.h"
 #include "configSensor.h"
 #include "BufferManagement.h"
 #include "du.h"
 #include "IpcManager.h"
-#include "rstr.h"
 
 #include "esp_log.h"
+#include "rina_name.h"
+#include "rina_ids.h"
 
 struct ipcpInstanceData_t
 {
@@ -76,40 +79,6 @@ static BaseType_t prvShimFlowDestroy(struct ipcpInstanceData_t *xData, shimFlow_
 
 /* @brief Unbind and Destroy a Flow*/
 static BaseType_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData, shimFlow_t *xFlow);
-
-/** @brief  Concatenate the Information Application Name into a Complete Address
- * (ProcessName-ProcessInstance-EntityName-EntityInstance).
- * */
-string_t pcShimNameToString(const name_t *xNameInfo); // Could be reutilized by others?, private?
-
-/** @brief Convert the Complete Address (ProcessName-ProcessInstance-EntityName-EntityInstance)
- *  to Generic Protocol Address
- * */
-gpa_t *pxShimNameToGPA(const name_t *xAplicationInfo);
-
-/* @brief Destroy an application Name from the Data structure*/
-void vShimNameDestroy(name_t *pxName);
-
-/* @brief Destroy an application Name from the Data structure*/
-void vShimNameFini(name_t *pxName);
-
-/* @brief Create a generic protocol address based on an string address*/
-gpa_t *pxShimCreateGPA(const uint8_t *pucAddress, size_t xLength); // ARP ALSO CHECK
-
-/* @brief Create a generic hardware address based on the MAC address*/
-gha_t *pxShimCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress);
-
-/* @brief Check if a generic protocol Address was created correctly*/
-BaseType_t xShimIsGPAOK(const gpa_t *pxGpa);
-
-/* @brief Check if a generic hardware Address was created correctly*/
-BaseType_t xShimIsGHAOK(const gha_t *pxGha);
-
-/* @brief Destroy a generic protocol Address to clean up*/
-void vShimGPADestroy(gpa_t *pxGpa);
-
-/* @brief Destroy a generic hardware Address to clean up*/
-void vShimGHADestroy(gha_t *pxGha);
 
 EthernetHeader_t *vCastConstPointerTo_EthernetHeader_t(const void *pvArgument)
 {
@@ -241,10 +210,10 @@ BaseType_t xShimFlowAllocateRequest(portId_t xPortId,
 
 		pxFlow->xPortId = xPortId;
 		pxFlow->ePortIdState = ePENDING;
-		pxFlow->pxDestPa = pxShimNameToGPA(pxDestinationInfo);
+		pxFlow->pxDestPa = pxNameToGPA(pxDestinationInfo);
 		// pxFlow->pxUserIpcp = pxUserIpcp;
 
-		if (!xShimIsGPAOK(pxFlow->pxDestPa))
+		if (!xIsGPAOK(pxFlow->pxDestPa))
 		{
 			ESP_LOGE(TAG_SHIM, "Destination protocol address is not OK");
 			prvShimUnbindDestroyFlow(pxData, pxFlow);
@@ -414,12 +383,12 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 		return pdFALSE;
 	}
 
-	pxPa = pxShimNameToGPA(pxAppName);
+	pxPa = pxNameToGPA(pxAppName);
 
-	if (!xShimIsGPAOK(pxPa))
+	if (!xIsGPAOK(pxPa))
 	{
 		ESP_LOGI(TAG_SHIM, "Protocol Address is not OK ");
-		vShimNameFini(pxData->pxAppName);
+		vRstrNameFini(pxData->pxAppName);
 		return pdFALSE;
 	}
 
@@ -428,13 +397,13 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 		xNetworkInterfaceInitialise(pxData->pxPhyDev);
 	}
 
-	pxHa = pxShimCreateGHA(MAC_ADDR_802_3, pxData->pxPhyDev);
+	pxHa = pxCreateGHA(MAC_ADDR_802_3, pxData->pxPhyDev);
 
-	if (!xShimIsGHAOK(pxHa))
+	if (!xIsGHAOK(pxHa))
 	{
 		ESP_LOGI(TAG_SHIM, "Hardware Address is not OK ");
-		vShimNameFini(pxData->pxAppName);
-		vShimGHADestroy(pxHa);
+		vRstrNameFini(pxData->pxAppName);
+		vGHADestroy(pxHa);
 		return pdFALSE;
 	}
 
@@ -444,9 +413,9 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 	{
 		// destroy all
 		ESP_LOGI(TAG_SHIM, "APPHandle was not created ");
-		vShimGPADestroy(pxPa);
-		vShimGHADestroy(pxHa);
-		vShimNameFini(pxData->pxAppName);
+		vGPADestroy(pxPa);
+		vGHADestroy(pxHa);
+		vRstrNameFini(pxData->pxAppName);
 		return pdFALSE;
 	}
 
@@ -460,22 +429,22 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 		ESP_LOGE(TAG_SHIM, "Removing ARP Entry for DAF");
 		xARPRemove(pxData->pxAppHandle->pxPa, pxData->pxAppHandle->pxHa);
 		pxData->pxAppHandle = NULL;
-		vShimNameDestroy(pxData->pxAppName);
-		vShimGHADestroy(pxHa);
+		vRstrNameFree(pxData->pxAppName);
+		vGHADestroy(pxHa);
 		return pdFALSE;
 	}
 
-	pxPa = pxShimNameToGPA(pxDafName);
+	pxPa = pxNameToGPA(pxDafName);
 
-	if (!xShimIsGPAOK(pxPa))
+	if (!xIsGPAOK(pxPa))
 	{
 
 		ESP_LOGE(TAG_SHIM, "Failed to create gpa");
 		xARPRemove(pxData->pxAppHandle->pxPa, pxData->pxAppHandle->pxHa);
 		pxData->pxAppHandle = NULL;
-		vShimNameDestroy(pxData->pxDafName);
-		vShimNameDestroy(pxData->pxAppName);
-		vShimGHADestroy(pxHa);
+		vRstrNameFree(pxData->pxDafName);
+		vRstrNameFree(pxData->pxAppName);
+		vGHADestroy(pxHa);
 		return pdFALSE;
 	}
 
@@ -486,10 +455,10 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 		ESP_LOGE(TAG_SHIM, "Failed to register DAF in ARP");
 		xARPRemove(pxData->pxAppHandle->pxPa, pxData->pxAppHandle->pxHa);
 		pxData->pxAppHandle = NULL;
-		vShimNameDestroy(pxData->pxAppName);
-		vShimNameDestroy(pxData->pxDafName);
-		vShimGPADestroy(pxPa);
-		vShimGHADestroy(pxHa);
+		vRstrNameFree(pxData->pxAppName);
+		vRstrNameFree(pxData->pxDafName);
+		vGPADestroy(pxPa);
+		vGHADestroy(pxHa);
 
 		return pdFALSE;
 	}
@@ -563,9 +532,9 @@ BaseType_t xShimApplicationUnregister(struct ipcpInstanceData_t *pxData, name_t 
 		pxData->pxDafHandle = NULL;
 	}
 
-	vShimNameDestroy(pxData->pxAppName);
+	vRstrNameFree(pxData->pxAppName);
 	pxData->pxAppName = NULL;
-	vShimNameDestroy(pxData->pxDafName);
+	vRstrNameFree(pxData->pxDafName);
 	pxData->pxDafName = NULL;
 
 	ESP_LOGI(TAG_SHIM, "Application unregister");
@@ -575,7 +544,7 @@ BaseType_t xShimApplicationUnregister(struct ipcpInstanceData_t *pxData, name_t 
 
 /***************** **************************/
 
-int string_len(const string_t *s)
+int string_len(const string_t s)
 {
 	return strlen(s);
 }
@@ -626,122 +595,6 @@ string_t pcShimNameToString(const name_t *n)
 	}
 
 	return tmp;
-}
-
-gpa_t *pxShimNameToGPA(const name_t *xLocalInfo)
-{
-	// uint32_t ulIPCPAddress;
-	gpa_t *pxGpa;
-	string_t pcTmp;
-
-	pcTmp = pcShimNameToString(xLocalInfo);
-
-	if (!pcTmp)
-	{
-		ESP_LOGI(TAG_SHIM, "Name to String not correct");
-		return NULL;
-	}
-
-	// Convert the IPCPAddress Concatenate to bits
-	pxGpa = pxShimCreateGPA((uint8_t *)(pcTmp), strlen(pcTmp));
-
-	if (!pxGpa)
-	{
-		ESP_LOGI(TAG_SHIM, "GPA was not created correct");
-		vPortFree(pcTmp);
-		return NULL;
-	}
-
-	// vPortFree(pcTmp);
-
-	return pxGpa;
-}
-
-string_t *xShimGPAAddressToString(const gpa_t *pxGpa)
-{
-	string_t *tmp;
-	string_t *p;
-
-	if (!xShimIsGPAOK(pxGpa))
-	{
-		ESP_LOGE(TAG_ARP, "Bad input parameter, "
-						  "cannot get a meaningful address from GPA");
-		return NULL;
-	}
-
-	tmp = pvPortMalloc(pxGpa->uxLength + 1);
-	if (!tmp)
-		return NULL;
-
-	memcpy(tmp, pxGpa->ucAddress, pxGpa->uxLength);
-
-	p = tmp + pxGpa->uxLength;
-	*(p) = '\0';
-
-	ESP_LOGE(TAG_ARP, "GPA:%s", pxGpa->ucAddress);
-	ESP_LOGE(TAG_ARP, "GPA:%s", *tmp);
-
-	return tmp;
-}
-
-uint8_t *pucCreateAddress(size_t uxLength)
-{
-	uint8_t *pucAddress;
-
-	pucAddress = (uint8_t *)pvPortMalloc(uxLength);
-	memset(pucAddress, 0, uxLength);
-
-	return pucAddress;
-}
-
-gpa_t *pxShimCreateGPA(const uint8_t *pucAddress, size_t uxLength)
-{
-	gpa_t *pxGPA;
-
-	if (!pucAddress || uxLength == 0)
-	{
-		ESP_LOGI(TAG_SHIM, "Bad input parameters, cannot create GPA");
-		return NULL;
-	}
-
-	pxGPA = pvPortMalloc(sizeof(*pxGPA));
-
-	if (!pxGPA)
-		return NULL;
-
-	pxGPA->uxLength = uxLength;						   // strlen of the address without '\0'
-	pxGPA->ucAddress = pucCreateAddress(uxLength + 1); // Create an address an include the '\0'
-
-	if (!pxGPA->ucAddress)
-	{
-		vPortFree(pxGPA);
-		return NULL;
-	}
-
-	memcpy(pxGPA->ucAddress, pucAddress, pxGPA->uxLength);
-
-	ESP_LOGI(TAG_SHIM, "Created GPA address: %s with size %d", pxGPA->ucAddress, pxGPA->uxLength);
-
-	return pxGPA;
-}
-
-gha_t *pxShimCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress) // Changes to uint8_t
-{
-	gha_t *pxGha;
-
-	if (xType != MAC_ADDR_802_3 || !pxAddress->ucBytes)
-	{
-		ESP_LOGE(TAG_SHIM, "Wrong input parameters, cannot create GHA");
-		return NULL;
-	}
-	pxGha = pvPortMalloc(sizeof(*pxGha));
-	if (!pxGha)
-		return NULL;
-
-	pxGha->xType = xType;
-	memcpy(pxGha->xAddress.ucBytes, pxAddress->ucBytes, sizeof(pxGha->xAddress));
-
-	return pxGha;
 }
 
 static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, portId_t xPortId)
@@ -853,103 +706,6 @@ int QueueDestroy(rfifo_t *f,
 	return 0;
 }
 
-// Move to ARP
-
-BaseType_t xShimIsGPAOK(const gpa_t *pxGpa)
-{
-
-	if (!pxGpa)
-	{
-		ESP_LOGI(TAG_SHIM, " !Gpa");
-		return pdFALSE;
-	}
-	if (pxGpa->ucAddress == NULL)
-	{
-
-		ESP_LOGI(TAG_SHIM, "xShimIsGPAOK Address is NULL");
-		return pdFALSE;
-	}
-
-	if (pxGpa->uxLength == 0)
-	{
-		ESP_LOGI(TAG_SHIM, "Length = 0");
-		return pdFALSE;
-	}
-	return pdTRUE;
-}
-
-BaseType_t xShimIsGHAOK(const gha_t *pxGha)
-{
-	if (!pxGha)
-	{
-		ESP_LOGI(TAG_SHIM, "No Valid GHA");
-		return pdFALSE;
-	}
-	if (pxGha->xType != MAC_ADDR_802_3)
-	{
-
-		return pdFALSE;
-	}
-	return pdTRUE;
-}
-
-void vShimGPADestroy(gpa_t *pxGpa)
-{
-	if (!xShimIsGPAOK(pxGpa))
-	{
-		return;
-	}
-	vPortFree(pxGpa->ucAddress);
-	vPortFree(pxGpa);
-
-	return;
-}
-
-void vShimGHADestroy(gha_t *pxGha)
-{
-	if (!xShimIsGHAOK(pxGha))
-	{
-		return;
-	}
-
-	vPortFree(pxGha);
-
-	return;
-}
-
-void vShimNameDestroy(name_t *pxName)
-{
-
-	vPortFree(pxName);
-}
-
-void vShimNameFini(name_t *pxName)
-{
-
-	if (pxName->pcProcessName)
-	{
-		vPortFree(pxName->pcProcessName);
-		pxName->pcProcessName = NULL;
-	}
-	if (pxName->pcProcessInstance)
-	{
-		vPortFree(pxName->pcProcessInstance);
-		pxName->pcProcessInstance = NULL;
-	}
-	if (pxName->pcEntityName)
-	{
-		vPortFree(pxName->pcEntityName);
-		pxName->pcEntityName = NULL;
-	}
-	if (pxName->pcEntityInstance)
-	{
-		vPortFree(pxName->pcEntityInstance);
-		pxName->pcEntityInstance = NULL;
-	}
-
-	ESP_LOGI(TAG_SHIM, "Name at %pK finalized successfully", pxName);
-}
-
 static BaseType_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData,
 										   shimFlow_t *xFlow)
 {
@@ -977,9 +733,9 @@ static BaseType_t prvShimFlowDestroy(struct ipcpInstanceData_t *xData, shimFlow_
 
 	/* FIXME: Complete what to do with xData*/
 	if (xFlow->pxDestPa)
-		vShimGPADestroy(xFlow->pxDestPa);
+		vGPADestroy(xFlow->pxDestPa);
 	if (xFlow->pxDestHa)
-		vShimGHADestroy(xFlow->pxDestHa);
+		vGHADestroy(xFlow->pxDestHa);
 	if (xFlow->pxSduQueue)
 		vQueueDelete(xFlow->pxSduQueue->xQueue);
 	vPortFree(xFlow);
@@ -1039,7 +795,7 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 	}
 
 	ESP_LOGI(TAG_SHIM, "SDUWrite: creating source GHA");
-	pxSrcHw = pxShimCreateGHA(MAC_ADDR_802_3, pxData->pxPhyDev);
+	pxSrcHw = pxCreateGHA(MAC_ADDR_802_3, pxData->pxPhyDev);
 	if (!pxSrcHw)
 	{
 		ESP_LOGE(TAG_SHIM, "Failed to get source HW addr");

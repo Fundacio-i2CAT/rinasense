@@ -8,10 +8,14 @@
 #ifndef COMPONENTS_RMT_INCLUDE_DU_H_
 #define COMPONENTS_RMT_INCLUDE_DU_H_
 
+#include "portability/port.h"
+
 #include "Rmt.h"
 #include "IPCP.h"
 #include "rina_common.h"
+#include "rina_buffers.h"
 #include "pci.h"
+#include "ARP826_defs.h"
 
 struct du_t
 {

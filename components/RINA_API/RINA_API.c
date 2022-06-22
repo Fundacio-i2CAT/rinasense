@@ -21,7 +21,11 @@
 #include "rina_common.h"
 #include "esp_log.h"
 #include "RINA_API.h"
-#include "rstr.h"
+#include "rina_ids.h"
+#include "rina_name.h"
+#include "IPCP.h"
+#include "IPCP_api.h"
+#include "IPCP_events.h"
 
 struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t pcLocalApp, uint8_t Flags);
 
