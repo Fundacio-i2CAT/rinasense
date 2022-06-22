@@ -11,8 +11,6 @@
 #include <stddef.h>				// offsetof
 #include <string.h>				// memset
 #include "rsrc.h"
-#include "freertos/FreeRTOS.h"
-#include "esp_log.h"				// printing
 
 /**
  * @brief Platform debug/print routines. DEBUGPRINTF normally nulled out.  logPrintf normally prints to stderr or equivalent.

@@ -1,4 +1,4 @@
-if(NOT ${TARGET_TYPE} STREQUAL "idf")
+if(NOT ${TARGET_TYPE} STREQUAL "freertos_idf")
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
 

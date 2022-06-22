@@ -1,3 +1,5 @@
+#include <assert.h>
+#include <time.h>
 #include "portability/port.h"
 
 bool_t rstime_waitmsec(struct timespec *ts, size_t n)

@@ -53,7 +53,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   #
   # Portability layer tests
   #
-  include("${CMAKE_CURRENT_SOURCE_DIR}/components/Portability/tests/CMakeLists.txt")
+  include("${CMAKE_CURRENT_SOURCE_DIR}/components/Portability/test/CMakeLists.txt")
 
   #
   # Mock objects

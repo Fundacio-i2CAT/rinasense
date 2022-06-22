@@ -31,6 +31,7 @@
 /* C standard library includes. */
 #include <stddef.h>
 #include <string.h>
+#include <time.h>
 
 /* FreeRTOS+POSIX includes. */
 #include "FreeRTOS_POSIX.h"
@@ -65,56 +66,6 @@ int clock_getcpuclockid( pid_t pid,
 
     /* This function is currently unsupported. It will always return EPERM. */
     return EPERM;
-}
-
-/*-----------------------------------------------------------*/
-
-int clock_getres( clockid_t clock_id,
-                  struct timespec * res )
-{
-    /* Silence warnings about unused parameters. */
-    ( void ) clock_id;
-
-    /* Convert FreeRTOS tick resolution as timespec. */
-    if( res != NULL )
-    {
-        res->tv_sec = 0;
-        res->tv_nsec = NANOSECONDS_PER_TICK;
-    }
-
-    return 0;
-}
-
-/*-----------------------------------------------------------*/
-
-int clock_gettime( clockid_t clock_id,
-                   struct timespec * tp )
-{
-    TimeOut_t xCurrentTime = { 0 };
-
-    /* Intermediate variable used to convert TimeOut_t to struct timespec.
-     * Also used to detect overflow issues. It must be unsigned because the
-     * behavior of signed integer overflow is undefined. */
-    uint64_t ullTickCount = 0ULL;
-
-    /* Silence warnings about unused parameters. */
-    ( void ) clock_id;
-
-    /* Get the current tick count and overflow count. vTaskSetTimeOutState()
-     * is used to get these values because they are both static in tasks.c. */
-    vTaskSetTimeOutState( &xCurrentTime );
-
-    /* Adjust the tick count for the number of times a TickType_t has overflowed.
-     * portMAX_DELAY should be the maximum value of a TickType_t. */
-    ullTickCount = ( uint64_t ) ( xCurrentTime.xOverflowCount ) << ( sizeof( TickType_t ) * 8 );
-
-    /* Add the current tick count. */
-    ullTickCount += xCurrentTime.xTimeOnEntering;
-
-    /* Convert ullTickCount to timespec. */
-    UTILS_NanosecondsToTimespec( ( int64_t ) ullTickCount * NANOSECONDS_PER_TICK, tp );
-
-    return 0;
 }
 
 /*-----------------------------------------------------------*/
@@ -189,22 +140,6 @@ int clock_nanosleep( clockid_t clock_id,
     }
 
     return iStatus;
-}
-
-/*-----------------------------------------------------------*/
-
-int clock_settime( clockid_t clock_id,
-                   const struct timespec * tp )
-{
-    /* Silence warnings about unused parameters. */
-    ( void ) clock_id;
-    ( void ) tp;
-
-    /* This function is currently unsupported. It will always return -1 and
-     * set errno to EPERM. */
-    errno = EPERM;
-
-    return -1;
 }
 
 /*-----------------------------------------------------------*/

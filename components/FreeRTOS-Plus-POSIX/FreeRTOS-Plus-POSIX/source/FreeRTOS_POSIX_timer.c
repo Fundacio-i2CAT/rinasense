@@ -30,13 +30,13 @@
 
 /* C standard library includes. */
 #include <stddef.h>
+#include <signal.h>
+#include <time.h>
 
 /* FreeRTOS+POSIX includes. */
 #include "FreeRTOS_POSIX.h"
 #include "FreeRTOS_POSIX/errno.h"
 #include "FreeRTOS_POSIX/pthread.h"
-#include "FreeRTOS_POSIX/signal.h"
-#include "FreeRTOS_POSIX/time.h"
 #include "FreeRTOS_POSIX/utils.h"
 
 /* FreeRTOS timer include. */
