@@ -193,7 +193,8 @@ static BaseType_t xEfcpWrite(struct efcp_t *pxEfcp, struct du_t *pxDu)
         // struct delim_ps *delim_ps = NULL;
         // struct du_list_item *next_du = NULL;
 
-/* Handle fragmentation here */
+        /* Handle fragmentation here */
+
 #if 0
 	if (efcp->delim) {
 		delim_ps = container_of(rcu_dereference(efcp->delim->base.ps),
@@ -222,7 +223,7 @@ static BaseType_t xEfcpWrite(struct efcp_t *pxEfcp, struct du_t *pxDu)
 #endif
 
         /* No fragmentation */
-        if (xDtpWrite(pxEfcp->pxDtp, pxDu))
+        if (!xDtpWrite(pxEfcp->pxDtp, pxDu))
         {
                 ESP_LOGE(TAG_EFCP, "Could not write SDU to DTP");
                 return pdFALSE;
@@ -547,7 +548,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
 
         /* We must ensure that the DTP is instantiated, at least ... */
 
-               pxEfcp->pxEfcpContainer = pxEfcpContainer;
+        pxEfcp->pxEfcpContainer = pxEfcpContainer;
         pxConnection->xSourceCepId = xCepId;
 
         if (!is_candidate_connection_ok((const struct connection_t *)pxConnection))

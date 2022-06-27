@@ -105,6 +105,11 @@ typedef struct xMESSAGE_CDAP
 
 } messageCdap_t;
 
+typedef struct xCOMMON_MESSAGE
+{
+
+} commonMessage_t;
+
 BaseType_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth);
 BaseType_t xRibdDisconnectToIpcp(portId_t xN1flowPortId);
 BaseType_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);

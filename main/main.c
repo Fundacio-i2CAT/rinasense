@@ -33,8 +33,13 @@ void app_main(void)
 	portId_t xAppPortId;
 	struct rinaFlowSpec_t *xFlowSpec = pvPortMalloc(sizeof(*xFlowSpec));
 	uint8_t Flags = 1;
-	int i;
-	char *temperature;
+	int i = 0;
+	char temperature[16];
+
+	// char *ucStringTest = "Temperature:22";
+
+	/*Getting the buffer Descriptor*/
+	// xBufferSize = strlen(ucStringTest);
 
 	vTaskDelay(1000);
 
@@ -42,15 +47,20 @@ void app_main(void)
 
 	xAppPortId = RINA_flow_alloc("mobile.DIF", "Temperature", "sensor1", xFlowSpec, Flags);
 
-	/*if (xAppPortId != -1)
+	ESP_LOGI(TAG_APP, "Flow Port id: %d ", xAppPortId);
+	if (xAppPortId != -1)
 	{
-		for (i = 0; i > 10; i++)
+
+		while (i < 10)
 		{
-			temperature = "32 Celsius";
-			if (RINA_flow_write(xAppPortId, (void *)temperature, sizeof(temperature)))
+			sprintf(temperature, "Temperature:30C");
+			// temperature = "Temperature:32C";
+
+			if (RINA_flow_write(xAppPortId, (void *)temperature, strlen(temperature)))
 			{
 				ESP_LOGI(TAG_APP, "Sent Data: %s successfully", temperature);
 			}
+			i = i + 1;
 		}
-	}*/
+	}
 }

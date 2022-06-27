@@ -563,8 +563,11 @@ BaseType_t xRmtSend(rmt_t *pxRmtInstance,
 	}
 #endif
 
-	if (xRmtSendPortId(pxRmtInstance, pxRmtInstance->pxN1Port->xPortId, pxDu))
+	if (!xRmtSendPortId(pxRmtInstance, pxRmtInstance->pxN1Port->xPortId, pxDu))
+	{
 		ESP_LOGE(TAG_RMT, "Failed to send a PDU to port-id %d", pxRmtInstance->pxN1Port->xPortId);
+		return pdFALSE;
+	}
 	return pdTRUE;
 }
 

@@ -246,7 +246,7 @@ BaseType_t RINA_flowStatus(portId_t xAppPortId)
         return 0;
     }
 
-    return -1;
+    return 1;
 }
 
 BaseType_t
@@ -311,7 +311,7 @@ portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRem
 
     if (xResult == 0)
     {
-        ESP_LOGI(TAG_RINA, "FLAG");
+
         for (;;)
         {
             if (xTimed == pdFALSE)
@@ -348,11 +348,21 @@ portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRem
         }
         /* The IPCP-task will set the 'eFLOW_BOUND' bit when it has done its
          * job. */
-
-        ESP_LOGI(TAG_RINA, "TEST OK:%d", pxFlowAllocateRequest->xPortId);
     }
+    ESP_LOGI(TAG_RINA, "Flow allocated in the port Id:%d", pxFlowAllocateRequest->xPortId);
 
     return pxFlowAllocateRequest->xPortId;
+}
+
+void print_bytes2(void *ptr, int size)
+{
+    unsigned char *p = ptr;
+    int i;
+    for (i = 0; i < size; i++)
+    {
+        printf("%02hhX ", p[i]);
+    }
+    printf("\n");
 }
 
 BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength);
@@ -366,6 +376,7 @@ BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataL
 
     /*Check that DataLength is not longer than MAX_SDU_SIZE*/
     // This should not consider??? because the delimiter split into several packets??
+
     if (uxTotalDataLength <= MAX_SDU_SIZE)
     {
         /*Check if the Flow is active*/
@@ -379,7 +390,7 @@ BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataL
 
         if (pxNetworkBuffer != NULL)
         {
-            pvCopyDest = (void *)&pxNetworkBuffer->pucEthernetBuffer;
+            pvCopyDest = (void *)pxNetworkBuffer->pucEthernetBuffer;
             (void)memcpy(pvCopyDest, pvBuffer, uxTotalDataLength);
 
             if (xTaskCheckForTimeOut(&xTimeOut, &xTicksToWait) == pdTRUE)
@@ -393,6 +404,7 @@ BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataL
         {
             /*Fill the pxNetworkBuffer descriptor properly*/
             pxNetworkBuffer->xDataLength = uxTotalDataLength;
+            pxNetworkBuffer->ulBoundPort = xPortId;
 
             xStackTxEvent.pvData = pxNetworkBuffer;
 

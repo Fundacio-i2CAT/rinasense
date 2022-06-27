@@ -77,4 +77,8 @@ BaseType_t xNormalIsFlowAllocated(portId_t xPortId);
 
 BaseType_t xNormalUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlowstate);
 
+BaseType_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
+                          portId_t xAppPortId,
+                          NetworkBufferDescriptor_t *pxNetworkBuffer);
+BaseType_t xNormalUpdateCepIdFlow(portId_t xPortId, cepId_t xCepId);
 #endif

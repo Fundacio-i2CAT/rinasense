@@ -182,6 +182,7 @@ void vFlowAllocatorFlowRequest(
     // heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     pxFlowAllocatorInstance->eFaiState = eFAI_NONE;
     pxFlowAllocatorInstance->xPortId = xAppPortId;
+    pxFlowAllocatorInstance->pxFlowAllocatorHandle = pxFlowRequest;
 
     prvAddFlowRequestEntry(pxFlowAllocatorInstance);
     ESP_LOGE(TAG_FA, "FAI added properly");
@@ -207,7 +208,7 @@ void vFlowAllocatorFlowRequest(
 
     pxEfcpc = pxIPCPGetEfcpc();
 
-    xCepSourceId = xNormalConnectionCreateRequest(pxEfcpc, 1,
+    xCepSourceId = xNormalConnectionCreateRequest(pxEfcpc, xAppPortId,
                                                   LOCAL_ADDRESS, pxFlow->xRemoteAddress, pxFlow->pxQosSpec->xQosId,
                                                   pxFlow->pxDtpConfig, pxFlow->pxDtcpConfig);
 
@@ -216,6 +217,12 @@ void vFlowAllocatorFlowRequest(
         ESP_LOGE(TAG_FA, "CepId was not create properly");
     }
 
+    /*------ Add CepSourceID into the Flow------*/
+    if (!xNormalUpdateCepIdFlow(xAppPortId, xCepSourceId))
+    {
+        ESP_LOGI(TAG_FA, "CepId not updated into the flow");
+    }
+    ESP_LOGI(TAG_FA, "CepId updated into the flow");
     /* Fill the Flow connectionId */
     pxConnectionId->xSource = xCepSourceId;
     pxConnectionId->xQosId = pxFlow->pxQosSpec->xQosId;
@@ -231,6 +238,7 @@ void vFlowAllocatorFlowRequest(
 
     // Send using the ribd_send_req M_Create
 
+    // xPortId?? AppPortId or N1PortId
     if (!xRibdSendRequest("Flow", "/fa/flows/key=1-33", -1, M_CREATE, 1, pxObjVal)) // fixing key= <source IPCP @>-<source port_id>
     {
         ESP_LOGE(TAG_FA, "It was a problem to send the request");
@@ -251,7 +259,7 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
 
     ESP_LOGI(TAG_FA, "Result:%d", result);
 
-    if (result != -4)
+    if (result != 0)
     {
         ESP_LOGI(TAG_FA, "Was not possible to create the Flow...");
         return pdFALSE;

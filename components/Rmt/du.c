@@ -112,6 +112,17 @@ size_t xDuLen(const struct du_t *pxDu)
 	return pxDu->pxNetworkBuffer->xRinaDataLength;
 }
 
+void print_bytes(void *ptr, int size)
+{
+	unsigned char *p = ptr;
+	int i;
+	for (i = 0; i < size; i++)
+	{
+		printf("%02hhX ", p[i]);
+	}
+	printf("\n");
+}
+
 BaseType_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 {
 	size_t uxPciLen;
@@ -120,7 +131,7 @@ BaseType_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 	size_t xBufferSize;
 	pci_t *pxPciTmp;
 
-	uxPciLen = (size_t)(14); /* PCI defined static for this initial stage = 16Bytes*/
+	uxPciLen = (size_t)(14); /* PCI defined static for this initial stage = 14Bytes*/
 
 	/* New Size = Data Size more the PCI size defined by default. */
 	xBufferSize = pxDu->pxNetworkBuffer->xDataLength + uxPciLen;
@@ -140,7 +151,7 @@ BaseType_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 		   pxDu->pxNetworkBuffer->xDataLength);
 
 	// ESP_LOGE(TAG_DTP, "Releasing Buffer after encap PDU");
-	vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
+	// vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
 
 	pxNewBuffer->xDataLength = xBufferSize;
 

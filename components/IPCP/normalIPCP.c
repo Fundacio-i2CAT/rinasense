@@ -148,12 +148,13 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
         ESP_LOGI(TAG_IPCPNORMAL, "Finding a Flow in the normal IPCP list");
 
         struct normalFlow_t *pxFlow;
+
         // shimFlow_t *pxFlowNext;
 
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
 
-        if (listLIST_IS_EMPTY(&pxData->xFlowsList) == pdTRUE)
+        if (listLIST_IS_EMPTY(&(pxIpcpData->xFlowsList)) == pdTRUE)
         {
                 ESP_LOGI(TAG_IPCPNORMAL, "Flow list is empty");
                 return NULL;
@@ -162,13 +163,19 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
         pxFlow = pvPortMalloc(sizeof(*pxFlow));
 
         /* Find a way to iterate in the list and compare the addesss*/
-        pxListEnd = listGET_END_MARKER(&pxData->xFlowsList);
-        pxListItem = listGET_HEAD_ENTRY(&pxData->xFlowsList);
+        pxListEnd = listGET_END_MARKER(&(pxIpcpData->xFlowsList));
+        pxListItem = listGET_HEAD_ENTRY(&(pxIpcpData->xFlowsList));
 
         while (pxListItem != pxListEnd)
         {
 
                 pxFlow = (struct normalFlow_t *)listGET_LIST_ITEM_OWNER(pxListItem);
+
+                if (pxFlow == NULL)
+                        return pdFALSE;
+
+                if (!pxFlow)
+                        return pdFALSE;
 
                 if (pxFlow && pxFlow->xPortId == xPortId)
                 {
@@ -185,24 +192,28 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
 }
 
 BaseType_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
-                          portId_t xId,
-                          struct du_t *pxDu)
+                          portId_t xAppPortId,
+                          NetworkBufferDescriptor_t *pxNetworkBuffer)
 {
-        ESP_LOGI(TAG_IPCPNORMAL, "xNormalDuWrite");
-
+        ESP_LOGI(TAG_IPCPNORMAL, "Writing Data into the IPCP Normal");
+        struct du_t *pxDu;
         struct normalFlow_t *pxFlow;
 
-        pxFlow = prvNormalFindFlow(pxData, xId);
+        pxDu = pvPortMalloc(sizeof(*pxDu));
+
+        pxDu->pxNetworkBuffer = pxNetworkBuffer;
+
+        pxFlow = prvNormalFindFlow(pxData, xAppPortId);
         if (!pxFlow || pxFlow->eState != ePORT_STATE_ALLOCATED)
         {
 
                 ESP_LOGE(TAG_IPCPNORMAL, "Write: There is no flow bound to this port_id: %d",
-                         xId);
+                         xAppPortId);
                 xDuDestroy(pxDu);
                 return pdFALSE;
         }
 
-        if (xEfcpContainerWrite(pxData->pxEfcpc, pxFlow->xActive, pxDu))
+        if (!xEfcpContainerWrite(pxData->pxEfcpc, pxFlow->xActive, pxDu))
         {
                 ESP_LOGE(TAG_IPCPNORMAL, "Could not send sdu to EFCP Container");
                 return pdFALSE;
@@ -262,7 +273,7 @@ BaseType_t xNormalFlowPrebind(struct ipcpNormalData_t *pxData,
 }
 
 cepId_t xNormalConnectionCreateRequest(struct efcpContainer_t *pxEfcpc,
-                                       portId_t xPortId,
+                                       portId_t xAppPortId,
                                        address_t xSource,
                                        address_t xDest,
                                        qosId_t xQosId,
@@ -275,7 +286,7 @@ cepId_t xNormalConnectionCreateRequest(struct efcpContainer_t *pxEfcpc,
         ipcpInstance_t *pxIpcp;
 
         xCepId = xEfcpConnectionCreate(pxEfcpc, xSource, xDest,
-                                       xPortId, xQosId,
+                                       xAppPortId, xQosId,
                                        cep_id_bad(), cep_id_bad(),
                                        pxDtpCfg, pxDtcpCfg);
 
@@ -739,9 +750,24 @@ BaseType_t xNormalIsFlowAllocated(portId_t xPortId)
         }
         if (pxFlow->eState == ePORT_STATE_ALLOCATED)
         {
-                ESP_LOGI(TAG_IPCPNORMAL, "Flow is already allocated");
+                ESP_LOGI(TAG_IPCPNORMAL, "Flow status: Allocated");
                 return pdTRUE;
         }
 
         return pdFALSE;
+}
+
+BaseType_t xNormalUpdateCepIdFlow(portId_t xPortId, cepId_t xCepId)
+{
+        struct normalFlow_t *pxFlow = NULL;
+
+        pxFlow = prvNormalFindFlow(pxIpcpData, xPortId);
+        if (!pxFlow)
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "Flow not found");
+                return pdFALSE;
+        }
+        pxFlow->xActive = xCepId;
+
+        return pdTRUE;
 }

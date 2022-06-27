@@ -91,6 +91,7 @@ typedef struct xRMT
 
 	/* N-1 */
 	rmtN1Port_t *pxN1Port;
+
 	struct rmt_Config_t *pxRmtCfg;
 
 } rmt_t;

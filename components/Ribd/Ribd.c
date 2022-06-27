@@ -1034,7 +1034,8 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
         if (strcmp(pxDecodeCdap->pcObjName, "a_data") == 0)
         {
             ESP_LOGI(TAG_RIB, "Handling M_WRITE a_data sending to decode");
-            prvRibdHandledAData(pxDecodeCdap->pxObjValue);
+            // prvRibdHandledAData(pxDecodeCdap->pxObjValue);
+            (void)xFlowAllocatorHandleCreateR(pxDecodeCdap->pxObjValue, 0); // until a_data solved
         }
 
         break;

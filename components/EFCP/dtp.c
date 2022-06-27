@@ -92,7 +92,7 @@ BaseType_t xDtpPduSend(dtp_t *pxDtp, rmt_t *pxRmt, struct du_t *pxDu)
                         ESP_LOGI(TAG_DTP,"Sending to RMT in RV at RCVR");
                 }*/
 
-                if (xRmtSend(pxRmt, pxDu))
+                if (!xRmtSend(pxRmt, pxDu))
                 {
                         ESP_LOGE(TAG_DTP, "Problems sending PDU to RMT");
                         return pdFALSE;
@@ -160,8 +160,9 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
         /* Probably needs to be revised */
 
         sbytes = xDuLen(pxDu);
+        sbytes = pxDu->pxNetworkBuffer->xDataLength;
 
-        ESP_LOGI(TAG_DTP, "Calling DUEncap");
+        ESP_LOGI(TAG_DTP, "Calling DuEncap");
         ESP_LOGI(TAG_DTP, "Sbytes: %d", sbytes);
         if (!xDuEncap(pxDu, PDU_TYPE_DT))
         {
@@ -174,17 +175,17 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
 
         pxDu->pxPci->ucVersion = 0x01;
         pxDu->pxPci->connectionId_t.xSource = pxTempEfcp->pxConnection->xSourceCepId;
-        pxDu->pxPci->connectionId_t.xDestination = pxTempEfcp->pxConnection->xDestinationCepId;
+        pxDu->pxPci->connectionId_t.xDestination = 1; // pxTempEfcp->pxConnection->xDestinationCepId;//in some point of time this atrribute must be updated
         pxDu->pxPci->connectionId_t.xQosId = pxTempEfcp->pxConnection->xQosId;
-        pxDu->pxPci->xDestination = pxTempEfcp->pxConnection->xDestinationAddress;
-        pxDu->pxPci->xSource = pxTempEfcp->pxConnection->xSourceAddress;
+        pxDu->pxPci->xDestination = 3; // pxTempEfcp->pxConnection->xDestinationAddress;
+        pxDu->pxPci->xSource = 1;      // pxTempEfcp->pxConnection->xSourceAddress;
 
         pxDu->pxPci->xFlags = 0;
         pxDu->pxPci->xType = PDU_TYPE_DT;
         pxDu->pxPci->xPduLen = pxDu->pxNetworkBuffer->xDataLength;
         pxDu->pxPci->xSequenceNumber = xCsn;
 
-        ESP_LOGI(TAG_DTP, "------------ PCI -----------");
+        ESP_LOGI(TAG_DTP, "------------ PCI DT-----------");
         ESP_LOGI(TAG_DTP, "PCI Version: 0x%04x", pxDu->pxPci->ucVersion);
         ESP_LOGI(TAG_DTP, "PCI SourceAddress: 0x%04x", pxDu->pxPci->xSource);
         ESP_LOGI(TAG_DTP, "PCI DestinationAddress: 0x%04x", pxDu->pxPci->xDestination);
@@ -328,13 +329,14 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
                 return 0;
         }
 #endif
-        if (xDtpPduSend(pxDtpInstance,
-                        pxDtpInstance->pxRmt,
-                        pxDu))
+        if (!xDtpPduSend(pxDtpInstance,
+                         pxDtpInstance->pxRmt,
+                         pxDu))
                 return pdFALSE;
         // spin_lock_bh(&instance->sv_lock);
         // stats_inc_bytes(tx, pxDtpInstance->pxDtpStateVector, sbytes);
         // spin_unlock_bh(&instance->sv_lock);
+
         return pdTRUE;
 }
 

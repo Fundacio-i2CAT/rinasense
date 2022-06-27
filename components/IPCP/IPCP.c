@@ -320,15 +320,16 @@ static void prvIPCPTask(void *pvParameters)
 
         case eSendMgmtEvent:
 
-            /*Call to IpcManger mgmt handle */
-            // xIpcManagerWriteMgmtHandler(eShimWiFi, xReceivedEvent.pvData);
-
             break;
 
         case eStackTxEvent:
-
+        {
             // call Efcp to write SDU.
-            break;
+            NetworkBufferDescriptor_t *pxNetBuffer = (NetworkBufferDescriptor_t *)xReceivedEvent.pvData;
+
+            (void)xNormalDuWrite(pxIpcpData, pxNetBuffer->ulBoundPort, pxNetBuffer);
+        }
+        break;
 
         case eNoEvent:
             /* xQueueReceive() returned because of a normal time-out. */
@@ -982,7 +983,7 @@ void vIpcpInit(void)
 
     /*** IPCP Modules ***/
     /* RMT module */
-    rmt_t *pxRmt;
+    struct rmt_t *pxRmt;
     // flowAllocator_t *pxFlowAllocator;
 
     /* EFCP Container */
@@ -1019,6 +1020,8 @@ void vIpcpInit(void)
         // return pdFALSE;
     }
 
+    pxEfcpContainer->pxRmt = pxRmt;
+
     pxIpcpData->pxDifName = pxDifName;
     pxIpcpData->pxName = pxIPCPName;
     pxIpcpData->pxEfcpc = pxEfcpContainer;
@@ -1031,82 +1034,7 @@ void vIpcpInit(void)
     /*Initialialise flows list*/
     vListInitialise(&(pxIpcpData->xFlowsList));
 }
-#if 0
-struct normalFlow_t *pxIpcpFindFlow(portId_t xPortId)
-{
-    ESP_LOGI(TAG_IPCPNORMAL, "Finding a Flow in the normal IPCP list");
 
-    struct normalFlow_t *pxFlow;
-    // shimFlow_t *pxFlowNext;
-
-    ListItem_t *pxListItem;
-    ListItem_t const *pxListEnd;
-
-    if (listLIST_IS_EMPTY(&pxIpcpData->xFlowsList) == pdTRUE)
-    {
-        ESP_LOGI(TAG_IPCPNORMAL, "Flow list is empty");
-        return NULL;
-    }
-
-    pxFlow = pvPortMalloc(sizeof(*pxFlow));
-
-    /* Find a way to iterate in the list and compare the addesss*/
-    pxListEnd = listGET_END_MARKER(&pxIpcpData->xFlowsList);
-    pxListItem = listGET_HEAD_ENTRY(&pxIpcpData->xFlowsList);
-
-    while (pxListItem != pxListEnd)
-    {
-
-        pxFlow = (struct normalFlow_t *)listGET_LIST_ITEM_OWNER(pxListItem);
-
-        if (pxFlow && pxFlow->xPortId == xPortId)
-        {
-
-            // ESP_LOGI(TAG_IPCPNORMAL, "Flow founded %p, portID: %d, portState:%d", pxFlow, pxFlow->xPortId, pxFlow->eState);
-            return pxFlow;
-        }
-
-        pxListItem = listGET_NEXT(pxListItem);
-    }
-
-    ESP_LOGI(TAG_IPCPNORMAL, "Flow not founded");
-    return NULL;
-}
-
-BaseType_t xIpcpUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlowstate)
-{
-    struct normalFlow_t *pxFlow;
-
-    pxFlow = pxIpcpFindFlow(pxIpcpData, xPortId);
-    if (!pxFlow)
-    {
-        ESP_LOGE(TAG_IPCPNORMAL, "Flow not found");
-        return pdFALSE;
-    }
-    pxFlow->eState = eNewFlowstate;
-    ESP_LOGI(TAG_IPCPNORMAL, "Flow state updated");
-
-    return pdTRUE;
-}
-
-BaseType_t xNormalIsFlowAllocated(portId_t xPortId)
-{
-    struct normalFlow_t *pxFlow;
-
-    pxFlow = prvNormalFindFlow(pxIpcpData, xPortId);
-    if (!pxFlow)
-    {
-        ESP_LOGE(TAG_IPCPNORMAL, "Flow not found");
-        return pdFALSE;
-    }
-    if (pxFlow->eState == ePORT_STATE_ALLOCATED)
-    {
-        return pdTRUE;
-    }
-
-    return pdFALSE;
-}
-#endif
 struct rmt_t *pxIPCPGetRmt(void);
 struct rmt_t *pxIPCPGetRmt(void)
 {
