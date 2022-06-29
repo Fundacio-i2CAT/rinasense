@@ -9,7 +9,7 @@
 RS_TEST_CASE_SETUP(test_rina_gpha) {}
 RS_TEST_CASE_TEARDOWN(test_rina_gpha) {}
 
-RS_TEST_CASE(SimpleGPA, "Simple GPA manipulations")
+RS_TEST_CASE(SimpleGPA, "[gpa][gpha]")
 {
     string_t addr = "address";
     gpa_t *gpa;
@@ -31,7 +31,7 @@ RS_TEST_CASE(SimpleGPA, "Simple GPA manipulations")
 
 /* Create a GPA from a RINA name, then convert back the GPA to a RINA
  * name, and then convert that name back to string. */
-RS_TEST_CASE(GPAConversion, "GPA conversion / comparison")
+RS_TEST_CASE(GPAConversion, "[gpa][gpha]")
 {
     string_t nm1 = "e1|e2|e3|e4", nm2;
     gpa_t *gpa1;
@@ -53,7 +53,7 @@ RS_TEST_CASE(GPAConversion, "GPA conversion / comparison")
     RS_TEST_CASE_END(test_rina_gpha);
 }
 
-RS_TEST_CASE(SimpleGHA, "Simple GHA manipulation")
+RS_TEST_CASE(SimpleGHA, "[gha][gpha]")
 {
     const MACAddress_t mac = {
         {1, 2, 3, 4, 5, 6}
@@ -72,7 +72,7 @@ RS_TEST_CASE(SimpleGHA, "Simple GHA manipulation")
     RS_TEST_CASE_END(test_rina_gpha);
 }
 
-RS_TEST_CASE(GPACompare, "GPA conversion / comparison") {
+RS_TEST_CASE(GPACompare, "[gha][gpha]") {
     gpa_t *gpa1, *gpa2, *gpa3;
     string_t addr1 = "addressA";
     string_t addr2 = "addressA";

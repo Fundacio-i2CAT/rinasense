@@ -6,7 +6,7 @@
 RS_TEST_CASE_SETUP(test_num_mgr) {}
 RS_TEST_CASE_TEARDOWN(test_num_mgr) {}
 
-RS_TEST_CASE(Bits8, "8 bits number allocator")
+RS_TEST_CASE(Bits8, "[num_mgr]")
 {
     NumMgr_t *nm;
 
@@ -31,7 +31,7 @@ RS_TEST_CASE(Bits8, "8 bits number allocator")
     RS_TEST_CASE_END(test_num_mgr);
 }
 
-RS_TEST_CASE(ManyBits, "Test bigger number allocator")
+RS_TEST_CASE(ManyBits, "[num_mgr]")
 {
     NumMgr_t nm;
     uint32_t i = 0;
