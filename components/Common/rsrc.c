@@ -12,12 +12,14 @@
 #include <string.h>				// memset
 #include "rsrc.h"
 
+#include "portability/port.h"
+
 /**
  * @brief Platform debug/print routines. DEBUGPRINTF normally nulled out.  logPrintf normally prints to stderr or equivalent.
  */
 //#define DEBUGPRINTF					ESP_LOGI
 #define DEBUGPRINTF(f,x...)
-#define logPrintf						ESP_LOGI
+#define logPrintf						LOGI
 
 #define RESFREE_MAGIC	((void *) 0xdeadbeef)	// impossible value (detect double-free)
 

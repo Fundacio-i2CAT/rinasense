@@ -15,8 +15,8 @@
 #include "ARP826_defs.h"
 #include "mac.h"
 #include "rina_gpha.h"
-#include "rina_common.h"
-#include "IPCP.h"
+#include "portability/port.h"
+#include "IPCP_frames.h"
 
 // DECL_CAST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
 // DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
@@ -55,10 +55,10 @@ struct rinarpHandle_t
 #define ARP_FRAME_TYPE (0x0608U)
 
 /* ARP related definitions. */
-#define ARP_PROTOCOL_TYPE (0x0008U)
-#define ARP_HARDWARE_TYPE_ETHERNET (0x0001U)
-#define ARP_REQUEST (0x0100U)
-#define ARP_REPLY (0x0200U)
+#define ARP_PROTOCOL_TYPE                ( 0x0008U )
+#define ARP_HARDWARE_TYPE_ETHERNET       ( 0x0001U )
+#define ARP_REQUEST                      ( 0x0100U )
+#define ARP_REPLY                        ( 0x0200U )
 
 /************** ARP and Ethernet events handle *************************/
 /*
@@ -80,29 +80,29 @@ void vARPUpdateMACAddress(const uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES], 
 void RINA_vARPMapping(uint32_t ulIPCPAddress);
 
 // Adds a mapping of application name to MAC address in the ARP cache.
-int vARPSendRequest(gpa_t *tpa, gpa_t *spa, gha_t *sha);
+bool_t vARPSendRequest(gpa_t * tpa, gpa_t * spa, gha_t * sha);
 
 // Remove all ARP entry in the ARP cache.
 void vARPRemoveAll(void);
 
 eARPLookupResult_t eARPLookupGPA(const gpa_t *gpaToLookup);
 
-void vARPRefreshCacheEntry(const gpa_t *ulIPCPAddress, const gha_t *pxMACAddress);
+void vARPRefreshCacheEntry(gpa_t *ulIPCPAddress, gha_t *pxMACAddress);
 void vARPRemoveCacheEntry(const gpa_t *ulIPCPAddress, const gha_t *pxMACAddress);
-
-BaseType_t xARPRemove(const gpa_t *pxPa, const gha_t *pxHa);
 
 struct rinarpHandle_t *pxARPAdd(gpa_t *pxPa, gha_t *pxHa);
 
-BaseType_t xARPResolveGPA(const gpa_t *tpa, const gpa_t *spa, const gha_t *sha);
-
 void vARPInitCache(void);
+
+bool_t xARPRemove(const gpa_t * pxPa, const gha_t * pxHa);
 
 void vARPPrintCache(void);
 
 void vPrintMACAddress(const gha_t *gha);
 
+bool_t xARPResolveGPA(gpa_t * tpa, gpa_t * spa, gha_t * sha);
+
 gha_t *pxARPLookupGHA(const gpa_t *pxGpaToLookup);
-void vARPPrintMACAddress(const gha_t *pxGha);
+
 
 #endif /* ARP_H_ */

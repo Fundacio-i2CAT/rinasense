@@ -2,17 +2,18 @@
 #define _PORT_IDF_RSNET_H
 
 #include "freertos/FreeRTOS.h"
+#include "lwip/inet.h"
 
-#define RsNtoHS FreeRTOS_ntohs
+#define RsNtoHS(x) ntohs(x)
 #define PORT_HAS_NTOHS
 
-#define RsNtoHL FreeRTOS_ntohl
+#define RsNtoHL(x) ntohl(x)
 #define PORT_HAS_NTOHL
 
-#define RsHtoNL FreeRTOS_htonl
+#define RsHtoNL(x) htonl(x)
 #define PORT_HAS_HTONL
 
-#define RsHtoNS FreeRTOS_htons
+#define RsHtoNS(x) htons(x)
 #define PORT_HAS_HTONS
 
 #endif // _PORT_IDF_RSNET_H

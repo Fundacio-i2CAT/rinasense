@@ -2,12 +2,7 @@
 #define _mock_NETWORKINTERFACE_H
 
 #include "portability/port.h"
-#include "buffer.h"
-
-/* PUBLIC API */
-
-bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
-                               bool_t xReleaseAfterSend);
+#include "rina_buffers.h"
 
 /* Mock utilities */
 

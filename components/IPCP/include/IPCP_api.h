@@ -1,6 +1,7 @@
 #ifndef _COMPONENTS_IPCP_API_H
 #define _COMPONENTS_IPCP_API_H
 
+#include "IPCP_frames.h"
 #include "IPCP_events.h"
 
 /*

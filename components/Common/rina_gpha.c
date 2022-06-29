@@ -69,6 +69,11 @@ buffer_t pucCreateAddress(size_t uxLength)
 	return pucAddress;
 }
 
+/** Create a GPA object from a buffer
+ *
+ * @param pucAddress Address of the buffer
+ *
+ */
 gpa_t *pxCreateGPA(const buffer_t pucAddress, size_t uxLength)
 {
 	gpa_t *pxGPA;
