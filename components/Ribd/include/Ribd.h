@@ -105,10 +105,12 @@ typedef struct xMESSAGE_CDAP
 
 } messageCdap_t;
 
-typedef struct xCOMMON_MESSAGE
+typedef struct xA_DATA_MESSAGE
 {
-
-} commonMessage_t;
+    int32_t xSourceAddress;
+    int32_t xDestinationAddress;
+    serObjectValue_t *pxMsgCdap;
+} aDataMsg_t;
 
 BaseType_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth);
 BaseType_t xRibdDisconnectToIpcp(portId_t xN1flowPortId);

@@ -21,6 +21,7 @@
 #include "normalIPCP.h"
 #include "Rmt.h"
 #include "FlowAllocator.h"
+#include "SerdesMsg.h"
 
 #include "esp_log.h"
 
@@ -870,8 +871,11 @@ void prvRibdHandledAData(serObjectValue_t *pxObjValue)
     pxRibObject = pxRibFindObject(pxDecodeCdap->pcObjName);
 
     pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
-    ESP_LOGI(TAG_RIB, "Result:%d", pxDecodeCdap->result);
-    pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result);
+
+    if (!pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result))
+    {
+        ESP_LOGE(TAG_RIB, "It was not possible to handle the a_data message properly");
+    }
 }
 
 void vPrintAppConnection(appConnection_t *pxAppConnection)
@@ -1035,7 +1039,17 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
         {
             ESP_LOGI(TAG_RIB, "Handling M_WRITE a_data sending to decode");
             // prvRibdHandledAData(pxDecodeCdap->pxObjValue);
-            (void)xFlowAllocatorHandleCreateR(pxDecodeCdap->pxObjValue, 0); // until a_data solved
+
+            aDataMsg_t *pxADataMsg;
+            pxADataMsg = pxSerdesMsgDecodeAData(pxDecodeCdap->pxObjValue->pvSerBuffer,
+                                                pxDecodeCdap->pxObjValue->xSerLength);
+
+            if (pxADataMsg->xDestinationAddress == LOCAL_ADDRESS)
+            {
+                (void)prvRibdHandledAData(pxADataMsg->pxMsgCdap);
+            }
+
+            //(void)xFlowAllocatorHandleCreateR(pxDecodeCdap->pxObjValue, 0); // until a_data solved
         }
 
         break;

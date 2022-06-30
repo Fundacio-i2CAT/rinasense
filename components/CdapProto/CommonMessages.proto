@@ -11,7 +11,7 @@ message objectValue_t {
 	optional int64	int64val = 3;
 	optional sint64	sint64val = 4;
 	optional string	strval = 5 [(nanopb).max_size = 10];
-	optional bytes	byteval = 6 [(nanopb).max_size = 256];			// arbitrary structure or message
+	optional bytes	byteval = 6 [(nanopb).max_size = 512];			// arbitrary structure or message
 	optional fixed32 floatval = 7;
 	optional fixed64 doubleval = 8;
 }
@@ -29,5 +29,5 @@ message property_t {         // carries the information of a name/value pair
 message a_data_t {
       optional int32 sourceAddress = 1;
       optional int32 destAddress = 2;
-      optional bytes cdapMessage = 3;
+      optional bytes cdapMessage = 3 [(nanopb).max_size = 512];
 }

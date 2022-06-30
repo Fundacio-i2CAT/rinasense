@@ -236,6 +236,8 @@ void vFlowAllocatorFlowRequest(
 
     pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
 
+    // add somewhere the pxFlow???
+
     // Send using the ribd_send_req M_Create
 
     // xPortId?? AppPortId or N1PortId
@@ -250,14 +252,14 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
 {
     portId_t xAppPortId;
     flowAllocateHandle_t *pxFlowAllocateRequest;
+    flow_t *pxFlow;
 
     xAppPortId = 33; // decoding the object name gettinh the port Id
     if (pxSerObjValue == NULL)
     {
         ESP_LOGI(TAG_FA, "no object value ");
+        return pdFALSE;
     }
-
-    ESP_LOGI(TAG_FA, "Result:%d", result);
 
     if (result != 0)
     {
@@ -265,7 +267,9 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
         return pdFALSE;
     }
     // Decode the FA message
-    // ESP_LOGI(TAG_FA, "CDAP Message Result: Flow allocated ");
+
+    pxFlow = pxSerdesMsgDecodeFlow(pxSerObjValue->pvSerBuffer, pxSerObjValue->xSerLength);
+
     pxFlowAllocateRequest = prvGetPendingFlowRequest(xAppPortId);
 
     if (!pxFlowAllocateRequest)
@@ -279,12 +283,9 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
         ESP_LOGE(TAG_FA, "It was not possible to update the Flow state");
         return pdFALSE;
     }
-    ESP_LOGE(TAG_FA, "Flow state updated to Allocated");
+    ESP_LOGI(TAG_FA, "Flow state updated to Allocated");
 
-    // pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
+    // update connection.
 
-    // vRINA_WeakUpUser(pxFlowAllocateRequest);
-
-    // Do something with the decode message.
     return pdTRUE;
 }
