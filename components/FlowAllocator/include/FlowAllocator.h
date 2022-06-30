@@ -115,6 +115,8 @@ typedef struct xFLOW_MESSAGE
     /* Source Port Id */
     portId_t xSourcePortId;
 
+    portId_t xDestinationPortId;
+
 } flow_t;
 
 typedef struct xREQUEST_HANDLER_ROW

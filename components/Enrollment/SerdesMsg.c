@@ -376,43 +376,49 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 
     return pxSerValue;
 }
-/*
+
 static flow_t *prvSerdesMsgDecodeFlow(rina_messages_Flow message)
 {
     flow_t *pxMessage;
 
     pxMessage = pvPortMalloc(sizeof(*pxMessage));
+    pxMessage->pxDestInfo = pvPortMalloc(sizeof(name_t));
+    pxMessage->pxSourceInfo = pvPortMalloc(sizeof(name_t));
+    pxMessage->pxConnectionId = pvPortMalloc(sizeof(connectionId_t));
 
+    if (message.has_destinationAddress)
+        pxMessage->xRemoteAddress = message.destinationAddress;
 
-    if(message.connectionIds->has_destinationCEPId)
-    {
+    pxMessage->pxDestInfo->pcProcessName = strdup(message.destinationNamingInfo.applicationProcessName);
+    if (message.destinationNamingInfo.has_applicationEntityName)
+        pxMessage->pxDestInfo->pcEntityName = strdup(message.destinationNamingInfo.applicationEntityName);
+    if (message.destinationNamingInfo.has_applicationEntityInstance)
+        pxMessage->pxDestInfo->pcEntityInstance = strdup(message.destinationNamingInfo.applicationEntityInstance);
+    if (message.destinationNamingInfo.has_applicationProcessInstance)
+        pxMessage->pxDestInfo->pcProcessInstance = strdup(message.destinationNamingInfo.applicationProcessInstance);
+    if (message.has_destinationPortId)
+        pxMessage->xDestinationPortId = message.destinationPortId;
 
-    }
+    pxMessage->xSourceAddress = message.sourceAddress;
+    pxMessage->pxSourceInfo->pcProcessName = strdup(message.sourceNamingInfo.applicationProcessName);
+    if (message.sourceNamingInfo.has_applicationEntityName)
+        pxMessage->pxSourceInfo->pcEntityName = strdup(message.sourceNamingInfo.applicationEntityName);
+    if (message.sourceNamingInfo.has_applicationEntityInstance)
+        pxMessage->pxSourceInfo->pcEntityInstance = strdup(message.sourceNamingInfo.applicationEntityInstance);
+    if (message.sourceNamingInfo.has_applicationProcessInstance)
+        pxMessage->pxSourceInfo->pcProcessInstance = strdup(message.sourceNamingInfo.applicationProcessInstance);
 
-    if (message.has_destAddress)
-    {
-        pxMessage->xDestinationAddress = message.destAddress;
-    }
+    pxMessage->xSourcePortId = message.sourcePortId;
 
-    if (message.has_sourceAddress)
-    {
-        pxMessage->xSourceAddress = message.sourceAddress;
-    }
-    if (message.has_cdapMessage)
-    {
-        serObjectValue_t *pxMsgCdap = pvPortMalloc(sizeof(*pxMsgCdap));
-        void *pvSerBuf = pvPortMalloc(message.cdapMessage.size);
-
-        pxMessage->pxMsgCdap = pxMsgCdap;
-        pxMessage->pxMsgCdap->pvSerBuffer = pvSerBuf;
-        pxMessage->pxMsgCdap->xSerLength = message.cdapMessage.size;
-
-        memcpy(pxMessage->pxMsgCdap->pvSerBuffer, message.cdapMessage.bytes,
-               pxMessage->pxMsgCdap->xSerLength);
-    }
+    if (message.connectionIds->has_destinationCEPId)
+        pxMessage->pxConnectionId->xDestination = (int)message.connectionIds->destinationCEPId;
+    if (message.connectionIds->has_sourceCEPId)
+        pxMessage->pxConnectionId->xSource = (int)message.connectionIds->sourceCEPId;
+    if (message.connectionIds->has_qosId)
+        pxMessage->pxConnectionId->xQosId = (int)message.connectionIds->qosId;
 
     return pxMessage;
-}*/
+}
 void prvPrintDecodeFlow(rina_messages_Flow message)
 {
     ESP_LOGI(TAG_RIB, "--------Flow Message--------");
@@ -470,5 +476,5 @@ flow_t *pxSerdesMsgDecodeFlow(uint8_t *pucBuffer, size_t xMessageLength)
 
     prvPrintDecodeFlow(message);
 
-    return NULL; // prvSerdesMsgDecodeFlow(message);
+    return prvSerdesMsgDecodeFlow(message);
 }

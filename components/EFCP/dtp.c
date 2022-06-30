@@ -175,10 +175,10 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
 
         pxDu->pxPci->ucVersion = 0x01;
         pxDu->pxPci->connectionId_t.xSource = pxTempEfcp->pxConnection->xSourceCepId;
-        pxDu->pxPci->connectionId_t.xDestination = 1; // pxTempEfcp->pxConnection->xDestinationCepId;//in some point of time this atrribute must be updated
+        pxDu->pxPci->connectionId_t.xDestination = pxTempEfcp->pxConnection->xDestinationCepId;
         pxDu->pxPci->connectionId_t.xQosId = pxTempEfcp->pxConnection->xQosId;
-        pxDu->pxPci->xDestination = 3; // pxTempEfcp->pxConnection->xDestinationAddress;
-        pxDu->pxPci->xSource = 1;      // pxTempEfcp->pxConnection->xSourceAddress;
+        pxDu->pxPci->xDestination = pxTempEfcp->pxConnection->xDestinationAddress;
+        pxDu->pxPci->xSource = pxTempEfcp->pxConnection->xSourceAddress;
 
         pxDu->pxPci->xFlags = 0;
         pxDu->pxPci->xType = PDU_TYPE_DT;

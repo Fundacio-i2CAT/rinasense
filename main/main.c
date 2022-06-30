@@ -1,13 +1,8 @@
 #include "freertos/FreeRTOS.h"
 #include <string.h>
 
-//#include "ARP826.h"
-//#include "BufferManagement.h"
-//#include "NetworkInterface.h"
-//#include "ShimIPCP.h"
 #include "configRINA.h"
 #include "IPCP.h"
-//#include "normalIPCP.h"
 #include "RINA_API.h"
 
 #include "esp_wifi.h"

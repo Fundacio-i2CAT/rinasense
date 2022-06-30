@@ -254,7 +254,6 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
     flowAllocateHandle_t *pxFlowAllocateRequest;
     flow_t *pxFlow;
 
-    xAppPortId = 33; // decoding the object name gettinh the port Id
     if (pxSerObjValue == NULL)
     {
         ESP_LOGI(TAG_FA, "no object value ");
@@ -270,7 +269,10 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
 
     pxFlow = pxSerdesMsgDecodeFlow(pxSerObjValue->pvSerBuffer, pxSerObjValue->xSerLength);
 
-    pxFlowAllocateRequest = prvGetPendingFlowRequest(xAppPortId);
+    if (!pxFlow)
+        return pdFALSE;
+
+    pxFlowAllocateRequest = prvGetPendingFlowRequest(pxFlow->xDestinationPortId);
 
     if (!pxFlowAllocateRequest)
     {
@@ -278,14 +280,21 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
         return pdFALSE;
     }
 
-    if (!xNormalUpdateFlowStatus(xAppPortId, ePORT_STATE_ALLOCATED))
+    if (!xNormalConnectionModify(pxFlow->pxConnectionId->xDestination,
+                                 pxFlow->xRemoteAddress,
+                                 pxFlow->xSourceAddress))
     {
-        ESP_LOGE(TAG_FA, "It was not possible to update the Flow state");
+        ESP_LOGE(TAG_FA, "It was not possible to modify the connection");
+        return pdFALSE;
+    }
+
+    if (!xNormalConnectionUpdate(pxFlow->xDestinationPortId, pxFlow->pxConnectionId->xSource,
+                                 pxFlow->pxConnectionId->xDestination))
+    {
+        ESP_LOGE(TAG_FA, "It was not possible to update the connection");
         return pdFALSE;
     }
     ESP_LOGI(TAG_FA, "Flow state updated to Allocated");
-
-    // update connection.
 
     return pdTRUE;
 }

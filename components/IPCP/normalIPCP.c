@@ -261,6 +261,7 @@ BaseType_t xNormalFlowPrebind(struct ipcpNormalData_t *pxData,
 
         pxFlow->xPortId = xAppPortId;
         pxFlow->eState = ePORT_STATE_PENDING;
+
         /*KFA should be the user. Implement this when the KFA is implemented*/
         // pxFlow->pxUserIpcp = kfa;
 
@@ -768,6 +769,43 @@ BaseType_t xNormalUpdateCepIdFlow(portId_t xPortId, cepId_t xCepId)
                 return pdFALSE;
         }
         pxFlow->xActive = xCepId;
+
+        return pdTRUE;
+}
+
+BaseType_t xNormalConnectionModify(cepId_t xCepId,
+                                   address_t xSrc,
+                                   address_t xDst)
+{
+        struct efcpContainer_t *pxEfcpContainer;
+        pxEfcpContainer = pxIPCPGetEfcpc;
+        if (!xEfcpConnectionModify(pxEfcpContainer, xCepId,
+                                   xSrc,
+                                   xDst))
+                return pdFALSE;
+        return pdTRUE;
+}
+
+BaseType_t xNormalConnectionUpdate(portId_t xAppPortId, cepId_t xSrcCepId, cepId_t xDstCepId)
+{
+        struct efcpContainer_t *pxEfcpContainer;
+        struct normalFlow_t *pxFlow = NULL;
+
+        pxEfcpContainer = pxIPCPGetEfcpc;
+
+        if (!xEfcpConnectionUpdate(pxEfcpContainer,
+                                   xSrcCepId,
+                                   xDstCepId))
+                return pdFALSE;
+
+        pxFlow = prvNormalFindFlow(pxIpcpData, xAppPortId);
+        if (!pxFlow)
+        {
+                ESP_LOGE(TAG_IPCPNORMAL, "Flow not found");
+                return pdFALSE;
+        }
+        pxFlow->eState = ePORT_STATE_ALLOCATED;
+        ESP_LOGI(TAG_IPCPNORMAL, "Flow state updated");
 
         return pdTRUE;
 }

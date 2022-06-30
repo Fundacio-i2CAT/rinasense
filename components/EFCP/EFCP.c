@@ -21,6 +21,7 @@
 #include "common.h"
 #include "connection.h"
 #include "configSensor.h"
+#include "configRINA.h"
 #include "cepidm.h"
 
 #include "esp_log.h"
@@ -421,6 +422,98 @@ BaseType_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, struct du_t *pxDu
         return pdTRUE;
 }
 
+BaseType_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,
+                                 cepId_t xCepId,
+                                 address_t xSrc,
+                                 address_t xDst)
+{
+        struct efcp_t *pxEfcp;
+
+        if (!pxContainer)
+        {
+                ESP_LOGE(TAG_EFCP, "Bogus container passed, bailing out");
+                return pdFALSE;
+        }
+
+        pxEfcp = pxEfcpImapFind(xCepId);
+        if (!pxEfcp)
+        {
+
+                ESP_LOGE(TAG_EFCP, "Cannot get instance %d from container %pK",
+                         xCepId, pxContainer);
+                return pdFALSE;
+        }
+        if (pxEfcp->xState == eEfcpDeallocated)
+        {
+
+                if (xEfcpDestroy(pxEfcp))
+                {
+                        ESP_LOGE(TAG_EFCP, "Cannot destroy instance %d, instance lost",
+                                 xCepId);
+                        return pdFALSE;
+                }
+                return pdTRUE;
+        }
+        pxEfcp->pxConnection->xSourceAddress = xSrc;
+        pxEfcp->pxConnection->xDestinationAddress = xDst;
+
+        return pdTRUE;
+}
+
+BaseType_t xEfcpConnectionUpdate(struct efcpContainer_t *pxContainer,
+                                 cepId_t from,
+                                 cepId_t to)
+{
+        struct efcp_t *pxEfcp;
+
+        if (!pxContainer)
+        {
+                ESP_LOGE(TAG_EFCP, "Bogus container passed, bailing out");
+                return pdFALSE;
+        }
+        if (!is_cep_id_ok(from))
+        {
+                ESP_LOGE(TAG_EFCP, "Bad from cep-id, cannot update connection");
+                return pdFALSE;
+        }
+        if (!is_cep_id_ok(to))
+        {
+                ESP_LOGE(TAG_EFCP, "Bad to cep-id, cannot update connection");
+                return pdFALSE;
+        }
+
+        pxEfcp = pxEfcpImapFind(from);
+
+        if (!pxEfcp)
+        {
+                ESP_LOGE(TAG_EFCP, "Cannot get instance %d from container %pK",
+                         from, pxContainer);
+                return pdFALSE;
+        }
+        if (pxEfcp->xState == eEfcpDeallocated)
+        {
+
+                if (xEfcpDestroy(pxEfcp))
+                {
+                        ESP_LOGE(TAG_EFCP, "Cannot destroy instance %d, instance lost", from);
+                        return pdFALSE;
+                }
+                return pdTRUE;
+        }
+        pxEfcp->pxConnection->xDestinationCepId = to;
+
+        ESP_LOGI(TAG_EFCP, "Connection updated");
+        ESP_LOGI(TAG_EFCP, "  Source address:     %d",
+                 pxEfcp->pxConnection->xSourceAddress);
+        ESP_LOGI(TAG_EFCP, "  Destination address %d",
+                 pxEfcp->pxConnection->xDestinationAddress);
+        ESP_LOGI(TAG_EFCP, "  Destination cep id: %d",
+                 pxEfcp->pxConnection->xDestinationCepId);
+        ESP_LOGI(TAG_EFCP, "  Source cep id:      %d",
+                 pxEfcp->pxConnection->xSourceCepId);
+
+        return pdTRUE;
+}
 BaseType_t xEfcpConnectionDestroy(struct efcpContainer_t *pxEfcpContainer,
                                   cepId_t xId)
 {
@@ -526,6 +619,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         pxConnection->xQosId = xQosId;
         pxConnection->xSourceCepId = xSrcCepId;
         pxConnection->xDestinationCepId = xDstCepId;
+        pxConnection->xSourceAddress = LOCAL_ADDRESS;
 
         pxEfcp = pxEfcpCreate();
 
