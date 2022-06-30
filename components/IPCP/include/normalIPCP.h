@@ -85,5 +85,5 @@ BaseType_t xNormalUpdateCepIdFlow(portId_t xPortId, cepId_t xCepId);
 BaseType_t xNormalConnectionUpdate(portId_t xAppPortId, cepId_t xSrcCepId, cepId_t xDstCepId);
 BaseType_t xNormalConnectionModify(cepId_t xCepId,
                                    address_t xSrc,
-                                   address_t xDst)
+                                   address_t xDst);
 #endif

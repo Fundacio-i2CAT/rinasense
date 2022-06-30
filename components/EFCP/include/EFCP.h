@@ -39,6 +39,6 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
 BaseType_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,
                                  cepId_t xCepId,
                                  address_t xSrc,
-                                 address_t xDst)
+                                 address_t xDst);
 
 #endif /* EFCP_H__*/
