@@ -93,5 +93,6 @@ BaseType_t xEnrollmentHandleOperationalStart(struct ribObject_t *pxOperRibObj, s
                                              string_t pxLocalApName, int invokeId, portId_t xN1Port);
 
 address_t xEnrollmentGetNeighborAddress(string_t pcRemoteApName);
+neighborInfo_t *pxEnrollmentFindNeighbor(string_t pcRemoteApName);
 
 #endif /* ENROLLMENT_H_ */

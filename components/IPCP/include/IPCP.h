@@ -33,6 +33,7 @@ typedef enum RINA_EVENTS
     eStackTxEvent,              /* 5: The software stack IPCP has queued a packet to transmit. */
     eFATimerEvent,              /* 6: See if any IPCP socket needs attention. */
     eFlowBindEvent,             /* 7: Client API request to bind a flow. */
+    eFlowDeallocateEvent,       /* 8: A flow must be deallocated */
     eShimFlowAllocatedEvent,    /* 8: A flow has been allocated on the shimWiFi*/
     eStackFlowAllocateEvent,    /*9: The Software stack IPCP has received a Flow allocate request. */
     eStackAppRegistrationEvent, /*10: The Software stack IPCP has received a AppRegistration Event*/

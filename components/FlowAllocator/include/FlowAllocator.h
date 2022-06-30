@@ -126,11 +126,12 @@ typedef struct xREQUEST_HANDLER_ROW
 
 } FlowRequestRow_t;
 
-// flowAllocator_t *pxFlowAllocatorInit(void);
-
 void vFlowAllocatorFlowRequest(
     portId_t xAppPortId,
     flowAllocateHandle_t *pxFlowRequest);
+
 BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
+
+void vFlowAllocatorDeallocate(portId_t xAppPortId);
 
 #endif

@@ -440,3 +440,32 @@ BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataL
 
     return pdFALSE;
 }
+
+BaseType_t RINA_close(portId_t xAppPortId)
+{
+    BaseType_t xResult;
+
+    RINAStackEvent_t xDeallocateEvent;
+    xDeallocateEvent.eEventType = eFlowDeallocateEvent;
+    xDeallocateEvent.pvData = xAppPortId;
+
+    if ((xAppPortId == NULL) || (is_port_id_ok(xAppPortId)))
+    {
+        xResult = pdFALSE;
+    }
+    else
+    {
+
+        if (xSendEventStructToIPCPTask(&xDeallocateEvent, (TickType_t)portMAX_DELAY) == pdFAIL)
+        {
+            ESP_LOGI(TAG_RINA, "RINA Deallocate Flow: failed");
+            xResult = pdFALSE;
+        }
+        else
+        {
+            xResult = pdTRUE;
+        }
+    }
+
+    return xResult;
+}

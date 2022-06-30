@@ -161,6 +161,7 @@ void vFlowAllocatorFlowRequest(
     ESP_LOGI(TAG_FA, "Handling the Flow Allocation Request");
 
     flow_t *pxFlow;
+    neighborInfo_t *pxNeighbor;
     cepId_t xCepSourceId;
     flowAllocatorInstance_t *pxFlowAllocatorInstance;
     connectionId_t *pxConnectionId;
@@ -194,7 +195,8 @@ void vFlowAllocatorFlowRequest(
     ESP_LOGI(TAG_FA, "Getting Neighbor");
 
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
-    pxFlow->xRemoteAddress = xEnrollmentGetNeighborAddress(pcNeighbor);
+    pxNeighbor = pxEnrollmentFindNeighbor(pcNeighbor);
+    pxFlow->xRemoteAddress = pxNeighbor->xNeighborAddress;
 
     pxFlow->xSourcePortId = xAppPortId;
 
@@ -244,7 +246,7 @@ void vFlowAllocatorFlowRequest(
     ESP_LOGE(TAG_FA, "Flow Object: %s", flowObj);
 
     // xPortId?? AppPortId or N1PortId
-    if (!xRibdSendRequest("Flow", flowObj, -1, M_CREATE, 1, pxObjVal)) // fixing N1PortId
+    if (!xRibdSendRequest("Flow", flowObj, -1, M_CREATE, pxNeighbor->xN1Port, pxObjVal)) // fixing N1PortId
     {
         ESP_LOGE(TAG_FA, "It was a problem to send the request");
         // return pdFALSE;
@@ -300,4 +302,8 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
     ESP_LOGI(TAG_FA, "Flow state updated to Allocated");
 
     return pdTRUE;
+}
+
+void vFlowAllocatorDeallocate(portId_t xAppPortId)
+{
 }

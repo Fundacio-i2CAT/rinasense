@@ -285,24 +285,10 @@ static void prvIPCPTask(void *pvParameters)
             vIpcpSetFATimerExpiredState(pdTRUE);
 
             break;
-        case eStackFlowAllocateEvent:
+        case eFlowDeallocateEvent:
 
-            ESP_LOGI(TAG_IPCPMANAGER, "---------- Flow Allocation -------");
-            ESP_LOGI(TAG_IPCPMANAGER, "App Request a Flow");
-
-            // pxFlowAllocateRequest = (flowAllocateHandle_t *)(xReceivedEvent.pvData);
-
-            //(void)xNormalFlowPrebind(pxData, xPortId);
-            // pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
-
-            // store the request and response when the flow is allocated.
-
-            /* vIpcpManagerAppFlowAllocateRequestHandle(pxIpcManager->pxPidm,
-                                                     pxIpcpData->pxEfcpc,
-                                                     pxIpcpData,
-                                                     pxFlowAllocateRequest);*/
-
-            // xRINA_WeakUpUser(pxFlowAllocateRequest);
+            ESP_LOGI(TAG_IPCPMANAGER, "---------- Flow Deallocation -------");
+            //(void)vFlowAllocatorDeallocate((portId_t *)xReceivedEvent.pvData);
 
             break;
 
