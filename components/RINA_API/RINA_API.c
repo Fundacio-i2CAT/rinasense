@@ -25,9 +25,13 @@
 #include "FlowAllocator.h"
 #include "normalIpcp.h"
 
-struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t pcLocalApp, uint8_t Flags);
+struct appRegistration_t *RINA_application_register(string_t pcNameDif,
+                                                    string_t pcLocalApp,
+                                                    uint8_t Flags);
 
-struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t pcLocalApp, uint8_t Flags)
+struct appRegistration_t *RINA_application_register(string_t pcNameDif,
+                                                    string_t pcLocalApp,
+                                                    uint8_t Flags)
 {
     name_t *xDn, *xAppn, *xDan;
     registerApplicationHandle_t *xRegAppRequest = pvPortMalloc(sizeof(*xRegAppRequest));
@@ -102,7 +106,11 @@ BaseType_t xRINA_bind(flowAllocateHandle_t *pxFlowRequest)
     {
         /* The IPCP-task will set the 'eFLOW_BOUND' bit when it has done its
          * job. */
-        (void)xEventGroupWaitBits(pxFlowRequest->xEventGroup, (EventBits_t)eFLOW_BOUND, pdTRUE /*xClearOnExit*/, pdFALSE /*xWaitAllBits*/, portMAX_DELAY);
+        (void)xEventGroupWaitBits(pxFlowRequest->xEventGroup,
+                                  (EventBits_t)eFLOW_BOUND,
+                                  pdTRUE /*xClearOnExit*/,
+                                  pdFALSE /*xWaitAllBits*/,
+                                  portMAX_DELAY);
 
         ESP_LOGI(TAG_RINA, "Flow Bound");
         return 0;
@@ -125,7 +133,10 @@ void vRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse)
     pxFlowAllocateResponse->xEventBits = 0U;
 }
 
-static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec)
+static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
+                                                      string_t pcLocalApp,
+                                                      string_t pcRemoteApp,
+                                                      struct rinaFlowSpec_t *xFlowSpec)
 {
     ESP_LOGI(TAG_RINA, "Creating a new flow request");
     portId_t xPortId; /* PortId to return to the user*/
@@ -190,7 +201,8 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF, string
         }
 
         /*xPortId set to zero until the TASK fill properly.*/
-        xPortId = 33;
+        xPortId = xIPCPAllocatePortId();
+        ESP_LOGI(TAG_RINA, "Port Id: %d Allocated", xPortId);
 
         /*Struct Data to sent attached into the event*/
 
@@ -249,8 +261,7 @@ BaseType_t RINA_flowStatus(portId_t xAppPortId)
     return 1;
 }
 
-BaseType_t
-prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
+BaseType_t prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
 {
     BaseType_t xResult = 0;
     RINAStackEvent_t xStackFlowAllocateEvent = {eStackFlowAllocateEvent, NULL};
@@ -270,7 +281,7 @@ prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
     if (xResult == 0)
     {
 
-        vFlowAllocatorFlowRequest(33, pxFlowAllocateRequest);
+        vFlowAllocatorFlowRequest(pxFlowAllocateRequest->xPortId, pxFlowAllocateRequest);
 
         pxFlowAllocateRequest->usTimeout = 1U;
 
@@ -289,10 +300,17 @@ prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
     return xResult;
 }
 
-portId_t
-RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags);
+portId_t RINA_flow_alloc(string_t pcNameDIF,
+                         string_t pcLocalApp,
+                         string_t pcRemoteApp,
+                         struct rinaFlowSpec_t *xFlowSpec,
+                         uint8_t Flags);
 
-portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags)
+portId_t RINA_flow_alloc(string_t pcNameDIF,
+                         string_t pcLocalApp,
+                         string_t pcRemoteApp,
+                         struct rinaFlowSpec_t *xFlowSpec,
+                         uint8_t Flags)
 {
 
     flowAllocateHandle_t *pxFlowAllocateRequest;
@@ -306,8 +324,6 @@ portId_t RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRem
     ESP_LOGI(TAG_RINA, "Connecting to IPCP Task");
 
     xResult = prvConnect(pxFlowAllocateRequest);
-
-    ESP_LOGI(TAG_RINA, "Result: %d", xResult);
 
     if (xResult == 0)
     {

@@ -239,9 +239,12 @@ void vFlowAllocatorFlowRequest(
     // add somewhere the pxFlow???
 
     // Send using the ribd_send_req M_Create
+    char flowObj[24];
+    sprintf(flowObj, "/fa/flows/key=%d-%d", pxFlow->xSourceAddress, pxFlow->xSourcePortId);
+    ESP_LOGE(TAG_FA, "Flow Object: %s", flowObj);
 
     // xPortId?? AppPortId or N1PortId
-    if (!xRibdSendRequest("Flow", "/fa/flows/key=1-33", -1, M_CREATE, 1, pxObjVal)) // fixing key= <source IPCP @>-<source port_id>
+    if (!xRibdSendRequest("Flow", flowObj, -1, M_CREATE, 1, pxObjVal)) // fixing N1PortId
     {
         ESP_LOGE(TAG_FA, "It was a problem to send the request");
         // return pdFALSE;

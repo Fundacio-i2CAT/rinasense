@@ -268,6 +268,7 @@ BaseType_t RINA_IPCPInit(void);
 struct rmt_t *pxIPCPGetRmt(void);
 struct efpcContainer_t *pxIPCPGetEfcpc(void);
 struct ipcpNormalInstance_t *pxIpcpGetData(void);
+portId_t xIPCPAllocatePortId(void);
 
 // normalFlow_t *pxIpcpFindFlow(portId_t xPortId);
 // BaseType_t xNormalIsFlowAllocated(portId_t xPortId);

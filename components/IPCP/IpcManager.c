@@ -183,25 +183,6 @@ void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, portId_t x
     return pdFALSE;
 }
 
-/* Handle a Flow allocation request sended by the User throught the RINA API.
- * Return a the Flow xPortID that the RINA API is going to use to send data. */
-void vIpcpManagerAppFlowAllocateRequestHandle(flowAllocateHandle_t *pxFlowRequest)
-{
-
-    portId_t xAppPortId;
-
-    // pidm must assign a valid and available port Id
-    xAppPortId = 33;
-
-    // call to FlowAllocator.
-
-    vFlowAllocatorFlowRequest(xAppPortId, pxFlowRequest);
-
-    //(void)xNormalFlowPrebind(pxIpcpData, xAppPortId);
-
-    ESP_LOGE(TAG_IPCPMANAGER, "end");
-}
-
 void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
 void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer)
 {

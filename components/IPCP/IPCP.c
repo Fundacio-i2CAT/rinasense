@@ -266,7 +266,7 @@ static void prvIPCPTask(void *pvParameters)
                 ESP_LOGE(TAG_IPCPMANAGER, "IPCP not registered into the shim");
             } // should be void, the normal should control if there is an error.
             // xN1PortId = xPidmAllocate(pxIpcManager->pxIpcpIdm);
-            xN1PortId = 1;
+            xN1PortId = xIPCPAllocatePortId();
 
             (void)vIcpManagerEnrollmentFlowRequest(pxShimInstance, xN1PortId, pxIpcpData->pxName);
 
@@ -1049,4 +1049,9 @@ struct efpcContainer_t *pxIPCPGetEfcpc(void)
 struct ipcpNormalInstance_t *pxIpcpGetData(void)
 {
     return pxIpcpData;
+}
+
+portId_t xIPCPAllocatePortId(void)
+{
+    return xPidmAllocate(pxIpcManager->pxPidm);
 }
