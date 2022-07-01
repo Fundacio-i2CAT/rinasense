@@ -9,7 +9,7 @@
 #define ENROLLMENT_H_INCLUDED
 
 #include "Rib.h"
-#include "normalIPCP.h"
+#include "IPCP_normal_defs.h"
 
 /*-----------------------------------------------------------*/
 /* Miscellaneous structure and definitions. */

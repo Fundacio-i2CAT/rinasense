@@ -4,7 +4,7 @@
 
 #include "Enrollment.h"
 #include "Rib.h"
-#include "normalIPCP.h"
+#include "IPCP_normal_defs.h"
 #include "rina_name.h"
 
 typedef enum

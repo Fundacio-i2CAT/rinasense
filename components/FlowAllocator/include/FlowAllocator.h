@@ -15,7 +15,7 @@
 
 #include "IPCP.h"
 #include "RINA_API.h"
-#include "normalIPCP.h"
+#include "IPCP_normal_defs.h"
 
 typedef enum
 {

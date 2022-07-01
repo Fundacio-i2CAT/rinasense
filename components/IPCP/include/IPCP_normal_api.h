@@ -2,37 +2,8 @@
 #define NORMALIPCP_H_
 
 #include "IpcManager.h"
-#include "Rmt.h"
-
-struct ipcpNormalData_t
-{
-    /* FIXME: add missing needed attributes */
-
-    /* IPCP Instance's Name */
-    name_t *pxName;
-
-    /* IPCP Instance's DIF Name */
-    name_t *pxDifName;
-
-    /* IPCP Instance's List of Flows created */
-    List_t xFlowsList;
-
-    /*  FIXME: Remove it as soon as the kipcm_kfa gets removed*/
-    // struct kfa *            kfa;
-
-    /* Efcp Container asociated at the IPCP Instance */
-    struct efcpContainer_t *pxEfcpc;
-
-    /* RMT asociated at the IPCP Instance */
-    struct rmt_t *pxRmt;
-
-    /* SDUP asociated at the IPCP Instance */
-    // struct sdup *           sdup;
-
-    address_t xAddress;
-
-    // ipcManager_t *pxIpcManager;
-};
+#include "rmt.h"
+#include "IPCP_normal_defs.h"
 
 BaseType_t xNormalFlowBinding(struct ipcpNormalData_t *pxUserData,
                               portId_t xPid,
