@@ -1054,6 +1054,10 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
 
         break;
 
+    case M_DELETE:
+        ESP_LOGI(TAG_RIB, "Deleting");
+        break;
+
     default:
         ret = pdFALSE;
         break;
@@ -1168,6 +1172,7 @@ struct ribCallbackOps_t *pxRibdCreateCdapCallback(opCode_t xOpCode, int invoke_i
         pxCallback->create_response = xFlowAllocatorHandleCreateR;
 
         break;
+        // TODO: M_DELETE call to xFlowAllocatorDeallocate
 
     default:
 
