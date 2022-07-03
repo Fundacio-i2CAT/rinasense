@@ -9,14 +9,10 @@
 #define COMPONENTS_EFCP_INCLUDE_CONNECTION_H_
 
 
-#include "rina_common.h"
-#include "freertos/FreeRTOS.h"
+#include "portability/port.h"
 
-connection_t *  pxConnectionCreate(void);
+struct connection_t *  pxConnectionCreate(void);
 
-BaseType_t xConnectionDestroy(connection_t * pxConn);
-
-
-
+bool_t xConnectionDestroy(struct connection_t * pxConn);
 
 #endif /* COMPONENTS_EFCP_INCLUDE_CONNECTION_H_ */

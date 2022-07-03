@@ -39,9 +39,11 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   set(Common_INCLUDES           "${CMAKE_CURRENT_SOURCE_DIR}/components/Common/include")
   set(ARP826_INCLUDES           "${CMAKE_CURRENT_SOURCE_DIR}/components/ARP826/include")
   set(BufferManagement_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/BufferManagement/include")
+  set(EFCP_INCLUDES             "${CMAKE_CURRENT_SOURCE_DIR}/components/EFCP/include")
   set(IPCP_INCLUDES             "${CMAKE_CURRENT_SOURCE_DIR}/components/IPCP/include")
   set(NetworkInterface_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface/include")
   set(NetworkInterface_MQ_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface/mq/include")
+  set(Rmt_INCLUDES              "${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/include")
   set(ShimIPCP_INCLUDES         "${CMAKE_CURRENT_SOURCE_DIR}/components/ShimIPCP/include")
 
   set(mock_IPCP_INCLUDES        "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_IPCP/include")
@@ -191,6 +193,41 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${ShimIPCP_INCLUDES}
   )
   include("${ARP826_TEST_DIR}/CMakeLists.txt")
+
+  #
+  # Component: Rmt
+  #
+  file(GLOB Rmt_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/*.c"
+  )
+  add_library(Rmt STATIC ${Rmt_SOURCES})
+  target_include_directories(Rmt PUBLIC
+    ${configSensor_INCLUDES}
+    ${Common_INCLUDES}
+    ${ARP826_INCLUDES}
+    ${BufferManagement_INCLUDES}
+    ${Rmt_INCLUDES}
+    ${EFCP_INCLUDES}
+    ${Portability_INCLUDES}
+    ${IPCP_INCLUDES}
+  )
+
+  #
+  # Component: EFCP
+  #
+  file(GLOB EFCP_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/EFCP/*.c"
+  )
+  add_library(EFCP STATIC ${EFCP_SOURCES})
+  target_include_directories(EFCP PUBLIC
+    ${Portability_INCLUDES}
+    ${Common_INCLUDES}
+    ${ARP826_INCLUDES}
+    ${IPCP_INCLUDES}
+    ${EFCP_INCLUDES}
+    ${Rmt_INCLUDES}
+    ${configSensor_INCLUDES}
+  )
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h")
 
