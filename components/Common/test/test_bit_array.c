@@ -4,14 +4,14 @@
 #include "unity.h"
 #include "unity_fixups.h"
 
-#ifndef TEST_CASE
-void setUp() {}
-void tearDown() {}
-#endif
+RS_TEST_CASE_SETUP(test_bit_array) {}
+RS_TEST_CASE_TEARDOWN(test_bit_array) {}
 
 RS_TEST_CASE(BitArrayBasics, "Short bit array manipulations")
 {
     bitarray_t *ba;
+
+    RS_TEST_CASE_BEGIN(test_bit_array);
 
     ba = pxBitArrayAlloc(33);
 
@@ -39,11 +39,15 @@ RS_TEST_CASE(BitArrayBasics, "Short bit array manipulations")
     TEST_ASSERT(xBitArrayGetBit(ba, 32));
 
     vBitArrayFree(ba);
+
+    RS_TEST_CASE_END(test_bit_array);
 }
 
 RS_TEST_CASE(BitArrayLarge, "Tests on a larger bit array")
 {
     bitarray_t *ba;
+
+    RS_TEST_CASE_BEGIN(test_bit_array);
 
     ba = pxBitArrayAlloc(10000);
 
@@ -54,13 +58,15 @@ RS_TEST_CASE(BitArrayLarge, "Tests on a larger bit array")
         TEST_ASSERT(*(uint32_t *)((void *)ba + sizeof(bitarray_t) + i * sizeof(uint32_t)) == -1);
 
     vBitArrayFree(ba);
+
+    RS_TEST_CASE_END(test_bit_array)
 }
 
 #ifndef TEST_CASE
 int main() {
     UNITY_BEGIN();
-    RUN_TEST(test_BitArrayBasics);
-    RUN_TEST(test_BitArrayLarge);
+    RS_RUN_TEST(BitArrayBasics);
+    RS_RUN_TEST(BitArrayLarge);
     return UNITY_END();
 }
 #endif

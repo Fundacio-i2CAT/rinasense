@@ -49,6 +49,8 @@ extern "C" {
 #define NANOSECONDS_PER_TICK       ( NANOSECONDS_PER_SECOND / configTICK_RATE_HZ ) /**< Nanoseconds per FreeRTOS tick. */
 /**@} */
 
+#if 0
+
 /**
  * @name Clock identifiers.
  */
@@ -73,6 +75,8 @@ extern "C" {
 #define TIMER_ABSTIME    0x01
 /**@} */
 
+#endif
+
 #if !defined( posixconfigENABLE_TIMESPEC ) || ( posixconfigENABLE_TIMESPEC == 1 )
 
 /**
@@ -88,7 +92,7 @@ extern "C" {
 #if !defined( posixconfigENABLE_ITIMERSPEC ) || ( posixconfigENABLE_ITIMERSPEC == 1 )
 
 /**
- * @brief timer
+A * @brief timer
  */
     struct itimerspec
     {
@@ -96,6 +100,8 @@ extern "C" {
         struct timespec it_value;    /**< Timer expiration. */
     };
 #endif
+
+#if 0
 
 /**
  * @brief Report CPU time used.
@@ -258,8 +264,11 @@ int timer_settime( timer_t timerid,
                    const struct itimerspec * value,
                    struct itimerspec * ovalue );
 
+#endif
+
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif /* ifndef _FREERTOS_POSIX_TIME_H_ */

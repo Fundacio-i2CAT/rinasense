@@ -3,14 +3,14 @@
 #include "unity.h"
 #include "unity_fixups.h"
 
-#ifndef TEST_CASE
-void setUp() {}
-void tearDown() {}
-#endif
+RS_TEST_CASE_SETUP(test_num_mgr) {}
+RS_TEST_CASE_TEARDOWN(test_num_mgr) {}
 
 RS_TEST_CASE(Bits8, "8 bits number allocator")
 {
     NumMgr_t *nm;
+
+    RS_TEST_CASE_BEGIN(test_num_mgr);
 
     // Allocate all 3 available numbers.
     TEST_ASSERT((nm = pxNumMgrCreate(3)) != NULL);
@@ -27,12 +27,16 @@ RS_TEST_CASE(Bits8, "8 bits number allocator")
     TEST_ASSERT(ulNumMgrAllocate(nm) == UINT_MAX);
 
     vNumMgrDestroy(nm);
+
+    RS_TEST_CASE_END(test_num_mgr);
 }
 
 RS_TEST_CASE(ManyBits, "Test bigger number allocator")
 {
     NumMgr_t nm;
     uint32_t i = 0;
+
+    RS_TEST_CASE_BEGIN(test_num_mgr);
 
     TEST_ASSERT(xNumMgrInit(&nm, USHRT_MAX - 1));
 
@@ -42,14 +46,16 @@ RS_TEST_CASE(ManyBits, "Test bigger number allocator")
     TEST_ASSERT((i = ulNumMgrAllocate(&nm)) == UINT_MAX);
 
     vNumMgrFini(&nm);
+
+    RS_TEST_CASE_END(test_num_mgr);
 }
 
 #ifndef TEST_CASE
 int main()
 {
     UNITY_BEGIN();
-    RUN_TEST(test_Bits8);
-    RUN_TEST(test_ManyBits);
+    RS_RUN_TEST(Bits8);
+    RS_RUN_TEST(ManyBits);
     return UNITY_END();
 }
 #endif
