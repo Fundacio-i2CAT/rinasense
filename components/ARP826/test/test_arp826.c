@@ -56,7 +56,7 @@ RS_TEST_CASE_TEARDOWN(test_arp826)
     vMockIPCPClean();
 }
 
-RS_TEST_CASE(ARPCache, "ARP -- ARP cache manipulations")
+RS_TEST_CASE(ARPCache, "[arp]")
 {
     gpa_t *gpa1, *gpa2;
     gha_t *gha1, *gha2;
@@ -88,7 +88,7 @@ RS_TEST_CASE(ARPCache, "ARP -- ARP cache manipulations")
     RS_TEST_CASE_END(test_arp826);
 }
 
-RS_TEST_CASE(ARPSendRequest, "ARP -- Sending request")
+RS_TEST_CASE(ARPSendRequest, "[arp]")
 {
     gpa_t *gpaSrc, *gpaTrg;
     gha_t *ghaSrc;

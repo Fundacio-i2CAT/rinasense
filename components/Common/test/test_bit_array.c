@@ -7,7 +7,7 @@
 RS_TEST_CASE_SETUP(test_bit_array) {}
 RS_TEST_CASE_TEARDOWN(test_bit_array) {}
 
-RS_TEST_CASE(BitArrayBasics, "Short bit array manipulations")
+RS_TEST_CASE(BitArrayBasics, "[bitarray]")
 {
     bitarray_t *ba;
 
@@ -43,7 +43,7 @@ RS_TEST_CASE(BitArrayBasics, "Short bit array manipulations")
     RS_TEST_CASE_END(test_bit_array);
 }
 
-RS_TEST_CASE(BitArrayLarge, "Tests on a larger bit array")
+RS_TEST_CASE(BitArrayLarge, "[bitarray]")
 {
     bitarray_t *ba;
 

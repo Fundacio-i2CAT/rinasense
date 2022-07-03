@@ -27,7 +27,7 @@ static void inNSeconds(int n, struct timespec *ts)
     ts->tv_sec += n;
 }
 
-RS_TEST_CASE(CreateDestroy, "Queues - Creation/Destruction")
+RS_TEST_CASE(CreateDestroy, "[queues]")
 {
     RsQueue_t *q;
 
@@ -39,7 +39,7 @@ RS_TEST_CASE(CreateDestroy, "Queues - Creation/Destruction")
     RS_TEST_CASE_END(test_queues);
 }
 
-RS_TEST_CASE(AddRead, "Queues - Add & Read")
+RS_TEST_CASE(AddRead, "[queues]")
 {
     RsQueue_t *q;
     uint32_t i1 = 1, i2 = 2;

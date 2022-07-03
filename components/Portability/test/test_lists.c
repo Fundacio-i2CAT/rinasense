@@ -27,7 +27,7 @@ void addBogusItems(RsList_t *lst)
 }
 
 /* Test simple allocation removals. */
-RS_TEST_CASE(ListBasics, "Linked lists -- Basic features")
+RS_TEST_CASE(ListBasics, "[list]")
 {
     RsList_t lst;
     RsListItem_t *pLstItem = NULL;
@@ -69,7 +69,7 @@ RS_TEST_CASE(ListBasics, "Linked lists -- Basic features")
 }
 
 /* Test iterating through a list. */
-RS_TEST_CASE(ListIteration, "Linked lists -- Iteration")
+RS_TEST_CASE(ListIteration, "[list]")
 {
     RsList_t lst;
     struct item *pos;

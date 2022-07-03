@@ -9,7 +9,7 @@ RS_TEST_CASE_SETUP(test_rina_name) {}
 RS_TEST_CASE_TEARDOWN(test_rina_name) {}
 
 /* Tests plain string duplication. */
-RS_TEST_CASE(StringDup, "String duplication")
+RS_TEST_CASE(StringDup, "[rina_name]")
 {
     const string_t s1 = "hello";
     string_t s2, s3;
@@ -31,7 +31,7 @@ RS_TEST_CASE(StringDup, "String duplication")
 
 /* Test that RinaNameFromString breaks down a name in all its
  * component. */
-RS_TEST_CASE(RinaNameBreakdown, "RINA name breakdown in parts")
+RS_TEST_CASE(RinaNameBreakdown, "[rina_name]")
 {
     name_t n1;
 
@@ -47,7 +47,7 @@ RS_TEST_CASE(RinaNameBreakdown, "RINA name breakdown in parts")
     RS_TEST_CASE_END(test_rina_name);
 }
 
-RS_TEST_CASE(RinaNameFromString, "Conversion of RINA names to string")
+RS_TEST_CASE(RinaNameFromString, "[rina_name]")
 {
     name_t *n1;
 
@@ -64,7 +64,7 @@ RS_TEST_CASE(RinaNameFromString, "Conversion of RINA names to string")
     RS_TEST_CASE_END(test_rina_name);
 }
 
-RS_TEST_CASE(RinaStringToName, "Conversion ot string to RINA name")
+RS_TEST_CASE(RinaStringToName, "[rina_name]")
 {
     name_t *n1;
 
