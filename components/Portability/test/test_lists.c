@@ -4,10 +4,8 @@
 #include "unity.h"
 #include "unity_fixups.h"
 
-#ifndef TEST_CASE
-void setUp() {}
-void tearDown() {}
-#endif
+RS_TEST_CASE_SETUP(test_lists) {}
+RS_TEST_CASE_TEARDOWN(test_lists) {}
 
 struct item {
     int n;
@@ -29,11 +27,13 @@ void addBogusItems(RsList_t *lst)
 }
 
 /* Test simple allocation removals. */
-RS_TEST_CASE(ListBasics, "Linked lists -- Basic features")
+RS_TEST_CASE(ListBasics, "[list]")
 {
     RsList_t lst;
     RsListItem_t *pLstItem = NULL;
     struct item *pItem;
+
+    RS_TEST_CASE_BEGIN(test_lists);
 
     addBogusItems(&lst);
 
@@ -64,15 +64,19 @@ RS_TEST_CASE(ListBasics, "Linked lists -- Basic features")
     /* Remove the last item */
     vRsListRemoveItem(&(i2.item));
     TEST_ASSERT(unRsListCurrentListLength(&lst) == 0);
+
+    RS_TEST_CASE_END(test_lists);
 }
 
 /* Test iterating through a list. */
-RS_TEST_CASE(ListIteration, "Linked lists -- Iteration")
+RS_TEST_CASE(ListIteration, "[list]")
 {
     RsList_t lst;
     struct item *pos;
     RsListItem_t *pEnd, *pItem;
     int n = 0;
+
+    RS_TEST_CASE_BEGIN(test_lists);
 
     /* Initialize the list with items. */
     addBogusItems(&lst);
@@ -88,13 +92,15 @@ RS_TEST_CASE(ListIteration, "Linked lists -- Iteration")
     }
 
     TEST_ASSERT(n == 4);
+
+    RS_TEST_CASE_END(test_lists);
 }
 
 #ifndef TEST_CASE
 int main() {
     UNITY_BEGIN();
-    RUN_TEST(test_ListBasics);
-    RUN_TEST(test_ListIteration);
+    RS_RUN_TEST(ListBasics);
+    RS_RUN_TEST(ListIteration);
     return UNITY_END();
 }
 #endif

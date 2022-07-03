@@ -25,7 +25,8 @@
 #include "pidm.h"
 #include "RINA_API.h"
 #include "IPCP.h"
-#include "normalIPCP.h"
+#include "IPCP_normal_defs.h"
+#include "IPCP_normal_api.h"
 #include "EFCP.h"
 
 #include "esp_log.h"

@@ -9,14 +9,8 @@
 #include "unity.h"
 #include "unity_fixups.h"
 
-void setUp() {
-    xNetworkBuffersInitialise();
-}
-
-void tearDown() {}
-
 /*void testGetNetworkBuffer()*/
-RS_TEST_CASE(GetNetworkBuffer, "Calls GetNetworkBuffer")
+RS_TEST_CASE(GetNetworkBuffer, "[buffer]")
 {
     size_t s = 10;
     uint8_t *p1, *p2, *p3;
@@ -29,7 +23,7 @@ RS_TEST_CASE(GetNetworkBuffer, "Calls GetNetworkBuffer")
 }
 
 /*void testGetNetworkBufferWithDescriptors()*/
-RS_TEST_CASE(GetNetworkBufferWithDescriptor, "Calls GetNetworkBufferWithDescriptors")
+RS_TEST_CASE(GetNetworkBufferWithDescriptor, "[buffer]")
 {
     int n;
     size_t s = 10;
@@ -46,6 +40,8 @@ RS_TEST_CASE(GetNetworkBufferWithDescriptor, "Calls GetNetworkBufferWithDescript
 
 #ifndef TEST_CASE
 int main() {
+    xNetworkBuffersInitialise();
+
     UNITY_BEGIN();
     RUN_TEST(test_GetNetworkBuffer);
     RUN_TEST(test_GetNetworkBufferWithDescriptor);

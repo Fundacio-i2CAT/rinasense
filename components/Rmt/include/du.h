@@ -9,13 +9,9 @@
 #define COMPONENTS_RMT_INCLUDE_DU_H_
 
 #include "portability/port.h"
-
-#include "Rmt.h"
-#include "IPCP.h"
-#include "rina_common.h"
 #include "rina_buffers.h"
 #include "pci.h"
-#include "ARP826_defs.h"
+#include "efcpStructures.h"
 
 struct du_t
 {
@@ -27,12 +23,12 @@ struct du_t
 	uint8_t *pxPDU;								/*> Pointer to the firts bit of Data Unit */
 };
 
-BaseType_t xDuDestroy(struct du_t *pxDu);
-size_t xDuLen(const struct du_t *pxDu);
-BaseType_t xDuDecap(struct du_t *pxDu);
-ssize_t xDuDataLen(const struct du_t *pxDu);
-BaseType_t xDuEncap(struct du_t *pxDu, pduType_t xType);
+bool_t xDuDestroy(struct du_t * pxDu);
+size_t xDuLen(const struct du_t * pxDu);
+bool_t xDuDecap(struct du_t * pxDu);
+ssize_t xDuDataLen(const  struct du_t * pxDu);
+bool_t xDuEncap(struct du_t * pxDu, pduType_t xType);
 
-BaseType_t xDuIsOk(const struct du_t *pxDu);
+bool_t xDuIsOk(const struct du_t * pxDu);
 
 #endif /* COMPONENTS_RMT_INCLUDE_DU_H_ */

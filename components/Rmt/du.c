@@ -4,76 +4,68 @@
  *  Created on: 30 sept. 2021
  *      Author: i2CAT
  */
-
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-
-#include "esp_log.h"
-
-#include "Rmt.h"
+#include "rmt.h"
 #include "du.h"
 #include "pci.h"
-#include "IPCP.h"
 #include "BufferManagement.h"
 
 #define TAG_DTP "[DTP]"
 
-BaseType_t xDuDestroy(struct du_t *pxDu)
+bool_t xDuDestroy(struct du_t *pxDu)
 {
 	/* If there is an NetworkBuffer then release and release memory */
 	if (pxDu->pxNetworkBuffer)
 	{
-		ESP_LOGI(TAG_DTP, "Destroying du struct and releasing Buffer");
-		vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
+		LOGI(TAG_DTP, "Destroying du struct and releasing Buffer");
+		vReleaseNetworkBufferAndDescriptor( pxDu->pxNetworkBuffer);
 	}
-	// vPortFree(pxDu);
+	vRsMemFree(pxDu);
 
-	return pdTRUE;
+	return true;
 }
 
-BaseType_t xDuDecap(struct du_t *pxDu)
+bool_t xDuDecap(struct du_t *pxDu)
 {
-	ESP_LOGI(TAG_DTP, "Decapsulating the DU");
-
+	LOGI(TAG_DTP,"xDuDecap");
 	pduType_t xType;
 	pci_t *pxPciTmp;
 	size_t uxPciLen;
-	// NetworkBufferDescriptor_t *pxNewBuffer;
-	uint8_t *pucData;
+	NetworkBufferDescriptor_t * pxNewBuffer;
+    uint8_t *pucData;
 	size_t uxBufferSize;
+    struct timespec ts;
 
 	/* Extract PCI from buffer*/
 	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucRinaBuffer);
 
-	// vPciPrint(pxPciTmp);
-
 	xType = pxPciTmp->xType;
-	if (unlikely(!pdu_type_is_ok(xType)))
-	{
-		ESP_LOGE(TAG_DTP, "Could not decap DU. Type is not ok");
-		return pdTRUE;
+	if (!pdu_type_is_ok(xType)) {
+		LOGE(TAG_DTP, "Could not decap DU. Type is not ok");
+		return true;
 	}
 
 	uxPciLen = (size_t)(14); /* PCI defined static for this initial stage = 14Bytes*/
 
 	uxBufferSize = pxDu->pxNetworkBuffer->xRinaDataLength - uxPciLen;
 
-	// ESP_LOGE(TAG_ARP, "Taking Buffer to copy the SDU from the RINA PDU: DuDecap");
-	// pxNewBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, (TickType_t)0U);
-	// if (pxNewBuffer == NULL)
-	//{
-	//	ESP_LOGE(TAG_DTP, "NO buffer was allocated to do the Decap");
-	//	return pdFALSE;
-	//}
-	// pxNewBuffer->xDataLength = xBufferSize;
+    /* FIXME: Waiting time randomly set for 1ms. */
+    if (!rstime_waitmsec(&ts, 1)) {
+        return false;
+    }
+
+	//ESP_LOGE(TAG_ARP, "Taking Buffer to copy the SDU from the RINA PDU: DuDecap");
+	pxNewBuffer = pxGetNetworkBufferWithDescriptor( uxBufferSize, &ts );
+	if(pxNewBuffer == NULL)
+	{
+		LOGE(TAG_DTP,"NO buffer was allocated to do the Decap");
+		return false;
+	}
+	pxNewBuffer->xDataLength = uxBufferSize;
 
 	pucData = (uint8_t *)pxPciTmp + 14;
 	pxDu->pxNetworkBuffer->xDataLength = uxBufferSize;
@@ -97,7 +89,7 @@ BaseType_t xDuDecap(struct du_t *pxDu)
 	// vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
 	// pxDu->pxNetworkBuffer = pxNewBuffer;
 
-	return pdFALSE;
+	return false;
 }
 
 ssize_t xDuDataLen(const struct du_t *pxDu)
@@ -112,26 +104,32 @@ size_t xDuLen(const struct du_t *pxDu)
 	return pxDu->pxNetworkBuffer->xRinaDataLength;
 }
 
-BaseType_t xDuEncap(struct du_t *pxDu, pduType_t xType)
+bool_t xDuEncap(struct du_t * pxDu, pduType_t xType)
 {
 	size_t uxPciLen;
 	NetworkBufferDescriptor_t *pxNewBuffer;
 	uint8_t *pucDataPtr;
 	size_t xBufferSize;
-	pci_t *pxPciTmp;
+	pci_t * pxPciTmp;
+    struct timespec ts;
 
-	uxPciLen = (size_t)(14); /* PCI defined static for this initial stage = 16Bytes*/
+	uxPciLen = (size_t )(14); /* PCI defined static for this initial stage = 16Bytes*/
 
 	/* New Size = Data Size more the PCI size defined by default. */
 	xBufferSize = pxDu->pxNetworkBuffer->xDataLength + uxPciLen;
 
-	// ESP_LOGE(TAG_DTP, "Taking Buffer to encap PDU");
-	pxNewBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, (TickType_t)0U);
+    /* FIXME: Waiting time randomly set for 1ms. */
+    if (!rstime_waitmsec(&ts, 1)) {
+        return false;
+    }
+
+	//ESP_LOGE(TAG_DTP, "Taking Buffer to encap PDU");
+	pxNewBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, &ts );
 
 	if (!pxNewBuffer)
 	{
-		ESP_LOGE(TAG_DTP, " Buffer was not allocated properly.");
-		return pdFALSE;
+		LOGE(TAG_DTP, "Buffer was not allocated properly");
+		return false;
 	}
 
 	pucDataPtr = (uint8_t *)(pxNewBuffer->pucEthernetBuffer + 14);
@@ -150,10 +148,10 @@ BaseType_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 
 	pxDu->pxPci = pxPciTmp;
 
-	return pdTRUE;
+	return true;
 }
 
-BaseType_t xDuIsOk(const struct du_t *pxDu)
+bool_t xDuIsOk(const struct du_t *pxDu)
 {
-	return (pxDu && pxDu->pxNetworkBuffer ? pdTRUE : pdFALSE);
+	return (pxDu && pxDu->pxNetworkBuffer ? true : false);
 }

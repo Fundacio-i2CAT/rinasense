@@ -1,8 +1,11 @@
+#include <string.h>
+
 #include "portability/port.h"
 #include "portability/posix/mqueue.h"
 
 #include "rina_gpha.h"
 
+#include "IPCP_api.h"
 #include "IPCP_events.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
@@ -151,7 +154,7 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
                                bool_t xReleaseAfterSend)
 {
     if (!mq_send(mqOut, (const char *)pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength, 0)) {
-        LOGD(TAG_WIFI, "Wrote %lu bytes to network interface", pxNetworkBuffer->xDataLength);
+        LOGD(TAG_WIFI, "Wrote %u bytes to network interface", pxNetworkBuffer->xDataLength);
         return true;
     }
 

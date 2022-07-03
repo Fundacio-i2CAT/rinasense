@@ -21,7 +21,7 @@
 #include "pb_decode.h"
 #include "Rib.h"
 #include "SerdesMsg.h"
-#include "normalIPCP.h"
+#include "IPCP_normal_defs.h"
 
 #include "esp_log.h"
 

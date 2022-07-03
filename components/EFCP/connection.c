@@ -1,13 +1,12 @@
 
-#include "freertos/FreeRTOS.h"
 
 #include "efcpStructures.h"
 
-connection_t * pxConnectionCreate(void)
+struct connection_t * pxConnectionCreate(void)
 {
-        connection_t * pxTmp;
+        struct connection_t * pxTmp;
 
-        pxTmp = pvPortMalloc(sizeof(*pxTmp));
+        pxTmp = pvRsMemAlloc(sizeof(*pxTmp));
         if (!pxTmp)
                 return NULL;
 
@@ -17,10 +16,10 @@ connection_t * pxConnectionCreate(void)
 
 
 
-BaseType_t xConnectionDestroy(connection_t * pxConn)
+bool_t xConnectionDestroy(struct connection_t * pxConn)
 {
         if (!pxConn)
-                return pdFALSE;
-        vPortFree(pxConn);
-        return pdTRUE;
+                return false;
+        vRsMemFree(pxConn);
+        return true;
 }

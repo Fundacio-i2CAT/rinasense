@@ -20,8 +20,9 @@
 #include "configSensor.h"
 #include "Rib.h"
 #include "RINA_API.h"
-#include "normalIPCP.h"
-#include "Rmt.h"
+#include "IPCP_normal_defs.h"
+#include "IPCP_normal_api.h"
+#include "rmt.h"
 #include "FlowAllocator.h"
 
 #include "esp_log.h"

@@ -39,11 +39,16 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   set(Common_INCLUDES           "${CMAKE_CURRENT_SOURCE_DIR}/components/Common/include")
   set(ARP826_INCLUDES           "${CMAKE_CURRENT_SOURCE_DIR}/components/ARP826/include")
   set(BufferManagement_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/BufferManagement/include")
+  set(EFCP_INCLUDES             "${CMAKE_CURRENT_SOURCE_DIR}/components/EFCP/include")
   set(IPCP_INCLUDES             "${CMAKE_CURRENT_SOURCE_DIR}/components/IPCP/include")
   set(NetworkInterface_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface/include")
   set(NetworkInterface_MQ_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface/mq/include")
+  set(Rmt_INCLUDES              "${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/include")
+  set(ShimIPCP_INCLUDES         "${CMAKE_CURRENT_SOURCE_DIR}/components/ShimIPCP/include")
 
-  set(mock_IPCP_INCLUDES        "${CMAKE_CURRENT_SOURCE_DIR}/components/Mocks/IPCP/include")
+  set(mock_IPCP_INCLUDES        "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_IPCP/include")
+  set(mock_NetworkInterfaces_INCLUDES
+                                "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_NetworkInterface/include")
 
   #
   # Portability layer, target specific
@@ -58,7 +63,41 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   #
   # Mock objects
   #
-  include("${CMAKE_CURRENT_SOURCE_DIR}/components/Mocks/CMakeLists.txt")
+  set(mock_NetworkInterface_INCLUDES
+    "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_NetworkInterface/include")
+  file(GLOB mock_NetworkInterface_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_NetworkInterface/*.c"
+  )
+  add_library(mock_NetworkInterface STATIC ${mock_NetworkInterface_SOURCES})
+  target_include_directories(mock_NetworkInterface PUBLIC
+    ${BufferManagement_INCLUDES}
+    ${Portability_INCLUDES}
+    ${IPCP_INCLUDES}
+  )
+
+  file(GLOB mock_IPCP_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_IPCP/*.c"
+  )
+  add_library(mock_IPCP STATIC ${mock_IPCP_SOURCES})
+  target_include_directories(mock_IPCP PUBLIC
+    ${BufferManagement_INCLUDES}
+    ${Portability_INCLUDES}
+    ${IPCP_INCLUDES}
+  )
+
+  # file(GLOB mock_RIBD_SOURCES
+  #   "${CMAKE_CURRENT_SOURCE_DIR}/components/Mocks/Ribd/*.c"
+  # )
+  # add_library(mock_Ribd STATIC ${mock_RIBD_SOURCES})
+  # target_include_directories(mock_Ribd PUBLIC
+  #   ${configSensor_INCLUDES}
+  #   ${Common_INCLUDES}
+  #   ${EFCP_INCLUDES}
+  #   ${BufferManagement_INCLUDES}
+  #   ${Portability_INCLUDES}
+  #   ${IPCP_INCLUDES}
+  #   ${Rmt_INCLUDES}
+  # )
 
   #
   # Component: configSensor
@@ -126,6 +165,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${NetworkInterface_INCLUDES}
     ${NetworkInterface_MQ_INCLUDES}
     ${ARP826_INCLUDES}
+    ${mock_IPCP_INCLUDES}
     ${IPCP_INCLUDES}
     ${configSensor_INCLUDES}
     ${Rmt_INCLUDES}
@@ -133,7 +173,61 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${EFCP_INCLUDES}
     ${Portability_INCLUDES}
   )
-  include("${NetworkInterface_DIR}/mq/test/CMakeLists.txt")
+  include("${NetworkInterface_DIR}/test/CMakeLists.txt")
+
+  # Component: ARP826
+  #
+  set(ARP826_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/ARP826")
+  set(ARP826_TEST_DIR "${ARP826_DIR}/test")
+  file(GLOB ARP826_SOURCES "${ARP826_DIR}/*.c")
+  add_library(ARP826 STATIC ${ARP826_SOURCES})
+  target_include_directories(ARP826 PUBLIC
+    ${configSensor_INCLUDES}
+    ${NetworkInterface_INCLUDES}
+    ${Common_INCLUDES}
+    ${BufferManagement_INCLUDES}
+    ${ARP826_INCLUDES}
+    ${mock_IPCP_INCLUDES}
+    ${IPCP_INCLUDES}
+    ${Portability_INCLUDES}
+    ${ShimIPCP_INCLUDES}
+  )
+  include("${ARP826_TEST_DIR}/CMakeLists.txt")
+
+  #
+  # Component: Rmt
+  #
+  file(GLOB Rmt_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/*.c"
+  )
+  add_library(Rmt STATIC ${Rmt_SOURCES})
+  target_include_directories(Rmt PUBLIC
+    ${configSensor_INCLUDES}
+    ${Common_INCLUDES}
+    ${ARP826_INCLUDES}
+    ${BufferManagement_INCLUDES}
+    ${Rmt_INCLUDES}
+    ${EFCP_INCLUDES}
+    ${Portability_INCLUDES}
+    ${IPCP_INCLUDES}
+  )
+
+  #
+  # Component: EFCP
+  #
+  file(GLOB EFCP_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/EFCP/*.c"
+  )
+  add_library(EFCP STATIC ${EFCP_SOURCES})
+  target_include_directories(EFCP PUBLIC
+    ${Portability_INCLUDES}
+    ${Common_INCLUDES}
+    ${ARP826_INCLUDES}
+    ${IPCP_INCLUDES}
+    ${EFCP_INCLUDES}
+    ${Rmt_INCLUDES}
+    ${configSensor_INCLUDES}
+  )
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h")
 

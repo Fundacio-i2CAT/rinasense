@@ -15,7 +15,8 @@
 #include "ShimIPCP.h"
 #include "configSensor.h"
 #include "configRINA.h"
-#include "normalIPCP.h"
+#include "IPCP_normal_defs.h"
+#include "IPCP_normal_api.h"
 #include "IpcManager.h"
 #include "RINA_API.h"
 
@@ -943,7 +944,7 @@ void vIpcpInit(void)
 
     /*** IPCP Modules ***/
     /* RMT module */
-    rmt_t *pxRmt;
+    struct rmt_t *pxRmt;
 
     /* EFCP Container */
     struct efcpContainer_t *pxEfcpContainer;
