@@ -134,4 +134,6 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
 
 void vFlowAllocatorDeallocate(portId_t xAppPortId);
 
+BaseType_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id);
+
 #endif

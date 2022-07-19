@@ -82,9 +82,9 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
 BaseType_t RINA_flow_read(portId_t xPortId,
                           void *pvBuffer,
                           size_t uxBufferLength);
-BaseType_t RINA_flow_write(portId_t xPortId,
-                           void *pvBuffer,
-                           size_t uxTotalDataLength);
+size_t RINA_flow_write(portId_t xPortId,
+                       void *pvBuffer,
+                       size_t uxTotalDataLength);
 BaseType_t RINA_flow_close(portId_t xPortId);
 
 void vRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse);

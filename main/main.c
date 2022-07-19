@@ -40,7 +40,7 @@ void app_main(void)
 
 	ESP_LOGI(TAG_APP, "----------- Requesting a Flow ----- ");
 
-	xAppPortId = RINA_flow_alloc("mobile.DIF", "STH1", "sensor", xFlowSpec, Flags);
+	xAppPortId = RINA_flow_alloc("mobile.DIF", "STH1", "sensor1", xFlowSpec, Flags);
 
 	ESP_LOGI(TAG_APP, "Flow Port id: %d ", xAppPortId);
 	if (xAppPortId != -1)

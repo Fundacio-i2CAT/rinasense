@@ -381,8 +381,8 @@ void print_bytes2(void *ptr, int size)
     printf("\n");
 }
 
-BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength);
-BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength)
+size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength);
+size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength)
 {
     NetworkBufferDescriptor_t *pxNetworkBuffer;
     void *pvCopyDest;
@@ -426,19 +426,19 @@ BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataL
 
             if (xSendEventStructToIPCPTask(&xStackTxEvent, xTicksToWait) == pdPASS)
             {
-                return pdTRUE;
+                return uxTotalDataLength;
             }
             else
             {
                 vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-                return pdFALSE;
+                return 0;
             }
         }
 
-        return pdFALSE;
+        return 0;
     }
 
-    return pdFALSE;
+    return 0;
 }
 
 BaseType_t RINA_close(portId_t xAppPortId)

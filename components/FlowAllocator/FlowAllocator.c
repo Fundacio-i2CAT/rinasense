@@ -126,14 +126,15 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 
     pxFlow->pxSourceInfo = pxFlowRequest->pxLocal;
     pxFlow->pxDestInfo = pxFlowRequest->pxRemote;
-    pxFlow->ulHopCount = 3;
+    pxFlow->ulHopCount = 4;
     pxFlow->ulMaxCreateFlowRetries = 1;
     pxFlow->eState = eFA_ALLOCATION_IN_PROGRESS;
     pxFlow->xSourceAddress = LOCAL_ADDRESS;
     pxFlow->ulCurrentConnectionId = 0;
 
-    /* Select QoS Cube based on the FlowSpec Required */
-    pxFlow->pxQosSpec = prvFlowAllocatorSelectQoSCube();
+
+        /* Select QoS Cube based on the FlowSpec Required */
+        pxFlow->pxQosSpec = prvFlowAllocatorSelectQoSCube();
 
     /* Fulfill the DTP_config and the DTCP_config based on the QoSCube*/
 
@@ -191,7 +192,7 @@ void vFlowAllocatorFlowRequest(
     // Query NameManager to getting neighbor how knows the destination requested
     // pcNeighbor = xNmsGetNextHop(pxFlow->pxDesInfo->pcProcessName;
 
-    pcNeighbor = "ar1.mobile"; // Hardcode for testing
+    pcNeighbor = REMOTE_ADDRESS_AP_NAME; // "ar1.mobile"; // Hardcode for testing
     ESP_LOGI(TAG_FA, "Getting Neighbor");
 
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
@@ -243,7 +244,11 @@ void vFlowAllocatorFlowRequest(
     // Send using the ribd_send_req M_Create
     char flowObj[24];
     sprintf(flowObj, "/fa/flows/key=%d-%d", pxFlow->xSourceAddress, pxFlow->xSourcePortId);
-    ESP_LOGE(TAG_FA, "Flow Object: %s", flowObj);
+
+    if (!pxRibCreateObject(flowObj, -1, "Flow", "Flow", FLOW))
+    {
+        ESP_LOGE(TAG_FA, "It was a problem to create Rib Object");
+    }
 
     // xPortId?? AppPortId or N1PortId
     if (!xRibdSendRequest("Flow", flowObj, -1, M_CREATE, pxNeighbor->xN1Port, pxObjVal)) // fixing N1PortId
@@ -304,6 +309,26 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
     return pdTRUE;
 }
 
+BaseType_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id)
+
+{
+    ESP_LOGE(TAG_FA, "HANDLE DELETE");
+
+    // Delete connection
+    // delete EFCP instance
+    // change portId to NO ALLOCATED,
+    // Send message to User with close,
+
+    return pdFALSE;
+}
+
 void vFlowAllocatorDeallocate(portId_t xAppPortId)
 {
+
+    if (!xAppPortId)
+    {
+        ESP_LOGE(TAG_FA, "Bogus data passed, bailing out");
+    }
+
+    // Find Flow and move to deallocate status.
 }

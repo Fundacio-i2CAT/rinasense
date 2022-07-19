@@ -17,6 +17,7 @@
 #include "Ribd.h"
 #include "configSensor.h"
 #include "Rib.h"
+#include "FlowAllocator.h"
 
 #include "esp_log.h"
 
@@ -34,7 +35,7 @@ void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
         {
             xRibObjectTable[x].pxRibObject = pxRibObject;
             xRibObjectTable[x].xValid = pdTRUE;
-            ESP_LOGI(TAG_RIB, "Rib Object Entry successful: %p", pxRibObject);
+            ESP_LOGI(TAG_RIB, "Rib Object Entry successful:%s, %p", pxRibObject->ucObjName, pxRibObject);
 
             break;
         }
@@ -46,8 +47,6 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
 
     ESP_LOGI(TAG_RIB, "Looking for the object %s in the RIB Object Table", ucRibObjectName);
 
-    // Testing purposes
-
     BaseType_t x = 0;
     struct ribObject_t *pxRibObject;
     pxRibObject = pvPortMalloc(sizeof(*pxRibObject));
@@ -58,7 +57,7 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
         if (xRibObjectTable[x].xValid == pdTRUE)
         {
             pxRibObject = xRibObjectTable[x].pxRibObject;
-            // ESP_LOGI(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
+            ESP_LOGD(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
             if (!strcmp(pxRibObject->ucObjName, ucRibObjectName))
             {
                 ESP_LOGI(TAG_RIB, "RibObj founded '%p', '%s'", pxRibObject, pxRibObject->ucObjName);
@@ -80,9 +79,9 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
     struct ribObject_t *pxObj = pvPortMalloc(sizeof(*pxObj));
     struct ribObjOps_t *pxObjOps = pvPortMalloc(sizeof(*pxObjOps));
 
-    pxObj->ucObjName = ucObjName;
+    pxObj->ucObjName = strdup(ucObjName);
     pxObj->ulObjInst = ulObjInst;
-    pxObj->ucDisplayableValue = ucDisplayableValue;
+    pxObj->ucDisplayableValue = strdup(ucDisplayableValue);
 
     pxObj->pxObjOps = pxObjOps;
 
@@ -103,6 +102,12 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
 
     case OPERATIONAL:
         pxObj->pxObjOps->start = xEnrollmentHandleOperationalStart;
+
+        break;
+
+    case FLOW:
+        pxObj->pxObjOps->delete = xFlowAllocatorHandleDelete;
+        // pxObj->pxObjOps->create = xFlowAllocatorHandleCreate;
 
         break;
 

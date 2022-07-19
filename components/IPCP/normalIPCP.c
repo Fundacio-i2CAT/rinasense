@@ -809,3 +809,153 @@ BaseType_t xNormalConnectionUpdate(portId_t xAppPortId, cepId_t xSrcCepId, cepId
 
         return pdTRUE;
 }
+
+static BaseType_t prvRemoveCepIdFromFlow(struct normalFlow_t *pxFlow,
+                                         cepId_t xCepId)
+{
+#if 0
+        
+
+        ESP_LOGI(TAG_IPCPNORMAL, "Finding a Flow in the normal IPCP list");
+
+        struct normalFlow_t *pxFlow;
+
+        // shimFlow_t *pxFlowNext;
+
+        ListItem_t *pxListItem;
+        ListItem_t const *pxListEnd;
+
+        if (listLIST_IS_EMPTY(&(pxFlow->xCepIdsList)) == pdTRUE)
+        {
+                ESP_LOGI(TAG_IPCPNORMAL, "Flow CepIds list is empty");
+                return NULL;
+        }
+
+        pxFlow = pvPortMalloc(sizeof(*pxFlow));
+
+        /* Find a way to iterate in the list and compare the addesss*/
+        pxListEnd = listGET_END_MARKER(&(pxIpcpData->xFlowsList));
+        pxListItem = listGET_HEAD_ENTRY(&(pxIpcpData->xFlowsList));
+
+        while (pxListItem != pxListEnd)
+        {
+
+                pxFlow = (struct normalFlow_t *)listGET_LIST_ITEM_OWNER(pxListItem);
+
+                if (pxFlow == NULL)
+                        return pdFALSE;
+
+                if (!pxFlow)
+                        return pdFALSE;
+
+                if (pxFlow && pxFlow->xActive == xCepId)
+                {
+
+                        // ESP_LOGI(TAG_IPCPNORMAL, "Flow founded %p, portID: %d, portState:%d", pxFlow, pxFlow->xPortId, pxFlow->eState);
+                        return pxFlow;
+                }
+
+                pxListItem = listGET_NEXT(pxListItem);
+        }
+
+        ESP_LOGI(TAG_IPCPNORMAL, "Flow not founded");
+        return NULL;
+
+        struct cep_ids_entry *pos, *next;
+
+        list_for_each_entry_safe(pos, next, &(flow->cep_ids_list), list)
+        {
+                if (pos->cep_id == id)
+                {
+                        list_del(&pos->list);
+                        rkfree(pos);
+                        return 0;
+                }
+        }
+        return -1;
+#endif
+        return pdFALSE;
+}
+
+static struct normalFlow_t *prvFindFlowCepid(cepId_t xCepId)
+{
+
+        ESP_LOGI(TAG_IPCPNORMAL, "Finding a Flow in the normal IPCP list");
+
+        struct normalFlow_t *pxFlow;
+
+        // shimFlow_t *pxFlowNext;
+
+        ListItem_t *pxListItem;
+        ListItem_t const *pxListEnd;
+
+        if (listLIST_IS_EMPTY(&(pxIpcpData->xFlowsList)) == pdTRUE)
+        {
+                ESP_LOGI(TAG_IPCPNORMAL, "Flow list is empty");
+                return NULL;
+        }
+
+        pxFlow = pvPortMalloc(sizeof(*pxFlow));
+
+        /* Find a way to iterate in the list and compare the addesss*/
+        pxListEnd = listGET_END_MARKER(&(pxIpcpData->xFlowsList));
+        pxListItem = listGET_HEAD_ENTRY(&(pxIpcpData->xFlowsList));
+
+        while (pxListItem != pxListEnd)
+        {
+
+                pxFlow = (struct normalFlow_t *)listGET_LIST_ITEM_OWNER(pxListItem);
+
+                if (pxFlow == NULL)
+                        return pdFALSE;
+
+                if (!pxFlow)
+                        return pdFALSE;
+
+                if (pxFlow && pxFlow->xActive == xCepId)
+                {
+
+                        // ESP_LOGI(TAG_IPCPNORMAL, "Flow founded %p, portID: %d, portState:%d", pxFlow, pxFlow->xPortId, pxFlow->eState);
+                        return pxFlow;
+                }
+
+                pxListItem = listGET_NEXT(pxListItem);
+        }
+
+        ESP_LOGI(TAG_IPCPNORMAL, "Flow not founded");
+        return NULL;
+}
+
+BaseType_t xNormalConnectionDestroy(cepId_t xSrcCepId)
+{
+        struct normalFlow_t *pxFlow;
+
+        if (xEfcpConnectionDestroy(pxIpcpData->pxEfcpc, xSrcCepId))
+                ESP_LOGE(TAG_EFCP, "Could not destroy EFCP instance: %d", xSrcCepId);
+
+        // CRITICAL
+        if (!(&pxIpcpData->xFlowsList))
+        {
+                // CRITICAL
+                ESP_LOGE(TAG_EFCP, "Could not destroy EFCP instance: %d", xSrcCepId);
+                return pdFALSE;
+        }
+        pxFlow = prvFindFlowCepid(xSrcCepId);
+        if (!pxFlow)
+        {
+                // CRITICAL
+                ESP_LOGE(TAG_IPCPNORMAL, "Could not retrieve flow by cep_id :%d", xSrcCepId);
+                return pdFALSE;
+        }
+        /*if (remove_cep_id_from_flow(flow, src_cep_id))
+                LOG_ERR("Could not remove cep_id: %d", src_cep_id);
+
+        if (list_empty(&flow->cep_ids_list))
+        {
+                list_del(&flow->list);
+                rkfree(flow);
+        }*/
+        // CRITICAL
+
+        return pdTRUE;
+}

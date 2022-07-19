@@ -514,6 +514,7 @@ BaseType_t xEfcpConnectionUpdate(struct efcpContainer_t *pxContainer,
 
         return pdTRUE;
 }
+
 BaseType_t xEfcpConnectionDestroy(struct efcpContainer_t *pxEfcpContainer,
                                   cepId_t xId)
 {
@@ -899,3 +900,67 @@ BaseType_t xEfcpImapRemove(cepId_t xCepId)
 
         return pdTRUE;
 }
+#if 0
+int efcp_connection_destroy(struct efcp_container *container,
+                            cep_id_t id)
+{
+        struct efcp *efcp;
+        int retval;
+
+        LOG_DBG("EFCP connection destroy called");
+
+        /* FIXME: should wait 3*delta-t before destroying the connection */
+
+        if (!container)
+        {
+                LOG_ERR("Bogus container passed, bailing out");
+                return -1;
+        }
+        if (!is_cep_id_ok(id))
+        {
+                LOG_ERR("Bad cep-id, cannot destroy connection");
+                return -1;
+        }
+
+        spin_lock_bh(&container->lock);
+        efcp = efcp_imap_find(container->instances, id);
+        if (!efcp)
+        {
+                spin_unlock_bh(&container->lock);
+                LOG_ERR("Cannot find instance %d in container %pK",
+                        id, container);
+                return -1;
+        }
+
+        if (efcp_imap_remove(container->instances, id))
+        {
+                spin_unlock_bh(&container->lock);
+                LOG_ERR("Cannot remove instance %d from container %pK",
+                        id, container);
+                return -1;
+        }
+        efcp->state = EFCP_DEALLOCATED;
+        if (atomic_read(&efcp->pending_ops) != 0)
+        {
+                spin_unlock_bh(&container->lock);
+                retval = wait_event_interruptible(container->del_wq,
+                                                  atomic_read(&efcp->pending_ops) == 0 &&
+                                                      efcp->state == EFCP_DEALLOCATED);
+                if (retval != 0)
+                        LOG_ERR("EFCP destroy even interrupted (%d)", retval);
+                if (efcp_destroy(efcp))
+                {
+                        LOG_ERR("Cannot destroy instance %d, instance lost", id);
+                        return -1;
+                }
+                return 0;
+        }
+        spin_unlock_bh(&container->lock);
+        if (efcp_destroy(efcp))
+        {
+                LOG_ERR("Cannot destroy instance %d, instance lost", id);
+                return -1;
+        }
+        return 0;
+}
+#endif

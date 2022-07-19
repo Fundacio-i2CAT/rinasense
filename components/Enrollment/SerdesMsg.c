@@ -325,6 +325,9 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
     message.sourcePortId = pxMsg->xSourcePortId;
     message.sourceAddress = pxMsg->xSourceAddress;
 
+    message.has_hopCount = true;
+    message.hopCount = pxMsg->ulHopCount;
+
     message.connectionIds_count = 1;
     message.connectionIds->sourceCEPId = pxMsg->pxConnectionId->xSource;
     message.connectionIds->has_sourceCEPId = true;

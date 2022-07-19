@@ -870,11 +870,24 @@ void prvRibdHandledAData(serObjectValue_t *pxObjValue)
 
     pxRibObject = pxRibFindObject(pxDecodeCdap->pcObjName);
 
-    pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
-
-    if (!pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result))
+    switch (pxDecodeCdap->eOpCode)
     {
-        ESP_LOGE(TAG_RIB, "It was not possible to handle the a_data message properly");
+    case M_CREATE_R:
+        // looking for a pending request
+        pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
+        if (!pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result))
+        {
+            ESP_LOGE(TAG_RIB, "It was not possible to handle the a_data message properly");
+        }
+        break;
+
+    case M_DELETE:
+        pxRibObject->pxObjOps->delete (pxRibObject, pxDecodeCdap->invokeID);
+
+        break;
+    default:
+
+        break;
     }
 }
 
@@ -1038,7 +1051,6 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
         if (strcmp(pxDecodeCdap->pcObjName, "a_data") == 0)
         {
             ESP_LOGI(TAG_RIB, "Handling M_WRITE a_data sending to decode");
-            // prvRibdHandledAData(pxDecodeCdap->pxObjValue);
 
             aDataMsg_t *pxADataMsg;
             pxADataMsg = pxSerdesMsgDecodeAData(pxDecodeCdap->pxObjValue->pvSerBuffer,
@@ -1048,8 +1060,6 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
             {
                 (void)prvRibdHandledAData(pxADataMsg->pxMsgCdap);
             }
-
-            //(void)xFlowAllocatorHandleCreateR(pxDecodeCdap->pxObjValue, 0); // until a_data solved
         }
 
         break;

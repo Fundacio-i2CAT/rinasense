@@ -14,6 +14,7 @@
 #include "IPCP.h"
 #include "pci.h"
 #include "normalIPCP.h"
+#include "configRINA.h"
 //#include "EFCP.h"
 
 /** @brief RMT Array PortId Created.
@@ -164,7 +165,7 @@ BaseType_t xRmtPduIsAddressedToMe(rmt_t *pxRmt, address_t xAddress);
 
 BaseType_t xRmtPduIsAddressedToMe(rmt_t *pxRmt, address_t xAddress)
 {
-
+	ESP_LOGE(TAG_RMT, "looking for address:%d", xAddress);
 	rmtAddress_t *pxAddr;
 
 	ListItem_t *pxListItem, *pxNext;
@@ -175,12 +176,12 @@ BaseType_t xRmtPduIsAddressedToMe(rmt_t *pxRmt, address_t xAddress)
 	/* Find a way to iterate in the list and compare the addesss*/
 	pxListEnd = listGET_END_MARKER(&pxRmt->xAddresses);
 	pxListItem = listGET_HEAD_ENTRY(&pxRmt->xAddresses);
-
+	ESP_LOGE(TAG_RMT, "FLAG");
 	while (pxListItem != pxListEnd)
 	{
 
 		pxAddr = (rmtAddress_t *)listGET_LIST_ITEM_OWNER(pxListItem);
-		// ESP_LOGE(TAG_RMT, "Address to evalute: %d", pxAddr->xAddress);
+		ESP_LOGE(TAG_RMT, "Address to evaluate: %d, Address founded:%d", xAddress, pxAddr->xAddress);
 		if (pxAddr->xAddress == xAddress)
 		{
 			ESP_LOGI(TAG_RMT, "Address to me founded!");
@@ -328,7 +329,8 @@ BaseType_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portI
 	}
 
 	/* pdu is for me */
-	if (xRmtPduIsAddressedToMe(pxData->pxRmt, xDstAddr))
+	// if (xRmtPduIsAddressedToMe(pxData->pxRmt, xDstAddr))
+	if (xDstAddr == LOCAL_ADDRESS)
 	{
 		/* pdu is for me */
 		switch (xPduType)
@@ -345,6 +347,7 @@ BaseType_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portI
 		case PDU_TYPE_ACK_AND_FC:
 		case PDU_TYPE_RENDEZVOUS:
 		case PDU_TYPE_DT:
+			ESP_LOGE(TAG_RMT, "DT PDU!!!");
 			/*
 			 * (FUTURE)
 			 *
