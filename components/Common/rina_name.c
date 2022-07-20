@@ -279,15 +279,15 @@ bool_t xRinaNameFromString(const string_t pcString, name_t *pxName)
                 return false;
         }
 
-        pxName->pcProcessName = (apn && strlen(apn)) ? pcRstrDup(apn) : NULL;
-        pxName->pcProcessInstance = (api && strlen(api)) ? pcRstrDup(api) : NULL;
-        pxName->pcEntityName = (aen && strlen(aen)) ? pcRstrDup(aen) : NULL;
-        pxName->pcEntityInstance = (aei && strlen(aei)) ? pcRstrDup(aei) : NULL;
+        pxName->pcProcessName = (apn && strlen(apn)) ? pcRstrDup(apn) : pcRstrDup("");
+        pxName->pcProcessInstance = (api && strlen(api)) ? pcRstrDup(api) : pcRstrDup("");
+        pxName->pcEntityName = (aen && strlen(aen)) ? pcRstrDup(aen) : pcRstrDup("");
+        pxName->pcEntityInstance = (aei && strlen(aei)) ? pcRstrDup(aei) : pcRstrDup("");
 
-        LOGE(TAG_FA, "RinaNameFromString - pcProcessName:%s", pxName->pcProcessName);
-        LOGE(TAG_FA, "RinaNameFromString - pcProcessInstance:%s", pxName->pcProcessInstance);
-        LOGE(TAG_FA, "RinaNameFromString - pcEntityName:%s", pxName->pcEntityName);
-        LOGE(TAG_FA, "RinaNameFromString - pcEntityInstance:%s", pxName->pcEntityInstance);
+        LOGE(TAG_FA, "RinaNameFromString - pcProcessName: %s", pxName->pcProcessName);
+        LOGE(TAG_FA, "RinaNameFromString - pcProcessInstance: %s", pxName->pcProcessInstance);
+        LOGE(TAG_FA, "RinaNameFromString - pcEntityName: %s", pxName->pcEntityName);
+        LOGE(TAG_FA, "RinaNameFromString - pcEntityInstance: %s", pxName->pcEntityInstance);
 
         if ((apn && strlen(apn) && !pxName->pcProcessName) ||
             (api && strlen(api) && !pxName->pcProcessInstance) ||

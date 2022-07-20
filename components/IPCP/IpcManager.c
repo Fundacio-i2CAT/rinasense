@@ -12,28 +12,17 @@
 #include <stdio.h>
 #include <string.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-
-#include "IPCP.h"
-#include "rina_common.h"
+#include "rina_common_port.h"
 #include "configRINA.h"
-#include "IpcManager.h"
 #include "IPCP_normal_defs.h"
 #include "IPCP_normal_api.h"
-#include "RINA_API.h"
 #include "efcpStructures.h"
-#include "ipcpIdm.h"
-#include "Ribd.h"
 #include "du.h"
-#include "FlowAllocator.h"
 #include "ShimIPCP.h"
 #include "EFCP.h"
-
-#include "esp_log.h"
+#include "num_mgr.h"
+#include "RINA_API_flows.h"
+#include "FlowAllocator.h"
 
 /* Table to store instances created */
 static InstanceTableRow_t xInstanceTable[INSTANCES_IPCP_ENTRIES];
@@ -46,38 +35,15 @@ static InstanceTableRow_t xInstanceTable[INSTANCES_IPCP_ENTRIES];
  * @param pxIpcManager object created in the IPCP TASK.
  * @return BaseType_t
  */
-BaseType_t xIpcManagerInit(ipcManager_t *pxIpcManager)
+bool_t xIpcManagerInit(ipcManager_t *pxIpcManager)
 {
+    if ((pxIpcManager->pxPidm = pxNumMgrCreate(MAX_PORT_ID)) == NULL)
+        return false;
 
-    // factories_t *pxIpcpFactories;
-    pidm_t *pxPidm;
-    ipcpIdm_t *pxIpcpIdm;
+    if ((pxIpcManager->pxIpcpIdm = pxNumMgrCreate(MAX_IPCP_ID)) == NULL)
+        return false;
 
-    // pxIpcpFactories = pvPortMalloc(sizeof(*pxIpcpFactories));
-    pxPidm = pvPortMalloc(sizeof(*pxPidm));
-    pxIpcpIdm = pvPortMalloc(sizeof(*pxIpcpIdm));
-
-    pxPidm = pxPidmCreate();
-    pxIpcpIdm = pxIpcpIdmCreate();
-
-    // pxIpcManager->pxFactories = pxIpcpFactories;
-    pxIpcManager->pxPidm = pxPidm;
-    pxIpcManager->pxIpcpIdm = pxIpcpIdm;
-
-    vListInitialise(&pxIpcManager->xShimInstancesList);
-
-    if (!listLIST_IS_INITIALISED(&pxIpcManager->xShimInstancesList))
-    {
-        ESP_LOGI(TAG_IPCPMANAGER, "IpcpFactoriesList was not Initialized properly");
-        return pdFALSE;
-    }
-
-    if (xTest())
-    {
-        ESP_LOGI(TAG_IPCPMANAGER, "INIT Ribd");
-    }
-
-    return pdTRUE;
+    return true;
 }
 
 /**
@@ -87,19 +53,16 @@ BaseType_t xIpcManagerInit(ipcManager_t *pxIpcManager)
  */
 void vIpcpManagerAddInstanceEntry(ipcpInstance_t *pxIpcpInstaceToAdd)
 {
-
-    BaseType_t x = 0;
+    num_t x = 0;
 
     for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++)
     {
-        if (xInstanceTable[x].xActive == pdFALSE)
+        if (xInstanceTable[x].xActive == false)
         {
             xInstanceTable[x].pxIpcpInstance = pxIpcpInstaceToAdd;
             xInstanceTable[x].pxIpcpType = pxIpcpInstaceToAdd->xType;
             xInstanceTable[x].xIpcpId = pxIpcpInstaceToAdd->xId;
-            xInstanceTable[x].xActive = pdTRUE;
-            // ESP_LOGE(TAG_IPCPMANAGER, "IPCP INSTANCE Entry successful: %p,id:%d",pxIpcpInstaceToAdd,pxIpcpInstaceToAdd->xId );
-            // ESP_LOGE(TAG_IPCPMANAGER, "Instance: %p, id:%d", xInstanceTable[x].pxIpcpInstance,xInstanceTable[x].xIpcpId);
+            xInstanceTable[x].xActive = true;
 
             break;
         }
@@ -108,20 +71,15 @@ void vIpcpManagerAddInstanceEntry(ipcpInstance_t *pxIpcpInstaceToAdd)
 
 ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId)
 {
-
-    BaseType_t x = 0;
-
-    // ESP_LOGE(TAG_IPCPMANAGER,"Searching for: %d", xIpcpId);
+    num_t x = 0;
 
     for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++)
-
     {
-        if (xInstanceTable[x].xActive == pdTRUE)
+        if (xInstanceTable[x].xActive == true)
         {
-            // ESP_LOGE(TAG_IPCPMANAGER, "Instance: %p, Id: %d", xInstanceTable[x].pxIpcpInstance, xInstanceTable[x].xIpcpId);
             if (xInstanceTable[x].xIpcpId == xIpcpId)
             {
-                ESP_LOGI(TAG_IPCPMANAGER, "Instance founded '%p'", xInstanceTable[x].pxIpcpInstance);
+                LOGI(TAG_IPCPMANAGER, "Instance founded '%p'", xInstanceTable[x].pxIpcpInstance);
                 return xInstanceTable[x].pxIpcpInstance;
                 break;
             }
@@ -139,17 +97,14 @@ ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId)
 
 static ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
 {
-
-    BaseType_t x = 0;
+    num_t x = 0;
 
     for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++)
-
     {
-        if (xInstanceTable[x].xActive == pdTRUE)
+        if (xInstanceTable[x].xActive == true)
         {
             if (xInstanceTable[x].pxIpcpType == xType)
             {
-                // ESP_LOGI(TAG_IPCPMANAGER, "Instance founded '%p'", xInstanceTable [ x ].pxIpcpInstance);
                 return xInstanceTable[x].pxIpcpInstance;
                 break;
             }
@@ -158,54 +113,56 @@ static ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
     return NULL;
 }
 
-void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, pidm_t *pxPidm, name_t *pxIPCPName)
+void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, NumMgr_t *pxPidm, name_t *pxIPCPName)
 {
-
     portId_t xPortId;
 
     /*This should be proposed by the Flow Allocator?*/
-    name_t *destinationInfo = pvPortMalloc(sizeof(*destinationInfo));
+    name_t *destinationInfo = pvRsMemAlloc(sizeof(*destinationInfo));
     destinationInfo->pcProcessName = REMOTE_ADDRESS_AP_NAME;
     destinationInfo->pcEntityName = "";
     destinationInfo->pcProcessInstance = REMOTE_ADDRESS_AP_INSTANCE;
     destinationInfo->pcEntityInstance = "";
 
-    xPortId = xPidmAllocate(pxPidm);
+    //xPortId = xPidmAllocate(pxPidm);
+    xPortId = ulNumMgrAllocate(pxPidm);
 
     if (pxShimInstance->pxOps->flowAllocateRequest == NULL)
     {
-        ESP_LOGI(TAG_IPCPNORMAL, "There is not Flow Allocate Request API");
+        LOGI(TAG_IPCPNORMAL, "There is not Flow Allocate Request API");
     }
+
     if (pxShimInstance->pxOps->flowAllocateRequest(xPortId,
                                                    pxIPCPName,
                                                    destinationInfo,
                                                    pxShimInstance->pxData))
     {
-        ESP_LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
-        return pdTRUE;
+        LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
+        return true;
     }
 
-    return pdFALSE;
+    return false;
 }
 
 /* Handle a Flow allocation request sended by the User throught the RINA API.
  * Return a the Flow xPortID that the RINA API is going to use to send data. */
-void vIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, struct efcpContainer_t *pxEfcpc, struct ipcpNormalData_t *pxIpcpData)
+void vIpcpManagerAppFlowAllocateRequestHandle(NumMgr_t *pxPidm,
+                                              struct efcpContainer_t *pxEfcpc,
+                                              struct ipcpNormalData_t *pxIpcpData)
 {
-
     portId_t xPortId;
-
     flowAllocateHandle_t *pxFlowAllocateRequest;
-    pxFlowAllocateRequest = pvPortMalloc(sizeof(*pxFlowAllocateRequest));
+
+    pxFlowAllocateRequest = pvRsMemAlloc(sizeof(*pxFlowAllocateRequest));
 
     struct flowSpec_t *pxFlowSpecTmp;
-    pxFlowSpecTmp = pvPortMalloc(sizeof(*pxFlowSpecTmp));
+    pxFlowSpecTmp = pvRsMemAlloc(sizeof(*pxFlowSpecTmp));
     pxFlowAllocateRequest->pxFspec = pxFlowSpecTmp;
 
     name_t *pxLocal, *pxRemote, *pxDIF;
-    pxLocal = pvPortMalloc(sizeof(*pxLocal));
-    pxRemote = pvPortMalloc(sizeof(*pxRemote));
-    pxDIF = pvPortMalloc(sizeof(*pxDIF));
+    pxLocal = pvRsMemAlloc(sizeof(*pxLocal));
+    pxRemote = pvRsMemAlloc(sizeof(*pxRemote));
+    pxDIF = pvRsMemAlloc(sizeof(*pxDIF));
 
     pxLocal->pcProcessName = "Test";
     pxLocal->pcProcessInstance = "1";
@@ -254,7 +211,7 @@ void vIpcpManagerAppFlowAllocateRequestHandle(pidm_t *pxPidm, struct efcpContain
     vFlowAllocatorFlowRequest(pxEfcpc, xPortId, pxFlowAllocateRequest, pxIpcpData);
 
     //}
-    ESP_LOGE(TAG_IPCPMANAGER, "end");
+    LOGE(TAG_IPCPMANAGER, "end");
 }
 
 void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
@@ -262,19 +219,19 @@ void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBuffe
 {
     struct du_t *pxMessagePDU;
 
-    pxMessagePDU = pvPortMalloc(sizeof(*pxMessagePDU));
+    pxMessagePDU = pvRsMemAlloc(sizeof(*pxMessagePDU));
 
     if (!pxMessagePDU)
     {
-        ESP_LOGE(TAG_IPCPMANAGER, "pxMessagePDU was not allocated");
+        LOGE(TAG_IPCPMANAGER, "pxMessagePDU was not allocated");
     }
     pxMessagePDU->pxNetworkBuffer = pxNetworkBuffer;
 
-    ESP_LOGI(TAG_IPCPMANAGER, "The RINA packet is a managment packet");
+    LOGI(TAG_IPCPMANAGER, "The RINA packet is a managment packet");
 
     if (!xNormalDuEnqueue(pxData, 1, pxMessagePDU))
     {
-        ESP_LOGI(TAG_IPCPMANAGER, "Drop frame because there is not enough memory space");
+        LOGI(TAG_IPCPMANAGER, "Drop frame because there is not enough memory space");
         xDuDestroy(pxMessagePDU);
     }
 }
@@ -285,7 +242,7 @@ ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager)
 
     ipcProcessId_t xIpcpId;
 
-    xIpcpId = xIpcpIdmAllocate(pxIpcManager->pxIpcpIdm);
+    xIpcpId = ulNumMgrAllocate(pxIpcManager->pxIpcpIdm);
 
     // add the shimInstance into the instance list.
 

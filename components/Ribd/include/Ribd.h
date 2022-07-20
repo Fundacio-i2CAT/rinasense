@@ -6,6 +6,7 @@
 #include "Rib.h"
 #include "IPCP_normal_defs.h"
 #include "rina_name.h"
+#include "rina_common.h"
 
 typedef enum
 {

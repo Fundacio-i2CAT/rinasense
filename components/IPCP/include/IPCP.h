@@ -18,13 +18,6 @@
 
 #define IS_PORT_ID_OK(id) (id >= 0 ? pdTRUE : pdFALSE)
 
-typedef struct xQUEUE_FIFO
-{
-    QueueHandle_t xQueue;
-
-} rfifo_t;
-
-
 // typedef uint16_t ipcProcessId_t;
 
 typedef uint16_t ipcpInstanceId_t;

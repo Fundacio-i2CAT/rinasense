@@ -8,6 +8,7 @@ if(NOT $ENV{IDF_PATH} STREQUAL "")
     "BufferManagement"
     "Common"
     "Portability"
+    "ShimIPCP"
     CACHE STRING "List of components to test")
 
   # Include path for unity_config.h
@@ -21,6 +22,8 @@ if(NOT $ENV{IDF_PATH} STREQUAL "")
   set(EXTRA_COMPONENT_DIRS
     "../components/"
     "../components_mocks/")
+
+  set(ENV{USE_MOCKS} "true")
 
   include($ENV{IDF_PATH}/tools/cmake/project.cmake)
   project(unit_test)
