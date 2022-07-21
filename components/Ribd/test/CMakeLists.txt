@@ -1,7 +1,7 @@
 if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
   idf_component_register(SRC_DIRS "."
     INCLUDE_DIRS "."
-    REQUIRES unity Common)
+    REQUIRES unity Common Ribd)
 else()
   set(RIBD_DEPS
     # This is odd but there seem to be a circular dependency between

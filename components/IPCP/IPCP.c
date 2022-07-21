@@ -21,6 +21,7 @@
 #include "RINA_API.h"
 
 #include "Enrollment.h"
+#include "Enrollment_api.h"
 #include "esp_log.h"
 
 MACAddress_t xlocalMACAddress = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
