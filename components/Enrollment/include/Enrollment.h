@@ -39,7 +39,7 @@ typedef struct xNEIGHBOR_INFO
     address_t xNeighborAddress;
 
     /*List Item to add into the Neighbor List*/
-    ListItem_t xNeighborItem;
+    RsListItem_t xNeighborItem;
 
     /*Token*/
     string_t pcToken;
@@ -53,7 +53,7 @@ typedef struct xENROLLMENT_MESSAGE
 
     string_t pcSupportingDifs;
 
-    BaseType_t xStartEarly;
+    bool_t xStartEarly;
 
     string_t pcToken;
 
@@ -72,26 +72,8 @@ typedef struct xNEIGHBOR
 typedef struct xNEIGHBOR_ROW
 {
     neighborInfo_t *pxNeighborInfo;
-    BaseType_t xValid;
+    bool_t xValid;
 
 } neighborsTableRow_t;
-
-void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xPortId);
-
-BaseType_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
-                               string_t pcLocalApName, int invokeId, portId_t xN1Port);
-
-BaseType_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t pcRemoteProcessName, portId_t xN1Port);
-BaseType_t xEnrollmentHandleStartR(string_t pcRemoteApName, serObjectValue_t *pxSerObjValue);
-BaseType_t xEnrollmentHandleStopR(string_t pcRemoteApName);
-
-BaseType_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
-                                 serObjectValue_t *pxObjValue, string_t pcRemoteApName,
-                                 string_t pcLocalProcessName, int invokeId, portId_t xN1Port);
-
-BaseType_t xEnrollmentHandleOperationalStart(struct ribObject_t *pxOperRibObj, serObjectValue_t *pxSerObjectValue, string_t pcRemoteApName,
-                                             string_t pxLocalApName, int invokeId, portId_t xN1Port);
-
-address_t xEnrollmentGetNeighborAddress(string_t pcRemoteApName);
 
 #endif /* ENROLLMENT_H_ */

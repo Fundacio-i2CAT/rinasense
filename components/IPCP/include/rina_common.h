@@ -21,13 +21,6 @@
     const typeof( ((type *)0)->member ) *__mptr = (ptr); \
     (type *)( (char *)__mptr - offsetof(type,member) ); })
 
-typedef struct xCONNECTION_ID
-{
-        qosId_t xQosId;       /**< QoS Id  3 + 1 = 4 */
-        cepId_t xDestination; /**< Cep Id Dest 4 + 1 = 5 */
-        cepId_t xSource;      /**< Cep Id Source  5 + 1 = 6 */
-} connectionId_t;
-
 typedef struct xRMT_CONFIG
 {
         /* The PS name for the RMT */
@@ -101,14 +94,6 @@ enum eFLOW_EVENT
 
 };
 
-typedef struct xAUTH_POLICY
-{
-        string_t pcName;
-        string_t pcVersion;
-        uint8_t ucAbsSyntax;
-
-} authPolicy_t;
-
 // name_t *xRinaNameCreate(void);
 
 // BaseType_t xRinaNameFromString(const string_t pcString, name_t *xName);
@@ -119,7 +104,5 @@ typedef struct xAUTH_POLICY
 // name_t *xRINAstringToName(codownnst string_t *pxInput);
 
 void memcheck(void);
-
-int get_next_invoke_id(void);
 
 #endif /* COMPONENTS_IPCP_INCLUDE_COMMON_H_ */

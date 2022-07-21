@@ -4,14 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-
 /* RINA includes. */
-#include "rina_common.h"
+#include "rina_common_port.h"
 #include "configSensor.h"
 #include "configRINA.h"
 #include "Ribd.h"
@@ -24,8 +18,6 @@
 #include "FlowMessage.pb.h"
 #include "FlowAllocator.h"
 
-#include "esp_log.h"
-
 /**
  * @brief Encode a Enrollment message and return the serialized object value to be
  * added into the CDAP message
@@ -35,7 +27,7 @@
  */
 serObjectValue_t *pxSerdesMsgEnrollmentEncode(enrollmentMessage_t *pxMsg)
 {
-    BaseType_t status;
+    bool_t status;
     rina_messages_enrollmentInformation_t enrollMsg = rina_messages_enrollmentInformation_t_init_zero;
 
     /*adding the address msg struct*/
@@ -47,7 +39,7 @@ serObjectValue_t *pxSerdesMsgEnrollmentEncode(enrollmentMessage_t *pxMsg)
     }
 
     // Allocate space on the stack to store the message data.
-    void *pvBuffer = pvPortMalloc(MTU);
+    void *pvBuffer = pvRsMemAlloc(MTU);
     int maxLength = MTU;
 
     // Create a stream that writes to our buffer.
@@ -59,11 +51,11 @@ serObjectValue_t *pxSerdesMsgEnrollmentEncode(enrollmentMessage_t *pxMsg)
     // Check for errors...
     if (!status)
     {
-        ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return NULL;
     }
 
-    serObjectValue_t *pxSerMsg = pvPortMalloc(sizeof(*pxSerMsg));
+    serObjectValue_t *pxSerMsg = pvRsMemAlloc(sizeof(*pxSerMsg));
     pxSerMsg->pvSerBuffer = pvBuffer;
     pxSerMsg->xSerLength = stream.bytes_written;
 
@@ -73,7 +65,7 @@ serObjectValue_t *pxSerdesMsgEnrollmentEncode(enrollmentMessage_t *pxMsg)
 static enrollmentMessage_t *prvSerdesMsgDecodeEnrollment(rina_messages_enrollmentInformation_t message)
 {
     enrollmentMessage_t *pxMsg;
-    pxMsg = pvPortMalloc(sizeof(*pxMsg));
+    pxMsg = pvRsMemAlloc(sizeof(*pxMsg));
 
     if (message.has_address)
     {
@@ -89,8 +81,7 @@ static enrollmentMessage_t *prvSerdesMsgDecodeEnrollment(rina_messages_enrollmen
 
 enrollmentMessage_t *pxSerdesMsgEnrollmentDecode(uint8_t *pucBuffer, size_t xMessageLength)
 {
-
-    BaseType_t status;
+    bool_t status;
 
     /*Allocate space for the decode message data*/
     rina_messages_enrollmentInformation_t message = rina_messages_enrollmentInformation_t_init_zero;
@@ -102,7 +93,7 @@ enrollmentMessage_t *pxSerdesMsgEnrollmentDecode(uint8_t *pucBuffer, size_t xMes
 
     if (!status)
     {
-        ESP_LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
+        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
 
@@ -120,7 +111,7 @@ static neighborMessage_t *prvSerdesMsgDecodeNeighbor(rina_messages_neighbor_t me
 {
     neighborMessage_t *pxMessage;
 
-    pxMessage = pvPortMalloc(sizeof(*pxMessage));
+    pxMessage = pvRsMemAlloc(sizeof(*pxMessage));
 
     if (message.has_apname)
     {
@@ -152,8 +143,7 @@ static neighborMessage_t *prvSerdesMsgDecodeNeighbor(rina_messages_neighbor_t me
 
 neighborMessage_t *pxserdesMsgDecodeNeighbor(uint8_t *pucBuffer, size_t xMessageLength)
 {
-
-    BaseType_t status;
+    bool_t status;
 
     /*Allocate space for the decode message data*/
     rina_messages_neighbor_t message = rina_messages_neighbor_t_init_zero;
@@ -165,7 +155,7 @@ neighborMessage_t *pxserdesMsgDecodeNeighbor(uint8_t *pucBuffer, size_t xMessage
 
     if (!status)
     {
-        ESP_LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
+        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
 
@@ -199,9 +189,10 @@ static rina_messages_neighbor_t prvSerdesMsgEncodeNeighbor(neighborMessage_t *px
 
     return message;
 }
+
 serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMessage)
 {
-    BaseType_t status;
+    bool_t status;
     rina_messages_neighbor_t message = rina_messages_neighbor_t_init_zero;
 
     if (pxMessage->pcAeInstance)
@@ -225,7 +216,7 @@ serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMessage)
         message.has_apname = true;
     }
     // Allocate space on the stack to store the message data.
-    void *pvBuffer = pvPortMalloc(MTU);
+    void *pvBuffer = pvRsMemAlloc(MTU);
     int maxLength = MTU;
 
     // Create a stream that writes to our buffer.
@@ -237,11 +228,11 @@ serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMessage)
     // Check for errors...
     if (!status)
     {
-        ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return NULL;
     }
 
-    serObjectValue_t *pxSerMsg = pvPortMalloc(sizeof(*pxSerMsg));
+    serObjectValue_t *pxSerMsg = pvRsMemAlloc(sizeof(*pxSerMsg));
     pxSerMsg->pvSerBuffer = pvBuffer;
     pxSerMsg->xSerLength = stream.bytes_written;
 
@@ -293,22 +284,40 @@ static rina_messages_Flow prvSerdesMsgEncodeFlow(flow_t *pxMsg)
 
 serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 {
-    ESP_LOGI(TAG_RIB, "Calling: %s", __func__);
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
-    BaseType_t status;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+    LOGI(TAG_RIB, "Calling: %s", __func__);
+
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
+
+    bool_t status;
+
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
+
     rina_messages_Flow message = rina_messages_Flow_init_zero;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
+
     // Allocate space on the stack to store the message data.
     uint8_t *pucBuffer[1500];
     int maxLength = MTU;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
     if (!pxMsg)
     {
-        ESP_LOGE(TAG_RIB, "No flow message to be sended");
+        LOGE(TAG_RIB, "No flow message to be sended");
         return NULL;
     }
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
+
     // Fill required attributes
     strcpy(message.sourceNamingInfo.applicationProcessName, pxMsg->pxSourceInfo->pcProcessName);
     strcpy(message.destinationNamingInfo.applicationProcessName, pxMsg->pxDestInfo->pcProcessName);
@@ -347,25 +356,45 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 
     message.dtpConfig.dtcpPresent = pxMsg->pxDtpConfig->xDtcpPresent;
     message.dtpConfig.has_dtcpPresent = true;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
+
     // Create a stream that writes to our buffer.
     pb_ostream_t stream = pb_ostream_from_buffer((pb_byte_t *)pucBuffer, sizeof(pucBuffer));
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
+
     // Now we are ready to encode the message.
     status = pb_encode(&stream, rina_messages_Flow_fields, &message);
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
+
     // Check for errors...
     if (!status)
     {
-        ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return NULL;
     }
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
-    serObjectValue_t *pxSerValue = pvPortMalloc(sizeof(*pxSerValue));
+
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
+
+    serObjectValue_t *pxSerValue = pvRsMemAlloc(sizeof(*pxSerValue));
     pxSerValue->pvSerBuffer = pucBuffer;
     pxSerValue->xSerLength = stream.bytes_written;
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
-    ESP_LOGE(TAG_ENROLLMENT, "Encoding Flow Message ok");
+
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
+
+    LOGE(TAG_ENROLLMENT, "Encoding Flow Message ok");
 
     return pxSerValue;
 }

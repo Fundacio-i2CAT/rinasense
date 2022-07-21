@@ -1,12 +1,12 @@
-
+#ifndef _RIBD_H_INCLUDED
+#define _RIBD_H_INCLUDED
 
 /*Move to configurations RINA*/
 
-#include "Enrollment.h"
 #include "Rib.h"
 #include "IPCP_normal_defs.h"
 #include "rina_name.h"
-#include "rina_common.h"
+#include "rina_common_port.h"
 
 typedef enum
 {
@@ -56,7 +56,7 @@ typedef struct xAPP_CONNECTION_ROW
 {
     appConnection_t *pxAppConnection;
     portId_t xN1portId;
-    BaseType_t xValid;
+    bool_t xValid;
 
 } appConnectionTableRow_t;
 
@@ -64,7 +64,7 @@ typedef struct xRESPONSE_HANDLER_ROW
 {
     int32_t invokeID;
     struct ribCallbackOps_t *pxCallbackHandler;
-    BaseType_t xValid;
+    bool_t xValid;
 
 } responseHandlersRow_t;
 
@@ -107,15 +107,17 @@ typedef struct xMESSAGE_CDAP
 
 } messageCdap_t;
 
-BaseType_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth);
-BaseType_t xRibdDisconnectToIpcp(portId_t xN1flowPortId);
-BaseType_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
-BaseType_t xRibdSendRequest(struct ipcpNormalData_t *pxIpcpData, string_t pcObjClass, string_t pcObjName, long objInst,
-                            opCode_t eOpCode, portId_t xN1flowPortId, serObjectValue_t *pxObjVal);
+bool_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth);
+bool_t xRibdDisconnectToIpcp(portId_t xN1flowPortId);
+bool_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
+bool_t xRibdSendRequest(struct ipcpNormalData_t *pxIpcpData, string_t pcObjClass, string_t pcObjName, long objInst,
+                        opCode_t eOpCode, portId_t xN1flowPortId, serObjectValue_t *pxObjVal);
 
-BaseType_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objInst,
-                             int result, string_t pcResultReason,
-                             opCode_t eOpCode, int invokeId, portId_t xN1Port,
-                             serObjectValue_t *pxObjVal);
+bool_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objInst,
+                         int result, string_t pcResultReason,
+                         opCode_t eOpCode, int invokeId, portId_t xN1Port,
+                         serObjectValue_t *pxObjVal);
 
-BaseType_t xTest(void);
+bool_t xTest(void);
+
+#endif // _RIBD_H_INCLUDED

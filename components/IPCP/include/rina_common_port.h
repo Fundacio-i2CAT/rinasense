@@ -191,4 +191,21 @@ typedef struct xEFCP_CONFIG
 
 } efcpConfig_t;
 
+typedef struct xAUTH_POLICY
+{
+        string_t pcName;
+        string_t pcVersion;
+        uint8_t ucAbsSyntax;
+
+} authPolicy_t;
+
+typedef struct xCONNECTION_ID
+{
+        qosId_t xQosId;       /**< QoS Id  3 + 1 = 4 */
+        cepId_t xDestination; /**< Cep Id Dest 4 + 1 = 5 */
+        cepId_t xSource;      /**< Cep Id Source  5 + 1 = 6 */
+} connectionId_t;
+
+int get_next_invoke_id(void);
+
 #endif // _COMPONENTS_IPCP_INCLUDE_COMMON_PORT_H#

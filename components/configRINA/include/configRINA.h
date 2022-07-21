@@ -42,8 +42,8 @@
 	/**** QoS CUBES ****/
 	#define QoS_CUBE_NAME 							"unreliable"
 	#define QoS_CUBE_ID								( 3 )
-	#define QoS_CUBE_PARTIAL_DELIVERY				pdFALSE
-	#define QoS_CUBE_ORDERED_DELIVERY				pdTRUE
+	#define QoS_CUBE_PARTIAL_DELIVERY				false
+	#define QoS_CUBE_ORDERED_DELIVERY				true
 
 	/**** EFCP POLICIES ****/
 	/* DTP POLICY SET */
@@ -51,6 +51,6 @@
 	#define DTP_POLICY_SET_VERSION					"0"
 
 	#define DTP_INITIAL_A_TIMER						( 300 )
-	#define DTP_DTCP_PRESENT						pdFALSE
+	#define DTP_DTCP_PRESENT						false
 		
 #endif
