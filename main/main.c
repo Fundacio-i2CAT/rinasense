@@ -34,6 +34,7 @@ void app_main(void)
 	char json[200];
 	float Humidity;
 	float Temperature;
+	char buffer[500];
 
 	gpio_set_pull_mode(GPIO_NUM_4, GPIO_PULLUP_ONLY);
 	vTaskDelay(1000);
@@ -64,6 +65,11 @@ void app_main(void)
 			if (RINA_flow_write(xAppPortId, (void *)json, strlen(json)))
 			{
 				ESP_LOGI(TAG_APP, "Sent Data successfully");
+			}
+
+			if (RINA_flow_read(xAppPortId, (void *)buffer, sizeof(buffer)))
+			{
+				ESP_LOGI(TAG_APP, "Receive data");
 			}
 
 			vTaskDelay(8000 / portTICK_RATE_MS);

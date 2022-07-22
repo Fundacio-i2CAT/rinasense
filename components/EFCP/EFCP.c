@@ -23,6 +23,7 @@
 #include "configSensor.h"
 #include "configRINA.h"
 #include "cepidm.h"
+#include "FlowAllocator.h"
 
 #include "esp_log.h"
 
@@ -376,15 +377,15 @@ BaseType_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, struct du_t *pxDu
         // struct delim_ps * delim_ps = NULL;
         // struct du_list_item * next_du = NULL;
 
-        if (!pxEfcp->pxUserIpcp)
+        if (!pxEfcp)
         {
                 ESP_LOGE(TAG_EFCP, "Flow is being deallocated, dropping SDU");
                 xDuDestroy(pxDu);
                 return pdFALSE;
         }
 
-#if 0
         /* Reassembly goes here */
+#if 0
         if (pxEfcp->pxDelim) {
 		delim_ps = container_of(rcu_dereference(efcp->delim->base.ps),
 						        struct delim_ps,
@@ -411,14 +412,13 @@ BaseType_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, struct du_t *pxDu
 
 		return pdTRUE;
         }
-
-        if (efcp->user_ipcp->ops->du_enqueue(efcp->user_ipcp->data,
-                                             port,
-                                             du)) {
-                ESP_LOGE(TAG_EFCP,"Upper ipcp could not enqueue sdu to port: %d", port);
-                return -1;
-        }
 #endif
+        if (xFlowAllocatorDuPost(xPort, pxDu))
+        {
+                ESP_LOGE(TAG_EFCP, "Upper ipcp could not enqueue sdu to port: %d", xPort);
+                return pdFALSE;
+        }
+
         return pdTRUE;
 }
 
@@ -900,67 +900,3 @@ BaseType_t xEfcpImapRemove(cepId_t xCepId)
 
         return pdTRUE;
 }
-#if 0
-int efcp_connection_destroy(struct efcp_container *container,
-                            cep_id_t id)
-{
-        struct efcp *efcp;
-        int retval;
-
-        LOG_DBG("EFCP connection destroy called");
-
-        /* FIXME: should wait 3*delta-t before destroying the connection */
-
-        if (!container)
-        {
-                LOG_ERR("Bogus container passed, bailing out");
-                return -1;
-        }
-        if (!is_cep_id_ok(id))
-        {
-                LOG_ERR("Bad cep-id, cannot destroy connection");
-                return -1;
-        }
-
-        spin_lock_bh(&container->lock);
-        efcp = efcp_imap_find(container->instances, id);
-        if (!efcp)
-        {
-                spin_unlock_bh(&container->lock);
-                LOG_ERR("Cannot find instance %d in container %pK",
-                        id, container);
-                return -1;
-        }
-
-        if (efcp_imap_remove(container->instances, id))
-        {
-                spin_unlock_bh(&container->lock);
-                LOG_ERR("Cannot remove instance %d from container %pK",
-                        id, container);
-                return -1;
-        }
-        efcp->state = EFCP_DEALLOCATED;
-        if (atomic_read(&efcp->pending_ops) != 0)
-        {
-                spin_unlock_bh(&container->lock);
-                retval = wait_event_interruptible(container->del_wq,
-                                                  atomic_read(&efcp->pending_ops) == 0 &&
-                                                      efcp->state == EFCP_DEALLOCATED);
-                if (retval != 0)
-                        LOG_ERR("EFCP destroy even interrupted (%d)", retval);
-                if (efcp_destroy(efcp))
-                {
-                        LOG_ERR("Cannot destroy instance %d, instance lost", id);
-                        return -1;
-                }
-                return 0;
-        }
-        spin_unlock_bh(&container->lock);
-        if (efcp_destroy(efcp))
-        {
-                LOG_ERR("Cannot destroy instance %d, instance lost", id);
-                return -1;
-        }
-        return 0;
-}
-#endif

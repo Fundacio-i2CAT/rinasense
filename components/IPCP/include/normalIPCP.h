@@ -62,8 +62,7 @@ BaseType_t xNormalRegistering(ipcpInstance_t *pxShimInstance, name_t *pxDifName,
 
 BaseType_t xNormalFlowAllocationRequest(struct ipcpInstance_t *pxInstanceFrom, struct ipcpInstance_t *pxInstanceTo, portId_t xShimPortId);
 
-BaseType_t xNormalFlowPrebind(struct ipcpNormalData_t *pxData,
-                              portId_t xPortId);
+BaseType_t xNormalFlowPrebind(struct ipcpNormalData_t *pxData, flowAllocateHandle_t *pxFlowHandle);
 
 BaseType_t xNormalMgmtDuWrite(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu);
 

@@ -469,3 +469,108 @@ BaseType_t RINA_close(portId_t xAppPortId)
 
     return xResult;
 }
+
+int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength)
+{
+
+    ESP_LOGE(TAG_RINA, "RINA_flow_read");
+
+    BaseType_t xPacketCount;
+    const void *pvCopySource; // to copy data from networkBuffer to pvBuffer
+    NetworkBufferDescriptor_t *pxNetworkBuffer;
+    flowAllocateHandle_t *pxFlowHandle;
+    TickType_t xRemainingTime = (TickType_t)0;
+    BaseType_t xTimed = pdFALSE;
+    TimeOut_t xTimeOut;
+    int32_t lDataLength;
+    EventBits_t xEventBits = (EventBits_t)0;
+    size_t uxPayloadLength;
+
+    // Validate if the flow is valid, if the xPortId is working status CONNECTED
+    if (RINA_flowStatus(xPortId) != 1)
+    {
+        ESP_LOGE(TAG_RINA, "There is not a flow allocated for that port Id");
+        return 0;
+    }
+    else
+    {
+        // find the flow handle associated to the xPortId.
+        pxFlowHandle = pxFAFindFlowHandle(xPortId);
+
+        xPacketCount = (BaseType_t)listCURRENT_LIST_LENGTH(&(pxFlowHandle->xListWaitingPackets));
+
+        while (xPacketCount == 0)
+        {
+            if (xTimed == pdFALSE)
+            {
+                /* Check to see if the flow is non blocking on the first
+                 * iteration.  */
+                xRemainingTime = pxFlowHandle->xReceiveBlockTime;
+
+                if (xRemainingTime == (TickType_t)0)
+                {
+
+                    /*check for the interrupt flag. */
+
+                    break;
+                }
+
+                /* To ensure this part only executes once. */
+                xTimed = pdTRUE;
+
+                /* Fetch the current time. */
+                vTaskSetTimeOutState(&xTimeOut);
+            }
+
+            /* Wait for arrival of data.  While waiting, the IP-task may set the
+             * 'eSOCKET_RECEIVE' bit in 'xEventGroup', if it receives data for this
+             * socket, thus unblocking this API call. */
+            xEventBits = xEventGroupWaitBits(pxFlowHandle->xEventGroup, ((EventBits_t)eFLOW_RECEIVE),
+                                             pdTRUE /*xClearOnExit*/, pdFALSE /*xWaitAllBits*/, xRemainingTime);
+
+            {
+                (void)xEventBits;
+            }
+
+            xPacketCount = (BaseType_t)listCURRENT_LIST_LENGTH(&(pxFlowHandle->xListWaitingPackets));
+
+            if (xPacketCount != 0)
+            {
+                break;
+            }
+
+            /* Has the timeout been reached ? */
+            if (xTaskCheckForTimeOut(&xTimeOut, &xRemainingTime) != pdFALSE)
+            {
+                break;
+            }
+        } /* End while */
+
+        if (xPacketCount != 0)
+        {
+            // taskENTER_CRITICAL();
+            {
+                /* The owner of the list item is the network buffer. */
+                pxNetworkBuffer = ((NetworkBufferDescriptor_t *)listGET_OWNER_OF_HEAD_ENTRY(&(pxFlowHandle->xListWaitingPackets)));
+            }
+            // taskEXIT_CRITICAL();
+
+            lDataLength = (int32_t)pxNetworkBuffer->xDataLength;
+
+            /* Copy the received data into the provided buffer, then release the
+             * network buffer. */
+            pvCopySource = (const void *)&pxNetworkBuffer->pucDataBuffer;
+            (void)memcpy(pvBuffer, pvCopySource, (size_t)lDataLength);
+
+            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+        }
+
+        else
+        {
+            ESP_LOGE(TAG_RINA, "TError Timeout");
+            lDataLength = -1;
+        }
+    }
+
+    return lDataLength;
+}

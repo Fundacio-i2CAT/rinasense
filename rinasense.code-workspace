@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.c": "c",
+			"rmt.h": "c",
+			"ipcp.h": "c",
+			"wifi.h": "c",
+			"esp_log.h": "c",
+			"normalipcp.h": "c",
+			"array": "c",
+			"string_view": "c",
+			"initializer_list": "c",
+			"utility": "c",
+			"queue.h": "c",
+			"freertos.h": "c",
+			"*.ipp": "c",
+			"thread": "c"
+		}
+	}
+}

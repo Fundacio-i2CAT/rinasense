@@ -33,6 +33,7 @@ struct rinaFlowSpec_t
     uint8_t msg_boundaries;    /* boolean */
 };
 
+/*Handle of flow to be allocated or already allocated in the IPCP from the APP*/
 typedef struct xFLOW_ALLOCATE_HANDLE
 {
 
@@ -47,6 +48,7 @@ typedef struct xFLOW_ALLOCATE_HANDLE
     name_t *pxRemote;
     name_t *pxDifName;
     struct flowSpec_t *pxFspec;
+    List_t xListWaitingPackets; /* List of packets received */
 
 } flowAllocateHandle_t;
 

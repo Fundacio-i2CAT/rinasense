@@ -336,7 +336,6 @@ struct efcpContainer_t
 
 struct efcp_t
 {
-
         connection_t *pxConnection;
         ipcpInstance_t *pxUserIpcp; // IPCP NORMAL
         dtp_t *pxDtp;               // implement in EFCP Component

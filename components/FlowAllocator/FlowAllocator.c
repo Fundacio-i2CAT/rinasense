@@ -26,7 +26,7 @@
 #include "RINA_API.h"
 #include "IPCP.h"
 #include "normalIPCP.h"
-#include "EFCP.h"
+#include "du.h"
 
 #include "esp_log.h"
 
@@ -47,6 +47,45 @@ void prvAddFlowRequestEntry(flowAllocatorInstance_t *pxFAI)
             break;
         }
     }
+}
+
+flowAllocateHandle_t *pxFAFindInstance(portId_t xPortId)
+{
+    BaseType_t x = 0;
+    flowAllocatorInstance_t *pxFAI;
+
+    for (x = 0; x < FLOWS_REQUEST; x++)
+    {
+        if (xFlowRequestTable[x].xValid == pdTRUE)
+        {
+            pxFAI = xFlowRequestTable->pxFAI;
+            if (pxFAI->xPortId == xPortId) // ad xPortId
+            {
+                return pxFAI;
+            }
+        }
+    }
+    return NULL;
+}
+flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId)
+{
+    BaseType_t x = 0;
+    flowAllocatorInstance_t *pxFAI;
+    flowAllocateHandle_t *pxFlowAllocateRequest;
+
+    for (x = 0; x < FLOWS_REQUEST; x++)
+    {
+        if (xFlowRequestTable[x].xValid == pdTRUE)
+        {
+            pxFAI = xFlowRequestTable->pxFAI;
+            if (pxFAI->xPortId == xPortId) // ad xPortId
+            {
+
+                return pxFAI->pxFlowAllocatorHandle;
+            }
+        }
+    }
+    return NULL;
 }
 
 flowAllocateHandle_t *prvGetPendingFlowRequest(portId_t xPortId)
@@ -132,9 +171,8 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
     pxFlow->xSourceAddress = LOCAL_ADDRESS;
     pxFlow->ulCurrentConnectionId = 0;
 
-
-        /* Select QoS Cube based on the FlowSpec Required */
-        pxFlow->pxQosSpec = prvFlowAllocatorSelectQoSCube();
+    /* Select QoS Cube based on the FlowSpec Required */
+    pxFlow->pxQosSpec = prvFlowAllocatorSelectQoSCube();
 
     /* Fulfill the DTP_config and the DTCP_config based on the QoSCube*/
 
@@ -331,4 +369,58 @@ void vFlowAllocatorDeallocate(portId_t xAppPortId)
     }
 
     // Find Flow and move to deallocate status.
+}
+
+BaseType_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
+{
+    flowAllocatorInstance_t *pxFlowAllocatorInstance;
+    NetworkBufferDescriptor_t *pxNetworkBuffer;
+
+    if (!xDuIsOk(pxDu) || !is_port_id_ok(xAppPortId))
+    {
+        ESP_LOGE(TAG_FA, "Bogus Network Buffer passed, cannot post SDU");
+        xDuDestroy(pxDu);
+        return pdFALSE;
+    }
+    pxFlowAllocatorInstance = pxFAFindInstance(xAppPortId);
+    if (!pxFlowAllocatorInstance)
+    {
+        ESP_LOGE(TAG_FA, "Flow Allocator instance was not founded");
+        xDuDestroy(pxDu);
+        return pdFALSE;
+    }
+
+    ESP_LOGE(TAG_FA, "Posting DU to port-id %d ", xAppPortId);
+
+    pxNetworkBuffer = pxDu->pxNetworkBuffer;
+
+    if (pxFlowAllocatorInstance->eFaiState != eFAI_ALLOCATED)
+    {
+        ESP_LOGE(TAG_FA, "Flow with port-id %d is not allocated", xAppPortId);
+        xDuDestroy(pxDu);
+        return pdFALSE;
+    }
+
+    // put pxDu into the list of the flow, then.
+    // wakeup client setting bits
+
+    vTaskSuspendAll();
+    {
+        // taskENTER_CRITICAL();
+        //{
+        /* Add the network packet to the list of packets to be
+         * processed by the socket. */
+        vListInsertEnd(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxNetworkBuffer->xBufferListItem));
+        //}
+        // taskEXIT_CRITICAL();
+    }
+    (void)xTaskResumeAll();
+
+    /* Set the socket's receive event */
+    if (pxFlowAllocatorInstance->pxFlowAllocatorHandle->xEventBits != NULL)
+    {
+        (void)xEventGroupSetBits(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xEventGroup, (EventBits_t)eFLOW_RECEIVE);
+    }
+
+    return pdTRUE;
 }

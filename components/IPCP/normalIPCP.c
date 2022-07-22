@@ -36,7 +36,7 @@ struct normalFlow_t
         cepId_t xActive;
         List_t xCepIdsList;
         eNormalFlowState_t eState;
-        ipcpInstance_t *pxUserIpcp;
+        flowAllocateHandle_t *pxFlowHandle;
         ListItem_t xFlowListItem;
 };
 
@@ -239,12 +239,12 @@ BaseType_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
 }*/
 
 BaseType_t xNormalFlowPrebind(struct ipcpNormalData_t *pxData,
-                              portId_t xAppPortId)
+                              flowAllocateHandle_t *pxFlowHandle)
 {
 
         struct normalFlow_t *pxFlow;
 
-        ESP_LOGI(TAG_IPCPNORMAL, "Binding the flow with port id:%d", xAppPortId);
+        ESP_LOGI(TAG_IPCPNORMAL, "Binding the flow with port id:%d", pxFlowHandle->xPortId);
 
         if (!pxData)
         {
@@ -259,8 +259,9 @@ BaseType_t xNormalFlowPrebind(struct ipcpNormalData_t *pxData,
                 return pdFALSE;
         }
 
-        pxFlow->xPortId = xAppPortId;
+        pxFlow->xPortId = pxFlowHandle->xPortId;
         pxFlow->eState = ePORT_STATE_PENDING;
+        pxFlow->pxFlowHandle = pxFlowHandle;
 
         /*KFA should be the user. Implement this when the KFA is implemented*/
         // pxFlow->pxUserIpcp = kfa;

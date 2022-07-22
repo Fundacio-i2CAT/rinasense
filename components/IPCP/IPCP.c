@@ -296,7 +296,7 @@ static void prvIPCPTask(void *pvParameters)
 
             pxFlowAllocateRequest = ((flowAllocateHandle_t *)xReceivedEvent.pvData);
 
-            (void)xNormalFlowPrebind(pxIpcpData, pxFlowAllocateRequest->xPortId);
+            (void)xNormalFlowPrebind(pxIpcpData, pxFlowAllocateRequest);
 
             pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
 

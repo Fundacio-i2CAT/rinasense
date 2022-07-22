@@ -18,6 +18,8 @@
 #include "normalIPCP.h"
 #include "Rib.h"
 
+struct du_t;
+
 typedef enum
 {
     eFA_EMPTY,
@@ -135,5 +137,9 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
 void vFlowAllocatorDeallocate(portId_t xAppPortId);
 
 BaseType_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id);
+
+flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId);
+
+BaseType_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu);
 
 #endif
