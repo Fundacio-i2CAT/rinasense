@@ -13,6 +13,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+#include "Rib.h"
 #include "IPCP.h"
 #include "RINA_API.h"
 #include "IPCP_normal_defs.h"

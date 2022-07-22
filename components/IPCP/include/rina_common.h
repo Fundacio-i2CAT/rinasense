@@ -21,65 +21,6 @@
     const typeof( ((type *)0)->member ) *__mptr = (ptr); \
     (type *)( (char *)__mptr - offsetof(type,member) ); })
 
-struct flowSpec_t
-{
-        /* This structure defines the characteristics of a flow */
-
-        /* Average bandwidth in bytes/s */
-        uint32_t ulAverageBandwidth;
-
-        /* Average bandwidth in SDUs/s */
-        uint32_t ulAverageSduBandwidth;
-
-        /*
-         * In milliseconds, indicates the maximum delay allowed in this
-         * flow. A value of 0 indicates 'do not care'
-         */
-        uint32_t ulDelay;
-        /*
-         * In milliseconds, indicates the maximum jitter allowed
-         * in this flow. A value of 0 indicates 'do not care'
-         */
-        uint32_t ulJitter;
-
-        /*
-         * Indicates the maximum packet loss (loss/10000) allowed in this
-         * flow. A value of loss >=10000 indicates 'do not care'
-         */
-        uint16_t usLoss;
-
-        /*
-         * Indicates the maximum gap allowed among SDUs, a gap of N
-         * SDUs is considered the same as all SDUs delivered.
-         * A value of -1 indicates 'Any'
-         */
-        int32_t ulMaxAllowableGap;
-
-        /*
-         * The maximum SDU size for the flow. May influence the choice
-         * of the DIF where the flow will be created.
-         */
-        uint32_t ulMaxSduSize;
-
-        /* Indicates if SDUs have to be delivered in order */
-        BaseType_t xOrderedDelivery;
-
-        /* Indicates if partial delivery of SDUs is allowed or not */
-        BaseType_t xPartialDelivery;
-
-        /* In milliseconds */
-        uint32_t ulPeakBandwidthDuration;
-
-        /* In milliseconds */
-        uint32_t ulPeakSduBandwidthDuration;
-
-        /* A value of 0 indicates 'do not care' */
-        uint32_t ulUndetectedBitErrorRate;
-
-        /* Preserve message boundaries */
-        BaseType_t xMsgBoundaries;
-};
-
 typedef struct xCONNECTION_ID
 {
         qosId_t xQosId;       /**< QoS Id  3 + 1 = 4 */

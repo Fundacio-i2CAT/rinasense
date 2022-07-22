@@ -1,7 +1,6 @@
 #include "portability/port.h"
 
 #include "rmt.h"
-#include "IPCP.h"
 #include "rina_ids.h"
 
 bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData *pxData,
