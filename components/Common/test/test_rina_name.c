@@ -44,6 +44,20 @@ RS_TEST_CASE(RinaNameBreakdown, "[rina_name]")
     TEST_ASSERT(strcmp(n1.pcEntityInstance, "e4") == 0);
     vRstrNameFini(&n1);
 
+    TEST_ASSERT(xRinaNameFromString("e1|e2|e3|", &n1));
+    TEST_ASSERT(strcmp(n1.pcProcessName, "e1") == 0);
+    TEST_ASSERT(strcmp(n1.pcProcessInstance, "e2") == 0);
+    TEST_ASSERT(strcmp(n1.pcEntityName, "e3") == 0);
+    TEST_ASSERT(strcmp(n1.pcEntityInstance, "") == 0);
+    vRstrNameFini(&n1);
+
+    TEST_ASSERT(xRinaNameFromString("e1|e2|e3", &n1));
+    TEST_ASSERT(strcmp(n1.pcProcessName, "e1") == 0);
+    TEST_ASSERT(strcmp(n1.pcProcessInstance, "e2") == 0);
+    TEST_ASSERT(strcmp(n1.pcEntityName, "e3") == 0);
+    TEST_ASSERT(strcmp(n1.pcEntityInstance, "") == 0);
+    vRstrNameFini(&n1);
+
     RS_TEST_CASE_END(test_rina_name);
 }
 

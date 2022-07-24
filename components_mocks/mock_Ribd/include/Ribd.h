@@ -2,7 +2,7 @@
 #define _mock_RIBD_RIBD_H
 
 #include "rmt.h"
-#include "IPCP.h"
+#include "IPCP_instance.h"
 #include "rina_ids.h"
 
 bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData *pxData,

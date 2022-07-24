@@ -14,6 +14,7 @@
 //#include "IPCP.h"
 #include "IPCP_api.h"
 #include "IPCP_frames.h"
+#include "portability/rslog.h"
 #include "rina_gpha.h"
 #include "rina_name.h"
 
@@ -342,12 +343,16 @@ bool_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 
 		if (xIsCallingFromIPCPTask())
 		{
+            LOGI(TAG_ARP, "Sending ARP request directly to network interface");
+
 			/* Only the IPCP-task is allowed to call this function directly. */
 			(void)xNetworkInterfaceOutput(pxNetworkBuffer, true);
 		}
 		else
 		{
 			RINAStackEvent_t xSendEvent;
+
+            LOGI(TAG_ARP, "Sending ARP request to IPCP");
 
 			/* Send a message to the IPCP-task to send this ARP packet. */
 			xSendEvent.eEventType = eNetworkTxEvent;
@@ -359,14 +364,14 @@ bool_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 				vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 				return false;
 			}
-			LOGI(TAG_SHIM, "send by event\n");
 		}
 	}
 	else
 	{
-		LOGI(TAG_SHIM, "BufferNetwork Null\n");
+		LOGI(TAG_SHIM, "NetworkBuffer is NULL\n");
 		return false;
 	}
+
 	return true;
 }
 
