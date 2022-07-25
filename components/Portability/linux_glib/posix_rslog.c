@@ -17,7 +17,3 @@ void vRsLogWritev(RsLogLevel_t level, const char* tag, const char* format, va_li
     vprintf(format, args);
 }
 
-uint32_t ulRsLogTimestamp(void)
-{
-}
-
