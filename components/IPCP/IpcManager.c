@@ -23,7 +23,6 @@
 #include "num_mgr.h"
 #include "RINA_API_flows.h"
 #include "FlowAllocator.h"
-#include "FlowAllocator_api.h"
 
 /* Table to store instances created */
 static InstanceTableRow_t xInstanceTable[INSTANCES_IPCP_ENTRIES];
