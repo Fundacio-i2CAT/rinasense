@@ -16,14 +16,6 @@
 /* static analysis.                                          */
 /*-----------------------------------------------------------*/
 
-	#define offsetof(s,m) (size_t)&(((s *)0)->m
-
-	#define container_of(ptr, type, member)                        \
-	({                                                          \
-		const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
-		(type *)( (char *)__mptr - offsetof(type,member) );        \
-	})
-
  	#define portINLINE    inline
 
     #define CAST_PTR_TO_TYPE_PTR( TYPE, pointer )                ( vCastPointerTo_ ## TYPE( ( void * ) ( pointer ) ) )
