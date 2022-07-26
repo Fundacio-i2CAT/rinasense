@@ -35,6 +35,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   # Set all include path variables here so as to avoid circular
   # dependencies problem below.
   #
+  set(CdapProto_INCLUDES        "${CMAKE_CURRENT_SOURCE_DIR}/components/CdapProto/include")
   set(configSensor_INCLUDES     "${CMAKE_CURRENT_SOURCE_DIR}/components/configSensor/include")
   set(configRINA_INCLUDES       "${CMAKE_CURRENT_SOURCE_DIR}/components/configRINA/include")
   set(Common_INCLUDES           "${CMAKE_CURRENT_SOURCE_DIR}/components/Common/include")
@@ -48,6 +49,8 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   set(Rmt_INCLUDES              "${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/include")
   set(ShimIPCP_INCLUDES         "${CMAKE_CURRENT_SOURCE_DIR}/components/ShimIPCP/include")
   set(FlowAllocator_INCLUDES    "${CMAKE_CURRENT_SOURCE_DIR}/components/FlowAllocator/include")
+  set(Ribd_INCLUDES             "${CMAKE_CURRENT_SOURCE_DIR}/components/Ribd/include")
+  set(Enrollment_INCLUDES       "${CMAKE_CURRENT_SOURCE_DIR}/components/Enrollment/include")
 
   set(mock_IPCP_INCLUDES        "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_IPCP/include")
   set(mock_NetworkInterface_INCLUDES
@@ -121,6 +124,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${IPCP_INCLUDES}
     ${Rmt_INCLUDES}
     ${RINA_API_INCLUDES}
+    ${Ribd_INCLUDES}
   )
 
   file(GLOB mock_EFCP_SOURCES
@@ -137,6 +141,16 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${Rmt_INCLUDES}
     ${RINA_API_INCLUDES}
   )
+
+  #
+  # Component: CDAP
+  #
+  file(GLOB CdapProto_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/CdapProto/*.c"
+  )
+  add_library(CdapProto STATIC ${CdapProto_SOURCES})
+  target_include_directories(CdapProto PUBLIC ${CdapProto_INCLUDES})
+  set_target_properties(CdapProto PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
   #
   # Component: configSensor
@@ -296,13 +310,13 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   #
   set(IPCP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/IPCP")
   set(IPCP_TEST_DIR "${IPCP_DIR}/test")
-  set(IPCP_SOURCES "${IPCP_DIR}/IpcManager.c" "${IPCP_DIR}/normalIPCP.c")
+  set(IPCP_SOURCES "${IPCP_DIR}/IpcManager.c" "${IPCP_DIR}/normalIPCP.c" "${IPCP_DIR}/common.c")
   add_library(IPCP STATIC ${IPCP_SOURCES})
   target_include_directories(IPCP PUBLIC
-    # Temporary until we port FlowAllocator
+    # Temporary
     ${mock_IPCP_INCLUDES}
-    ${mock_FlowAllocator_INCLUDES}
     ${mock_Ribd_INCLUDES}
+    ${mock_FlowAllocator_INCLUDES}
 
     ${configSensor_INCLUDES}
     ${configRINA_INCLUDES}
@@ -316,6 +330,79 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${Portability_INCLUDES}
     ${Common_INCLUDES}
     ${RINA_API_INCLUDES}
+    ${Ribd_INCLUDES}
+  )
+
+  #
+  # Component: Ribd
+  #
+  set(Ribd_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/Ribd")
+  set(Ribd_TEST_DIR "${Ribd_DIR}/test")
+  file(GLOB Ribd_SOURCES "${Ribd_DIR}/*.c")
+  add_library(Ribd STATIC ${Ribd_SOURCES})
+  target_include_directories(Ribd PUBLIC
+    # Temporary
+    ${mock_IPCP_INCLUDES}
+
+    ${CdapProto_INCLUDES}
+    ${BufferManagement_INCLUDES}
+    ${configRINA_INCLUDES}
+    ${configSensor_INCLUDES}
+    ${IPCP_INCLUDES}
+    ${Ribd_INCLUDES}
+    ${Portability_INCLUDES}
+    ${Common_INCLUDES}
+    ${Enrollment_INCLUDES}
+    ${EFCP_INCLUDES}
+    ${Rmt_INCLUDES}
+    ${RINA_API_INCLUDES}
+    ${FlowAllocator_INCLUDES}
+  )
+  include("${Ribd_TEST_DIR}/CMakeLists.txt")
+
+  #
+  # Component: FlowAllocator
+  #
+  file(GLOB FlowAllocator_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/FlowAllocator/*.c"
+  )
+  add_library(FlowAllocator STATIC ${FlowAllocator_SOURCES})
+  target_include_directories(FlowAllocator PUBLIC
+    ${FlowAllocator_INCLUDES}
+    ${configSensor_INCLUDES}
+    ${configRINA_INCLUDES}
+    ${Common_INCLUDES}
+    ${Portability_INCLUDES}
+    ${EFCP_INCLUDES}
+    ${ARP826_INCLUDES}
+    ${CdapProto_INCLUDES}
+    ${Enrollment_INCLUDES}
+    ${IPCP_INCLUDES}
+    ${Ribd_INCLUDES}
+    ${RINA_API_INCLUDES}
+    ${Rmt_INCLUDES}
+  )
+
+  #
+  # Component: Enrollment
+  #
+  file(GLOB Enrollment_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/Enrollment/*.c"
+  )
+  add_library(Enrollment STATIC ${Enrollment_SOURCES})
+  target_include_directories(Enrollment PUBLIC
+    ${configSensor_INCLUDES}
+    ${configRINA_INCLUDES}
+    ${Common_INCLUDES}
+    ${Portability_INCLUDES}
+    ${ARP826_INCLUDES}
+    ${CdapProto_INCLUDES}
+    ${Enrollment_INCLUDES}
+    ${FlowAllocator_INCLUDES}
+    ${IPCP_INCLUDES}
+    ${Ribd_INCLUDES}
+    ${RINA_API_INCLUDES}
+    ${Rmt_INCLUDES}
   )
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h")

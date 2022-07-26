@@ -9,6 +9,7 @@ if(NOT $ENV{IDF_PATH} STREQUAL "")
     "Common"
     "Portability"
     "ShimIPCP"
+    "Ribd"
     CACHE STRING "List of components to test")
 
   # Include path for unity_config.h

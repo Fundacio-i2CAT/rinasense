@@ -1,9 +1,13 @@
-#ifndef _COMPONENTS_MOCKS_FLOWALLOCATOR_H
-#define _COMPONENTS_MOCKS_FLOWALLOCATOR_H
+#ifndef FLOW_ALLOCATOR_API_H_INCLUDED
+#define FLOW_ALLOCATOR_API_H_INCLUDED
+
+#include "FlowAllocator.h"
 
 void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc,
                                portId_t xPortId,
                                flowAllocateHandle_t *pxFlowRequest,
                                struct ipcpNormalData_t *pxIpcpData);
 
-#endif // _COMPONENTS_MOCKS_FLOWALLOCATOR_H
+bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
+
+#endif // FLOW_ALLOCATOR_H_INCLUDED
