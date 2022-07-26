@@ -5,7 +5,8 @@ idf_component_register(
 
 if("$ENV{USE_MOCKS}" STREQUAL "true")
   target_include_directories(${COMPONENT_LIB} BEFORE PUBLIC
-    "${CMAKE_SOURCE_DIR}/../components_mocks/mock_FlowAllocator/include"  
+    "${CMAKE_SOURCE_DIR}/../components_mocks/mock_FlowAllocator/include"
+    "${CMAKE_SOURCE_DIR}/../components_mocks/mock_Ribd/include"
   )
 endif()
 

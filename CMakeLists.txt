@@ -124,6 +124,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${IPCP_INCLUDES}
     ${Rmt_INCLUDES}
     ${RINA_API_INCLUDES}
+    ${Ribd_INCLUDES}
   )
 
   file(GLOB mock_EFCP_SOURCES
@@ -314,8 +315,8 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   target_include_directories(IPCP PUBLIC
     # Temporary
     ${mock_IPCP_INCLUDES}
-    ${mock_FlowAllocator_INCLUDES}
     ${mock_Ribd_INCLUDES}
+    ${mock_FlowAllocator_INCLUDES}
 
     ${configSensor_INCLUDES}
     ${configRINA_INCLUDES}
@@ -329,6 +330,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${Portability_INCLUDES}
     ${Common_INCLUDES}
     ${RINA_API_INCLUDES}
+    ${Ribd_INCLUDES}
   )
 
   #

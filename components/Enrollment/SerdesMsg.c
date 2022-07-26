@@ -9,6 +9,7 @@
 #include "configSensor.h"
 #include "configRINA.h"
 #include "Ribd.h"
+#include "Ribd_api.h"
 #include "Enrollment.h"
 #include "EnrollmentInformationMessage.pb.h"
 #include "NeighborMessage.pb.h"

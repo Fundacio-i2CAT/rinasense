@@ -20,6 +20,7 @@
 #include "pb_decode.h"
 #include "Rib.h"
 #include "Ribd.h"
+#include "Ribd_api.h"
 #include "rina_common_port.h"
 #include "RINA_API_flows.h"
 #include "SerdesMsg.h"

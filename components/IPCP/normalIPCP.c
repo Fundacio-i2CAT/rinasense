@@ -11,6 +11,7 @@
 #include "IpcManager.h"
 #include "BufferManagement.h"
 #include "Ribd.h"
+#include "Ribd_api.h"
 
 typedef enum eNormal_Flow_State
 {
