@@ -30,6 +30,8 @@
 
 #include "esp_log.h"
 
+static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+
 static FlowRequestRow_t xFlowRequestTable[FLOWS_REQUEST];
 
 void prvAddFlowRequestEntry(flowAllocatorInstance_t *pxFAI)
@@ -49,7 +51,7 @@ void prvAddFlowRequestEntry(flowAllocatorInstance_t *pxFAI)
     }
 }
 
-flowAllocateHandle_t *pxFAFindInstance(portId_t xPortId)
+flowAllocatorInstance_t *pxFAFindInstance(portId_t xPortId)
 {
     BaseType_t x = 0;
     flowAllocatorInstance_t *pxFAI;
@@ -299,7 +301,8 @@ void vFlowAllocatorFlowRequest(
 BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
 {
     portId_t xAppPortId;
-    flowAllocateHandle_t *pxFlowAllocateRequest;
+    flowAllocatorInstance_t *pxFAI;
+
     flow_t *pxFlow;
 
     if (pxSerObjValue == NULL)
@@ -320,11 +323,11 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
     if (!pxFlow)
         return pdFALSE;
 
-    pxFlowAllocateRequest = prvGetPendingFlowRequest(pxFlow->xDestinationPortId);
+    pxFAI = pxFAFindInstance(pxFlow->xDestinationPortId);
 
-    if (!pxFlowAllocateRequest)
+    if (!pxFAI)
     {
-        ESP_LOGE(TAG_FA, "Flow Allocate Request was not founded ");
+        ESP_LOGE(TAG_FA, "Flow Allocator Instance was not founded ");
         return pdFALSE;
     }
 
@@ -342,7 +345,14 @@ BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int resu
         ESP_LOGE(TAG_FA, "It was not possible to update the connection");
         return pdFALSE;
     }
+
+    pxFAI->eFaiState = eFAI_ALLOCATED;
     ESP_LOGI(TAG_FA, "Flow state updated to Allocated");
+
+    if (pxFAI->pxFlowAllocatorHandle->xEventBits != NULL)
+    {
+        (void)xEventGroupSetBits(pxFAI->pxFlowAllocatorHandle->xEventGroup, (EventBits_t)eFLOW_BOUND);
+    }
 
     return pdTRUE;
 }
@@ -401,18 +411,24 @@ BaseType_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
         return pdFALSE;
     }
 
+    vPrintBytes((void *)pxNetworkBuffer->pucDataBuffer, pxNetworkBuffer->xDataLength);
+
+    vPrintBytes((void *)pxDu->pxNetworkBuffer->pucDataBuffer, pxDu->pxNetworkBuffer->xDataLength);
+
     // put pxDu into the list of the flow, then.
     // wakeup client setting bits
 
     vTaskSuspendAll();
     {
-        // taskENTER_CRITICAL();
-        //{
-        /* Add the network packet to the list of packets to be
-         * processed by the socket. */
-        vListInsertEnd(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxNetworkBuffer->xBufferListItem));
-        //}
-        // taskEXIT_CRITICAL();
+        taskENTER_CRITICAL(&mux);
+        {
+            /* Add the network packet to the list of packets to be
+             * processed by the socket. */
+            vListInitialiseItem(&(pxNetworkBuffer->xBufferListItem));
+            listSET_LIST_ITEM_OWNER(&(pxNetworkBuffer->xBufferListItem), (void *)pxNetworkBuffer);
+            vListInsertEnd(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxNetworkBuffer->xBufferListItem));
+        }
+        taskEXIT_CRITICAL(&mux);
     }
     (void)xTaskResumeAll();
 

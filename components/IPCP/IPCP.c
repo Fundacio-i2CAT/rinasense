@@ -657,7 +657,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             // vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 
             // must be void function
-            vIpcManagerRINAPackettHandler(pxIpcpData, pxNetworkBuffer);
+            vIpcManagerRINAPackettHandler(pxIpcpData, pxNetworkBuffer); // must change
 
             break;
 

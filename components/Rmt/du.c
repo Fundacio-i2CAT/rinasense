@@ -124,17 +124,6 @@ size_t xDuLen(const struct du_t *pxDu)
 	return pxDu->pxNetworkBuffer->xRinaDataLength;
 }
 
-void print_bytes(void *ptr, int size)
-{
-	unsigned char *p = ptr;
-	int i;
-	for (i = 0; i < size; i++)
-	{
-		printf("%02hhX ", p[i]);
-	}
-	printf("\n");
-}
-
 BaseType_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 {
 	size_t uxPciLen;

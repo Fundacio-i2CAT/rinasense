@@ -347,7 +347,7 @@ static inline BaseType_t xDtpPduPost(dtp_t *pxDtpInstance, struct du_t *pxDu)
 
         pxEfcp = pxDtpInstance->pxEfcp;
 
-        if (xEfcpEnqueue(pxEfcp, pxEfcp->pxConnection->xPortId, pxDu))
+        if (!xEfcpEnqueue(pxEfcp, pxEfcp->pxConnection->xPortId, pxDu))
         {
                 ESP_LOGE(TAG_DTP, "Could not enqueue SDU to EFCP");
                 return pdFALSE;
@@ -547,45 +547,48 @@ BaseType_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
 
                 //       ringq_push(instance->to_post, pxDu);
                 xLWE = xSeqNum;
-        } /*else {
-                seq_queue_push_ni(instance->seqq->queue, du);
         }
 
-        while (are_there_pdus(instance->seqq->queue, LWE)) {
-                du = seq_queue_pop(instance->seqq->queue);
-                if (!du)
-                        break;+/
-                xSeqNum = pxDu->pxPci->xSequenceNumber;
-                xLWE     = xSeqNum;
-                instance->sv->rcv_left_window_edge = xSeqNum;
-                ringq_push(instance->to_post, du);
-        }
+        xDtpPduPost(pxDtpInstance, pxDu);
+        /*else {
+                 seq_queue_push_ni(instance->seqq->queue, du);
+         }
 
-        //spin_unlock_bh(&instance->sv_lock);
+         while (are_there_pdus(instance->seqq->queue, LWE)) {
+                 du = seq_queue_pop(instance->seqq->queue);
+                 if (!du)
+                         break;+/
+                 xSeqNum = pxDu->pxPci->xSequenceNumber;
+                 xLWE     = xSeqNum;
+                 instance->sv->rcv_left_window_edge = xSeqNum;
+                 ringq_push(instance->to_post, du);
+         }
 
-        if (dtcp) {
-                if (dtcp_sv_update(dtcp, &du->pci)) {
-                        LOG_ERR("Failed to update dtcp sv");
-                }
-        }
+         //spin_unlock_bh(&instance->sv_lock);
 
-        dtp_send_pending_ctrl_pdus(instance);
+         if (dtcp) {
+                 if (dtcp_sv_update(dtcp, &du->pci)) {
+                         LOG_ERR("Failed to update dtcp sv");
+                 }
+         }
 
-        if (list_empty(&instance->seqq->queue->head))
-                rtimer_stop(&instance->timers.a);
-        else
-                rtimer_start(&instance->timers.a, a/AF);
+         dtp_send_pending_ctrl_pdus(instance);
 
-        while (!ringq_is_empty(instance->to_post)) {
-                du = (struct du_t *) ringq_pop(instance->to_post);
-                if (du) {
-                        sbytes = du_data_len(du);
-                        pdu_post(instance, du);
-                        spin_lock_bh(&instance->sv_lock);
-                        stats_inc_bytes(rx, instance->sv, sbytes);
-                        spin_unlock_bh(&instance->sv_lock);
-                }
-        }*/
+         if (list_empty(&instance->seqq->queue->head))
+                 rtimer_stop(&instance->timers.a);
+         else
+                 rtimer_start(&instance->timers.a, a/AF);
+
+         while (!ringq_is_empty(instance->to_post)) {
+                 du = (struct du_t *) ringq_pop(instance->to_post);
+                 if (du) {
+                         sbytes = du_data_len(du);
+                         pdu_post(instance, du);
+                         spin_lock_bh(&instance->sv_lock);
+                         stats_inc_bytes(rx, instance->sv, sbytes);
+                         spin_unlock_bh(&instance->sv_lock);
+                 }
+         }*/
 
         ESP_LOGI(TAG_DTP, "DTP receive ended...");
 

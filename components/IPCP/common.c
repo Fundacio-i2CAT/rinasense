@@ -325,7 +325,19 @@ void memcheck(void)
         size = (i - 1) * blockSize;
 }
 
+void vPrintBytes(void *ptr, int size)
+{
+        unsigned char *p = ptr;
+        int i;
+        for (i = 0; i < size; i++)
+        {
+                printf("%02hhX ", p[i]);
+        }
+        printf("\n");
+}
+
 static int invoke_id = 1;
+
 int get_next_invoke_id(void)
 {
         return (invoke_id % INT_MAX == 0) ? (invoke_id = 1) : invoke_id++;

@@ -81,9 +81,9 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
                          struct rinaFlowSpec_t *xFlowSpec,
                          uint8_t Flags);
 
-BaseType_t RINA_flow_read(portId_t xPortId,
-                          void *pvBuffer,
-                          size_t uxBufferLength);
+int32_t RINA_flow_read(portId_t xPortId,
+                       void *pvBuffer,
+                       size_t uxBufferLength);
 size_t RINA_flow_write(portId_t xPortId,
                        void *pvBuffer,
                        size_t uxTotalDataLength);

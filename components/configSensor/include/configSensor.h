@@ -90,7 +90,7 @@
 
 #define IPCP_TASK_PRIORITY (configMAX_PRIORITIES - 2)
 
-#define IPCP_TASK_STACK_SIZE_WORDS (configMINIMAL_STACK_SIZE * 12)
+#define IPCP_TASK_STACK_SIZE_WORDS (configMINIMAL_STACK_SIZE * 14)
 
 /*********   Configure Shim Parameters  ************/
 /*TAG for Debugging*/

@@ -1100,7 +1100,7 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 	{
 		ESP_LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", pxNetworkBuffer, pxNetworkBuffer->xDataLength);
 		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-		return ESP_FAIL;
+		return pdFALSE;
 	}
 
 	ESP_LOGI(TAG_SHIM, "Data sent to the IPCP TAsk");

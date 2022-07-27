@@ -373,4 +373,6 @@ void memcheck(void);
 
 int get_next_invoke_id(void);
 
+void vPrintBytes(void *ptr, int size);
+
 #endif /* COMPONENTS_IPCP_INCLUDE_COMMON_H_ */

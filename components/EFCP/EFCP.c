@@ -413,7 +413,7 @@ BaseType_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, struct du_t *pxDu
 		return pdTRUE;
         }
 #endif
-        if (xFlowAllocatorDuPost(xPort, pxDu))
+        if (!xFlowAllocatorDuPost(xPort, pxDu))
         {
                 ESP_LOGE(TAG_EFCP, "Upper ipcp could not enqueue sdu to port: %d", xPort);
                 return pdFALSE;

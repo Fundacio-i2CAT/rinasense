@@ -347,7 +347,7 @@ BaseType_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portI
 		case PDU_TYPE_ACK_AND_FC:
 		case PDU_TYPE_RENDEZVOUS:
 		case PDU_TYPE_DT:
-			ESP_LOGE(TAG_RMT, "DT PDU!!!");
+			ESP_LOGI(TAG_RMT, "DT PDU!!!");
 			/*
 			 * (FUTURE)
 			 *

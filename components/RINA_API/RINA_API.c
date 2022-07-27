@@ -25,6 +25,8 @@
 #include "FlowAllocator.h"
 #include "normalIpcp.h"
 
+static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+
 struct appRegistration_t *RINA_application_register(string_t pcNameDif,
                                                     string_t pcLocalApp,
                                                     uint8_t Flags);
@@ -218,6 +220,8 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
             pxFlowAllocateRequest->pxFspec = pxFlowSpecTmp;
             pxFlowAllocateRequest->xPortId = xPortId;
 
+            vListInitialise(&pxFlowAllocateRequest->xListWaitingPackets);
+
             if (!xFlowSpec)
             {
                 pxFlowAllocateRequest->pxFspec->ulAverageBandwidth = 0;
@@ -370,17 +374,6 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
     return pxFlowAllocateRequest->xPortId;
 }
 
-void print_bytes2(void *ptr, int size)
-{
-    unsigned char *p = ptr;
-    int i;
-    for (i = 0; i < size; i++)
-    {
-        printf("%02hhX ", p[i]);
-    }
-    printf("\n");
-}
-
 size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength);
 size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength)
 {
@@ -473,8 +466,6 @@ BaseType_t RINA_close(portId_t xAppPortId)
 int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength)
 {
 
-    ESP_LOGE(TAG_RINA, "RINA_flow_read");
-
     BaseType_t xPacketCount;
     const void *pvCopySource; // to copy data from networkBuffer to pvBuffer
     NetworkBufferDescriptor_t *pxNetworkBuffer;
@@ -548,26 +539,27 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
 
         if (xPacketCount != 0)
         {
-            // taskENTER_CRITICAL();
+
+            taskENTER_CRITICAL(&mux);
             {
                 /* The owner of the list item is the network buffer. */
                 pxNetworkBuffer = ((NetworkBufferDescriptor_t *)listGET_OWNER_OF_HEAD_ENTRY(&(pxFlowHandle->xListWaitingPackets)));
             }
-            // taskEXIT_CRITICAL();
+            taskEXIT_CRITICAL(&mux);
 
             lDataLength = (int32_t)pxNetworkBuffer->xDataLength;
+            ESP_LOGD(TAG_RINA, "RINA_READ");
 
-            /* Copy the received data into the provided buffer, then release the
-             * network buffer. */
-            pvCopySource = (const void *)&pxNetworkBuffer->pucDataBuffer;
-            (void)memcpy(pvBuffer, pvCopySource, (size_t)lDataLength);
+            vPrintBytes((void *)pxNetworkBuffer->pucDataBuffer, lDataLength);
+
+            (void)memcpy(pvBuffer, (const void *)pxNetworkBuffer->pucDataBuffer, (size_t)lDataLength);
 
             vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
         }
 
         else
         {
-            ESP_LOGE(TAG_RINA, "TError Timeout");
+            ESP_LOGE(TAG_RINA, "Error Timeout");
             lDataLength = -1;
         }
     }
