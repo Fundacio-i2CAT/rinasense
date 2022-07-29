@@ -230,8 +230,10 @@ struct efcpContainer_t *pxEfcpContainerCreate(void)
 
         pxEfcpContainer = pvRsMemAlloc(sizeof(*pxEfcpContainer));
 
-        if (!pxEfcpContainer)
-                return NULL;
+        if (!pxEfcpContainer) {
+            LOGE(TAG_EFCP, "Failed to allocate memory for EFCP container object");
+            return NULL;
+        }
 
         pxEfcpContainer->pxCidm = pxNumMgrCreate(MAX_CEP_ID);
 
@@ -255,8 +257,10 @@ bool_t xEfcpContainerDestroy(struct efcpContainer_t * pxEfcpContainer)
         }
 
         if (pxEfcpContainer->pxEfcpImap)
-                xEfcpImapDestroy();
-        // if (pxEfcpContainer->pxCidm)       pxCepIdmDestroy(pxEfcpContainer->pxCidm);
+            xEfcpImapDestroy();
+
+        if (pxEfcpContainer->pxCidm)
+            vNumMgrDestroy(pxEfcpContainer->pxCidm);
 
         // if (pxEfcpContainer->pxConfig)     efcp_config_free(container->config);
 

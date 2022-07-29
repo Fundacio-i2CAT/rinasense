@@ -95,14 +95,14 @@ bool_t xShimEnrollToDIF(const MACAddress_t *pxPhyDev)
 {
 	LOGI(TAG_SHIM, "Enrolling to DIF");
 
-	// Initialization of WiFi interface
+	/* Initialization of WiFi interface */
 
 	if (xNetworkInterfaceInitialise(pxPhyDev))
 	{
-		/*Initialize ARP Cache*/
+		/* Initialize ARP Cache */
 		vARPInitCache();
 
-		/*Connect to remote point (WiFi AP)*/
+		/* Connect to remote point (WiFi AP) */
 		if (xNetworkInterfaceConnect())
 		{
 			LOGI(TAG_SHIM, "Enrolled To DIF %s", SHIM_DIF_NAME);
@@ -259,13 +259,13 @@ bool_t xShimFlowAllocateRequest(struct ipcpInstanceData_t *pxData,
  * @param xPortId
  * @return bool_t
  */
-bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData, struct ipcpInstance_t *pxUserIpcp, portId_t xPortId)
+bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData,
+                                 portId_t xPortId)
 
 {
 	RINAStackEvent_t xEnrollEvent = {eShimFlowAllocatedEvent, NULL};
 	shimFlow_t *pxFlow;
 	struct ipcpInstance_t *pxShimIpcp;
-    struct timespec ts;
 
 	LOGI(TAG_SHIM, "Generating a Flow Allocate Response for a pending request");
 
@@ -328,16 +328,11 @@ bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData, 
 	vARPPrintMACAddress(pxFlow->pxDestHa);
 	*/
 
-    if (!rstime_waitmsec(&ts, 250)) {
-        LOGE(TAG_SHIM, "rstime_waitmsec failed");
-        return false;
-    }
-
 	if (pxFlow->ePortIdState == eALLOCATED)
 	{
 		LOGI(TAG_SHIM, "Flow with id:%d was allocated", pxFlow->xPortId);
 		xEnrollEvent.pvData = xPortId;
-		xSendEventStructToIPCPTask(&xEnrollEvent, &ts);
+		xSendEventStructToIPCPTask(&xEnrollEvent, 250 * 1000);
 	}
 
 	return true;
@@ -663,7 +658,7 @@ static rfifo_t *prvShimCreateQueue(void)
 {
 	rfifo_t *xFifo = pvRsMemAlloc(sizeof(*xFifo));
 
-    xFifo->xQueue = pxRsQueueCreate("shim-queue", SIZE_SDU_QUEUE, sizeof(uint32_t));
+    xFifo->xQueue = pxRsQueueCreate("ShimIPCPQueue", SIZE_SDU_QUEUE, sizeof(uint32_t));
 
 	if (!xFifo->xQueue)
 	{
@@ -806,13 +801,7 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 	LOGI(TAG_SHIM, "SDUWrite: Encapsulating packet into Ethernet Frame");
 	/* Get a Network Buffer with size total ethernet + PDU size*/
 
-    if (!rstime_waitmsec(&ts, 250)) {
-        LOGE(TAG_SHIM, "rstime_waitmsec failed");
-        xDuDestroy(pxDu);
-        return false;
-    }
-
-	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxHeadLen + uxLength, &ts);
+	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxHeadLen + uxLength, 250 * 1000);
 
 	if (pxNetworkBuffer == NULL)
 	{
@@ -844,15 +833,9 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 
 	/* ReleaseBuffer, no need anymore that why pdTRUE here */
 
-    if (rstime_waitmsec(&ts, 250)) {
-        LOGE(TAG_WIFI, "rstime_waitmsec failed");
-        vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-        return false;
-    }
-
 	xTxEvent.pvData = (void *)pxNetworkBuffer;
 
-    if (xSendEventStructToIPCPTask(&xTxEvent, &ts) == false) {
+    if (xSendEventStructToIPCPTask(&xTxEvent, 250 * 1000) == false) {
         LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %u", pxNetworkBuffer, pxNetworkBuffer->xDataLength);
         vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
         return false;
@@ -999,26 +982,14 @@ void vShimWiFiInit(ipcpInstance_t *pxShimWiFiInstance)
 	 * Update de MacAddress variable depending on the WiFi drivers. Sent this variable
 	 * as event data to be used when the shimWiFi D(F will be created.*/
 
-	LOGI(TAG_SHIM, "SHIMWiFIInit");
+	LOGI(TAG_SHIM, "Wifi shim initialization");
 	RINAStackEvent_t xEnrollEvent = {eShimEnrolledEvent, NULL};
-    struct timespec ts;
 
 	if (!xShimEnrollToDIF(pxShimWiFiInstance->pxData->pxPhyDev))
-	{
-		LOGE(TAG_SHIM, "SHIM instance can't enroll to DIF");
-		return false;
-	}
+		LOGE(TAG_SHIM, "Wifi shim instance can't enroll to DIF");
 	else
 	{
-        if (!rstime_waitmsec(&ts, 50)) {
-            LOGE(TAG_SHIM, "restime_waitmsec failed");
-            return false;
-        }
-
 		xEnrollEvent.pvData = (void *)(pxShimWiFiInstance->pxData->pxPhyDev);
-		xSendEventStructToIPCPTask(&xEnrollEvent, &ts);
-		return true;
+		xSendEventStructToIPCPTask(&xEnrollEvent, 50 * 1000);
 	}
-
-	// return pdPASS;
 }

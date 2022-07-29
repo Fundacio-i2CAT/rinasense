@@ -1,6 +1,10 @@
 #ifndef _COMPONENTS_IPCP_API_H
 #define _COMPONENTS_IPCP_API_H
 
+#include <unistd.h>
+
+#include "portability/port.h"
+
 #include "IPCP_frames.h"
 #include "IPCP_events.h"
 
@@ -9,17 +13,18 @@
  * zero.  Return pdPASS if the message was sent successfully, otherwise return
  * pdFALSE.
  */
-BaseType_t xSendEventToIPCPTask(eRINAEvent_t eEvent);
+bool_t xSendEventToIPCPTask(eRINAEvent_t eEvent);
 
-/* Returns pdTRUE is this function is called from the IPCP-task */
-BaseType_t xIsCallingFromIPCPTask(void);
+/* Returns true is this function is called from the IPCP-task */
+bool_t xIsCallingFromIPCPTask(void);
 
-BaseType_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
-                                      TickType_t uxTimeout);
+bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
+                                  useconds_t uxTimeoutUS);
 
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer);
 
-BaseType_t RINA_IPCPInit(void);
+bool_t RINA_IPCPInit(void);
+
 struct rmt_t *pxIPCPGetRmt(void);
 
 #endif // _COMPONENTS_IPCP_API_H

@@ -9,14 +9,10 @@
 #define FLOW_ALLOCATOR_H_INCLUDED
 
 #include "configSensor.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-
 #include "Rib.h"
-#include "IPCP.h"
-#include "RINA_API.h"
 #include "IPCP_normal_defs.h"
+#include "RINA_API_flows.h"
+#include "rina_ids.h"
 
 typedef enum
 {
@@ -39,7 +35,7 @@ typedef enum
 typedef struct xFLOW_ALLOCATOR_INSTANCE
 {
     /* Flow allocator Instance Item */
-    ListItem_t xInstanceItem;
+    RsListItem_t xInstanceItem;
 
     /* PortId associated to this flow Allocator Instance*/
     portId_t xPortId;
@@ -52,7 +48,7 @@ typedef struct xFLOW_ALLOCATOR_INSTANCE
 typedef struct xFLOW_ALLOCATOR
 {
     /* List of FAI*/
-    List_t xFlowAllocatorInstances;
+    RsList_t xFlowAllocatorInstances;
 
 } flowAllocator_t;
 
@@ -113,8 +109,5 @@ typedef struct xFLOW_MESSAGE
     portId_t xSourcePortId;
 
 } flow_t;
-
-void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest, struct ipcpNormalData_t *pxIpcpData);
-BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
 
 #endif

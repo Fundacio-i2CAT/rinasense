@@ -1,13 +1,8 @@
 #include <string.h>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-
-#include "esp_log.h"
-
-#include "rina_common.h"
+#include "portability/port.h"
+#include "configSensor.h"
+#include "rina_common_port.h"
 
 void memcheck(void)
 {
@@ -15,7 +10,7 @@ void memcheck(void)
         int blockSize = 16;
         int i = 1;
         static int size = 0;
-        printf("Checking memory with blocksize %d char ...\n", blockSize);
+        LOGD(TAG_IPCPMANAGER, "Checking memory with blocksize %d char ...\n", blockSize);
         while (true)
         {
                 char *p = (char *)malloc(i * blockSize);
@@ -26,9 +21,9 @@ void memcheck(void)
                 free(p);
                 ++i;
         }
-        printf("Ok for %d char\n", (i - 1) * blockSize);
+        LOGD(TAG_IPCPMANAGER, "Ok for %d char\n", (i - 1) * blockSize);
         if (size != (i - 1) * blockSize)
-                printf("There is a possible memory leak because the last memory size was %d and now is %d\n", size, (i - 1) * blockSize);
+            LOGE(TAG_IPCPMANAGER, "There is a possible memory leak because the last memory size was %d and now is %d\n", size, (i - 1) * blockSize);
         size = (i - 1) * blockSize;
 }
 

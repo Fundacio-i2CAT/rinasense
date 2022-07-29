@@ -308,18 +308,15 @@ bool_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
 	size_t xMaxLen;
 	size_t xBufferSize;
-    struct timespec ts;
 
 	xMaxLen = MAX(pxSpa->uxLength, pxTpa->uxLength);
 
-	if (!xARPAddressGPAGrow(pxSpa, xMaxLen, 0x00))
-	{
+	if (!xARPAddressGPAGrow(pxSpa, xMaxLen, 0x00)) {
 		LOGI(TAG_ARP, "Failed to grow SPA\n");
 		return false;
 	}
 
-	if (!xARPAddressGPAGrow(pxTpa, xMaxLen, 0x00))
-	{
+	if (!xARPAddressGPAGrow(pxTpa, xMaxLen, 0x00)) {
 		LOGI(TAG_ARP, "Failed to grow TPA\n");
 		return false;
 	}
@@ -329,27 +326,20 @@ bool_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 	/* This is called from the context of the IPCP event task, so a block time
 	 * must not be used. */
 
-    if (!rstime_waitmsec(&ts, 1)) {
-        return false;
-    }
+	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, 0);
 
-	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, &ts); // sizeof length ARPPacket
-
-	if (pxNetworkBuffer != NULL)
-	{
+	if (pxNetworkBuffer != NULL) {
 		pxNetworkBuffer->ulGpa = pxTpa->pucAddress;
 
 		prvARPGeneratePacket(pxNetworkBuffer, pxSha, pxSpa, pxTpa, ARP_REQUEST);
 
-		if (xIsCallingFromIPCPTask())
-		{
+		if (xIsCallingFromIPCPTask()) {
             LOGI(TAG_ARP, "Sending ARP request directly to network interface");
 
 			/* Only the IPCP-task is allowed to call this function directly. */
 			(void)xNetworkInterfaceOutput(pxNetworkBuffer, true);
 		}
-		else
-		{
+		else {
 			RINAStackEvent_t xSendEvent;
 
             LOGI(TAG_ARP, "Sending ARP request to IPCP");
@@ -358,17 +348,14 @@ bool_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 			xSendEvent.eEventType = eNetworkTxEvent;
 			xSendEvent.pvData = pxNetworkBuffer;
 
-			if (xSendEventStructToIPCPTask(&xSendEvent, &ts) == false)
-			{
-				/* Failed to send the message, so release the network buffer. */
+			if (!xSendEventStructToIPCPTask(&xSendEvent, 1000))	{
+                /* Failed to send the message, so release the network buffer. */
 				vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 				return false;
 			}
 		}
-	}
-	else
-	{
-		LOGI(TAG_SHIM, "NetworkBuffer is NULL\n");
+	} else {
+		LOGI(TAG_SHIM, "NetworkBuffer is NULL");
 		return false;
 	}
 

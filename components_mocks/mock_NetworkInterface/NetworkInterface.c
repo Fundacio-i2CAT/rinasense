@@ -23,6 +23,7 @@ bool_t mock_NetworkInterface_xNetworkInterfaceInitialise(const MACAddress_t *phy
 bool_t xNetworkInterfaceInitialise(const MACAddress_t *phyDev)
 #endif
 {
+    LOGI(TAG_WIFI, "Mock-NetworkInterface initialized");
     return true;
 }
 
@@ -32,6 +33,7 @@ bool_t mock_NetworkInterface_xNetworkInterfaceConnect(void)
 bool_t xNetworkInterfaceConnect(void)
 #endif
 {
+    LOGI(TAG_WIFI, "Mock-NetworkInterface connecting");
     return true;
 }
 

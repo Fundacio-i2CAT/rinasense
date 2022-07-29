@@ -373,7 +373,7 @@ bool_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portId_t 
 	else
 	{
 		if (!xDstAddr)
-			return xRmtProcessMgmtPdu(pxData, xFrom, pxDu);
+			return xRmtProcessMgmtPdu(pxData->pxRmt, xFrom, pxDu);
 		else
 		{
 			LOGI(TAG_RMT, "PDU is not for me");

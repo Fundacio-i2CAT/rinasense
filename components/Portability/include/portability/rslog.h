@@ -2,7 +2,7 @@
 #define _PORTABILITY_RS_LOG_H
 
 #ifndef LOG_LOCAL_LEVEL
-#define LOG_LOCAL_LEVEL  5 //CONFIG_LOG_MAXIMUM_LEVEL
+#define LOG_LOCAL_LEVEL  200 //CONFIG_LOG_MAXIMUM_LEVEL
 #endif
 
 #define LOG_COLOR_BLACK   "30"
@@ -21,7 +21,7 @@
 #define LOG_COLOR_D
 #define LOG_COLOR_V
 
-#define LOG_FORMAT(letter, format)  LOG_COLOR_ ## letter #letter " (%u) %s: " format LOG_RESET_COLOR "\n"
+#define LOG_FORMAT(letter, format)  LOG_COLOR_ ## letter #letter " %s: " format LOG_RESET_COLOR "\n"
 
 typedef enum {
     LOG_NONE,       /*!< No log output */
@@ -32,8 +32,6 @@ typedef enum {
     LOG_VERBOSE     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output
 . */
 } RsLogLevel_t;
-
-uint32_t ulRsLogTimestamp(void);
 
 void vRsLogWrite(RsLogLevel_t, const char*, const char*, ...) __attribute__ ((format (printf, 3, 4)));
 
@@ -46,11 +44,11 @@ void vRsLogWritev(RsLogLevel_t, const char*, const char*, va_list args);
 #define LOGV( tag, format, ... ) LOG_LEVEL_LOCAL(LOG_VERBOSE, tag, format, ##__VA_ARGS__)
 
 #define LOG_LEVEL(level, tag, format, ...) do {                     \
-        if (level==LOG_ERROR )          { vRsLogWrite(LOG_ERROR,      tag, LOG_FORMAT(E, format), ulRsLogTimestamp(), tag, ##__VA_ARGS__); } \
-        else if (level==LOG_WARN )      { vRsLogWrite(LOG_WARN,       tag, LOG_FORMAT(W, format), ulRsLogTimestamp(), tag, ##__VA_ARGS__); } \
-        else if (level==LOG_DEBUG )     { vRsLogWrite(LOG_DEBUG,      tag, LOG_FORMAT(D, format), ulRsLogTimestamp(), tag, ##__VA_ARGS__); } \
-        else if (level==LOG_VERBOSE )   { vRsLogWrite(LOG_VERBOSE,    tag, LOG_FORMAT(V, format), ulRsLogTimestamp(), tag, ##__VA_ARGS__); } \
-        else                            { vRsLogWrite(LOG_INFO,       tag, LOG_FORMAT(I, format), ulRsLogTimestamp(), tag, ##__VA_ARGS__); } \
+        if (level==LOG_ERROR )          { vRsLogWrite(LOG_ERROR,      tag, LOG_FORMAT(E, format), tag, ##__VA_ARGS__); } \
+        else if (level==LOG_WARN )      { vRsLogWrite(LOG_WARN,       tag, LOG_FORMAT(W, format), tag, ##__VA_ARGS__); } \
+        else if (level==LOG_DEBUG )     { vRsLogWrite(LOG_DEBUG,      tag, LOG_FORMAT(D, format), tag, ##__VA_ARGS__); } \
+        else if (level==LOG_VERBOSE )   { vRsLogWrite(LOG_VERBOSE,    tag, LOG_FORMAT(V, format), tag, ##__VA_ARGS__); } \
+        else                            { vRsLogWrite(LOG_INFO,       tag, LOG_FORMAT(I, format), tag, ##__VA_ARGS__); } \
     } while(0)
 
 #define LOG_LEVEL_LOCAL(level, tag, format, ...) do {               \

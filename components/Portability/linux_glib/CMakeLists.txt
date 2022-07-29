@@ -13,7 +13,7 @@ if(NOT ${TARGET_TYPE} STREQUAL "freertos_idf")
     "${deps_INCLUDE_DIRS}"
   )
   add_library(portability STATIC ${portability_SOURCES})
-  target_link_libraries(portability PkgConfig::deps)
+  target_link_libraries(portability PkgConfig::deps pthread rt)
   target_include_directories(portability PUBLIC
     ${Portability_INCLUDES}
     ${Common_INCLUDES}

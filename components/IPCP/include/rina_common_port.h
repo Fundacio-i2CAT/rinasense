@@ -5,6 +5,8 @@
 #ifndef _COMPONENTS_IPCP_INCLUDE_COMMON_PORT_H
 #define _COMPONENTS_IPCP_INCLUDE_COMMON_PORT_H
 
+#include <unistd.h>
+
 #include "portability/port.h"
 #include "rina_ids.h"
 
@@ -191,4 +193,34 @@ typedef struct xEFCP_CONFIG
 
 } efcpConfig_t;
 
+typedef struct xAUTH_POLICY
+{
+        string_t pcName;
+        string_t pcVersion;
+        uint8_t ucAbsSyntax;
+
+} authPolicy_t;
+
+typedef struct xCONNECTION_ID
+{
+        qosId_t xQosId;       /**< QoS Id  3 + 1 = 4 */
+        cepId_t xDestination; /**< Cep Id Dest 4 + 1 = 5 */
+        cepId_t xSource;      /**< Cep Id Source  5 + 1 = 6 */
+} connectionId_t;
+
+int get_next_invoke_id(void);
+
+/**
+ * The software timer struct for various IPCP functions
+ */
+typedef struct xIPCP_TIMER
+{
+    bool_t bActive;             /**< This timer is running and must be processed. */
+    bool_t bExpired;            /**< Timer has expired and a task must be processed. */
+    struct timespec xTimeOut;   /**< The timeout value. */
+    useconds_t ulRemainingTimeUS; /**< The amount of time remaining. */
+    useconds_t ulReloadTimeUS;    /**< The value of reload time. */
+} IPCPTimer_t;
+
 #endif // _COMPONENTS_IPCP_INCLUDE_COMMON_PORT_H#
+
