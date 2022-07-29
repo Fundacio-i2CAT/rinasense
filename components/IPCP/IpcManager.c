@@ -132,16 +132,11 @@ void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, NumMgr_t *
         LOGI(TAG_IPCPNORMAL, "There is not Flow Allocate Request API");
     }
 
-    if (pxShimInstance->pxOps->flowAllocateRequest(xPortId,
+    if (pxShimInstance->pxOps->flowAllocateRequest(pxShimInstance->pxData,
                                                    pxIPCPName,
                                                    destinationInfo,
-                                                   pxShimInstance->pxData))
-    {
+                                                   xPortId))
         LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
-        return true;
-    }
-
-    return false;
 }
 
 /* Handle a Flow allocation request sended by the User throught the RINA API.

@@ -4,6 +4,9 @@
 #include <stdint.h>
 
 #include "configSensor.h"
+#include "portability/port.h"
+
+#define MAC2STR_MIN_BUFSZ 18
 
 //Structure MAC ADDRESS
 typedef struct xMAC_ADDRESS
@@ -15,5 +18,7 @@ typedef struct xMAC_ADDRESS
 typedef enum {
     MAC_ADDR_802_3
 } eGHAType_t;
+
+void mac2str(const MACAddress_t *, string_t, const size_t);
 
 #endif // _COMMON_MAC_H

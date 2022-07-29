@@ -16,16 +16,31 @@ sem_t evSem;
 
 /* Mock IPCP public API */
 
-bool_t xIsCallingFromIPCPTask(void) {
+#ifdef ESP_PLATFORM
+bool_t mock_IPCP_xIsCallingFromIPCPTask(void)
+#else
+bool_t xIsCallingFromIPCPTask(void)
+#endif
+{
     return isCallingFromIPCPTask;
 }
 
-bool_t xSendEventToIPCPTask(eRINAEvent_t eEvent) {
+#ifdef ESP_PLATFORM
+bool_t mock_IPCP_xSendEventToIPCPTask(eRINAEvent_t eEvent)
+#else
+bool_t xSendEventToIPCPTask(eRINAEvent_t eEvent)
+#endif
+{
     return true;
 }
 
+#ifdef ESP_PLATFORM
+bool_t mock_IPCP_xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
+                                            struct timespec *uxTimeout)
+#else
 bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
                                   struct timespec *uxTimeout)
+#endif
 {
     pthread_mutex_lock(&evLock);
 
@@ -35,14 +50,33 @@ bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
     sentEvent.eEventType = pxEvent->eEventType;
     sentEvent.pvData = pxEvent->pvData;
 
-    sem_post(&evSem);
-
     LOGD(TAG_MOCK_IPCP, "Sending event: %d", pxEvent->eEventType);
+
+    sem_post(&evSem);
 
     pthread_mutex_unlock(&evLock);
 
     return true;
 }
+
+#ifdef ESP_PLATFORM
+struct rmt_t *mock_IPCP_pxIPCPGetRmt(void)
+#else
+struct rmt_t *pxIPCPGetRmt(void)
+#endif
+{
+    return NULL;
+}
+
+#ifdef ESP_PLATFORM
+eFrameProcessingResult_t mock_IPCP_eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer)
+#else
+eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer)
+#endif
+{
+    return eProcessBuffer;
+}
+
 
 /* Utility mock functions */
 
@@ -86,14 +120,4 @@ bool_t xMockIPCPInit() {
 void vMockIPCPClean() {
     pthread_mutex_destroy(&evLock);
     sem_destroy(&evSem);
-}
-
-struct rmt_t *pxIPCPGetRmt(void)
-{
-    return NULL;
-}
-
-eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer)
-{
-    return eProcessBuffer;
 }

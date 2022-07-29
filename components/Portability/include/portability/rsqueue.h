@@ -1,6 +1,8 @@
 #ifndef _COMMON_PORTABILITY_RSQUEUE_H
 #define _COMMON_PORTABILITY_RSQUEUE_H
 
+#include <unistd.h>
+
 #include "port.h"
 #include "posix_defaults.h"
 
@@ -12,10 +14,10 @@ RsQueue_t *pxRsQueueCreate(const char *sQueueName,
 void vRsQueueDelete(RsQueue_t *pQueue);
 
 bool_t xRsQueueSendToBack(RsQueue_t *pxQueue,
-                         const void *pvItemToQueue, struct timespec *ts);
+                         const void *pvItemToQueue, useconds_t xTimeOutUS);
 
 bool_t xRsQueueReceive(RsQueue_t *pxQueue,
-                      void *pvBuffer, struct timespec *ts);
+                      void *pvBuffer, useconds_t xTimeOutUS);
 
 #endif // _COMMON_PORTABILITY_RSQUEUE_H
 

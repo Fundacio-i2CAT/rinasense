@@ -2,7 +2,7 @@
 #define _PORTABILITY_RS_LOG_H
 
 #ifndef LOG_LOCAL_LEVEL
-#define LOG_LOCAL_LEVEL  5 //CONFIG_LOG_MAXIMUM_LEVEL
+#define LOG_LOCAL_LEVEL  200 //CONFIG_LOG_MAXIMUM_LEVEL
 #endif
 
 #define LOG_COLOR_BLACK   "30"
@@ -32,8 +32,6 @@ typedef enum {
     LOG_VERBOSE     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output
 . */
 } RsLogLevel_t;
-
-uint32_t ulRsLogTimestamp(void);
 
 void vRsLogWrite(RsLogLevel_t, const char*, const char*, ...) __attribute__ ((format (printf, 3, 4)));
 
