@@ -13,6 +13,8 @@
 /* RINA includes. */
 #include "ARP826_defs.h"
 #include "BufferManagement.h"
+#include "portability/rslist.h"
+#include "portability/rstime.h"
 #include "rina_buffers.h"
 
 /* The obtained network buffer must be large enough to hold a packet that might
@@ -160,6 +162,11 @@ uint8_t *pucGetNetworkBuffer(size_t *pxRequestedSizeBytes)
      * ipBUFFER_PADDING bytes). */
     pucEthernetBuffer = ( uint8_t * ) pvRsMemAlloc( xSize + BUFFER_PADDING );
 
+#ifndef NDEBUG
+    /* Zero the buffer to facilitate debugging. */
+    memset(pucEthernetBuffer, 0, xSize + BUFFER_PADDING);
+#endif
+
     if (pucEthernetBuffer != NULL)
     {
         /* Enough space is left at the start of the buffer to place a pointer to
@@ -187,106 +194,111 @@ void vReleaseNetworkBuffer(uint8_t *pucEthernetBuffer)
 /*-----------------------------------------------------------*/
 
 NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedSizeBytes,
-                                                              const struct timespec * pTimespec )
+                                                              useconds_t xTimeOutUS )
 {
     NetworkBufferDescriptor_t *pxReturn = NULL;
     size_t uxCount;
-    struct timespec *ts;
+    struct timespec ts;
+    bool_t semOk;
 
-    /* sem_timedwait does not deal well with pTimespec being NULL. */
-    if ( pTimespec == NULL ) return NULL;
+    /* Calling this function without having initialized the module is
+     * an error. */
+    RsAssert(semInitialized);
 
-    if( semInitialized )
-    {
-        /* If there is a semaphore available, there is a network buffer available. */
-        if( sem_timedwait( &xNetworkBufferSemaphore, pTimespec ) == 0 )
+    if (xTimeOutUS > 0) {
+        if (!rstime_waitusec(&ts, xTimeOutUS)) {
+            LOGE(TAG_NETBUFFER, "Error scheduling buffer waiting time");
+            return NULL;
+        }
+
+        /* Wait for the semaphore a certain amount of time. */
+        semOk = sem_timedwait( &xNetworkBufferSemaphore, &ts ) == 0;
+
+    } else {
+        /* No timeout? Just try to grab the semaphore. */
+        semOk = sem_trywait( &xNetworkBufferSemaphore ) == 0;
+    }
+
+    /* If there is a semaphore available, there is a network buffer available. */
+    if( semOk ) {
+
+        /* Protect the structure as it is accessed from tasks and interrupts. */
+        pthread_mutex_lock( &mutex );
         {
-            /* Protect the structure as it is accessed from tasks and interrupts. */
-            pthread_mutex_lock( &mutex );
-            {
-                pxReturn = ( NetworkBufferDescriptor_t * ) pRsListGetOwnerOfHeadEntry( &xFreeBuffersList );
-                vRsListRemoveItem( &( pxReturn->xBufferListItem ) );
-            }
-            pthread_mutex_unlock( &mutex );
+            pxReturn = ( NetworkBufferDescriptor_t * ) pRsListGetOwnerOfHeadEntry( &xFreeBuffersList );
+            vRsListRemoveItem( &( pxReturn->xBufferListItem ) );
 
-            /* Reading UBaseType_t, no critical section needed. */
             uxCount = unRsListCurrentListLength( &xFreeBuffersList );
+        }
+        pthread_mutex_unlock( &mutex );
 
-            if (uxMinimumFreeNetworkBuffers > uxCount)
-            {
-                uxMinimumFreeNetworkBuffers = uxCount;
+        if (uxMinimumFreeNetworkBuffers > uxCount)
+            uxMinimumFreeNetworkBuffers = uxCount;
+
+        /* Allocate storage of exactly the requested size to the buffer. */
+        if( xRequestedSizeBytes > 0U ) {
+
+            if ((xRequestedSizeBytes < (size_t)baMINIMAL_BUFFER_SIZE)) {
+                /* ARP packets can replace application packets, so the storage must be
+                 * at least large enough to hold an ARP. */
+                xRequestedSizeBytes = baMINIMAL_BUFFER_SIZE;
             }
 
-            /* Allocate storage of exactly the requested size to the buffer. */
-            if( xRequestedSizeBytes > 0U )
-            {
-                if ((xRequestedSizeBytes < (size_t)baMINIMAL_BUFFER_SIZE))
-                {
-                    /* ARP packets can replace application packets, so the storage must be
-                     * at least large enough to hold an ARP. */
-                    xRequestedSizeBytes = baMINIMAL_BUFFER_SIZE;
-                }
+            /* Add 2 bytes to xRequestedSizeBytes and round up xRequestedSizeBytes
+             * to the nearest multiple of N bytes, where N equals 'sizeof( size_t )'. */
+            xRequestedSizeBytes += 2U;
 
-                /* Add 2 bytes to xRequestedSizeBytes and round up xRequestedSizeBytes
-                 * to the nearest multiple of N bytes, where N equals 'sizeof( size_t )'. */
-                xRequestedSizeBytes += 2U;
+            if ((xRequestedSizeBytes & (sizeof(size_t) - 1U)) != 0U)
+                xRequestedSizeBytes = (xRequestedSizeBytes | (sizeof(size_t) - 1U)) + 1U;
 
-                if ((xRequestedSizeBytes & (sizeof(size_t) - 1U)) != 0U)
-                {
-                    xRequestedSizeBytes = (xRequestedSizeBytes | (sizeof(size_t) - 1U)) + 1U;
-                }
+            /* Extra space is obtained so a pointer to the network buffer can
+             * be stored at the beginning of the buffer. */
+            pxReturn->pucEthernetBuffer = ( uint8_t * ) pvRsMemAlloc(xRequestedSizeBytes + BUFFER_PADDING );
 
-                /* Extra space is obtained so a pointer to the network buffer can
-                 * be stored at the beginning of the buffer. */
-                pxReturn->pucEthernetBuffer = ( uint8_t * ) pvRsMemAlloc(xRequestedSizeBytes + BUFFER_PADDING );
+#ifndef NDEBUG
+            /* Zero the buffer to facilitate debugging. */
+            memset(pxReturn->pucEthernetBuffer, 0, xRequestedSizeBytes + BUFFER_PADDING);
+#endif
 
-                if (pxReturn->pucEthernetBuffer == NULL)
-                {
-                    /* The attempt to allocate storage for the buffer payload failed,
-                     * so the network buffer structure cannot be used and must be
-                     * released. */
-                    vReleaseNetworkBufferAndDescriptor(pxReturn);
-                    pxReturn = NULL;
-                }
-                else
-                {
-                    /* Store a pointer to the network buffer structure in the
-                     * buffer storage area, then move the buffer pointer on past the
-                     * stored pointer so the pointer value is not overwritten by the
-                     * application when the buffer is used. */
-                    *((NetworkBufferDescriptor_t **)(pxReturn->pucEthernetBuffer)) = pxReturn;
-                    pxReturn->pucEthernetBuffer += BUFFER_PADDING;
+            if (pxReturn->pucEthernetBuffer == NULL) {
+                /* The attempt to allocate storage for the buffer payload failed,
+                 * so the network buffer structure cannot be used and must be
+                 * released. */
+                vReleaseNetworkBufferAndDescriptor(pxReturn);
+                pxReturn = NULL;
+            }
+            else {
+                /* Store a pointer to the network buffer structure in the
+                 * buffer storage area, then move the buffer pointer on past the
+                 * stored pointer so the pointer value is not overwritten by the
+                 * application when the buffer is used. */
+                *((NetworkBufferDescriptor_t **)(pxReturn->pucEthernetBuffer)) = pxReturn;
+                pxReturn->pucEthernetBuffer += BUFFER_PADDING;
 
-                    /* Store the actual size of the allocated buffer, which may be
-                     * greater than the original requested size. */
-                    pxReturn->xDataLength = xRequestedSizeBytes;
+                /* Store the actual size of the allocated buffer, which may be
+                 * greater than the original requested size. */
+                pxReturn->xDataLength = xRequestedSizeBytes;
 
 #if (ipconfigUSE_LINKED_RX_MESSAGES != 0)
-                    {
-                        /* make sure the buffer is not linked */
-                        pxReturn->pxNextBuffer = NULL;
-                    }
-#endif /* ipconfigUSE_LINKED_RX_MESSAGES */
+                {
+                    /* make sure the buffer is not linked */
+                    pxReturn->pxNextBuffer = NULL;
                 }
+#endif /* ipconfigUSE_LINKED_RX_MESSAGES */
             }
-            else
-            {
-                /* A descriptor is being returned without an associated buffer being
-                 * allocated. */
-            }
+        }
+        else {
+            /* FIXME: ?? what we do there ??
+             * A descriptor is being returned without an associated buffer being
+             * allocated. */
+            LOGE(TAG_NETBUFFER, "Got a descriptor without a buffer...");
         }
     }
 
-    if (pxReturn == NULL)
-    {
-    }
+    if (pxReturn != NULL)
+        LOGI(TAG_NETBUFFER, "Count: %u", (unsigned int)uxCount);
     else
-    {
-        /* No action. */
-    }
-    //count = count + 1;
-    //ESP_LOGI(TAG_NETBUFFER, "Taking Buffer");
-    //ESP_LOGI(TAG_NETBUFFER, "Count:%d", count);
+        LOGE(TAG_NETBUFFER, "Failed to return descriptor");
 
     return pxReturn;
 }
@@ -312,6 +324,11 @@ void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetwo
         if( xListItemAlreadyInFreeList == false )
         {
             vRsListInsertEnd( &xFreeBuffersList, &( pxNetworkBuffer->xBufferListItem ) );
+
+#ifndef NDEBUG
+            /* Zero the buffer to facilitate debugging. */
+            memset(pxNetworkBuffer->pucDataBuffer, 0, pxNetworkBuffer->xDataLength);
+#endif
         }
     }
     pthread_mutex_unlock( &mutex );

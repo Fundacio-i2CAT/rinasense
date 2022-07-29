@@ -10,6 +10,8 @@ if(NOT $ENV{IDF_PATH} STREQUAL "")
     "Portability"
     "ShimIPCP"
     "Ribd"
+    "IPCP"
+    "NetworkInterface"
     CACHE STRING "List of components to test")
 
   # Include path for unity_config.h
@@ -25,6 +27,7 @@ if(NOT $ENV{IDF_PATH} STREQUAL "")
     "../components_mocks/")
 
   set(ENV{USE_MOCKS} "true")
+  set(ENV{NETWORKINTERFACE_MODULE} "mq")
 
   include($ENV{IDF_PATH}/tools/cmake/project.cmake)
   project(unit_test)

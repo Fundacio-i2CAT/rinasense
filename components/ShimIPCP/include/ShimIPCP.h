@@ -69,7 +69,7 @@ bool_t xShimFlowAllocateRequest(struct ipcpInstanceData_t *pxData,
                                 portId_t xPortId);
 
 
-bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData, struct ipcpInstance_t *pxUserIpcp, portId_t xPortId);
+bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData, portId_t xPortId);
 
 /*-------------------------------------------*/
 /* FlowDeallocate.

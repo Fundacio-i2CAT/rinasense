@@ -53,13 +53,8 @@ bool_t xDuDecap(struct du_t *pxDu)
 
 	uxBufferSize = pxDu->pxNetworkBuffer->xRinaDataLength - uxPciLen;
 
-    /* FIXME: Waiting time randomly set for 1ms. */
-    if (!rstime_waitmsec(&ts, 1)) {
-        return false;
-    }
-
 	//ESP_LOGE(TAG_ARP, "Taking Buffer to copy the SDU from the RINA PDU: DuDecap");
-	pxNewBuffer = pxGetNetworkBufferWithDescriptor( uxBufferSize, &ts );
+	pxNewBuffer = pxGetNetworkBufferWithDescriptor( uxBufferSize, 1000 );
 	if(pxNewBuffer == NULL)
 	{
 		LOGE(TAG_DTP,"NO buffer was allocated to do the Decap");
@@ -118,13 +113,8 @@ bool_t xDuEncap(struct du_t * pxDu, pduType_t xType)
 	/* New Size = Data Size more the PCI size defined by default. */
 	xBufferSize = pxDu->pxNetworkBuffer->xDataLength + uxPciLen;
 
-    /* FIXME: Waiting time randomly set for 1ms. */
-    if (!rstime_waitmsec(&ts, 1)) {
-        return false;
-    }
-
 	//ESP_LOGE(TAG_DTP, "Taking Buffer to encap PDU");
-	pxNewBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, &ts );
+	pxNewBuffer = pxGetNetworkBufferWithDescriptor( xBufferSize, 1000 );
 
 	if (!pxNewBuffer)
 	{

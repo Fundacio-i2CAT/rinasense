@@ -7,4 +7,3 @@ if("$ENV{USE_MOCKS}" STREQUAL "true")
     "${CMAKE_SOURCE_DIR}/../components_mocks/mock_Ribd/include"
   )
 endif()
-

@@ -80,6 +80,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   )
   add_library(mock_NetworkInterface STATIC ${mock_NetworkInterface_SOURCES})
   target_include_directories(mock_NetworkInterface PUBLIC
+    ${mock_NetworkInterface_INCLUDES}
     ${BufferManagement_INCLUDES}
     ${Portability_INCLUDES}
     ${IPCP_INCLUDES}
@@ -199,6 +200,12 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     #    ${ShimIPCP_INCLUDES}
     ${Portability_INCLUDES}
   )
+  target_link_libraries(BufferManagement PUBLIC
+    ARP826
+    Common
+    IPCP
+    portability
+  )
   include("${BufferManagement_TEST_DIR}/CMakeLists.txt")
 
   #
@@ -218,7 +225,6 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${NetworkInterface_INCLUDES}
     ${NetworkInterface_MQ_INCLUDES}
     ${ARP826_INCLUDES}
-    ${mock_IPCP_INCLUDES}
     ${IPCP_INCLUDES}
     ${configSensor_INCLUDES}
     ${Rmt_INCLUDES}
@@ -240,10 +246,17 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${Common_INCLUDES}
     ${BufferManagement_INCLUDES}
     ${ARP826_INCLUDES}
-    ${mock_IPCP_INCLUDES}
     ${IPCP_INCLUDES}
     ${Portability_INCLUDES}
     ${ShimIPCP_INCLUDES}
+  )
+  target_link_libraries(ARP826 PUBLIC
+    NetworkInterface
+    Common
+    BufferManagement
+    IPCP
+    portability
+    ShimIPCP
   )
   include("${ARP826_TEST_DIR}/CMakeLists.txt")
 
@@ -264,6 +277,13 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${Portability_INCLUDES}
     ${IPCP_INCLUDES}
   )
+  target_link_libraries(Rmt PUBLIC
+    Common
+    BufferManagement
+    EFCP
+    portability
+    IPCP
+  )
 
   #
   # Component: EFCP
@@ -280,6 +300,13 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${EFCP_INCLUDES}
     ${Rmt_INCLUDES}
     ${configSensor_INCLUDES}
+  )
+  target_link_libraries(EFCP PUBLIC
+    portability
+    Common
+    ARP826
+    IPCP
+    Rmt
   )
 
   #
@@ -298,10 +325,19 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${ARP826_INCLUDES}
     ${BufferManagement_INCLUDES}
     ${EFCP_INCLUDES}
-    ${mock_IPCP_INCLUDES}
     ${IPCP_INCLUDES}
     ${NetworkInterface_INCLUDES}
     ${Rmt_INCLUDES}
+  )
+  target_link_libraries(ShimIPCP PUBLIC
+    Common
+    portability
+    ARP826
+    BufferManagement
+    EFCP
+    IPCP
+    NetworkInterface
+    Rmt
   )
   include("${ShimIPCP_TESTS_DIR}/CMakeLists.txt")
 
@@ -309,15 +345,11 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   # Component: IPCP
   #
   set(IPCP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/IPCP")
+  set(IPCP_TESTS_DIR "${IPCP_DIR}/test")
   set(IPCP_TEST_DIR "${IPCP_DIR}/test")
-  set(IPCP_SOURCES "${IPCP_DIR}/IpcManager.c" "${IPCP_DIR}/normalIPCP.c" "${IPCP_DIR}/common.c")
+  file(GLOB IPCP_SOURCES "${IPCP_DIR}/*.c")
   add_library(IPCP STATIC ${IPCP_SOURCES})
   target_include_directories(IPCP PUBLIC
-    # Temporary
-    ${mock_IPCP_INCLUDES}
-    ${mock_Ribd_INCLUDES}
-    ${mock_FlowAllocator_INCLUDES}
-
     ${configSensor_INCLUDES}
     ${configRINA_INCLUDES}
     ${ARP826_INCLUDES}
@@ -331,7 +363,25 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${Common_INCLUDES}
     ${RINA_API_INCLUDES}
     ${Ribd_INCLUDES}
+    ${Enrollment_INCLUDES}
+    ${Ribd_INCLUDES}
+    ${FlowAllocator_INCLUDES}
   )
+  target_link_libraries(IPCP PUBLIC
+    ARP826
+    NetworkInterface
+    ShimIPCP
+    BufferManagement
+    Rmt
+    EFCP
+    portability
+    Common
+    Ribd
+    Enrollment
+    Ribd
+    FlowAllocator
+  )
+  include("${IPCP_TESTS_DIR}/CMakeLists.txt")
 
   #
   # Component: Ribd
@@ -341,9 +391,6 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
   file(GLOB Ribd_SOURCES "${Ribd_DIR}/*.c")
   add_library(Ribd STATIC ${Ribd_SOURCES})
   target_include_directories(Ribd PUBLIC
-    # Temporary
-    ${mock_IPCP_INCLUDES}
-
     ${CdapProto_INCLUDES}
     ${BufferManagement_INCLUDES}
     ${configRINA_INCLUDES}
@@ -357,6 +404,17 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${Rmt_INCLUDES}
     ${RINA_API_INCLUDES}
     ${FlowAllocator_INCLUDES}
+  )
+  target_link_libraries(Ribd PUBLIC
+    CdapProto
+    BufferManagement
+    IPCP
+    portability
+    Common
+    Enrollment
+    EFCP
+    Rmt
+    FlowAllocator
   )
   include("${Ribd_TEST_DIR}/CMakeLists.txt")
 
@@ -382,6 +440,17 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${RINA_API_INCLUDES}
     ${Rmt_INCLUDES}
   )
+  target_link_libraries(FlowAllocator
+    Common
+    portability
+    EFCP
+    ARP826
+    CdapProto
+    Enrollment
+    IPCP
+    Ribd
+    Rmt
+  )
 
   #
   # Component: Enrollment
@@ -403,6 +472,16 @@ elseif (${TARGET_TYPE} STREQUAL "linux_glib")
     ${Ribd_INCLUDES}
     ${RINA_API_INCLUDES}
     ${Rmt_INCLUDES}
+  )
+  target_link_libraries(Enrollment
+    Common
+    portability
+    ARP826
+    CdapProto
+    FlowAllocator
+    IPCP
+    Ribd
+    Rmt
   )
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h")

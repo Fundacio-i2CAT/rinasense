@@ -8,9 +8,11 @@
 #include <stdio.h>
 #include <string.h>
 #include "unity.h"
+#include "IPCP_api.h"
 #include "soc/rtc_wdt.h"
 
 void app_main(void)
 {
+    RINA_IPCPInit();
     unity_run_menu();
 }

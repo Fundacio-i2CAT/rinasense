@@ -543,14 +543,8 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
     /*Request a Network Buffer according to Message Length*/
     NetworkBufferDescriptor_t *pxNetworkBuffer;
 
-    /* Wait no more than 250 ms. */
-    if (!rstime_waitmsec(&ts, 250)) {
-        LOGE(TAG_SHIM, "rstime_waitmsec failed");
-        return false;
-    }
-
     // LOGE(TAG_RIB, "Taking Buffer to encode the CDAP message: RIBD");
-    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xMessageLength, &ts);
+    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xMessageLength, 250 * 1000);
 
     /*Copy Buffer into the NetworkBuffer*/
     memcpy(pxNetworkBuffer->pucEthernetBuffer, &pucBuffer, xMessageLength);
@@ -1043,12 +1037,7 @@ bool_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxDecod
 
             xStackFlowAllocateEvent.pvData = pxFlowAllocateRequest;
 
-            if (!rstime_waitmsec(&ts, 250)) {
-                LOGE(TAG_RIB, "rstime_waitmsec failed");
-                return false;
-            }
-
-            if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, &ts) == false)
+            if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, 250 * 1000) == false)
             {
                 LOGE(TAG_RINA, "IPCP Task not working properly");
                 // return -1;

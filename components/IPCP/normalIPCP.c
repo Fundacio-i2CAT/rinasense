@@ -115,7 +115,7 @@ static ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t *pxFac
 
         while (pxListItem != pxListEnd)
         {
-                pxInstance = (struct ipcpInstance *)pRsListGetListItemOwner(pxListItem);
+                pxInstance = (ipcpInstance_t *)pRsListGetListItemOwner(pxListItem);
 
                 if (pxInstance)
                 {
@@ -355,19 +355,13 @@ bool_t xNormalTest(ipcpInstance_t *pxNormalInstance, ipcpInstance_t *pxN1Ipcp)
         struct du_t *testDu;
         NetworkBufferDescriptor_t *pxNetworkBuffer;
         size_t xBufferSize;
-        struct timespec ts;
 
         /* String to send*/
         char *ucStringTest = "Temperature:22";
 
-        if (rstime_waitmsec(&ts, 1)) {
-            LOGE(TAG_IPCPNORMAL, "rstime_waitmsec failed");
-            return false;
-        }
-
         /*Getting the buffer Descriptor*/
         xBufferSize = strlen(ucStringTest);
-        pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, &ts); // sizeof length DataUser packet.
+        pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, 1000); // sizeof length DataUser packet.
 
         LOGI(TAG_IPCPNORMAL, "BufferSize DU:%u", xBufferSize);
 

@@ -30,7 +30,7 @@
 /* NOTE PUBLIC API FUNCTIONS. */
     bool_t xNetworkBuffersInitialise( void );
     NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedSizeBytes,
-                                                                  const struct timespec * pTimespec);
+                                                                  useconds_t xTimeOutUS);
 
 /* The definition of the below function is only available if BufferAllocation_2.c has been linked into the source. */
     NetworkBufferDescriptor_t * pxNetworkBufferGetFromISR( size_t xRequestedSizeBytes );

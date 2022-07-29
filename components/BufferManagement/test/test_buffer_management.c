@@ -9,6 +9,9 @@
 #include "unity.h"
 #include "unity_fixups.h"
 
+RS_TEST_CASE_SETUP(test_buffer_management) {}
+RS_TEST_CASE_TEARDOWN(test_buffer_management) {}
+
 /*void testGetNetworkBuffer()*/
 RS_TEST_CASE(GetNetworkBuffer, "[buffer]")
 {
@@ -17,25 +20,28 @@ RS_TEST_CASE(GetNetworkBuffer, "[buffer]")
     NetworkBufferDescriptor_t *pB1, *pB2;
     struct timespec ts;
 
+    RS_TEST_CASE_BEGIN(test_buffer_management);
+
     TEST_ASSERT((p1 = pucGetNetworkBuffer(&s)) != NULL);
     TEST_ASSERT((p2 = pucGetNetworkBuffer(&s)) != NULL);
     TEST_ASSERT((p3 = pucGetNetworkBuffer(&s)) != NULL);
+
+    RS_TEST_CASE_END(test_buffer_management);
 }
 
 /*void testGetNetworkBufferWithDescriptors()*/
 RS_TEST_CASE(GetNetworkBufferWithDescriptor, "[buffer]")
 {
-    int n;
     size_t s = 10;
     NetworkBufferDescriptor_t *pB1, *pB2;
     struct timespec ts;
 
-    n = rstime_waitmsec(&ts, 10);
-    TEST_ASSERT_EQUAL_INT(true, n);
-    TEST_ASSERT_EQUAL_INT(0, errno);
+    RS_TEST_CASE_BEGIN(test_buffer_management);
 
-    TEST_ASSERT((pB1 = pxGetNetworkBufferWithDescriptor(s, &ts)) != NULL);
-    TEST_ASSERT((pB2 = pxGetNetworkBufferWithDescriptor(s, &ts)) != NULL);
+    TEST_ASSERT((pB1 = pxGetNetworkBufferWithDescriptor(s, 1000)) != NULL);
+    TEST_ASSERT((pB2 = pxGetNetworkBufferWithDescriptor(s, 1000)) != NULL);
+
+    RS_TEST_CASE_END(test_buffer_management);
 }
 
 #ifndef TEST_CASE
