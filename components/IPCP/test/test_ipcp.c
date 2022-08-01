@@ -1,6 +1,8 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "portability/port.h"
+
 #include "ARP826_defs.h"
 #include "BufferManagement.h"
 #include "IPCP_api.h"
@@ -8,11 +10,10 @@
 #include "NetworkInterface.h"
 #include "NetworkInterface_mq.h"
 #include "configSensor.h"
-#include "portability/port.h"
-
 #include "rina_buffers.h"
+
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_ipcp) {}
 

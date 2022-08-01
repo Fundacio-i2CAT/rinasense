@@ -1,9 +1,9 @@
 #ifndef _COMPONENTS_RINA_API_FLOWS_H
 #define _COMPONENTS_RINA_API_FLOWS_H
 
-#include "list.h"
-#include "rina_name.h"
-#include "rina_ids.h"
+#include "common/rina_name.h"
+#include "common/rina_ids.h"
+#include "common/list.h"
 
 typedef struct xFLOW_ALLOCATE_HANDLE
 {

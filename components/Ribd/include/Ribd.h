@@ -3,9 +3,10 @@
 
 /*Move to configurations RINA*/
 
+#include "common/rina_name.h"
+
 #include "Rib.h"
 #include "IPCP_normal_defs.h"
-#include "rina_name.h"
 #include "rina_common_port.h"
 
 typedef enum

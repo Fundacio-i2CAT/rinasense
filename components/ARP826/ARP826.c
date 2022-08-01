@@ -4,6 +4,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "common/rina_gpha.h"
+#include "common/rina_name.h"
+
 /* RINA includes. */
 #include "ARP826.h"
 #include "ARP826_defs.h"
@@ -15,8 +18,6 @@
 #include "IPCP_api.h"
 #include "IPCP_frames.h"
 #include "portability/rslog.h"
-#include "rina_gpha.h"
-#include "rina_name.h"
 
 #ifndef MAX
 #define MAX(a, b) ((a > b) ? a : b)

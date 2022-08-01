@@ -6,7 +6,7 @@
 
 #include "configSensor.h"
 #include "portability/port.h"
-#include "rina_gpha.h"
+#include "common/rina_gpha.h"
 
 #include "IPCP_api.h"
 #include "IPCP_events.h"

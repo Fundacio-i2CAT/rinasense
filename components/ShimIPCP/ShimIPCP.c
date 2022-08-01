@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "list.h"
+#include "common/list.h"
+#include "common/rina_name.h"
+#include "common/rina_ids.h"
 #include "portability/port.h"
 
 #include "ShimIPCP.h"
@@ -15,9 +17,6 @@
 #include "BufferManagement.h"
 #include "du.h"
 #include "IpcManager.h"
-
-#include "rina_name.h"
-#include "rina_ids.h"
 
 struct ipcpInstanceData_t
 {

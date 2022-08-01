@@ -1,8 +1,9 @@
 #ifndef _COMPONENTS_IPCP_IPCP_INSTANCE_H
 #define _COMPONENTS_IPCP_IPCP_INSTANCE_H
 
-#include "rina_name.h"
-#include "rina_ids.h"
+#include "common/rina_name.h"
+#include "common/rina_ids.h"
+
 #include "rina_common_port.h"
 
 /* Forward definition of EFCP structures. */

@@ -6,7 +6,7 @@
 #include "Ribd.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_rib) {}
 RS_TEST_CASE_TEARDOWN(test_rib) {}

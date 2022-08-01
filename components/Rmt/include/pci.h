@@ -5,10 +5,10 @@
  *      Author: i2CAT
  */
 
-#include "rina_ids.h"
-
 #ifndef COMPONENTS_RMT_INCLUDE_PCI_H_
 #define COMPONENTS_RMT_INCLUDE_PCI_H_
+
+#include "common/rina_ids.h"
 
 /* PDU-Flags field 1 Byte*/
 typedef uint8_t pduFlags_t;

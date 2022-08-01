@@ -3,8 +3,8 @@
 
 #include "portability/port.h"
 
-#include "num_mgr.h"
-#include "bit_array.h"
+#include "common/num_mgr.h"
+#include "common/bit_array.h"
 
 NumMgr_t *pxNumMgrCreate(size_t numCnt)
 {

@@ -2,8 +2,7 @@
 #include <string.h>
 
 #include "portability/port.h"
-
-#include "mac.h"
+#include "common/mac.h"
 
 void mac2str(const MACAddress_t *pxMac, string_t psMac, const size_t p) {
     const uint8_t *m = pxMac->ucBytes;

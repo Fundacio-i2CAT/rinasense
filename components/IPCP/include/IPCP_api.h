@@ -4,11 +4,11 @@
 #include <unistd.h>
 
 #include "portability/port.h"
+#include "common/rina_ids.h"
 
 #include "efcpStructures.h"
 #include "IPCP_frames.h"
 #include "IPCP_events.h"
-#include "rina_ids.h"
 
 /*
  * Send the event eEvent to the IPCP task event queue, using a block time of

@@ -2,7 +2,7 @@
 #define _COMPONENTS_IPCP_INCLUDE_COMMON_RINA_BUFFERS_H_
 
 #include "portability/port.h"
-#include "list.h"
+#include "common/list.h"
 
 typedef struct xNETWORK_BUFFER
 {

@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "list.h"
+#include "common/list.h"
+#include "common/rina_name.h"
 #include "portability/port.h"
 
 #include "EFCP.h"
@@ -9,7 +10,6 @@
 #include "rina_common_port.h"
 #include "du.h"
 #include "configRINA.h"
-#include "rina_name.h"
 #include "IpcManager.h"
 #include "FlowAllocator.h"
 

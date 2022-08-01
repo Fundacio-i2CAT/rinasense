@@ -12,8 +12,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "list.h"
 #include "portability/port.h"
+#include "common/list.h"
+#include "common/rina_ids.h"
+#include "common/rina_name.h"
 
 #include "BufferManagement.h"
 #include "RINA_API_flows.h"
@@ -21,8 +23,6 @@
 #include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
-#include "rina_ids.h"
-#include "rina_name.h"
 #include "IPCP.h"
 #include "IPCP_api.h"
 #include "IPCP_events.h"

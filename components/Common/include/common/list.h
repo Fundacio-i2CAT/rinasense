@@ -2,8 +2,9 @@
 #define _COMMON_RS_LIST_H
 
 #include <stdint.h>
+
 #include "portability/port.h"
-#include "iot_doubly_linked_list.h"
+#include "private/iot_doubly_linked_list.h"
 
 struct xRSLIST_T;
 

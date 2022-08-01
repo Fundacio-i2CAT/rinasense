@@ -3,7 +3,7 @@
 
 #include "rmt.h"
 #include "IPCP_instance.h"
-#include "rina_ids.h"
+#include "common/rina_ids.h"
 
 bool_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth);
 bool_t xRibdDisconnectToIpcp(portId_t xN1flowPortId);

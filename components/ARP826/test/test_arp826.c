@@ -1,16 +1,17 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "common/rina_gpha.h"
+
 #include "ARP826.h"
 #include "NetworkInterface_mq.h"
 #include "configSensor.h"
-#include "rina_gpha.h"
 #include "IPCP_api.h"
 #include "NetworkInterface.h"
 #include "BufferManagement.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 ARPPacket_t p1 = {
     /* Ethernet Header */

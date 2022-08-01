@@ -5,7 +5,7 @@
 
 #include "portability/rsqueue.h"
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_queues) {}
 RS_TEST_CASE_TEARDOWN(test_queues) {}

@@ -13,7 +13,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-#include "rina_ids.h"
+#include "common/rina_ids.h"
 #include "rina_common_port.h"
 
 #define offsetof(TYPE, MEMBER) ((size_t) & ((TYPE *)0)->MEMBER)

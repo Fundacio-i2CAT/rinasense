@@ -10,12 +10,13 @@
 
 #include <stdio.h>
 
+#include "common/rina_ids.h"
+#include "common/num_mgr.h"
+
 #include "rina_common_port.h"
 #include "du.h"
 #include "rmt.h"
 #include "delim.h"
-#include "rina_ids.h"
-#include "num_mgr.h"
 #include "IPCP_instance.h"
 
 /* Retransmission Queue RTXQ used to buffer those PDUs

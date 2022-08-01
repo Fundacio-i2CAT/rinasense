@@ -1,7 +1,7 @@
-#include "num_mgr.h"
+#include "common/num_mgr.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_num_mgr) {}
 RS_TEST_CASE_TEARDOWN(test_num_mgr) {}

@@ -1,11 +1,11 @@
 #include <stdio.h>
 
 #include "portability/port.h"
+#include "common/rina_ids.h"
 
 #include "rmt.h"
 #include "du.h"
 #include "pci.h"
-#include "rina_ids.h"
 #include "IPCP_instance.h"
 #include "IPCP_normal_defs.h"
 #include "EFCP.h"
