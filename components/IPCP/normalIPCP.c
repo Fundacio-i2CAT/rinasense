@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "list.h"
+#include "portability/port.h"
+
 #include "EFCP.h"
-#include "portability/rslist.h"
 #include "rmt.h"
 #include "rina_common_port.h"
 #include "du.h"
@@ -58,18 +60,16 @@ static struct ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t
 {
         struct ipcpInstance_t *pxInstance;
         RsListItem_t *pxListItem;
-        RsListItem_t const *pxListEnd;
 
         pxInstance = pvRsMemAlloc(sizeof(*pxInstance));
 
         /* Find a way to iterate in the list and compare the addesss*/
 
-        pxListEnd = pRsListGetEndMarker(&pxFactoryData->xInstancesNormalList);
-        pxListItem = pRsListGetHeadEntry(&pxFactoryData->xInstancesNormalList);
+        pxListItem = pxRsListGetFirst(&pxFactoryData->xInstancesNormalList);
 
-        while (pxListItem != pxListEnd)
+        while (pxListItem != NULL)
         {
-                pxInstance = (struct ipcpInstance_t *)pRsListGetListItemOwner(pxListItem);
+                pxInstance = (struct ipcpInstance_t *)pxRsListGetItemOwner(pxListItem);
 
                 if (pxInstance)
                 {
@@ -85,7 +85,7 @@ static struct ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t
                         return NULL;
                 }
 
-                pxListItem = pRsListGetNext(pxListItem);
+                pxListItem = pxRsListGetNext(pxListItem);
         }
 }
 
@@ -94,17 +94,15 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
 {
         struct normalFlow_t *pxFlow;
         RsListItem_t *pxListItem;
-        RsListItem_t const *pxListEnd;
 
         pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
         /* Find a way to iterate in the list and compare the addesss*/
-        pxListEnd = pRsListGetEndMarker(&pxData->xFlowsList);
-        pxListItem = pRsListGetHeadEntry(&pxData->xFlowsList);
+        pxListItem = pxRsListGetFirst(&pxData->xFlowsList);
 
-        while (pxListItem != pxListEnd)
+        while (pxListItem != NULL)
         {
-                pxFlow = (struct normalFlow_t *)pRsListGetListItemOwner(pxListItem);
+                pxFlow = (struct normalFlow_t *)pxRsListGetItemOwner(pxListItem);
 
                 if (!pxFlow)
                         return false;
@@ -116,7 +114,7 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
                         return pxFlow;
                 }
 
-                pxListItem = pRsListGetNext(pxListItem);
+                pxListItem = pxRsListGetNext(pxListItem);
         }
 
         LOGD(TAG_IPCPNORMAL, "Flow not founded");
@@ -196,8 +194,7 @@ bool_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
         pxFlow->pxFlowHandle = pxFlowHandle;
 
         LOGD(TAG_IPCPNORMAL, "Flow: %p portID: %d portState: %d", pxFlow, pxFlow->xPortId, pxFlow->eState);
-        vRsListInitItem(&(pxFlow->xFlowListItem));
-        vRsListSetListItemOwner(&(pxFlow->xFlowListItem), (void *)pxFlow);
+        vRsListInitItem(&(pxFlow->xFlowListItem), pxFlow);
         vRsListInsert(&(pxData->xFlowsList), &(pxFlow->xFlowListItem));
 
         return true;
@@ -822,7 +819,7 @@ static struct normalFlow_t *prvFindFlowCepid(cepId_t xCepId)
         RsListItem_t *pxListItem;
         RsListItem_t const *pxListEnd;
 
-        if (unRsListCurrentListLength(&(pxIpcpData->xFlowsList)) == 0)
+        if (unRsListLength(&(pxIpcpData->xFlowsList)) == 0)
         {
                 LOGE(TAG_IPCPNORMAL, "Flow list is empty");
                 return NULL;
@@ -831,12 +828,11 @@ static struct normalFlow_t *prvFindFlowCepid(cepId_t xCepId)
         pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
         /* Find a way to iterate in the list and compare the addesss*/
-        pxListEnd = pRsListGetEndMarker(&(pxIpcpData->xFlowsList));
-        pxListItem = pRsListGetHeadEntry(&(pxIpcpData->xFlowsList));
+        pxListItem = pxRsListGetFirst(&(pxIpcpData->xFlowsList));
 
-        while (pxListItem != pxListEnd)
+        while (pxListItem != NULL)
         {
-                pxFlow = (struct normalFlow_t *)pRsListGetListItemOwner(pxListItem);
+                pxFlow = (struct normalFlow_t *)pxRsListGetItemOwner(pxListItem);
 
                 if (!pxFlow)
                         return false;
@@ -848,7 +844,7 @@ static struct normalFlow_t *prvFindFlowCepid(cepId_t xCepId)
                         return pxFlow;
                 }
 
-                pxListItem = pRsListGetNext(pxListItem);
+                pxListItem = pxRsListGetNext(pxListItem);
         }
 
         LOGI(TAG_IPCPNORMAL, "Flow not founded");

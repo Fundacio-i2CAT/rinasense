@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <limits.h>
 
 #include "portability/port.h"
 

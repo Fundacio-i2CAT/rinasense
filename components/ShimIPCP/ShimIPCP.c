@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "list.h"
 #include "portability/port.h"
 
 #include "ShimIPCP.h"
@@ -218,9 +219,8 @@ bool_t xShimFlowAllocateRequest(struct ipcpInstanceData_t *pxData,
 
 		// Register the flow in a list or in the Flow allocator
 		LOGI(TAG_SHIM, "Created Flow: %p, portID: %d, portState: %d", pxFlow, pxFlow->xPortId, pxFlow->ePortIdState);
-		vRsListInitItem(&pxFlow->xFlowItem);
-		vRsListSetListItemOwner(&(pxFlow->xFlowItem), pxFlow);
-		vRsListInsert(&pxData->xFlowsList, &pxFlow->xFlowItem);
+        vRsListInitItem(&pxFlow->xFlowItem, pxFlow);
+        vRsListInsert(&pxData->xFlowsList, &pxFlow->xFlowItem);
 
 		pxFlow->pxSduQueue = prvShimCreateQueue();
 		if (!pxFlow->pxSduQueue)
@@ -594,7 +594,6 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 
 	shimFlow_t *pxFlow;
 	RsListItem_t *pxListItem;
-	RsListItem_t const *pxListEnd;
 
     RsAssert(pxData);
 
@@ -605,25 +604,25 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
     }
 
 #if 0
+    /* FIXME: Is this validation at all necessary? */
 	if (!RsListIsInitilised(&pxData->xFlowsList))
 	{
 		LOGE(TAG_SHIM, "Flow list is not initilized");
 		return NULL;
 	}
 #endif
-	if (!unRsListCurrentListLength(&pxData->xFlowsList))
+	if (!unRsListLength(&pxData->xFlowsList))
 	{
 		LOGE(TAG_SHIM, "Flow list is empty");
 		return NULL;
 	}
 
 	/* Find a way to iterate in the list and compare the addesss*/
-	pxListEnd = pRsListGetEndMarker(&pxData->xFlowsList);
-	pxListItem = pRsListGetHeadEntry(&pxData->xFlowsList);
+    pxListItem = pxRsListGetFirst(&pxData->xFlowsList);
 
-	while (pxListItem != pxListEnd)
+	while (pxListItem != NULL)
 	{
-		pxFlow = (shimFlow_t *)pRsListGetListItemOwner(pxListItem);
+        pxFlow = (shimFlow_t *)pxRsListGetItemOwner(pxListItem);
 
 		if (pxFlow)
 		{
@@ -634,7 +633,7 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 			}
 		}
 
-		pxListItem = pRsListGetNext(pxListItem);
+        pxListItem = pxRsListGetNext(pxListItem);
 	}
 
 	LOGI(TAG_SHIM, "Flow not found");
@@ -646,17 +645,15 @@ static shimFlow_t *prvShimFindFlow(struct ipcpInstanceData_t *pxData)
 
 	shimFlow_t *pxFlow;
 	RsListItem_t *pxListItem;
-	RsListItem_t const *pxListEnd;
 
 	pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
 	/* Find a way to iterate in the list and compare the addesss*/
-	pxListEnd = pRsListGetEndMarker(&pxData->xFlowsList);
-	pxListItem = pRsListGetHeadEntry(&pxData->xFlowsList);
+    pxListItem = pxRsListGetFirst(&pxData->xFlowsList);
 
-	while (pxListItem != pxListEnd)
+	while (pxListItem != NULL)
 	{
-		pxFlow = (shimFlow_t *)pRsListGetListItemOwner(pxListItem);
+        pxFlow = (shimFlow_t *)pxRsListGetItemOwner(pxListItem);
 
 		if (pxFlow)
 		{
@@ -666,7 +663,7 @@ static shimFlow_t *prvShimFindFlow(struct ipcpInstanceData_t *pxData)
 			// return true;
 		}
 
-		pxListItem = pRsListGetNext(pxListItem);
+		pxListItem = pxRsListGetNext(pxListItem);
 	}
 
 	LOGI(TAG_SHIM, "Flow not found");

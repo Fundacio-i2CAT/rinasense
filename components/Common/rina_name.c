@@ -4,9 +4,7 @@
 #include "rina_name.h"
 #include "configSensor.h"
 
-#include "portability/rslist.h"
-#include "portability/rsmem.h"
-#include "portability/rslog.h"
+#include "portability/port.h"
 
 #define TAG_RINA_NAME "rina_name"
 

@@ -3,6 +3,7 @@
 
 #include "rina_ids.h"
 #include "rina_name.h"
+#include "list.h"
 
 typedef enum eNormal_Flow_State
 {

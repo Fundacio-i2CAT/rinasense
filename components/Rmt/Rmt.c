@@ -152,9 +152,8 @@ bool_t xRmtAddressAdd(struct rmt_t *pxInstance, address_t xAddress)
 	// listSET_LIST_ITEM_OWNER(&(pxRmtAddr->xAddressListItem), pxRmtAddr);
 	// vListInsert(&pxInstance->xAddresses,
 	//&(pxRmtAddr->xAddressListItem));
-	vRsListInitItem(&(pxRmtAddr->xAddressListItem));
-	vRsListSetListItemOwner(&(pxRmtAddr->xAddressListItem), pxRmtAddr);
-	vRsListInsert(&pxInstance->xAddresses, &(pxRmtAddr->xAddressListItem));
+    vRsListInitItem(&(pxRmtAddr->xAddressListItem), pxRmtAddr);
+    vRsListInsert(&pxInstance->xAddresses, &(pxRmtAddr->xAddressListItem));
 
 	return true;
 }
@@ -167,17 +166,15 @@ bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 {
 	rmtAddress_t *pxAddr;
 	RsListItem_t *pxListItem, *pxNext;
-	RsListItem_t const *pxListEnd;
 
 	pxAddr = pvRsMemAlloc(sizeof(*pxAddr));
 
 	/* Find a way to iterate in the list and compare the addesss*/
-	pxListEnd = pRsListGetEndMarker(&pxRmt->xAddresses);
-	pxListItem = pRsListGetHeadEntry(&pxRmt->xAddresses);
+    pxListItem = pxRsListGetFirst(&pxRmt->xAddresses);
 
-	while (pxListItem != pxListEnd)
+	while (pxListItem != NULL)
 	{
-		pxAddr = (rmtAddress_t *)pRsListGetListItemOwner(pxListItem);
+        pxAddr = (rmtAddress_t *)pxRsListGetItemOwner(pxListItem);
 
 		if (pxAddr->xAddress == xAddress)
 		{
@@ -186,7 +183,7 @@ bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 			return true;
 		}
 
-		pxListItem = pRsListGetNext(pxListItem);
+        pxListItem = pxRsListGetNext(pxListItem);
 	}
 
 	return false;

@@ -9,6 +9,7 @@
 
 #include "portability/port.h"
 #include "rina_ids.h"
+#include "list.h"
 
 typedef struct xQUEUE_FIFO
 {

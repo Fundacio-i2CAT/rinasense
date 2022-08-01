@@ -9,7 +9,6 @@ if(NOT ${TARGET_TYPE} STREQUAL "freertos_idf")
 else()
   idf_component_register(
     SRCS
-    "freertos_idf/rslist.c"
     "freertos_idf/rsmem.c"
     "freertos_idf/rslog.c"
     "posix/posix_rsqueue.c"

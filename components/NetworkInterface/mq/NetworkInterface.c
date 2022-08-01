@@ -1,12 +1,11 @@
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include "configSensor.h"
 #include "portability/port.h"
-#include "portability/posix/mqueue.h"
-
-#include "portability/rstime.h"
 #include "rina_gpha.h"
 
 #include "IPCP_api.h"
