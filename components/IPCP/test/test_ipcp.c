@@ -53,6 +53,10 @@ RS_TEST_CASE(IPCPSendEvent, "[ipcp]")
 int main()
 {
     RS_SUITE_BEGIN();
+
+    RINA_IPCPInit();
+    sleep(1);
+
     RS_RUN_TEST(IPCPSendEvent);
     RS_SUITE_END();
 }
