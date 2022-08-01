@@ -602,10 +602,9 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         // struct rttq *       rttq;
         // struct delim * delim;
 
-        if (!pxEfcpContainer)
-        {
-                LOGE(TAG_EFCP, "Bogus container passed, bailing out");
-                return cep_id_bad();
+        if (!pxEfcpContainer) {
+                LOGE(TAG_EFCP,"Bogus container passed, bailing out");
+                return CEP_ID_WRONG;
         }
 
         LOGE(TAG_EFCP, "xEfcpConnectionCreate: ConnectionCreate");
@@ -617,7 +616,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         RsAssert(pxConnection);
 
         if (!pxConnection)
-                return cep_id_bad();
+                return CEP_ID_WRONG;
 
         RsAssert(pxDtpCfg);
 
@@ -634,7 +633,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         if (!pxEfcp)
         {
                 xConnectionDestroy(pxConnection);
-                return cep_id_bad();
+                return CEP_ID_WRONG;
         }
 
         // xCepId = cidm_allocate(container->cidm);
@@ -644,7 +643,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         {
                 LOGE(TAG_EFCP, "CIDM generated wrong CEP ID");
                 xEfcpDestroy(pxEfcp);
-                return cep_id_bad();
+                return CEP_ID_WRONG;
         }
 
         /* We must ensure that the DTP is instantiated, at least ... */
@@ -656,7 +655,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         {
                 LOGE(TAG_EFCP, "Bogus connection passed, bailing out");
                 xEfcpDestroy(pxEfcp);
-                return cep_id_bad();
+                return CEP_ID_WRONG;
         }
 
         pxEfcp->pxConnection = pxConnection;
@@ -668,7 +667,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         	if (!delim){
         		LOGE(TAG_EFCP,"Problems creating delimiting module");
                         xEfcpDestroy(pxEfcp);
-                        return cep_id_bad();
+                        return CEP_ID_WRONG;
         	}
 
         	delim->max_fragment_size =
@@ -682,7 +681,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                         	RINA_PS_DEFAULT_NAME);
                         delim_destroy(delim);
                         efcp_destroy(efcp);
-                        return cep_id_bad();
+                        return CEP_ID_WRONG;
                 }
 
         	pxEfcp->pxDelim = delim;
@@ -697,7 +696,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         if (!pxEfcp->pxDtp)
         {
                 xEfcpDestroy(pxEfcp);
-                return cep_id_bad();
+                return CEP_ID_WRONG;
         }
 
         pxDtcp = NULL;
@@ -714,7 +713,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
 				   &efcp->robj);
                 if (!dtcp) {
                         efcp_destroy(efcp);
-                        return cep_id_bad();
+                        return CEP_ID_WRONG;
                 }
 
                 efcp->dtp->dtcp = dtcp;
@@ -726,7 +725,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                 if (!cwq) {
                         LOGE(TAG_EFCP,"Failed to create closed window queue");
                         efcp_destroy(efcp);
-                        return cep_id_bad();
+                        return CEP_ID_WRONG;
                 }
                 efcp->dtp->cwq = cwq;
         }
@@ -737,7 +736,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                 if (!rtxq) {
                         LOGE(TAG_EFCP,"Failed to create rexmsn queue");
                         efcp_destroy(efcp);
-                        return cep_id_bad();
+                        return CEP_ID_WRONG;
                 }
                 efcp->dtp->rtxq = rtxq;
                 efcp->dtp->rttq = NULL;
@@ -746,7 +745,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         	if (!rttq) {
         		LOGE(TAG_EFCP,"Failed to create RTT queue");
         		efcp_destroy(efcp);
-        		return cep_id_bad();
+        		return CEP_ID_WRONG;
         	}
         	efcp->dtp->rttq = rttq;
         	efcp->dtp->rtxq = NULL;
@@ -782,7 +781,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
 			mfps, mfss, mpl, a, r, tr)) {
                 LOGE(TAG_EFCP,"Could not init dtp_sv");
                 efcp_destroy(efcp);
-                return cep_id_bad();
+                return CEP_ID_WRONG;
         }
 
 #endif
@@ -792,7 +791,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                 LOGE(TAG_EFCP, "Cannot add a new instance into container %p",
                      pxEfcpContainer);
                 xEfcpDestroy(pxEfcp);
-                return cep_id_bad();
+                return CEP_ID_WRONG;
         }
 
         LOGI(TAG_EFCP, "Connection created ("

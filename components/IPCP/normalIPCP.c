@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "common/list.h"
+#include "common/rina_ids.h"
 #include "common/rina_name.h"
 #include "portability/port.h"
 
@@ -214,14 +215,14 @@ cepId_t xNormalConnectionCreateRequest(struct efcpContainer_t *pxEfcpc,
         struct ipcpInstance_t *pxIpcp;
 
         xCepId = xEfcpConnectionCreate(pxEfcpc, xSource, xDest,
-                                       xAppPortId, xQosId,
-                                       cep_id_bad(), cep_id_bad(),
+                                       xPortId, xQosId,
+                                       CEP_ID_WRONG, CEP_ID_WRONG,
                                        pxDtpCfg, pxDtcpCfg);
 
         if (!is_cep_id_ok(xCepId))
         {
                 LOGE(TAG_IPCPNORMAL, "Failed EFCP connection creation");
-                return cep_id_bad();
+                return CEP_ID_WRONG;
         }
 
         /*        pxCepEntry = pvPortMalloc(sizeof(*pxCepEntry)); // error

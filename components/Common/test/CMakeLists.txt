@@ -38,6 +38,18 @@ else()
     unity
   )
 
+  add_executable(test_ids "${CMAKE_CURRENT_LIST_DIR}/test_ids.c")
+  target_link_libraries(test_ids
+    Common
+    portability
+    unity
+  )
+
+  add_test(
+    NAME "test_ids"
+    COMMAND "./test_ids"
+  )
+
   add_test(
     NAME test_lists
     COMMAND "./test_lists"
