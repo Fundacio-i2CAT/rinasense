@@ -1,3 +1,4 @@
+#include "IPCP_events.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -236,7 +237,7 @@ static void *prvIPCPTask(void *pvParameters)
         /* Wait until there is something to do. If the following call exits
          * due to a time out rather than a message being received, set a
          * 'NoEvent' value. */
-        if (xRsQueueReceive(xNetworkEventQueue, (void *)&xReceivedEvent, xSleepTimeUS) == false)
+        if (xRsQueueReceive(xNetworkEventQueue, (void *)&xReceivedEvent, sizeof(RINAStackEvent_t), xSleepTimeUS) == false)
             xReceivedEvent.eEventType = eNoEvent;
 
         switch (xReceivedEvent.eEventType)
@@ -510,7 +511,7 @@ bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t xT
             else
                 xCalculatedTimeOutUS = xTimeOutUS;
 
-            xReturn = xRsQueueSendToBack(xNetworkEventQueue, pxEvent, xCalculatedTimeOutUS);
+            xReturn = xRsQueueSendToBack(xNetworkEventQueue, pxEvent, sizeof(RINAStackEvent_t), xCalculatedTimeOutUS);
 
             if (!xReturn)
                 LOGE(TAG_IPCPMANAGER, "Failed to add message to IPCP queue (errno: %d)", errno);

@@ -9,15 +9,20 @@
 /* Minimal queue API based on what is required in the IPCP. */
 
 RsQueue_t *pxRsQueueCreate(const char *sQueueName,
-                          size_t uxQueueLength, size_t uxItemSize);
+                           const size_t uxQueueLength,
+                           const size_t uxItemSize);
 
 void vRsQueueDelete(RsQueue_t *pQueue);
 
 bool_t xRsQueueSendToBack(RsQueue_t *pxQueue,
-                         const void *pvItemToQueue, useconds_t xTimeOutUS);
+                          const void *pvItemToQueue,
+                          const size_t unItemSize,
+                          const useconds_t xTimeOutUS);
 
 bool_t xRsQueueReceive(RsQueue_t *pxQueue,
-                      void *pvBuffer, useconds_t xTimeOutUS);
+                       void *pvBuffer,
+                       const size_t unBufferSize,
+                       const useconds_t xTimeOutUS);
 
 #endif // _COMMON_PORTABILITY_RSQUEUE_H
 
