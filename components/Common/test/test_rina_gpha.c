@@ -96,11 +96,11 @@ RS_TEST_CASE(GPACompare, "[gha][gpha]") {
 
 #ifndef TEST_CASE
 int main() {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(SimpleGPA);
     RS_RUN_TEST(SimpleGHA);
     RS_RUN_TEST(GPACompare);
     RS_RUN_TEST(GPAConversion);
-    return UNITY_END();
+    RS_SUITE_END();
 }
 #endif

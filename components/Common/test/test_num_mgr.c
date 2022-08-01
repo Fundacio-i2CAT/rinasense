@@ -53,9 +53,9 @@ RS_TEST_CASE(ManyBits, "[num_mgr]")
 #ifndef TEST_CASE
 int main()
 {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(Bits8);
     RS_RUN_TEST(ManyBits);
-    return UNITY_END();
+    RS_SUITE_END();
 }
 #endif

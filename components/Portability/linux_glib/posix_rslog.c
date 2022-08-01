@@ -4,6 +4,16 @@
 
 #include "portability/rslog.h"
 
+void vRsLogInit()
+{
+    /* No operations needed here. */
+}
+
+void vRsLogSetLevel(const string_t pcTagName, RsLogLevel_t eLogLevel)
+{
+    /* Nothing for now... */
+}
+
 void vRsLogWrite(RsLogLevel_t level, const char* tag, const char* format, ...)
 {
     va_list list;
