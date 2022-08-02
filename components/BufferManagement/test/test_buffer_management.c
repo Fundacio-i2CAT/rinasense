@@ -32,14 +32,53 @@ RS_TEST_CASE(GetNetworkBuffer, "[buffer]")
 /*void testGetNetworkBufferWithDescriptors()*/
 RS_TEST_CASE(GetNetworkBufferWithDescriptor, "[buffer]")
 {
-    size_t s = 10;
+    size_t s = 10, n = 0;
     NetworkBufferDescriptor_t *pB1, *pB2;
     struct timespec ts;
 
     RS_TEST_CASE_BEGIN(test_buffer_management);
 
+    /* Make sure we can randomly allocate 2 buffers with descriptors. */
+    n = uxGetNumberOfFreeNetworkBuffers();
     TEST_ASSERT((pB1 = pxGetNetworkBufferWithDescriptor(s, 1000)) != NULL);
     TEST_ASSERT((pB2 = pxGetNetworkBufferWithDescriptor(s, 1000)) != NULL);
+    TEST_ASSERT(uxGetNumberOfFreeNetworkBuffers() == n - 2);
+
+    /* Free those buffers. */
+    vReleaseNetworkBufferAndDescriptor(pB1);
+    vReleaseNetworkBufferAndDescriptor(pB2);
+
+    /* Make sure things have been updated. */
+    TEST_ASSERT(uxGetNumberOfFreeNetworkBuffers() == n);
+
+    RS_TEST_CASE_END(test_buffer_management);
+}
+
+RS_TEST_CASE(NetworkBufferMassAllocate, "[buffer]")
+{
+    NetworkBufferDescriptor_t *pB[NUM_NETWORK_BUFFER_DESCRIPTORS + 1];
+    size_t s = 10;
+    int n;
+
+    RS_TEST_CASE_BEGIN(test_buffer_management);
+
+    /* Allocate the maximum amount of buffers. */
+    n = uxGetNumberOfFreeNetworkBuffers();
+    for (int i = 0; i < n; i++)
+        TEST_ASSERT((pB[i] = pxGetNetworkBufferWithDescriptor(s, 1000)) != NULL);
+
+    /* This should fail. */
+    TEST_ASSERT((pB[n] = pxGetNetworkBufferWithDescriptor(s, 10)) == NULL);
+
+    /* Free a single buffer so we can retry. */
+    vReleaseNetworkBufferAndDescriptor(pB[0]);
+
+    /* This should succeed now. */
+    TEST_ASSERT((pB[n] = pxGetNetworkBufferWithDescriptor(s, 10)) != NULL);
+
+    /* Release all the buffers we just taken. */
+    for (int i = 0; i < n; i++)
+        vReleaseNetworkBufferAndDescriptor(pB[i]);
 
     RS_TEST_CASE_END(test_buffer_management);
 }
