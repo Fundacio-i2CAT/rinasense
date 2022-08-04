@@ -22,7 +22,9 @@ bool_t rstime_waitnsec(struct timespec *ts, uint64_t n) {
     /* Per spec, tv_nsec cannot be higher than a billion. See
      * nanosleep(1) */
     ts->tv_sec += (time_t)(n / 1000000000);
-    ts->tv_nsec += (n % 1000000000);
+    ts->tv_nsec = (n % 1000000000);
+
+    RsAssert(ts->tv_nsec <= 999999999);
 
     return true;
 }
