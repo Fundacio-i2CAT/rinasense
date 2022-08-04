@@ -196,8 +196,6 @@ void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBuffe
     }
     pxMessagePDU->pxNetworkBuffer = pxNetworkBuffer;
 
-    ESP_LOGI(TAG_IPCPMANAGER, "The RINA packet is a managment packet");
-
     if (!xNormalDuEnqueue(pxData, 1, pxMessagePDU)) // must change this
     {
         ESP_LOGI(TAG_IPCPMANAGER, "Drop frame because there is not enough memory space");

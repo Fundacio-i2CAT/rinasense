@@ -237,6 +237,10 @@ void vFlowAllocatorFlowRequest(
 
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
     pxNeighbor = pxEnrollmentFindNeighbor(pcNeighbor);
+    if (!pxNeighbor)
+    {
+        ESP_LOGE(TAG_FA, "No Neighbor founded");
+    }
     pxFlow->xRemoteAddress = pxNeighbor->xNeighborAddress;
 
     pxFlow->xSourcePortId = xAppPortId;
@@ -411,9 +415,9 @@ BaseType_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
         return pdFALSE;
     }
 
-    vPrintBytes((void *)pxNetworkBuffer->pucDataBuffer, pxNetworkBuffer->xDataLength);
+    // vPrintBytes((void *)pxNetworkBuffer->pucDataBuffer, pxNetworkBuffer->xDataLength);
 
-    vPrintBytes((void *)pxDu->pxNetworkBuffer->pucDataBuffer, pxDu->pxNetworkBuffer->xDataLength);
+    // vPrintBytes((void *)pxDu->pxNetworkBuffer->pucDataBuffer, pxDu->pxNetworkBuffer->xDataLength);
 
     // put pxDu into the list of the flow, then.
     // wakeup client setting bits

@@ -184,7 +184,7 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
         pxDu->pxPci->xType = PDU_TYPE_DT;
         pxDu->pxPci->xPduLen = pxDu->pxNetworkBuffer->xDataLength;
         pxDu->pxPci->xSequenceNumber = xCsn;
-
+#if 0
         ESP_LOGI(TAG_DTP, "------------ PCI DT-----------");
         ESP_LOGI(TAG_DTP, "PCI Version: 0x%04x", pxDu->pxPci->ucVersion);
         ESP_LOGI(TAG_DTP, "PCI SourceAddress: 0x%04x", pxDu->pxPci->xSource);
@@ -196,7 +196,7 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
         ESP_LOGI(TAG_DTP, "PCI Type: 0x%04x", pxDu->pxPci->xType);
         ESP_LOGI(TAG_DTP, "PCI SequenceNumber: 0x%08x", pxDu->pxPci->xSequenceNumber);
         ESP_LOGI(TAG_DTP, "PCI xPDULEN: 0x%04x", pxDu->pxPci->xPduLen);
-
+#endif
         if (!xPciIsOk(pxDu->pxPci))
         {
                 ESP_LOGE(TAG_DTP, "PCI is not ok");

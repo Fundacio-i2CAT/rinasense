@@ -181,7 +181,7 @@ BaseType_t xEfcpReceive(struct efcp_t *pxEfcp, struct du_t *pxDu)
                 return pdTRUE;
         }
 
-        if (xDtpReceive(pxEfcp->pxDtp, pxDu))
+        if (!xDtpReceive(pxEfcp->pxDtp, pxDu))
         {
                 ESP_LOGE(TAG_EFCP, "DTP cannot receive this PDU");
                 return pdFALSE;

@@ -83,6 +83,7 @@ BaseType_t xDuDecap(struct du_t *pxDu)
 
 	pxDu->pxPci = pxPciTmp;
 
+#if 0
 	ESP_LOGI(TAG_DTP, "------------ PCI DT DECAP-----------");
 	ESP_LOGI(TAG_DTP, "PCI Version: 0x%04x", pxDu->pxPci->ucVersion);
 	ESP_LOGI(TAG_DTP, "PCI SourceAddress: 0x%04x", pxDu->pxPci->xSource);
@@ -94,7 +95,7 @@ BaseType_t xDuDecap(struct du_t *pxDu)
 	ESP_LOGI(TAG_DTP, "PCI Type: 0x%04x", pxDu->pxPci->xType);
 	ESP_LOGI(TAG_DTP, "PCI SequenceNumber: 0x%08x", pxDu->pxPci->xSequenceNumber);
 	ESP_LOGI(TAG_DTP, "PCI xPDULEN: 0x%04x", pxDu->pxPci->xPduLen);
-
+#endif
 	/*
 		pxDu->pxPci->ucVersion = pxPciTmp->ucVersion;
 		pxDu->pxPci->xSource = pxPciTmp->xSource;

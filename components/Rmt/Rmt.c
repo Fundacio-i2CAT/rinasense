@@ -241,7 +241,7 @@ static BaseType_t xRmtProcessDtPdu(rmt_t *pxRmt, portId_t xPortId, struct du_t *
 		return pdFALSE;
 	}
 
-	if (xEfcpContainerReceive(pxRmt->pxEfcpc, xCepTmp, pxDu))
+	if (!xEfcpContainerReceive(pxRmt->pxEfcpc, xCepTmp, pxDu))
 	{
 		ESP_LOGE(TAG_RMT, "EFCP container problems");
 		return pdFALSE;
