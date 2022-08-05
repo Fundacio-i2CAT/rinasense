@@ -52,4 +52,19 @@
 #define DTP_INITIAL_A_TIMER (300)
 #define DTP_DTCP_PRESENT false
 
+	#define DTP_INITIAL_A_TIMER						( 300 )
+	#define DTP_DTCP_PRESENT						false
+
+/* Linux NetworkInterface options. */
+
+/* Decides if the TAP NetworkInterface will create the tap device itself. */
+#define LINUX_TAP_CREATE       false
+
+/* Decides if the TAP NetworkInterface will put UP, or DOWN, the
+ * virtual device. */
+#define LINUX_TAP_MANAGE       false
+
+/* */
+#define LINUX_TAP_DEVICE       "rina00"
+
 #endif

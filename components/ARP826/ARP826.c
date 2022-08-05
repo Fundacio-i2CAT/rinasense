@@ -445,7 +445,7 @@ static void prvARPGeneratePacket(NetworkBufferDescriptor_t *const pxNetworkBuffe
 	pxARPPacket->xARPHeader.ucHALength = sizeof(pxSha->xAddress.ucBytes);
 	pxARPPacket->xARPHeader.ucPALength = pxSpa->uxLength;
 	pxARPPacket->xARPHeader.usOperation = usPtype;
-	pxARPPacket->xEthernetHeader.usFrameType = RsHtoNS(ETH_P_ARP);
+	pxARPPacket->xEthernetHeader.usFrameType = RsHtoNS(ETH_P_RINA_ARP);
 
 	memcpy(pxARPPacket->xEthernetHeader.xSourceAddress.ucBytes, pxSha->xAddress.ucBytes, sizeof(pxSha->xAddress));
 	memcpy(pxARPPacket->xEthernetHeader.xDestinationAddress.ucBytes, pxTha->xAddress.ucBytes, sizeof(pxTha->xAddress));

@@ -12,6 +12,9 @@ typedef int  num_t;
 typedef char* string_t;
 #define PORT_HAS_STRING_T
 
+typedef char  stringbuf_t;
+#define PORT_HAS_STRINGBUF_T
+
 typedef uint8_t* buffer_t;
 #define PORT_HAS_BUFFER_T
 

@@ -992,7 +992,7 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 }
 
 /*Check this logic.*/
-void vShimWiFiInit(struct ipcpInstance_t *pxShimWiFiInstance)
+bool_t xShimWiFiInit(ipcpInstance_t *pxShimWiFiInstance)
 {
 	/*xShimWiFiInit is going to init the  WiFi drivers and associate to the AP.
 	 * Update de MacAddress variable depending on the WiFi drivers. Sent this variable
@@ -1001,11 +1001,14 @@ void vShimWiFiInit(struct ipcpInstance_t *pxShimWiFiInstance)
 	LOGI(TAG_SHIM, "Wifi shim initialization");
 	RINAStackEvent_t xEnrollEvent = {eShimEnrolledEvent, NULL};
 
-	if (!xShimEnrollToDIF(pxShimWiFiInstance->pxData->pxPhyDev))
+	if (!xShimEnrollToDIF(pxShimWiFiInstance->pxData->pxPhyDev)) {
 		LOGE(TAG_SHIM, "Wifi shim instance can't enroll to DIF");
+        return false;
+    }
 	else
 	{
 		xEnrollEvent.pvData = (void *)(pxShimWiFiInstance->pxData->pxPhyDev);
 		xSendEventStructToIPCPTask(&xEnrollEvent, 50 * 1000);
+        return true;
 	}
 }
