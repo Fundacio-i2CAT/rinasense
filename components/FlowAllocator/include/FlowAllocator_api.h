@@ -3,11 +3,18 @@
 
 #include "FlowAllocator.h"
 
-void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc,
-                               portId_t xPortId,
-                               flowAllocateHandle_t *pxFlowRequest,
-                               struct ipcpNormalData_t *pxIpcpData);
+void vFlowAllocatorFlowRequest(
+    portId_t xAppPortId,
+    flowAllocateHandle_t *pxFlowRequest);
 
 bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
+
+void vFlowAllocatorDeallocate(portId_t xAppPortId);
+
+bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id);
+
+flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId);
+
+bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu);
 
 #endif // FLOW_ALLOCATOR_H_INCLUDED

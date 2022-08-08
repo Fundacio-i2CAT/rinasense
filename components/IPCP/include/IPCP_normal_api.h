@@ -36,4 +36,18 @@ bool_t xNormalDuEnqueue(struct ipcpNormalData_t *pxData,
 
 bool_t xNormalMgmtDuPost(struct ipcpNormalData_t *pxData, portId_t xPortId, struct du_t *pxDu);
 
+bool_t xNormalIsFlowAllocated(portId_t xPortId);
+
+bool_t xNormalUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlowstate);
+
+bool_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
+                      portId_t xAppPortId,
+                      NetworkBufferDescriptor_t *pxNetworkBuffer);
+bool_t xNormalUpdateCepIdFlow(portId_t xPortId, cepId_t xCepId);
+
+bool_t xNormalConnectionUpdate(portId_t xAppPortId, cepId_t xSrcCepId, cepId_t xDstCepId);
+bool_t xNormalConnectionModify(cepId_t xCepId,
+                               address_t xSrc,
+                               address_t xDst);
+
 #endif

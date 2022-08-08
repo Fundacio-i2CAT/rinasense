@@ -1,5 +1,8 @@
-set(esp_idf_dir $ENV{IDF_PATH})
 
+
+file(TO_CMAKE_PATH "$ENV{IDF_PATH}" ENV_IDF_PATH)
+
+# set(esp_idf_dir $ENV{IDF_PATH})
 idf_component_register(
   SRC_DIRS "FreeRTOS-Plus-POSIX/source"
   INCLUDE_DIRS
@@ -11,10 +14,10 @@ idf_component_register(
 
   PRIV_INCLUDE_DIRS
   "include/private"
-  "${esp_idf_dir}/components/freertos/include/freertos"
+  "${ENV_IDF_PATH}/components/freertos/include/freertos"
 )
 
 # set_source_files_properties("${freertos_plus_posix_dir}/source/FreeRTOS_POSIX_pthread_cond.c"
-#     PROPERTIES COMPILE_FLAGS
-#     "-Wno-maybe-uninitialized"
+# PROPERTIES COMPILE_FLAGS
+# "-Wno-maybe-uninitialized"
 # )

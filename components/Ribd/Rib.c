@@ -11,6 +11,7 @@
 #include "configSensor.h"
 #include "Rib.h"
 #include "Enrollment_api.h"
+#include "FlowAllocator_api.h"
 
 /*Table of Objects*/
 struct ribObjectRow_t xRibObjectTable[RIB_TABLE_SIZE];
@@ -25,7 +26,7 @@ static void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
         {
             xRibObjectTable[x].pxRibObject = pxRibObject;
             xRibObjectTable[x].xValid = true;
-            LOGI(TAG_RIB, "Rib Object Entry successful: %p", pxRibObject);
+            LOGD(TAG_RIB, "Rib Object Entry successful: %p", pxRibObject);
 
             break;
         }
@@ -34,7 +35,7 @@ static void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
 
 struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
 {
-    LOGI(TAG_RIB, "Looking for the object %s in the RIB Object Table", ucRibObjectName);
+    LOGD(TAG_RIB, "Looking for the object %s in the RIB Object Table", ucRibObjectName);
     num_t x = 0;
     struct ribObject_t *pxRibObject;
     pxRibObject = pvRsMemAlloc(sizeof(*pxRibObject));
@@ -45,7 +46,7 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
         if (xRibObjectTable[x].xValid == true)
         {
             pxRibObject = xRibObjectTable[x].pxRibObject;
-            // ESP_LOGI(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
+            LOGD(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
             if (!strcmp(pxRibObject->ucObjName, ucRibObjectName))
             {
                 LOGI(TAG_RIB, "RibObj founded '%p', '%s'", pxRibObject, pxRibObject->ucObjName);
@@ -70,7 +71,7 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName,
     struct ribObject_t *pxObj = pvRsMemAlloc(sizeof(*pxObj));
     struct ribObjOps_t *pxObjOps = pvRsMemAlloc(sizeof(*pxObjOps));
 
-    pxObj->ucObjName = ucObjName;
+    pxObj->ucObjName = strdup(ucObjName);
     pxObj->ulObjInst = ulObjInst;
     pxObj->ucDisplayableValue = ucDisplayableValue;
     pxObj->pxObjOps = pxObjOps;
@@ -91,6 +92,12 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName,
 
     case OPERATIONAL:
         pxObj->pxObjOps->start = xEnrollmentHandleOperationalStart;
+        break;
+
+    case FLOW:
+        pxObj->pxObjOps->delete = xFlowAllocatorHandleDelete;
+        // pxObj->pxObjOps->create = xFlowAllocatorHandleCreate;
+
         break;
 
     default:

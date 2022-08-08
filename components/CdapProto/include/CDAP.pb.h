@@ -56,7 +56,7 @@ typedef struct _rina_messages_int_t { /* information to identify an int */
     uint32_t value; /* value of the integer */
 } rina_messages_int_t;
 
-typedef PB_BYTES_ARRAY_T(256) rina_messages_objVal_t_byteval_t;
+typedef PB_BYTES_ARRAY_T(512) rina_messages_objVal_t_byteval_t;
 typedef struct _rina_messages_objVal_t { /* value of an object */
     bool has_intval;
     int32_t intval; 
@@ -67,7 +67,7 @@ typedef struct _rina_messages_objVal_t { /* value of an object */
     bool has_sint64val;
     int64_t sint64val; 
     bool has_strval;
-    char strval[10]; 
+    char strval[20]; 
     bool has_byteval;
     rina_messages_objVal_t_byteval_t byteval; /* arbitrary structure or message */
     bool has_floatval;
@@ -269,7 +269,7 @@ extern const pb_msgdesc_t rina_messages_string_t_msg;
 /* rina_messages_CDAPMessage_size depends on runtime parameters */
 /* rina_messages_string_t_size depends on runtime parameters */
 #define rina_messages_int_t_size                 6
-#define rina_messages_objVal_t_size              325
+#define rina_messages_objVal_t_size              591
 
 #ifdef __cplusplus
 } /* extern "C" */

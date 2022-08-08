@@ -10,15 +10,17 @@
 #endif
 
 /* Struct definitions */
+typedef PB_BYTES_ARRAY_T(512) rina_messages_a_data_t_cdapMessage_t;
 typedef struct _rina_messages_a_data_t { 
     bool has_sourceAddress;
     int32_t sourceAddress; 
     bool has_destAddress;
     int32_t destAddress; 
-    pb_callback_t cdapMessage; 
+    bool has_cdapMessage;
+    rina_messages_a_data_t_cdapMessage_t cdapMessage; 
 } rina_messages_a_data_t;
 
-typedef PB_BYTES_ARRAY_T(256) rina_messages_objectValue_t_byteval_t;
+typedef PB_BYTES_ARRAY_T(512) rina_messages_objectValue_t_byteval_t;
 typedef struct _rina_messages_objectValue_t { /* value of an object */
     bool has_intval;
     int32_t intval; 
@@ -59,11 +61,11 @@ extern "C" {
 #define rina_messages_objectValue_t_init_default {false, 0, false, 0, false, 0, false, 0, false, "", false, {0, {0}}, false, 0, false, 0}
 #define rina_messages_nameValuePair_t_init_default {false, "", false, rina_messages_objectValue_t_init_default}
 #define rina_messages_property_t_init_default    {"", ""}
-#define rina_messages_a_data_t_init_default      {false, 0, false, 0, {{NULL}, NULL}}
+#define rina_messages_a_data_t_init_default      {false, 0, false, 0, false, {0, {0}}}
 #define rina_messages_objectValue_t_init_zero    {false, 0, false, 0, false, 0, false, 0, false, "", false, {0, {0}}, false, 0, false, 0}
 #define rina_messages_nameValuePair_t_init_zero  {false, "", false, rina_messages_objectValue_t_init_zero}
 #define rina_messages_property_t_init_zero       {"", ""}
-#define rina_messages_a_data_t_init_zero         {false, 0, false, 0, {{NULL}, NULL}}
+#define rina_messages_a_data_t_init_zero         {false, 0, false, 0, false, {0, {0}}}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define rina_messages_a_data_t_sourceAddress_tag 1
@@ -111,8 +113,8 @@ X(a, STATIC,   REQUIRED, STRING,   value,             2)
 #define rina_messages_a_data_t_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, INT32,    sourceAddress,     1) \
 X(a, STATIC,   OPTIONAL, INT32,    destAddress,       2) \
-X(a, CALLBACK, OPTIONAL, BYTES,    cdapMessage,       3)
-#define rina_messages_a_data_t_CALLBACK pb_default_field_callback
+X(a, STATIC,   OPTIONAL, BYTES,    cdapMessage,       3)
+#define rina_messages_a_data_t_CALLBACK NULL
 #define rina_messages_a_data_t_DEFAULT NULL
 
 extern const pb_msgdesc_t rina_messages_objectValue_t_msg;
@@ -127,9 +129,9 @@ extern const pb_msgdesc_t rina_messages_a_data_t_msg;
 #define rina_messages_a_data_t_fields &rina_messages_a_data_t_msg
 
 /* Maximum encoded size of messages (where known) */
-/* rina_messages_a_data_t_size depends on runtime parameters */
-#define rina_messages_nameValuePair_t_size       367
-#define rina_messages_objectValue_t_size         323
+#define rina_messages_a_data_t_size              537
+#define rina_messages_nameValuePair_t_size       623
+#define rina_messages_objectValue_t_size         579
 #define rina_messages_property_t_size            82
 
 #ifdef __cplusplus

@@ -15,7 +15,7 @@ PB_BIND(rina_messages_nameValuePair_t, rina_messages_nameValuePair_t, 2)
 PB_BIND(rina_messages_property_t, rina_messages_property_t, AUTO)
 
 
-PB_BIND(rina_messages_a_data_t, rina_messages_a_data_t, AUTO)
+PB_BIND(rina_messages_a_data_t, rina_messages_a_data_t, 2)
 
 
 

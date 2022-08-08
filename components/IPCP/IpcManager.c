@@ -113,9 +113,8 @@ static ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
     return NULL;
 }
 
-void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, NumMgr_t *pxPidm, name_t *pxIPCPName)
+void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName)
 {
-    portId_t xPortId;
 
     /*This should be proposed by the Flow Allocator?*/
     name_t *destinationInfo = pvRsMemAlloc(sizeof(*destinationInfo));
@@ -124,89 +123,24 @@ void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, NumMgr_t *
     destinationInfo->pcProcessInstance = REMOTE_ADDRESS_AP_INSTANCE;
     destinationInfo->pcEntityInstance = "";
 
-    //xPortId = xPidmAllocate(pxPidm);
-    xPortId = ulNumMgrAllocate(pxPidm);
-
     if (pxShimInstance->pxOps->flowAllocateRequest == NULL)
     {
         LOGI(TAG_IPCPNORMAL, "There is not Flow Allocate Request API");
+    }
+    if (pxShimInstance->pxOps->flowAllocateRequest(xN1PortId,
+                                                   pxIPCPName,
+                                                   destinationInfo,
+                                                   pxShimInstance->pxData))
+    {
+        LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
+        return pdTRUE;
     }
 
     if (pxShimInstance->pxOps->flowAllocateRequest(pxShimInstance->pxData,
                                                    pxIPCPName,
                                                    destinationInfo,
-                                                   xPortId))
+                                                   xN1PortId))
         LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
-}
-
-/* Handle a Flow allocation request sended by the User throught the RINA API.
- * Return a the Flow xPortID that the RINA API is going to use to send data. */
-void vIpcpManagerAppFlowAllocateRequestHandle(NumMgr_t *pxPidm,
-                                              struct efcpContainer_t *pxEfcpc,
-                                              struct ipcpNormalData_t *pxIpcpData)
-{
-    portId_t xPortId;
-    flowAllocateHandle_t *pxFlowAllocateRequest;
-
-    pxFlowAllocateRequest = pvRsMemAlloc(sizeof(*pxFlowAllocateRequest));
-
-    struct flowSpec_t *pxFlowSpecTmp;
-    pxFlowSpecTmp = pvRsMemAlloc(sizeof(*pxFlowSpecTmp));
-    pxFlowAllocateRequest->pxFspec = pxFlowSpecTmp;
-
-    name_t *pxLocal, *pxRemote, *pxDIF;
-    pxLocal = pvRsMemAlloc(sizeof(*pxLocal));
-    pxRemote = pvRsMemAlloc(sizeof(*pxRemote));
-    pxDIF = pvRsMemAlloc(sizeof(*pxDIF));
-
-    pxLocal->pcProcessName = "Test";
-    pxLocal->pcProcessInstance = "1";
-    pxLocal->pcEntityName = "test";
-    pxLocal->pcEntityInstance = "1";
-    pxRemote->pcProcessName = "sensor1";
-    pxRemote->pcProcessInstance = "";
-    pxRemote->pcEntityName = "";
-    pxRemote->pcEntityInstance = "";
-    pxDIF->pcProcessName = NORMAL_DIF_NAME;
-    pxDIF->pcProcessInstance = "";
-    pxDIF->pcEntityName = "";
-    pxDIF->pcEntityInstance = "";
-
-    pxFlowAllocateRequest->pxDifName = pxDIF;
-    pxFlowAllocateRequest->pxLocal = pxLocal;
-    pxFlowAllocateRequest->pxRemote = pxRemote;
-    pxFlowAllocateRequest->pxFspec->ulAverageBandwidth = 0;
-    pxFlowAllocateRequest->pxFspec->ulAverageSduBandwidth = 0;
-    pxFlowAllocateRequest->pxFspec->ulDelay = 0;
-    pxFlowAllocateRequest->pxFspec->ulJitter = 0;
-    pxFlowAllocateRequest->pxFspec->usLoss = 10000;
-    pxFlowAllocateRequest->pxFspec->ulMaxAllowableGap = 10;
-    pxFlowAllocateRequest->pxFspec->xOrderedDelivery = false;
-    pxFlowAllocateRequest->pxFspec->ulUndetectedBitErrorRate = 0;
-    pxFlowAllocateRequest->pxFspec->xPartialDelivery = true;
-    pxFlowAllocateRequest->pxFspec->xMsgBoundaries = false;
-
-    // dtpConfig_t *pxDtpCfg;
-    // struct dtcpConfig_t *pxDtcpCfg;
-
-    /* This shouldbe read from configRINA.h */
-    // address_t xSource = 10;
-    // address_t xDest = 3;
-    // qosId_t xQosId = 1;
-
-    // pxDtcpCfg = pvPortMalloc(sizeof(*pxDtcpCfg));
-    // pxDtpCfg = pvPortMalloc(sizeof(*pxDtpCfg));
-
-    xPortId = 33;
-
-    // if (pxNormalInstance->pxOps->flowPrebind(pxNormalInstance->pxData, xPortId))
-    //{
-
-    // call to FlowAllocator.
-    vFlowAllocatorFlowRequest(pxEfcpc, xPortId, pxFlowAllocateRequest, pxIpcpData);
-
-    //}
-    LOGE(TAG_IPCPMANAGER, "end");
 }
 
 void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
@@ -222,9 +156,7 @@ void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBuffe
     }
     pxMessagePDU->pxNetworkBuffer = pxNetworkBuffer;
 
-    LOGI(TAG_IPCPMANAGER, "The RINA packet is a managment packet");
-
-    if (!xNormalDuEnqueue(pxData, 1, pxMessagePDU))
+    if (!xNormalDuEnqueue(pxData, 1, pxMessagePDU)) // must change this
     {
         LOGI(TAG_IPCPMANAGER, "Drop frame because there is not enough memory space");
         xDuDestroy(pxMessagePDU);
