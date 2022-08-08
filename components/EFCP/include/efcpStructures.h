@@ -10,18 +10,13 @@
 
 #include <stdio.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-
-#include "EFCP.h"
+#include "rina_common_port.h"
 #include "du.h"
-#include "Rmt.h"
-#include "common.h"
+#include "rmt.h"
 #include "delim.h"
-#include "cepidm.h"
+#include "rina_ids.h"
+#include "num_mgr.h"
+#include "IPCP_instance.h"
 
 /* Retransmission Queue RTXQ used to buffer those PDUs
  * that may require retransmission */
@@ -37,7 +32,7 @@
 typedef struct xCWQ
 {
 
-        QueueHandle_t *pxQueue;
+        RsQueue_t *pxQueue;
         // spinlock_t      lock;
 } cwq_t;
 
@@ -80,12 +75,12 @@ typedef struct xDTP_SV
         // timeout_t    R;
         // timeout_t    A;
         // timeout_t    tr;
-        seqNum_t xRcvLeftWindowEdge; // OK
-        BaseType_t xWindowClosed;    // OK
+        seqNum_t xRcvLeftWindowEdge;
+        bool_t xWindowClosed;
 
         /* Indicates that the next PDU sent should have the
         DRF set. */
-        BaseType_t xDrfFlag; // OK
+        bool_t xDrfFlag;
         /* used to notifies that a new connection will soon
         be needed to avoid sequence number rollover.*/
         uint_t xSeqNumberRolloverThreshold; // OK
@@ -103,12 +98,11 @@ typedef struct xDTP_SV
         seqNum_t xNextSeqNumberToSend; // ok
         seqNum_t xMaxSeqNumberToSend;  // ok
 
-        BaseType_t xWindowBased;  // ok
-        BaseType_t xRexmsnCtrl;   // ok
-        BaseType_t xRateBased;    // ok
-        BaseType_t xDrfRequired;  // ok
-        BaseType_t xRateFulfiled; // ok
-
+        bool_t xWindowBased;
+        bool_t xRexmsnCtrl;
+        bool_t xRateBased;
+        bool_t xDrfRequired;
+        bool_t xRateFulfiled;
 } dtpSv_t;
 
 typedef struct xDTCP_SV
@@ -239,9 +233,9 @@ typedef struct xDTCP_SV
 /* This is the DTCP configurations from connection policies */
 struct dtcpConfig_t
 {
-        BaseType_t xFlowCtrl;
+        bool_t xFlowCtrl;
         struct dtcp_fctrl_config *fctrl_cfg;
-        bool rtx_ctrl;
+        bool_t rtx_ctrl;
         struct dtcp_rxctrl_config *rxctrl_cfg;
         policy_t *lost_control_pdu;
         policy_t *dtcp_ps;
@@ -296,7 +290,7 @@ typedef struct xDTP
 
 } dtp_t;
 
-typedef struct xConnection
+struct connection_t
 {
         portId_t xPortId;
         address_t xSourceAddress;
@@ -304,7 +298,7 @@ typedef struct xConnection
         cepId_t xSourceCepId;
         cepId_t xDestinationCepId;
         qosId_t xQosId;
-} connection_t;
+};
 
 typedef enum
 {
@@ -326,7 +320,8 @@ struct efcpContainer_t
 {
         // struct rset *        rset;
         efcpImapRow_t *pxEfcpImap;
-        cepIdm_t *pxCidm;
+        NumMgr_t *pxCidm;
+        // cepIdm_t                *pxCidm;
         efcpConfig_t *pxConfig;
         struct rmt_t *pxRmt;
         // struct kfa *         kfa;
@@ -336,7 +331,8 @@ struct efcpContainer_t
 
 struct efcp_t
 {
-        connection_t *pxConnection;
+
+        struct connection_t *pxConnection;
         ipcpInstance_t *pxUserIpcp; // IPCP NORMAL
         dtp_t *pxDtp;               // implement in EFCP Component
         delim_t *pxDelim;           // delimiting module

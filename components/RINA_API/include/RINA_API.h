@@ -12,6 +12,9 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 
+#include "ARP826.h"
+#include "RINA_API_flows.h"
+
 struct appRegistration_t
 {
     string_t pcNameDIF;

@@ -1,25 +1,36 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
-/* FreeRTOS includes. */
+#ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
+#endif
+
+#include "portability/port.h"
+
+#include "ARP826_defs.h"
+#include "configSensor.h"
+#include "configRINA.h"
+#include "portability/port.h"
 
 #include "IPCP.h"
+#include "IPCP_api.h"
 #include "ARP826.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
+#include "RINA_API_flows.h"
 #include "ShimIPCP.h"
-#include "configSensor.h"
-#include "configRINA.h"
-#include "normalIPCP.h"
+#include "IPCP_normal_defs.h"
+#include "IPCP_normal_api.h"
 #include "IpcManager.h"
-#include "RINA_API.h"
-
 #include "Enrollment.h"
-#include "esp_log.h"
+#include "Enrollment_api.h"
+#include "FlowAllocator.h"
+#include "portability/rsqueue.h"
+#include "portability/rstime.h"
+#include "rina_buffers.h"
 
 MACAddress_t xlocalMACAddress = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 
@@ -28,14 +39,14 @@ MACAddress_t xlocalMACAddress = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 const MACAddress_t xBroadcastMACAddress = {{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
 
 /** @brief The queue used to pass events into the IPCP-task for processing. */
-QueueHandle_t xNetworkEventQueue = NULL;
+RsQueue_t *xNetworkEventQueue = NULL;
 
 /** @brief Set to pdTRUE when the IPCP task is ready to start processing packets. */
-static BaseType_t xIPCPTaskInitialised = pdFALSE;
+static bool_t xIPCPTaskInitialised = false;
 
 /** @brief Simple set to pdTRUE or pdFALSE depending on whether the network is up or
  * down (connected, not connected) respectively. */
-static BaseType_t xNetworkUp = pdFALSE;
+static bool_t xNetworkUp = false;
 
 static portId_t xN1PortId;
 static portId_t xAppPortId;
@@ -43,13 +54,18 @@ static portId_t xAppPortId;
 /** @brief Used to ensure network down events cannot be missed when they cannot be
  * posted to the network event queue because the network event queue is already
  * full. */
-static volatile BaseType_t xNetworkDownEventPending = pdFALSE;
+static volatile bool_t xNetworkDownEventPending = false;
 
 /** @brief Stores the handle of the task that handles the stack.  The handle is used
  * (indirectly) by some utility function to determine if the utility function is
  * being called by a task (in which case it is ok to block) or by the IPCP task
  * itself (in which case it is not ok to block). */
-static TaskHandle_t xIPCPTaskHandle = NULL;
+static pthread_t xIPCPThread;
+
+#ifdef ESP_PLATFORM
+/* This saves the FreeRTOS current task handle. */
+static TaskHandle_t xIPCPTaskHandle;
+#endif
 
 /* List of Factories */
 // static factories_t *pxFactories;
@@ -68,17 +84,6 @@ struct ipcpNormalData_t *pxIpcpData;
 /**************************************/
 ipcpInstance_t *pxShimInstance;
 
-/**
- * @brief Utility function to cast pointer of a type to pointer of type NetworkBufferDescriptor_t.
- *
- * @return The casted pointer.
- */
-static portINLINE
-DECL_CAST_PTR_FUNC_FOR_TYPE(NetworkBufferDescriptor_t)
-{
-    return (NetworkBufferDescriptor_t *)pvArgument;
-}
-
 /** @brief ARP timer, to check its table entries. */
 static IPCPTimer_t xARPTimer;
 
@@ -86,11 +91,11 @@ static IPCPTimer_t xFATimer;
 
 void RINA_NetworkDown(void);
 
-void vIpcpInit(void);
+bool_t vIpcpInit(void);
 
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer);
 
-BaseType_t xSendEventToIPCPTask(eRINAEvent_t eEvent);
+bool_t xSendEventToIPCPTask(eRINAEvent_t eEvent);
 
 EthernetHeader_t *vCastPointerTo_EthernetPacket_t(const void *pvArgument);
 
@@ -100,28 +105,26 @@ EthernetHeader_t *vCastPointerTo_EthernetPacket_t(const void *pvArgument);
  * from the network hardware drivers and tasks.  It also
  * maintains a set of protocol timers.
  */
-static void prvIPCPTask(void *pvParameters);
+static void *prvIPCPTask(void *pvParameters);
 
-static BaseType_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer);
+static bool_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer);
 
 void vIpcpSetFATimerExpiredState(BaseType_t xExpiredState);
 
 /*
  * Utility functions for the light weight IP timers.
  */
-static void prvIPCPTimerStart(IPCPTimer_t *pxTimer,
-                              TickType_t xTime);
+static void prvIPCPTimerStart(IPCPTimer_t *pxTimer, useconds_t xTimeUS);
 
-static BaseType_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer);
+static bool_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer);
 
-static void prvIPCPTimerReload(IPCPTimer_t *pxTimer,
-                               TickType_t xTime);
+static void prvIPCPTimerReload(IPCPTimer_t *pxTimer, useconds_t xTimeUS);
 
 /*
- * Returns pdTRUE if the IP task has been created and is initialised.  Otherwise
- * returns pdFALSE.
+ * Returns true if the IP task has been created and is initialised.  Otherwise
+ * returns false.
  */
-BaseType_t xIPCPIsNetworkTaskReady(void);
+bool_t xIPCPIsNetworkTaskReady(void);
 
 /*
  * Checks the ARP, timers to see if any periodic or timeout
@@ -133,14 +136,15 @@ static void prvCheckNetworkTimers(void);
  * Determine how long the IPCP task can sleep for, which depends on when the next
  * periodic or timeout processing must be performed.
  */
-static TickType_t prvCalculateSleepTime(void);
+static long prvCalculateSleepTimeUS();
+
 /*
  * Called to create a network connection when the stack is first started, or
  * when the network connection is lost.
  */
 static void prvProcessNetworkDownEvent(void);
 
-BaseType_t xCreateIPCPModules(void);
+bool_t xCreateIPCPModules(void);
 
 void prvIPCPSetAttributes(void);
 
@@ -157,7 +161,7 @@ static void prvHandleEthernetPacket(NetworkBufferDescriptor_t *pxBuffer);
 
 /*----------------------------------------------------*/
 
-BaseType_t xIPCPTaskReady(void)
+bool_t xIPCPTaskReady(void)
 {
     return xIPCPTaskInitialised;
 }
@@ -170,25 +174,34 @@ BaseType_t xIPCPTaskReady(void)
  *
  * @param[in] pvParameters: Not used.
  */
-static void prvIPCPTask(void *pvParameters)
+static void *prvIPCPTask(void *pvParameters)
 {
     RINAStackEvent_t xReceivedEvent;
-    TickType_t xNextIPCPSleep;
+    struct timespec xNextIPCPSleep;
     flowAllocateHandle_t *pxFlowAllocateRequest;
+    useconds_t xSleepTimeUS;
 
     /* Just to prevent compiler warnings about unused parameters. */
     (void)pvParameters;
 
-    vIpcpInit();
-
-    pxIpcManager = pvPortMalloc(sizeof(*pxIpcManager));
-    if (!xIpcManagerInit(pxIpcManager))
+    if (!vIpcpInit())
     {
-        ESP_LOGE(TAG_IPCPMANAGER, "Error to initializing IPC Manager");
+        LOGE(TAG_IPCPMANAGER, "IPC Managed Thread initialization failed");
+        return NULL;
     }
 
+#ifdef ESP_PLATFORM
+    /* FIXME: Protect with mutex. */
+    xIPCPTaskHandle = xTaskGetCurrentTaskHandle();
+#endif
+
+    pxIpcManager = pvRsMemAlloc(sizeof(*pxIpcManager));
+
+    if (!xIpcManagerInit(pxIpcManager))
+        LOGE(TAG_IPCPMANAGER, "Error to initializing IPC Manager");
+
     /* Initialization is complete and events can now be processed. */
-    xIPCPTaskInitialised = pdTRUE;
+    xIPCPTaskInitialised = true;
 
     /* Generate a dummy message to say that the network connection has gone
      *  down.  This will cause this task to initialise the network interface.  After
@@ -200,12 +213,12 @@ static void prvIPCPTask(void *pvParameters)
     /* Create Shim */
     pxShimInstance = pxIpcManagerCreateShim(pxIpcManager); // list of Instances, shimWifi Should request a xIpcpId. Use API?
     if (!pxShimInstance)
-    {
-        ESP_LOGE(TAG_IPCPNORMAL, "It was not possible to create Shim ");
-    }
+        LOGE(TAG_IPCPNORMAL, "It was not possible to create Shim ");
 
     // Init shim use API?
     vShimWiFiInit(pxShimInstance);
+
+    LOGI(TAG_IPCPMANAGER, "ENTER: IPC Manager Thread");
 
     /* Loop, processing IP events. */
     for (;;)
@@ -217,56 +230,55 @@ static void prvIPCPTask(void *pvParameters)
         prvCheckNetworkTimers();
 
         /* Calculate the acceptable maximum sleep time. */
-        xNextIPCPSleep = prvCalculateSleepTime();
+        xSleepTimeUS = prvCalculateSleepTimeUS();
 
         /* Wait until there is something to do. If the following call exits
          * due to a time out rather than a message being received, set a
          * 'NoEvent' value. */
-        if (xQueueReceive(xNetworkEventQueue, (void *)&xReceivedEvent, xNextIPCPSleep) == pdFALSE)
-        {
+        if (xRsQueueReceive(xNetworkEventQueue, (void *)&xReceivedEvent, xSleepTimeUS) == false)
             xReceivedEvent.eEventType = eNoEvent;
-        }
 
         switch (xReceivedEvent.eEventType)
         {
         case eNetworkDownEvent:
+        {
+            struct timespec ts = {INITIALISATION_RETRY_DELAY_SEC, 0};
+
             /* Attempt to establish a connection. */
-            vTaskDelay(INITIALISATION_RETRY_DELAY);
-            ESP_LOGI(TAG_IPCPMANAGER, "eNetworkDownEvent");
-            xNetworkUp = pdFALSE;
+            nanosleep(&ts, NULL);
+            LOGI(TAG_IPCPMANAGER, "eNetworkDownEvent");
+            xNetworkUp = false;
             prvProcessNetworkDownEvent();
             break;
+        }
 
         case eNetworkRxEvent:
-
             /* The network hardware driver has received a new packet.  A
              * pointer to the received buffer is located in the pvData member
              * of the received event structure. */
-            prvHandleEthernetPacket(CAST_PTR_TO_TYPE_PTR(NetworkBufferDescriptor_t, xReceivedEvent.pvData));
-
+            prvHandleEthernetPacket((NetworkBufferDescriptor_t *)xReceivedEvent.pvData);
             break;
 
         case eNetworkTxEvent:
-
         {
-            NetworkBufferDescriptor_t *pxDescriptor = CAST_PTR_TO_TYPE_PTR(NetworkBufferDescriptor_t, xReceivedEvent.pvData);
+            NetworkBufferDescriptor_t *pxDescriptor;
+
+            pxDescriptor = (NetworkBufferDescriptor_t *)xReceivedEvent.pvData;
 
             /* Send a network packet. The ownership will  be transferred to
              * the driver, which will release it after delivery. */
-
-            (void)xNetworkInterfaceOutput(pxDescriptor, pdTRUE);
+            xNetworkInterfaceOutput(pxDescriptor, true);
         }
         break;
 
         case eShimEnrolledEvent:
-
             /* Registering into the shim */
             if (!xNormalRegistering(pxShimInstance, pxIpcpData->pxDifName, pxIpcpData->pxName))
             {
-                ESP_LOGE(TAG_IPCPMANAGER, "IPCP not registered into the shim");
+                LOGE(TAG_IPCPMANAGER, "IPCP not registered into the shim");
             } // should be void, the normal should control if there is an error.
             // xN1PortId = xPidmAllocate(pxIpcManager->pxIpcpIdm);
-            xN1PortId = xIPCPAllocatePortId();
+            xN1PortId = xIPCPAllocatePortId(); // check this
 
             (void)vIcpManagerEnrollmentFlowRequest(pxShimInstance, xN1PortId, pxIpcpData->pxName);
 
@@ -326,7 +338,7 @@ static void prvIPCPTask(void *pvParameters)
             break;
         }
 
-        if (xNetworkDownEventPending != pdFALSE)
+        if (xNetworkDownEventPending != false)
         {
             /* A network down event could not be posted to the network event
              * queue because the queue was full.
@@ -335,7 +347,9 @@ static void prvIPCPTask(void *pvParameters)
             prvProcessNetworkDownEvent();
         }
     }
-    vTaskDelete(NULL);
+
+    LOGI(TAG_IPCPMANAGER, "EXIT: IPC Manager Thread");
+    return NULL;
 }
 /*-----------------------------------------------------------*/
 
@@ -346,16 +360,17 @@ static void prvIPCPTask(void *pvParameters)
  * @return pdPASS if the task was successfully created and added to a ready
  * list, otherwise an error code defined in the file projdefs.h
  */
-BaseType_t RINA_IPCPInit()
+bool_t RINA_IPCPInit()
 {
-    BaseType_t xReturn = pdFALSE;
+    bool_t xReturn = false;
 
-    ESP_LOGI(TAG_IPCPMANAGER, "************* INIT RINA ***********");
+    LOGI(TAG_IPCPMANAGER, "************* INIT RINA ***********");
 
     /* This function should only be called once. */
-    configASSERT(xIPCPIsNetworkTaskReady() == pdFALSE);
-    configASSERT(xNetworkEventQueue == NULL);
-    configASSERT(xIPCPTaskHandle == NULL);
+    RsAssert(xIPCPIsNetworkTaskReady() == false);
+    RsAssert(xNetworkEventQueue == NULL);
+
+#if 0
 
     /* ESP32 is 32-bits platform, so this is not executed*/
     if (sizeof(uintptr_t) == 8)
@@ -363,95 +378,58 @@ BaseType_t RINA_IPCPInit()
         /* This is a 64-bit platform, make sure there is enough space in
          * pucEthernetBuffer to store a pointer. */
 
-        configASSERT(BUFFER_PADDING >= 14);
+        RsAssert(BUFFER_PADDING >= 14);
 
         /* But it must have this strange alignment: */
-        configASSERT((((BUFFER_PADDING) + 2) % 4) == 0);
+        RsAssert((((BUFFER_PADDING) + 2) % 4) == 0);
     }
 
-/* Check if MTU is big enough. */
+#endif
 
-/* Check structure packing is correct. */
+    /* Check if MTU is big enough. */
 
-/* Attempt to create the queue used to communicate with the IPCP task. */
-#if (configSUPPORT_STATIC_ALLOCATION == 1)
-    {
+    /* Check structure packing is correct. */
 
-        static StaticQueue_t xNetworkEventStaticQueue;
-        static uint8_t ucNetworkEventQueueStorageArea[EVENT_QUEUE_LENGTH * sizeof(RINAStackEvent_t)];
-        xNetworkEventQueue = xQueueCreateStatic(EVENT_QUEUE_LENGTH, sizeof(RINAStackEvent_t), ucNetworkEventQueueStorageArea, &xNetworkEventStaticQueue);
-    }
-#else
-    {
-
-        xNetworkEventQueue = xQueueCreate(EVENT_QUEUE_LENGTH, sizeof(RINAStackEvent_t));
-        configASSERT(xNetworkEventQueue != NULL);
-    }
-#endif /* SUPPORT_STATIC_ALLOCATION */
+    /* Attempt to create the queue used to communicate with the IPCP task. */
+    xNetworkEventQueue = pxRsQueueCreate("IPCPQueue",
+                                         // EVENT_QUEUE_LENGTH,
+                                         10,
+                                         sizeof(RINAStackEvent_t));
+    RsAssert(xNetworkEventQueue != NULL);
 
     if (xNetworkEventQueue != NULL)
     {
 
-#if (configQUEUE_REGISTRY_SIZE > 0)
+        if (xNetworkBuffersInitialise())
         {
-            /* A queue registry is normally used to assist a kernel aware
-             * debugger.  If one is in use then it will be helpful for the debugger
-             * to show information about the network event queue. */
-            vQueueAddToRegistry(xNetworkEventQueue, "NetEvnt");
-            ESP_LOGI(TAG_IPCPMANAGER, "Queue added to Registry: %d", configQUEUE_REGISTRY_SIZE);
-        }
-#endif /* QUEUE_REGISTRY_SIZE */
+            pthread_attr_t attr;
 
-        if (xNetworkBuffersInitialise() == pdPASS)
-        {
+            if (pthread_attr_init(&attr) != 0)
+                return false;
 
-/*Init the IPCP Factories*/
+            pthread_attr_setstacksize(&attr, IPCP_TASK_STACK_SIZE);
 
-/* Create the task that processes Ethernet and stack events. */
-#if (configSUPPORT_STATIC_ALLOCATION == 1)
+            if (pthread_create(&xIPCPThread, &attr, prvIPCPTask, NULL) != 0)
             {
-
-                static StaticTask_t xIPCPTaskBuffer;
-                static StackType_t xIPCPTaskStack[IPCP_TASK_STACK_SIZE_WORDS];
-                xIPCPTaskHandle = xTaskCreateStatic(prvIPCPTask,
-                                                    "IPCP-Task",
-                                                    IPCP_TASK_STACK_SIZE_WORDS,
-                                                    NULL,
-                                                    IPCP_TASK_PRIORITY,
-                                                    xIPCPTaskStack,
-                                                    &xIPCPTaskBuffer);
-
-                if (xIPCPTaskHandle != NULL)
-                {
-
-                    xReturn = pdTRUE;
-                }
+                LOGE(TAG_IPCPMANAGER, "RINAInit: failed to start IPC process");
+                xReturn = false;
             }
-#else  /* if ( SUPPORT_STATIC_ALLOCATION == 1 ) */
-            {
+            else
+                xReturn = true;
 
-                xReturn = xTaskCreate(prvIPCPTask,
-                                      "IPCP-task",
-                                      IPCP_TASK_STACK_SIZE_WORDS,
-                                      NULL,
-                                      IPCP_TASK_PRIORITY,
-                                      &(xIPCPTaskHandle));
-            }
-#endif /* SUPPORT_STATIC_ALLOCATION */
+            pthread_attr_destroy(&attr);
         }
         else
         {
-            ESP_LOGE(TAG_IPCPMANAGER, "RINAInit: xNetworkBuffersInitialise() failed\n");
+            LOGE(TAG_IPCPMANAGER, "RINAInit: xNetworkBuffersInitialise() failed\n");
 
             /* Clean up. */
-            vQueueDelete(xNetworkEventQueue);
+            vRsQueueDelete(xNetworkEventQueue);
             xNetworkEventQueue = NULL;
         }
     }
     else
-    {
-        ESP_LOGE(TAG_IPCPMANAGER, "RINAInit: Network event queue could not be created\n");
-    }
+        LOGE(TAG_IPCPMANAGER, "RINAInit: Network event queue could not be created\n");
 
     return xReturn;
 }
@@ -466,20 +444,17 @@ BaseType_t RINA_IPCPInit()
  * @note Very important: the IPCP-task is not allowed to call its own API's,
  *        because it would easily get into a dead-lock.
  */
-BaseType_t xIsCallingFromIPCPTask(void)
+bool_t xIsCallingFromIPCPTask(void)
 {
-    BaseType_t xReturn;
-
-    if (xTaskGetCurrentTaskHandle() == xIPCPTaskHandle)
-    {
-        xReturn = pdTRUE;
-    }
-    else
-    {
-        xReturn = pdFALSE;
-    }
-
-    return xReturn;
+#ifdef ESP_PLATFORM
+    /* On ESP32, we use the FreeRTOS API here because calling
+     * pthread_self on a FreeRTOS task will crash the runtime with an
+     * assertion failure. You can't call this method on a task that
+     * has not been started with the pthread API. */
+    return xTaskGetCurrentTaskHandle() == xIPCPTaskHandle;
+#else
+    return pthread_self() == xIPCPThread;
+#endif
 }
 
 /**
@@ -489,15 +464,14 @@ BaseType_t xIsCallingFromIPCPTask(void)
  *
  * @return pdPASS if the event was sent (or the desired effect was achieved). Else, pdFAIL.
  */
-BaseType_t xSendEventToIPCPTask(eRINAEvent_t eEvent)
+bool_t xSendEventToIPCPTask(eRINAEvent_t eEvent)
 {
     RINAStackEvent_t xEventMessage;
-    const TickType_t xDontBlock = (TickType_t)0;
 
     xEventMessage.eEventType = eEvent;
     xEventMessage.pvData = (void *)NULL;
 
-    return xSendEventStructToIPCPTask(&xEventMessage, xDontBlock);
+    return xSendEventStructToIPCPTask(&xEventMessage, 0);
 }
 
 /**
@@ -508,44 +482,42 @@ BaseType_t xSendEventToIPCPTask(eRINAEvent_t eEvent)
  *
  * @return pdPASS if the event was sent (or the desired effect was achieved). Else, pdFAIL.
  */
-BaseType_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
-                                      TickType_t uxTimeout)
+bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t xTimeOutUS)
 {
-    BaseType_t xReturn, xSendMessage;
-    TickType_t uxUseTimeout = uxTimeout;
+    bool_t xReturn, xSendMessage;
+    useconds_t xCalculatedTimeOutUS;
 
-    if ((xIPCPTaskReady() == pdFALSE) && (pxEvent->eEventType != eNetworkDownEvent))
+    if (!xIPCPTaskReady() && (pxEvent->eEventType != eNetworkDownEvent))
     {
+        LOGE(TAG_IPCPMANAGER, "IPCP Task Not Ready, cannot send event");
+
         /* Only allow eNetworkDownEvent events if the IP task is not ready
          * yet.  Not going to attempt to send the message so the send failed. */
-        xReturn = pdFAIL;
+        xReturn = false;
     }
     else
     {
-        xSendMessage = pdTRUE;
+        xSendMessage = true;
 
-        if (xSendMessage != pdFALSE)
+        if (xSendMessage)
         {
-            /* The IP task cannot block itself while waiting for itself to
-             * respond. */
-            if ((xIsCallingFromIPCPTask() == pdTRUE) && (uxUseTimeout > (TickType_t)0U))
-            {
-                uxUseTimeout = (TickType_t)0;
-            }
+            /* The IP task cannot block itself while waiting for
+             * itself to respond. */
+            if (xIsCallingFromIPCPTask())
+                xCalculatedTimeOutUS = 0;
+            else
+                xCalculatedTimeOutUS = xTimeOutUS;
 
-            xReturn = xQueueSendToBack(xNetworkEventQueue, pxEvent, uxUseTimeout);
+            xReturn = xRsQueueSendToBack(xNetworkEventQueue, pxEvent, xCalculatedTimeOutUS);
 
-            if (xReturn == pdFAIL)
-            {
-                /* A message should have been sent to the IP task, but wasn't. */
-                // FreeRTOS_debug_printf( ( "xSendEventStructToIPTask: CAN NOT ADD %d\n", pxEvent->eEventType ) );
-            }
+            if (!xReturn)
+                LOGE(TAG_IPCPMANAGER, "Failed to add message to IPCP queue (errno: %d)", errno);
         }
         else
         {
             /* It was not necessary to send the message to process the event so
              * even though the message was not sent the call was successful. */
-            xReturn = pdPASS;
+            xReturn = true;
         }
     }
 
@@ -560,12 +532,12 @@ void prvHandleEthernetPacket(NetworkBufferDescriptor_t *pxBuffer)
         /* When ipconfigUSE_LINKED_RX_MESSAGES is not set to 0 then only one
          * buffer will be sent at a time.  This is the default way for +TCP to pass
          * messages from the MAC to the TCP/IP stack. */
-        ESP_LOGI(TAG_IPCPMANAGER, "Packet to network stack %p, len %d", pxBuffer, pxBuffer->xDataLength);
+        LOGI(TAG_IPCPMANAGER, "Packet to network stack %p, len %d", pxBuffer, pxBuffer->xDataLength);
         prvProcessEthernetPacket(pxBuffer);
     }
 #else  /* configUSE_LINKED_RX_MESSAGES */
     {
-        ESP_LOGI(TAG_IPCPMANAGER, "Packet to network stack 2 %p, len %d", pxBuffer, pxBuffer->xDataLength);
+        LOGI(TAG_IPCPMANAGER, "Packet to network stack 2 %p, len %d", pxBuffer, pxBuffer->xDataLength);
         NetworkBufferDescriptor_t *pxNextBuffer;
 
         /* An optimisation that is useful when there is high network traffic.
@@ -599,16 +571,14 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
     eFrameProcessingResult_t eReturned = eFrameConsumed;
     uint16_t usFrameType;
 
-    configASSERT(pxNetworkBuffer != NULL);
+    RsAssert(pxNetworkBuffer != NULL);
 
     /* Interpret the Ethernet frame. */
     if (pxNetworkBuffer->xEthernetDataLength >= sizeof(EthernetHeader_t))
     {
-
         /* Map the buffer onto the Ethernet Header struct for easy access to the fields. */
-        pxEthernetHeader = vCastPointerTo_EthernetPacket_t(pxNetworkBuffer->pucEthernetBuffer);
-
-        usFrameType = FreeRTOS_ntohs(pxEthernetHeader->usFrameType);
+        pxEthernetHeader = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
+        usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
 
         /* Interpret the received Ethernet packet. */
         switch (usFrameType)
@@ -616,7 +586,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
         case ETH_P_ARP:
 
             /* The Ethernet frame contains an ARP packet. */
-            ESP_LOGI(TAG_IPCPMANAGER, "ARP Packet Received");
+            LOGI(TAG_IPCPMANAGER, "ARP Packet Received");
 
             if (pxNetworkBuffer->xEthernetDataLength >= sizeof(ARPPacket_t))
             {
@@ -634,7 +604,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 
         case ETH_P_RINA:
 
-            ESP_LOGI(TAG_IPCPMANAGER, "RINA Packet Received");
+            LOGI(TAG_IPCPMANAGER, "RINA Packet Received");
 
             uint8_t *ptr;
             size_t uxRinaLength;
@@ -662,7 +632,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             break;
 
         default:
-            ESP_LOGE(TAG_WIFI, "No Case Ethernet Type, Drop Frame");
+            LOGE(TAG_WIFI, "No Case Ethernet Type, Drop Frame");
             eReturned = eReleaseBuffer;
 
             break;
@@ -688,7 +658,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 
         /* The frame is in use somewhere, don't release the buffer
          * yet. */
-        ESP_LOGI(TAG_SHIM, "Frame Consumed");
+        LOGI(TAG_SHIM, "Frame Consumed");
         break;
 
     case eReleaseBuffer:
@@ -706,12 +676,12 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 
         if (!pxShimInstance->pxOps->flowAllocateResponse(pxShimInstance->pxData, 1))
         {
-            ESP_LOGE(TAG_IPCPMANAGER, "Error during the Allocation Request at Shim");
+            LOGE(TAG_IPCPMANAGER, "Error during the Allocation Request at Shim");
             vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
         }
         else
         {
-            ESP_LOGI(TAG_IPCPMANAGER, "Buffer Processed");
+            LOGI(TAG_IPCPMANAGER, "Buffer Processed");
             vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
         }
 
@@ -734,17 +704,13 @@ eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEth
     uint16_t usFrameType;
 
     /* Map the buffer onto Ethernet Header struct for easy access to fields. */
-    pxEthernetHeader = vCastPointerTo_EthernetPacket_t(pucEthernetBuffer);
+    pxEthernetHeader = (EthernetHeader_t *)pucEthernetBuffer;
 
-    usFrameType = pxEthernetHeader->usFrameType;
-    usFrameType = FreeRTOS_ntohs(usFrameType);
+    usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
 
     // Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
     if (usFrameType == ETH_P_ARP || usFrameType == ETH_P_RINA)
-    {
-
         eReturn = eProcessBuffer;
-    }
 
     return eReturn;
 }
@@ -759,23 +725,18 @@ eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEth
  * @return The maximum sleep time or ipconfigMAX_IP_TASK_SLEEP_TIME,
  *         whichever is smaller.
  */
-static TickType_t prvCalculateSleepTime(void)
+static long prvCalculateSleepTimeUS()
 {
-    TickType_t xMaximumSleepTime;
+    long xMaximumSleepTimeUS;
 
     /* Start with the maximum sleep time, then check this against the remaining
      * time in any other timers that are active. */
-    xMaximumSleepTime = MAX_IPCP_TASK_SLEEP_TIME;
+    xMaximumSleepTimeUS = MAX_IPCP_TASK_SLEEP_TIME_US;
 
-    if (xARPTimer.bActive != pdFALSE_UNSIGNED)
-    {
-        if (xARPTimer.ulRemainingTime < xMaximumSleepTime)
-        {
-            xMaximumSleepTime = xARPTimer.ulRemainingTime;
-        }
-    }
+    if (xARPTimer.bActive && xARPTimer.ulRemainingTimeUS < xMaximumSleepTimeUS)
+        xMaximumSleepTimeUS = xARPTimer.ulRemainingTimeUS;
 
-    return xMaximumSleepTime;
+    return xMaximumSleepTimeUS;
 }
 
 /**
@@ -785,11 +746,8 @@ static TickType_t prvCalculateSleepTime(void)
 static void prvCheckNetworkTimers(void)
 {
     /* Is it time for ARP processing? */
-    if (prvIPCPTimerCheck(&xARPTimer) != pdFALSE)
-    {
-        ESP_LOGI(TAG_SHIM, "TEST");
+    if (prvIPCPTimerCheck(&xARPTimer) != false)
         (void)xSendEventToIPCPTask(eARPTimerEvent);
-    }
 }
 
 /*-----------------------------------------------------------*/
@@ -800,7 +758,7 @@ static void prvCheckNetworkTimers(void)
 static void prvProcessNetworkDownEvent(void)
 {
     /* Stop the ARP timer while there is no network. */
-    xARPTimer.bActive = pdFALSE_UNSIGNED;
+    xARPTimer.bActive = false;
 
     /* Per the ARP Cache Validation section of https://tools.ietf.org/html/rfc1122,
      * treat network down as a "delivery problem" and flush the ARP cache for this
@@ -830,36 +788,37 @@ static void prvProcessNetworkDownEvent(void)
  *
  * @return If the timer is expired then pdTRUE is returned. Else pdFALSE.
  */
-static BaseType_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer)
+static bool_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer)
 {
-    BaseType_t xReturn;
+    bool_t xReturn;
+    struct timespec n;
 
-    if (pxTimer->bActive == pdFALSE_UNSIGNED)
-    {
-        /* The timer is not enabled. */
-        xReturn = pdFALSE;
-    }
+    if (!pxTimer->bActive)
+        xReturn = false;
     else
     {
         /* The timer might have set the bExpired flag already, if not, check the
          * value of xTimeOut against ulRemainingTime. */
-        if (pxTimer->bExpired == pdFALSE_UNSIGNED)
+        if (pxTimer->bExpired == false)
         {
-            if (xTaskCheckForTimeOut(&(pxTimer->xTimeOut), &(pxTimer->ulRemainingTime)) != pdFALSE)
-            {
-                pxTimer->bExpired = pdTRUE_UNSIGNED;
-            }
+            /* FIXME: A system call here is a problem as this function
+               is not supposed to fail. */
+            if (clock_gettime(CLOCK_REALTIME, &n) < 0)
+                LOGE(TAG_IPCPMANAGER, "clock_gettime error");
+
+            if (n.tv_sec == pxTimer->xTimeOut.tv_sec)
+                pxTimer->bExpired = n.tv_nsec < pxTimer->xTimeOut.tv_nsec;
+            else
+                pxTimer->bExpired = n.tv_sec < pxTimer->xTimeOut.tv_sec;
         }
 
-        if (pxTimer->bExpired != pdFALSE_UNSIGNED)
+        if (pxTimer->bExpired != false)
         {
-            prvIPCPTimerStart(pxTimer, pxTimer->ulReloadTime);
-            xReturn = pdTRUE;
+            prvIPCPTimerStart(pxTimer, pxTimer->ulReloadTimeUS);
+            xReturn = true;
         }
         else
-        {
-            xReturn = pdFALSE;
-        }
+            xReturn = false;
     }
 
     return xReturn;
@@ -888,26 +847,31 @@ void vIpcpSetFATimerExpiredState(BaseType_t xExpiredState)
  * @brief Start an IP timer. The IP-task has its own implementation of a timer
  *        called 'IPTimer_t', which is based on the FreeRTOS 'TimeOut_t'.
  *
- * @param[in] pxTimer: Pointer to the IP timer. When zero, the timer is marked
+ * @param[in] pxTimer: Pointer to the timer. When zero, the timer is marked
  *                     as expired.
- * @param[in] xTime: Time to be loaded into the IP timer.
+ * @param[in] xTime: Time to be loaded into the IP timer, in nanoseconds.
  */
-static void prvIPCPTimerStart(IPCPTimer_t *pxTimer,
-                              TickType_t xTime)
+static void prvIPCPTimerStart(IPCPTimer_t *pxTimer, useconds_t xTimeUS)
 {
-    vTaskSetTimeOutState(&pxTimer->xTimeOut);
-    pxTimer->ulRemainingTime = xTime;
+    struct timespec n;
+    uint64_t nsec;
 
-    if (xTime == (TickType_t)0)
+    if (clock_gettime(CLOCK_REALTIME, &n) < 0)
     {
-        pxTimer->bExpired = pdTRUE_UNSIGNED;
+        /* FIXME: This can fail. */
     }
+
+    nsec = (xTimeUS * 1000) + n.tv_nsec;
+    pxTimer->xTimeOut.tv_sec = (time_t)(nsec / 1000000000UL);
+    pxTimer->xTimeOut.tv_nsec = (nsec % 1000000000UL);
+    pxTimer->ulRemainingTimeUS = xTimeUS;
+
+    if (!xTimeUS)
+        pxTimer->bExpired = true;
     else
-    {
-        pxTimer->bExpired = pdFALSE_UNSIGNED;
-    }
+        pxTimer->bExpired = false;
 
-    pxTimer->bActive = pdTRUE_UNSIGNED;
+    pxTimer->bActive = true;
 }
 /*-----------------------------------------------------------*/
 
@@ -917,11 +881,10 @@ static void prvIPCPTimerStart(IPCPTimer_t *pxTimer,
  * @param[in] pxTimer: Pointer to the IP timer.
  * @param[in] xTime: Time to be reloaded into the IP timer.
  */
-static void prvIPCPTimerReload(IPCPTimer_t *pxTimer,
-                               TickType_t xTime)
+static void prvIPCPTimerReload(IPCPTimer_t *pxTimer, useconds_t xTimeUS)
 {
-    pxTimer->ulReloadTime = xTime;
-    prvIPCPTimerStart(pxTimer, xTime);
+    pxTimer->ulReloadTimeUS = xTimeUS;
+    prvIPCPTimerStart(pxTimer, xTimeUS);
 }
 /*-----------------------------------------------------------*/
 /**
@@ -929,7 +892,7 @@ static void prvIPCPTimerReload(IPCPTimer_t *pxTimer,
  *
  * @return pdTRUE if IP task is ready, else pdFALSE.
  */
-BaseType_t xIPCPIsNetworkTaskReady(void)
+bool_t xIPCPIsNetworkTaskReady(void)
 {
     return xIPCPTaskInitialised;
 }
@@ -937,49 +900,37 @@ BaseType_t xIPCPIsNetworkTaskReady(void)
 void RINA_NetworkDown(void)
 {
     static const RINAStackEvent_t xNetworkDownEvent = {eNetworkDownEvent, NULL};
-    const TickType_t xDontBlock = (TickType_t)0;
 
-    ESP_LOGI(TAG_IPCPMANAGER, "RINA_NetworkDown");
+    LOGI(TAG_IPCPMANAGER, "RINA_NetworkDown");
+
     /* Simply send the network task the appropriate event. */
-    if (xSendEventStructToIPCPTask(&xNetworkDownEvent, xDontBlock) != pdPASS)
-    {
+    if (xSendEventStructToIPCPTask(&xNetworkDownEvent, 0) != true)
         /* Could not send the message, so it is still pending. */
-        xNetworkDownEventPending = pdTRUE;
-    }
+        xNetworkDownEventPending = true;
     else
-    {
         /* Message was sent so it is not pending. */
-        xNetworkDownEventPending = pdFALSE;
-    }
+        xNetworkDownEventPending = false;
 }
 
-/*-----------------------------------------------------------*/
-EthernetHeader_t *vCastPointerTo_EthernetPacket_t(const void *pvArgument)
+bool_t vIpcpInit(void)
 {
-    return (const void *)(pvArgument);
-}
-
-//
-
-void vIpcpInit(void)
-{
-
-    name_t *pxDifName;
-    name_t *pxIPCPName;
+    name_t *pxDifName, *pxIPCPName;
 
     /*** IPCP Modules ***/
     /* RMT module */
     struct rmt_t *pxRmt;
-    // flowAllocator_t *pxFlowAllocator;
 
     /* EFCP Container */
     struct efcpContainer_t *pxEfcpContainer;
 
     /*Initialize IPC Manager*/
 
-    pxIpcpData = pvPortMalloc(sizeof(*pxIpcpData));
-    pxIPCPName = pvPortMalloc(sizeof(*pxIPCPName));
-    pxDifName = pvPortMalloc(sizeof(*pxDifName));
+    pxIpcpData = pvRsMemAlloc(sizeof(*pxIpcpData));
+    pxIPCPName = pvRsMemAlloc(sizeof(*pxIPCPName));
+    pxDifName = pvRsMemAlloc(sizeof(*pxDifName));
+
+    if (pxIpcpData == NULL || pxIPCPName == NULL || pxDifName == NULL)
+        goto fail;
 
     pxIPCPName->pcEntityInstance = NORMAL_ENTITY_INSTANCE;
     pxIPCPName->pcEntityName = NORMAL_ENTITY_NAME;
@@ -995,15 +946,16 @@ void vIpcpInit(void)
     pxEfcpContainer = pxEfcpContainerCreate();
     if (!pxEfcpContainer)
     {
-        ESP_LOGE(TAG_IPCPNORMAL, "Failed creation of EFCP Container");
-        // return pdFALSE;
+        LOGE(TAG_IPCPMANAGER, "Failed creation of EFCP container");
+        goto fail;
     }
+
     /* Create RMT*/
     pxRmt = pxRmtCreate(pxEfcpContainer);
     if (!pxRmt)
     {
-        ESP_LOGE(TAG_IPCPNORMAL, "Failed creation of RMT instance");
-        // return pdFALSE;
+        LOGE(TAG_IPCPMANAGER, "Failed creation of RMT instance");
+        goto fail;
     }
 
     pxEfcpContainer->pxRmt = pxRmt;
@@ -1018,7 +970,22 @@ void vIpcpInit(void)
 
     // pxIpcpData->pxIpcManager = pxIpcManager;
     /*Initialialise flows list*/
-    vListInitialise(&(pxIpcpData->xFlowsList));
+    vRsListInit(&(pxIpcpData->xFlowsList));
+
+    return true;
+
+fail:
+    /* FIXME: is this cleanup necessary since failing here this means
+     * nothing will work. */
+
+    if (pxIpcpData != NULL)
+        vRsMemFree(pxIpcpData);
+    if (pxIPCPName != NULL)
+        vRsMemFree(pxIPCPName);
+    if (pxDifName != NULL)
+        vRsMemFree(pxDifName);
+
+    return false;
 }
 
 struct rmt_t *pxIPCPGetRmt(void);

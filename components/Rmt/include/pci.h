@@ -5,21 +5,10 @@
  *      Author: i2CAT
  */
 
+#include "rina_ids.h"
+
 #ifndef COMPONENTS_RMT_INCLUDE_PCI_H_
 #define COMPONENTS_RMT_INCLUDE_PCI_H_
-
-#include "common.h"
-
-/**** Constants PCI dataTypes***/
-
-/* CEPIdLength field 1 Byte*/
-typedef uint8_t cepId_t;
-
-/* QoSIdLength field 1 Byte*/
-typedef uint8_t qosId_t;
-
-/* QoSIdLength field 1 Byte*/
-typedef uint8_t address_t;
 
 /* PDU-Flags field 1 Byte*/
 typedef uint8_t pduFlags_t;
@@ -27,10 +16,12 @@ typedef uint8_t pduFlags_t;
 /* PDU-Type field 1 Byte*/
 typedef uint8_t pduType_t;
 
+/**** Constants PCI dataTypes***/
+
 #define PDU_FLAGS_EXPLICIT_CONGESTION 0x01
 #define PDU_FLAGS_DATA_RUN 0x80
 /* To be truely defined; internal to stack, needs to be discussed */
-#define PDU_FLAGS_BAD 0xFF
+#define PDU_FLAGS_BAD                 0xFF
 
 /* Data Transfer PDUs */
 #define PDU_TYPE_DT 0x80 /* Data Transfer PDU */
@@ -43,10 +34,10 @@ typedef uint8_t pduType_t;
 #define PDU_TYPE_ACK_AND_FC 0xC5  /* ACK and Flow Control */
 #define PDU_TYPE_NACK_AND_FC 0xC6 /* NACK and Flow Control */
 /* Selective Ack/Nack PDUs */
-#define PDU_TYPE_SACK 0xC9		   /* Selective ACK */
-#define PDU_TYPE_SNACK 0xCA		   /* Selective NACK */
-#define PDU_TYPE_SACK_AND_FC 0xCD  /* Selective ACK and Flow Control */
-#define PDU_TYPE_SNACK_AND_FC 0xCE /* Selective NACK and Flow Control */
+#define PDU_TYPE_SACK          0xC9 /* Selective ACK */ 
+#define PDU_TYPE_SNACK         0xCA /* Selective NACK */
+#define PDU_TYPE_SACK_AND_FC   0xCD /* Selective ACK and Flow Control */
+#define PDU_TYPE_SNACK_AND_FC  0xCE /* Selective NACK and Flow Control */
 /* Rendezvous PDU */
 #define PDU_TYPE_RENDEZVOUS 0xCF /* Rendezvous */
 /* Management PDUs */
@@ -55,10 +46,11 @@ typedef uint8_t pduType_t;
 #define PDU_TYPES 12
 
 #define pdu_type_is_ok(X) \
-	((X == PDU_TYPE_DT) ? pdTRUE : ((X == PDU_TYPE_CACK) ? pdTRUE : ((X == PDU_TYPE_SACK) ? pdTRUE : ((X == PDU_TYPE_NACK) ? pdTRUE : ((X == PDU_TYPE_FC) ? pdTRUE : ((X == PDU_TYPE_ACK) ? pdTRUE : ((X == PDU_TYPE_ACK_AND_FC) ? pdTRUE : ((X == PDU_TYPE_SACK_AND_FC) ? pdTRUE : ((X == PDU_TYPE_SNACK_AND_FC) ? pdTRUE : ((X == PDU_TYPE_RENDEZVOUS) ? pdTRUE : ((X == PDU_TYPE_MGMT) ? pdTRUE : pdFALSE)))))))))))
+	((X == PDU_TYPE_DT) ? true : ((X == PDU_TYPE_CACK) ? true : ((X == PDU_TYPE_SACK) ? true : ((X == PDU_TYPE_NACK) ? true : ((X == PDU_TYPE_FC) ? true : ((X == PDU_TYPE_ACK) ? true : ((X == PDU_TYPE_ACK_AND_FC) ? true : ((X == PDU_TYPE_SACK_AND_FC) ? true : ((X == PDU_TYPE_SNACK_AND_FC) ? true : ((X == PDU_TYPE_RENDEZVOUS) ? true : ((X == PDU_TYPE_MGMT) ? true : false)))))))))))
 
 #define pdu_type_is_control(X) \
 	((X == PDU_TYPE_CACK) ? true : ((X == PDU_TYPE_SACK) ? true : ((X == PDU_TYPE_NACK) ? true : ((X == PDU_TYPE_FC) ? true : ((X == PDU_TYPE_ACK) ? true : ((X == PDU_TYPE_ACK_AND_FC) ? true : ((X == PDU_TYPE_SACK_AND_FC) ? true : ((X == PDU_TYPE_RENDEZVOUS) ? true : ((X == PDU_TYPE_SNACK_AND_FC) ? true : false)))))))))
+
 #if 0
 typedef struct xPCI {
 	uint8_t * pucH; /* do not move from 1st position */
@@ -98,7 +90,7 @@ typedef struct __attribute__((packed))
 	} control;*/
 } pci_t;
 
-BaseType_t xPciIsOk(const pci_t *pxPci);
+bool_t xPciIsOk(const pci_t * pxPci);
 pduType_t xPciType(const pci_t *pci);
 cepId_t xPciCepSource(const pci_t *pci);
 void vPciPrint(const pci_t *pxPciTmp);

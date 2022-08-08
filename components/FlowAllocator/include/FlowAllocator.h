@@ -9,16 +9,10 @@
 #define FLOW_ALLOCATOR_H_INCLUDED
 
 #include "configSensor.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-
-#include "IPCP.h"
-#include "RINA_API.h"
-#include "normalIPCP.h"
 #include "Rib.h"
-
-struct du_t;
+#include "IPCP_normal_defs.h"
+#include "RINA_API_flows.h"
+#include "rina_ids.h"
 
 typedef enum
 {
@@ -41,7 +35,7 @@ typedef enum
 typedef struct xFLOW_ALLOCATOR_INSTANCE
 {
     /* Flow allocator Instance Item */
-    ListItem_t xInstanceItem;
+    RsListItem_t xInstanceItem;
 
     /* PortId associated to this flow Allocator Instance*/
     portId_t xPortId;
@@ -57,7 +51,7 @@ typedef struct xFLOW_ALLOCATOR_INSTANCE
 typedef struct xFLOW_ALLOCATOR
 {
     /* List of FAI*/
-    List_t xFlowAllocatorInstances;
+    RsList_t xFlowAllocatorInstances;
 
 } flowAllocator_t;
 
@@ -127,19 +121,5 @@ typedef struct xREQUEST_HANDLER_ROW
     BaseType_t xValid;
 
 } FlowRequestRow_t;
-
-void vFlowAllocatorFlowRequest(
-    portId_t xAppPortId,
-    flowAllocateHandle_t *pxFlowRequest);
-
-BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
-
-void vFlowAllocatorDeallocate(portId_t xAppPortId);
-
-BaseType_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id);
-
-flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId);
-
-BaseType_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu);
 
 #endif

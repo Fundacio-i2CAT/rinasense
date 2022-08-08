@@ -5,11 +5,8 @@
  *      Author: i2CAT
  */
 
-#include "freertos/FreeRTOS.h"
-#include "esp_log.h"
-
 #include "du.h"
-#include "common.h"
+#include "rina_common_port.h"
 #include "efcpStructures.h"
 
 

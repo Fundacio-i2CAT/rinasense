@@ -1,14 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-
-#include "IPCP.h"
-#include "common.h"
+#include "rina_common_port.h"
 #include "configRINA.h"
 #include "BufferManagement.h"
 #include "CDAP.pb.h"
@@ -17,25 +10,22 @@
 #include "Ribd.h"
 #include "configSensor.h"
 #include "Rib.h"
-#include "FlowAllocator.h"
-
-#include "esp_log.h"
+#include "Enrollment_api.h"
 
 /*Table of Objects*/
 struct ribObjectRow_t xRibObjectTable[RIB_TABLE_SIZE];
 
-void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
+static void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
 {
-
-    BaseType_t x = 0;
+    num_t x = 0;
 
     for (x = 0; x < RIB_TABLE_SIZE; x++)
     {
-        if (xRibObjectTable[x].xValid == pdFALSE)
+        if (xRibObjectTable[x].xValid == false)
         {
             xRibObjectTable[x].pxRibObject = pxRibObject;
-            xRibObjectTable[x].xValid = pdTRUE;
-            ESP_LOGI(TAG_RIB, "Rib Object Entry successful:%s, %p", pxRibObject->ucObjName, pxRibObject);
+            xRibObjectTable[x].xValid = true;
+            LOGD(TAG_RIB, "Rib Object Entry successful: %p", pxRibObject);
 
             break;
         }
@@ -44,45 +34,45 @@ void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
 
 struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
 {
-
-    ESP_LOGI(TAG_RIB, "Looking for the object %s in the RIB Object Table", ucRibObjectName);
-
-    BaseType_t x = 0;
+    LOGD(TAG_RIB, "Looking for the object %s in the RIB Object Table", ucRibObjectName);
+    num_t x = 0;
     struct ribObject_t *pxRibObject;
-    pxRibObject = pvPortMalloc(sizeof(*pxRibObject));
+    pxRibObject = pvRsMemAlloc(sizeof(*pxRibObject));
 
     for (x = 0; x < RIB_TABLE_SIZE; x++)
 
     {
-        if (xRibObjectTable[x].xValid == pdTRUE)
+        if (xRibObjectTable[x].xValid == true)
         {
             pxRibObject = xRibObjectTable[x].pxRibObject;
             ESP_LOGD(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
             if (!strcmp(pxRibObject->ucObjName, ucRibObjectName))
             {
-                ESP_LOGI(TAG_RIB, "RibObj founded '%p', '%s'", pxRibObject, pxRibObject->ucObjName);
+                LOGI(TAG_RIB, "RibObj founded '%p', '%s'", pxRibObject, pxRibObject->ucObjName);
 
                 return pxRibObject;
                 break;
             }
         }
     }
-    ESP_LOGI(TAG_IPCPMANAGER, "RibObj '%s' not founded", ucRibObjectName);
+    LOGI(TAG_IPCPMANAGER, "RibObj '%s' not founded", ucRibObjectName);
 
     return NULL;
 }
 
-struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
-                                      string_t ucDisplayableValue, string_t ucObjClass, eObjectType_t eObjType)
+struct ribObject_t *pxRibCreateObject(string_t ucObjName,
+                                      long ulObjInst,
+                                      string_t ucDisplayableValue,
+                                      string_t ucObjClass,
+                                      eObjectType_t eObjType)
 {
-    ESP_LOGI(TAG_RIB, "Creating object %s into the RIB", ucObjName);
-    struct ribObject_t *pxObj = pvPortMalloc(sizeof(*pxObj));
-    struct ribObjOps_t *pxObjOps = pvPortMalloc(sizeof(*pxObjOps));
+    LOGI(TAG_RIB, "Creating object %s into the RIB", ucObjName);
+    struct ribObject_t *pxObj = pvRsMemAlloc(sizeof(*pxObj));
+    struct ribObjOps_t *pxObjOps = pvRsMemAlloc(sizeof(*pxObjOps));
 
     pxObj->ucObjName = strdup(ucObjName);
     pxObj->ulObjInst = ulObjInst;
-    pxObj->ucDisplayableValue = strdup(ucDisplayableValue);
-
+    pxObj->ucDisplayableValue = ucDisplayableValue;
     pxObj->pxObjOps = pxObjOps;
 
     switch (eObjType)
@@ -90,7 +80,6 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
     case ENROLLMENT:
         pxObj->pxObjOps->stop = xEnrollmentHandleStop;
         pxObj->pxObjOps->start = xEnrollmentEnroller;
-
         break;
 
     case FLOW_ALLOCATOR:
@@ -102,7 +91,6 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
 
     case OPERATIONAL:
         pxObj->pxObjOps->start = xEnrollmentHandleOperationalStart;
-
         break;
 
     case FLOW:
@@ -112,15 +100,13 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
         break;
 
     default:
-    {
         pxObj->pxObjOps->create = NULL;
-    }
-    break;
+        break;
     }
 
     /*Add object into the table*/
     vRibAddObjectEntry(pxObj);
-    ESP_LOGI(TAG_RIB, "RIB object created: %s, %p", pxObj->ucObjName, pxObj);
+    LOGI(TAG_RIB, "RIB object created: %s, %p", pxObj->ucObjName, pxObj);
 
     return pxObj;
 }

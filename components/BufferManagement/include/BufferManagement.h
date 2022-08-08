@@ -1,10 +1,10 @@
-
-
-#include "ShimIPCP.h"
+#include "configSensor.h"
+#include "portability/port.h"
+#include "portability/posix/semaphore.h"
+#include "rina_buffers.h"
 
 //Structure used to store buffer used by the Interface Wifi (Change)
 // Some attributes are not needed.
-
 
 #ifndef pdTRUE_SIGNED
        /* Temporary solution: eventually the defines below will appear in 'Source\include\projdefs.h' */
@@ -18,7 +18,6 @@
 
 
 
-
 #ifndef BUFFER_MANAGEMENT_H
     #define BUFFER_MANAGEMENT_H
 
@@ -29,24 +28,24 @@
 
 
 /* NOTE PUBLIC API FUNCTIONS. */
-    BaseType_t xNetworkBuffersInitialise( void );
+    bool_t xNetworkBuffersInitialise( void );
     NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedSizeBytes,
-                                                                  TickType_t xBlockTimeTicks );
+                                                                  useconds_t xTimeOutUS);
 
 /* The definition of the below function is only available if BufferAllocation_2.c has been linked into the source. */
     NetworkBufferDescriptor_t * pxNetworkBufferGetFromISR( size_t xRequestedSizeBytes );
     void vReleaseNetworkBufferAndDescriptor( NetworkBufferDescriptor_t * const pxNetworkBuffer );
 
 /* The definition of the below function is only available if BufferAllocation_2.c has been linked into the source. */
-    BaseType_t vNetworkBufferReleaseFromISR( NetworkBufferDescriptor_t * const pxNetworkBuffer );
+    bool_t vNetworkBufferReleaseFromISR( NetworkBufferDescriptor_t * const pxNetworkBuffer );
     uint8_t * pucGetNetworkBuffer( size_t * pxRequestedSizeBytes );
     void vReleaseNetworkBuffer( uint8_t * pucEthernetBuffer );
 
 /* Get the current number of free network buffers. */
-    UBaseType_t uxGetNumberOfFreeNetworkBuffers( void );
+    size_t uxGetNumberOfFreeNetworkBuffers( void );
 
 /* Get the lowest number of free network buffers. */
-    UBaseType_t uxGetMinimumFreeNetworkBuffers( void );
+    size_t uxGetMinimumFreeNetworkBuffers( void );
 
 /* Copy a network buffer into a bigger buffer. */
     NetworkBufferDescriptor_t * pxDuplicateNetworkBufferWithDescriptor( const NetworkBufferDescriptor_t * const pxNetworkBuffer,

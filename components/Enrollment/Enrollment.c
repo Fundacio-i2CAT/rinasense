@@ -4,41 +4,33 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-
 /* RINA includes. */
-#include "common.h"
+#include "rina_common_port.h"
 #include "configSensor.h"
 #include "configRINA.h"
 #include "Ribd.h"
+#include "Ribd_api.h"
 #include "Enrollment.h"
 #include "EnrollmentInformationMessage.pb.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
 #include "Rib.h"
 #include "SerdesMsg.h"
-#include "normalIPCP.h"
-
-#include "esp_log.h"
+#include "IPCP_normal_defs.h"
 
 static neighborsTableRow_t xNeighborsTable[NEIGHBOR_TABLE_SIZE];
 
 void vEnrollmentAddNeighborEntry(neighborInfo_t *pxNeighbor)
 {
-
-        BaseType_t x = 0;
+        num_t x = 0;
 
         for (x = 0; x < NEIGHBOR_TABLE_SIZE; x++)
         {
-                if (xNeighborsTable[x].xValid == pdFALSE)
+                if (xNeighborsTable[x].xValid == false)
                 {
                         xNeighborsTable[x].pxNeighborInfo = pxNeighbor;
-                        xNeighborsTable[x].xValid = pdTRUE;
-                        ESP_LOGI(TAG_ENROLLMENT, "Neighbor Entry successful: %p", pxNeighbor);
+                        xNeighborsTable[x].xValid = true;
+                        LOGI(TAG_ENROLLMENT, "Neighbor Entry successful: %p", pxNeighbor);
 
                         break;
                 }
@@ -48,63 +40,63 @@ void vEnrollmentAddNeighborEntry(neighborInfo_t *pxNeighbor)
 neighborInfo_t *pxEnrollmentFindNeighbor(string_t pcRemoteApName)
 {
 
-        BaseType_t x = 0;
+        num_t x = 0;
         neighborInfo_t *pxNeighbor;
-        pxNeighbor = pvPortMalloc(sizeof(*pxNeighbor));
+        pxNeighbor = pvRsMemAlloc(sizeof(*pxNeighbor));
 
-        ESP_LOGI(TAG_ENROLLMENT, "Looking for '%s'", pcRemoteApName);
+        LOGI(TAG_ENROLLMENT, "Looking for '%s'", pcRemoteApName);
         for (x = 0; x < NEIGHBOR_TABLE_SIZE; x++)
 
         {
-                if (xNeighborsTable[x].xValid == pdTRUE)
+                if (xNeighborsTable[x].xValid == true)
                 {
                         pxNeighbor = xNeighborsTable[x].pxNeighborInfo;
-                        ESP_LOGI(TAG_ENROLLMENT, "Neighbor checking '%p'", pxNeighbor);
-                        ESP_LOGI(TAG_ENROLLMENT, "Comparing '%s' - '%s'", pxNeighbor->pcApName, pcRemoteApName);
+                        LOGI(TAG_ENROLLMENT, "Neighbor checking '%p'", pxNeighbor);
+                        LOGI(TAG_ENROLLMENT, "Comparing '%s' - '%s'", pxNeighbor->pcApName, pcRemoteApName);
                         if (!strcmp(pxNeighbor->pcApName, pcRemoteApName))
                         {
-                                ESP_LOGI(TAG_ENROLLMENT, "Neighbor founded '%p'", pxNeighbor);
+                                LOGI(TAG_ENROLLMENT, "Neighbor founded '%p'", pxNeighbor);
 
                                 return pxNeighbor;
                                 break;
                         }
                 }
         }
-        ESP_LOGI(TAG_ENROLLMENT, "Neighbor not founded");
+        LOGI(TAG_ENROLLMENT, "Neighbor not founded");
 
         return NULL;
 }
 address_t xEnrollmentGetNeighborAddress(string_t pcRemoteApName)
 {
 
-        BaseType_t x;
+        num_t x;
         neighborInfo_t *pxNeighbor;
-        pxNeighbor = pvPortMalloc(sizeof(*pxNeighbor));
+        pxNeighbor = pvRsMemAlloc(sizeof(*pxNeighbor));
         if (!pcRemoteApName)
         {
-                ESP_LOGE(TAG_ENROLLMENT, "No Remote Application Name valid");
+                LOGE(TAG_ENROLLMENT, "No Remote Application Name valid");
                 return 0;
         }
 
-        ESP_LOGI(TAG_ENROLLMENT, "Looking for '%s'", pcRemoteApName);
+        LOGI(TAG_ENROLLMENT, "Looking for '%s'", pcRemoteApName);
         for (x = 0; x < NEIGHBOR_TABLE_SIZE; x++)
 
         {
-                if (xNeighborsTable[x].xValid == pdTRUE)
+                if (xNeighborsTable[x].xValid == true)
                 {
                         pxNeighbor = xNeighborsTable[x].pxNeighborInfo;
-                        ESP_LOGI(TAG_ENROLLMENT, "Neighbor checking '%p'", pxNeighbor);
-                        ESP_LOGI(TAG_ENROLLMENT, "Comparing '%s' - '%s'", pxNeighbor->pcApName, pcRemoteApName);
+                        LOGI(TAG_ENROLLMENT, "Neighbor checking '%p'", pxNeighbor);
+                        LOGI(TAG_ENROLLMENT, "Comparing '%s' - '%s'", pxNeighbor->pcApName, pcRemoteApName);
                         if (!strcmp(pxNeighbor->pcApName, pcRemoteApName))
                         {
-                                ESP_LOGI(TAG_ENROLLMENT, "Neighbor founded '%p'", pxNeighbor);
+                                LOGI(TAG_ENROLLMENT, "Neighbor founded '%p'", pxNeighbor);
 
                                 return pxNeighbor->xNeighborAddress;
                                 break;
                         }
                 }
         }
-        ESP_LOGI(TAG_ENROLLMENT, "Neighbor not founded");
+        LOGI(TAG_ENROLLMENT, "Neighbor not founded");
 
         return 3; // should be zero but for testing purposes.
 }
@@ -112,13 +104,13 @@ address_t xEnrollmentGetNeighborAddress(string_t pcRemoteApName)
 #if 0
 neighborInfo_t *pxEnrollmentNeighborLookup(string_t pcRemoteApName)
 {
-        ESP_LOGE(TAG_ENROLLMENT, "--------------pxEnrollmentNeighborLookup----------");
+        LOGE(TAG_ENROLLMENT, "--------------pxEnrollmentNeighborLookup----------");
         neighborInfo_t *pxNeigh;
 
         ListItem_t *pxListItem;
         ListItem_t const *pxListEnd;
 
-        pxNeigh = pvPortMalloc(sizeof(*pxNeigh));
+        pxNeigh = pvRsMemAlloc(sizeof(*pxNeigh));
 
         /* Find a way to iterate in the list and compare the addesss*/
 
@@ -129,18 +121,18 @@ neighborInfo_t *pxEnrollmentNeighborLookup(string_t pcRemoteApName)
         {
 
                 pxNeigh = (neighborInfo_t *)listGET_LIST_ITEM_VALUE(pxListItem);
-                ESP_LOGE(TAG_ENROLLMENT, "--------------pxNeigh:%p", pxNeigh);
+                LOGE(TAG_ENROLLMENT, "--------------pxNeigh:%p", pxNeigh);
 
                 if (strcmp(pxNeigh->xAPName, pcRemoteApName))
                 {
-                        ESP_LOGI(TAG_ENROLLMENT, "Neighbor %p, #: %s", pxNeigh, pxNeigh->xAPName);
+                        LOGI(TAG_ENROLLMENT, "Neighbor %p, #: %s", pxNeigh, pxNeigh->xAPName);
                         return pxNeigh;
                 }
 
                 pxListItem = listGET_NEXT(pxListItem);
         }
 
-        ESP_LOGE(TAG_ENROLLMENT, "--------------pxNeigh No neighbor founded");
+        LOGE(TAG_ENROLLMENT, "--------------pxNeigh No neighbor founded");
 
 
         return NULL;
@@ -152,7 +144,7 @@ neighborInfo_t *pxEnrollmentCreateNeighInfo(string_t pcApName, portId_t xN1Port)
 
         neighborInfo_t *pxNeighInfo;
 
-        pxNeighInfo = pvPortMalloc(sizeof(*pxNeighInfo));
+        pxNeighInfo = pvRsMemAlloc(sizeof(*pxNeighInfo));
 
         pxNeighInfo->pcApName = strdup(pcApName);
         pxNeighInfo->eEnrollmentState = eENROLLMENT_NONE;
@@ -167,7 +159,7 @@ neighborInfo_t *pxEnrollmentCreateNeighInfo(string_t pcApName, portId_t xN1Port)
 
         vEnrollmentAddNeighborEntry(pxNeighInfo);
 
-        ESP_LOGI(TAG_ENROLLMENT, "Neighbor Created:%p", pxNeighInfo);
+        LOGI(TAG_ENROLLMENT, "Neighbor Created:%p", pxNeighInfo);
 
         return pxNeighInfo;
 }
@@ -175,8 +167,7 @@ neighborInfo_t *pxEnrollmentCreateNeighInfo(string_t pcApName, portId_t xN1Port)
 /*EnrollmentInit should create neighbor and enrollment object into the RIB*/
 void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xN1PortId)
 {
-
-        ESP_LOGI(TAG_ENROLLMENT, "-------- Init Enrollment Task --------");
+        LOGI(TAG_ENROLLMENT, "-------- Init Enrollment Task --------");
         name_t *pxSource;
         name_t *pxDestInfo;
         // porId_t xN1FlowPortId;
@@ -184,9 +175,9 @@ void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xN1PortId)
         // appConnection_t *test;
         // test = pvPortMalloc(sizeof(*test));
 
-        pxSource = pvPortMalloc(sizeof(*pxSource));
-        pxDestInfo = pvPortMalloc(sizeof(*pxDestInfo));
-        pxAuth = pvPortMalloc(sizeof(*pxAuth));
+        pxSource = pvRsMemAlloc(sizeof(*pxSource));
+        pxDestInfo = pvRsMemAlloc(sizeof(*pxDestInfo));
+        pxAuth = pvRsMemAlloc(sizeof(*pxAuth));
 
         pxSource->pcEntityInstance = NORMAL_ENTITY_INSTANCE;
         pxSource->pcEntityName = MANAGEMENT_AE;
@@ -215,8 +206,12 @@ void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xN1PortId)
         (void)xRibdConnectToIpcp(pxIpcpData, pxSource, pxDestInfo, xN1PortId, pxAuth);
 }
 
-BaseType_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
-                               string_t pcLocalApName, int invokeId, portId_t xN1Port)
+bool_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj,
+                           serObjectValue_t *pxObjValue,
+                           string_t pcRemoteApName,
+                           string_t pcLocalApName,
+                           int invokeId,
+                           portId_t xN1Port)
 {
 
         neighborInfo_t *pxNeighborInfo = NULL;
@@ -271,7 +266,7 @@ BaseType_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj, serObjectValue_t
                 pxNeighborInfo->xNeighborAddress = pxEnrollmentMsg->ullAddress;
 
                 // Send M_START_R to the enrollee
-                enrollmentMessage_t *pxResponseEnrObj = pvPortMalloc(sizeof(*pxResponseEnrObj));
+                enrollmentMessage_t *pxResponseEnrObj = pvRsMemAlloc(sizeof(*pxResponseEnrObj));
 
                 pxResponseEnrObj->ullAddress = LOCAL_ADDRESS;
 
@@ -301,12 +296,11 @@ BaseType_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj, serObjectValue_t
         default:
                 break;
         }
-        return pdTRUE;
+        return true;
 }
 
-BaseType_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t pcRemoteApName, portId_t xN1Port)
+bool_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t pcRemoteApName, portId_t xN1Port)
 {
-
         neighborInfo_t *pxNeighbor = NULL;
         struct rmt_t *pxRmt;
 
@@ -325,21 +319,21 @@ BaseType_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t p
         pxRmt = pxIPCPGetRmt();
 
         // Send M_START to the enroller if not enrolled
-        enrollmentMessage_t *pxEnrollmentMsg = pvPortMalloc(sizeof(*pxEnrollmentMsg));
+        enrollmentMessage_t *pxEnrollmentMsg = pvRsMemAlloc(sizeof(*pxEnrollmentMsg));
         pxEnrollmentMsg->ullAddress = LOCAL_ADDRESS;
 
         serObjectValue_t *pxObjVal = pxSerdesMsgEnrollmentEncode(pxEnrollmentMsg);
 
         if (!xRibdSendRequest("Enrollment", "/difm/enr", -1, M_START, xN1Port, pxObjVal))
         {
-                ESP_LOGE(TAG_ENROLLMENT, "It was a problem to sen the request");
-                return pdFALSE;
+                LOGE(TAG_ENROLLMENT, "It was a problem to sen the request");
+                return false;
         }
 
-        vPortFree(pxEnrollmentMsg);
-        vPortFree(pxObjVal);
+        vRsMemFree(pxEnrollmentMsg);
+        vRsMemFree(pxObjVal);
 
-        return pdTRUE;
+        return true;
 }
 
 /**
@@ -351,9 +345,8 @@ BaseType_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t p
  * @param pxSerObjValue Enrollment message with neighbor info.
  * @return BaseType_t
  */
-BaseType_t xEnrollmentHandleStartR(string_t pcRemoteApName, serObjectValue_t *pxSerObjValue)
+bool_t xEnrollmentHandleStartR(string_t pcRemoteApName, serObjectValue_t *pxSerObjValue)
 {
-
         enrollmentMessage_t *pxEnrollmentMsg;
         neighborInfo_t *pxNeighborInfo;
 
@@ -375,38 +368,41 @@ BaseType_t xEnrollmentHandleStartR(string_t pcRemoteApName, serObjectValue_t *px
 
                 pxNeighborInfo->xNeighborAddress = pxEnrollmentMsg->ullAddress;*/
 
-        return pdTRUE;
+        return true;
 }
 
-BaseType_t xEnrollmentHandleStopR(string_t pcRemoteApName)
+bool_t xEnrollmentHandleStopR(string_t pcRemoteApName)
 {
-        ESP_LOGE(TAG_ENROLLMENT, "Handling a M_STOP_R CDAP Message");
+        LOGE(TAG_ENROLLMENT, "Handling a M_STOP_R CDAP Message");
 
         neighborInfo_t *pxNeighborInfo;
 
         if (!pcRemoteApName)
         {
-                ESP_LOGE(TAG_ENROLLMENT, "No valid Remote Application Process Name");
-                return pdFALSE;
+                LOGE(TAG_ENROLLMENT, "No valid Remote Application Process Name");
+                return false;
         }
 
         pxNeighborInfo = pxEnrollmentFindNeighbor(pcRemoteApName);
         if (pxNeighborInfo == NULL)
         {
-                ESP_LOGE(TAG_ENROLLMENT, "No neighbor founded with the name: '%s'", pcRemoteApName);
-                return pdFALSE;
+                LOGE(TAG_ENROLLMENT, "No neighbor founded with the name: '%s'", pcRemoteApName);
+                return false;
         }
-        ESP_LOGI(TAG_ENROLLMENT, "Enrollment finished with IPCP %s", pxNeighborInfo->pcApName);
-        ESP_LOGI(TAG_ENROLLMENT, "Enrollment STOP_R");
+        LOGI(TAG_ENROLLMENT, "Enrollment finished with IPCP %s", pxNeighborInfo->pcApName);
+        LOGI(TAG_ENROLLMENT, "Enrollment STOP_R");
 
-        return pdTRUE;
+        return true;
 }
 
-BaseType_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
-                                 serObjectValue_t *pxSerObjectValue, string_t pcRemoteApName,
-                                 string_t pxLocalApName, int invokeId, portId_t xN1Port)
+bool_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
+                             serObjectValue_t *pxSerObjectValue,
+                             string_t pcRemoteApName,
+                             string_t pxLocalApName,
+                             int invokeId,
+                             portId_t xN1Port)
 {
-        ESP_LOGI(TAG_ENROLLMENT, "Handling a M_STOP CDAP Message");
+        LOGI(TAG_ENROLLMENT, "Handling a M_STOP CDAP Message");
         neighborInfo_t *pxNeighborInfo = NULL;
         enrollmentMessage_t *pxEnrollmentMsg;
 
@@ -414,8 +410,8 @@ BaseType_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
 
         if (pxNeighborInfo == NULL)
         {
-                ESP_LOGE(TAG_ENROLLMENT, "Neighbor was not founded into the list of Neighbors");
-                return pdFALSE;
+                LOGE(TAG_ENROLLMENT, "Neighbor was not founded into the list of Neighbors");
+                return false;
         }
 
         pxNeighborInfo->eEnrollmentState = eENROLLED;
@@ -429,27 +425,31 @@ BaseType_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
         if (!xRibdSendResponse(pxEnrRibObj->ucObjClass, pxEnrRibObj->ucObjName, pxEnrRibObj->ulObjInst,
                                0, NULL, M_STOP_R, invokeId, xN1Port, NULL))
         {
-                ESP_LOGE(TAG_ENROLLMENT, "Failed to sent M_STOP_R via n-1 port: %d", xN1Port);
-                return pdFALSE;
+                LOGE(TAG_ENROLLMENT, "Failed to sent M_STOP_R via n-1 port: %d", xN1Port);
+                return false;
         }
 
         // ESP_LOGI(TAG_ENROLLMENT, "Enrollment finished with IPCP %s", pxNeighborInfo->pcApName);
         // ESP_LOGI(TAG_ENROLLMENT, "Enrollment STOP");
 
-        return pdTRUE;
+        return true;
 }
 
-BaseType_t xEnrollmentHandleOperationalStart(struct ribObject_t *pxOperRibObj, serObjectValue_t *pxSerObjectValue, string_t pcRemoteApName,
-                                             string_t pcLocalApName, int invokeId, portId_t xN1Port)
+bool_t xEnrollmentHandleOperationalStart(struct ribObject_t *pxOperRibObj,
+                                         serObjectValue_t *pxSerObjectValue,
+                                         string_t pcRemoteApName,
+                                         string_t pcLocalApName,
+                                         int invokeId,
+                                         portId_t xN1Port)
 {
-        ESP_LOGE(TAG_ENROLLMENT, "EnrollmentHandle OperationalStart");
+        LOGE(TAG_ENROLLMENT, "EnrollmentHandle OperationalStart");
         neighborMessage_t *pxNeighborMsg;
         neighborInfo_t *pxNeighborInfo = NULL;
 
-        ESP_LOGE(TAG_ENROLLMENT, "Looking Neighbor");
+        LOGE(TAG_ENROLLMENT, "Looking Neighbor");
         pxNeighborInfo = pxEnrollmentFindNeighbor(pcRemoteApName);
 
-        pxNeighborMsg = pvPortMalloc(sizeof(*pxNeighborMsg));
+        pxNeighborMsg = pvRsMemAlloc(sizeof(*pxNeighborMsg));
 
         /*Looking for the token */
         pxNeighborMsg->pcApName = NORMAL_PROCESS_NAME;
@@ -464,11 +464,11 @@ BaseType_t xEnrollmentHandleOperationalStart(struct ribObject_t *pxOperRibObj, s
         if (!xRibdSendResponse(pxOperRibObj->ucObjClass, pxOperRibObj->ucObjName, pxOperRibObj->ulObjInst,
                                0, NULL, M_START_R, invokeId, xN1Port, pxSerObjValue))
         {
-                ESP_LOGE(TAG_ENROLLMENT, "Failed to sent M_STAR_R via n-1 port: %d", xN1Port);
-                return pdFALSE;
+                LOGE(TAG_ENROLLMENT, "Failed to sent M_STAR_R via n-1 port: %d", xN1Port);
+                return false;
         }
 
         // ESP_LOGI(TAG_ENROLLMENT,"Enrollment finished with IPCP %s", pxNeighborInfo->xAPName);
 
-        return pdTRUE;
+        return true;
 }

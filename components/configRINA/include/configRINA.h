@@ -16,7 +16,7 @@
 #define SIZE_SDU_QUEUE (200)
 
 /************ SHIM DIF CONFIGURATION **************/
-#define ESP_WIFI_SSID "irati"     //"WS02"
+#define ESP_WIFI_SSID "irati"	  //"WS02"
 #define ESP_WIFI_PASS "irati2017" //"Esdla2025"
 
 /*********** NORMAL CONFIGURATION ****************/
@@ -41,8 +41,8 @@
 /**** QoS CUBES ****/
 #define QoS_CUBE_NAME "unreliable"
 #define QoS_CUBE_ID (3)
-#define QoS_CUBE_PARTIAL_DELIVERY pdFALSE
-#define QoS_CUBE_ORDERED_DELIVERY pdTRUE
+#define QoS_CUBE_PARTIAL_DELIVERY false
+#define QoS_CUBE_ORDERED_DELIVERY true
 
 /**** EFCP POLICIES ****/
 /* DTP POLICY SET */
@@ -50,6 +50,6 @@
 #define DTP_POLICY_SET_VERSION "0"
 
 #define DTP_INITIAL_A_TIMER (300)
-#define DTP_DTCP_PRESENT pdFALSE
+#define DTP_DTCP_PRESENT false
 
 #endif

@@ -5,48 +5,19 @@
  *      Author: i2CAT
  */
 
-#include "freertos/FreeRTOS.h"
-#include "esp_log.h"
-
+#include "portability/port.h"
 #include "du.h"
-#include "common.h"
-#include "Rmt.h"
+#include "rina_common_port.h"
+#include "rmt.h"
+#include "EFCP.h"
 
 #define TAG_DTP "[DTP]"
-/*
-static dtpSv_t default_sv = {
-    .xNextSeqNumberToSend = 0,        // ok
-    .xMaxSeqNumberToSend = 0,         // ok
-    .xSeqNumberRolloverThreshold = 0, // ok
-    .xMaxSeqNumberRcvd = 0,           // ok
-    .stats = {
-        .drop_pdus = 0,          // ok
-        .err_pdus = 0,           // ok
-        .tx_pdus = 0,            // ok
-        .tx_bytes = 0,           // ok
-        .rx_pdus = 0,            // ok
-        .rx_bytes = 0},          // ok
-    .xRexmsnCtrl = false,        // ok
-    .xRateBased = false,         // ok
-    .xWindowBased = false,       // ok
-    .xDrfRequired = true,        // ok
-    .xRateFulfiled = false,      // ok
-    .xMaxFlowPduSize = UINT_MAX, // ok
-    .xMaxFlowSduSize = UINT_MAX, // ok
-    //.MPL                  = 1000,
-    //.R                    = 100,
-    //.A                    = 0,
-    //.tr                   = 0,
-    .xRcvLeftWindowEdge = 0, // ok
-    .xWindowClosed = false,  // ok
-    .xDrfFlag = true,        // ok
-};*/
 
 dtpSv_t *pxDtpStateVectorInit(void);
 dtpSv_t *pxDtpStateVectorInit(void)
 {
         dtpSv_t *pxDtpSv;
-        pxDtpSv = pvPortMalloc(sizeof(*pxDtpSv));
+        pxDtpSv = pvRsMemAlloc(sizeof(*pxDtpSv));
 
         pxDtpSv->xNextSeqNumberToSend = 0;        // ok
         pxDtpSv->xMaxSeqNumberToSend = 0;         // ok
@@ -77,14 +48,14 @@ dtpSv_t *pxDtpStateVectorInit(void)
         return pxDtpSv;
 }
 
-BaseType_t xDtpPduSend(dtp_t *pxDtp, rmt_t *pxRmt, struct du_t *pxDu);
+bool_t xDtpPduSend(dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu);
 
-BaseType_t xDtpPduSend(dtp_t *pxDtp, rmt_t *pxRmt, struct du_t *pxDu)
+bool_t xDtpPduSend(dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu)
 {
         struct efcpContainer_t *pxEfcpContainer;
         cepId_t destCepId;
 
-        ESP_LOGI(TAG_DTP, "xDtpPduSend");
+        LOGI(TAG_DTP, "xDtpPduSend");
         /* Remote flow case */
         if (pxDu->pxPci->xSource != pxDu->pxPci->xDestination)
         {
@@ -94,36 +65,36 @@ BaseType_t xDtpPduSend(dtp_t *pxDtp, rmt_t *pxRmt, struct du_t *pxDu)
 
                 if (!xRmtSend(pxRmt, pxDu))
                 {
-                        ESP_LOGE(TAG_DTP, "Problems sending PDU to RMT");
-                        return pdFALSE;
+                        LOGE(TAG_DTP, "Problems sending PDU to RMT");
+                        return false;
                 }
 
-                return pdTRUE;
+                return true;
         }
 
         /* Local flow case */
         destCepId = pxDu->pxPci->connectionId_t.xDestination;
         pxEfcpContainer = pxDtp->pxEfcp->pxEfcpContainer;
         // pxEfcpContainer = pxDtp->pxEfcp->pxEfcpContainer;
-        if (unlikely(!pxEfcpContainer || xDuDecap(pxDu) || !xDuIsOk(pxDu)))
+        if (!pxEfcpContainer || xDuDecap(pxDu) || !xDuIsOk(pxDu))
         { /*Decap PDU */
-                ESP_LOGE(TAG_DTP, "Could not retrieve the EFCP container in"
-                                  "loopback operation");
+                LOGE(TAG_DTP, "Could not retrieve the EFCP container in"
+                              "loopback operation");
                 xDuDestroy(pxDu);
-                return pdFALSE;
+                return false;
         }
         if (xEfcpContainerReceive(pxEfcpContainer, destCepId, pxDu))
         {
-                ESP_LOGE(TAG_DTP, "Problems sending PDU to loopback EFCP");
-                return pdFALSE;
+                LOGE(TAG_DTP, "Problems sending PDU to loopback EFCP");
+                return false;
         }
 
         return 0;
 }
 
-BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
+bool_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
 {
-        ESP_LOGI(TAG_DTP, "xDtpWrite");
+        LOGI(TAG_DTP, "xDtpWrite");
         dtcp_t *pxDtcp;
         struct du_t *pxTempDu;
         struct dtp_ps *ps;
@@ -132,7 +103,7 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
         int sbytes;
         uint_t uxSc;
         // timeout_t         mpl, r, a, rv;
-        BaseType_t xStartRvTimer;
+        bool_t xStartRvTimer;
 
         pxTempEfcp = pxDtpInstance->pxEfcp;
         pxDtcp = pxDtpInstance->pxDtcp;
@@ -162,13 +133,13 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
         sbytes = xDuLen(pxDu);
         sbytes = pxDu->pxNetworkBuffer->xDataLength;
 
-        ESP_LOGI(TAG_DTP, "Calling DuEncap");
-        ESP_LOGI(TAG_DTP, "Sbytes: %d", sbytes);
+        LOGI(TAG_DTP, "Calling DUEncap");
+        LOGI(TAG_DTP, "Sbytes: %d", sbytes);
         if (!xDuEncap(pxDu, PDU_TYPE_DT))
         {
-                ESP_LOGE(TAG_DTP, "Could not encap PDU");
+                LOGE(TAG_DTP, "Could not encap PDU");
                 xDuDestroy(pxDu);
-                return pdFALSE;
+                return false;
         }
 
         xCsn = ++pxDtpInstance->pxDtpStateVector->xNextSeqNumberToSend;
@@ -185,23 +156,23 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
         pxDu->pxPci->xPduLen = pxDu->pxNetworkBuffer->xDataLength;
         pxDu->pxPci->xSequenceNumber = xCsn;
 #if 0
-        ESP_LOGI(TAG_DTP, "------------ PCI DT-----------");
-        ESP_LOGI(TAG_DTP, "PCI Version: 0x%04x", pxDu->pxPci->ucVersion);
-        ESP_LOGI(TAG_DTP, "PCI SourceAddress: 0x%04x", pxDu->pxPci->xSource);
-        ESP_LOGI(TAG_DTP, "PCI DestinationAddress: 0x%04x", pxDu->pxPci->xDestination);
-        ESP_LOGI(TAG_DTP, "PCI QoS: 0x%04x", pxDu->pxPci->connectionId_t.xQosId);
-        ESP_LOGI(TAG_DTP, "PCI CEP Source: 0x%04x", pxDu->pxPci->connectionId_t.xSource);
-        ESP_LOGI(TAG_DTP, "PCI CEP Destination: 0x%04x", pxDu->pxPci->connectionId_t.xDestination);
-        ESP_LOGI(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
-        ESP_LOGI(TAG_DTP, "PCI Type: 0x%04x", pxDu->pxPci->xType);
-        ESP_LOGI(TAG_DTP, "PCI SequenceNumber: 0x%08x", pxDu->pxPci->xSequenceNumber);
-        ESP_LOGI(TAG_DTP, "PCI xPDULEN: 0x%04x", pxDu->pxPci->xPduLen);
+        LOGI(TAG_DTP, "------------ PCI DT-----------");
+        LOGI(TAG_DTP, "PCI Version: 0x%04x", pxDu->pxPci->ucVersion);
+        LOGI(TAG_DTP, "PCI SourceAddress: 0x%04x", pxDu->pxPci->xSource);
+        LOGI(TAG_DTP, "PCI DestinationAddress: 0x%04x", pxDu->pxPci->xDestination);
+        LOGI(TAG_DTP, "PCI QoS: 0x%04x", pxDu->pxPci->connectionId_t.xQosId);
+        LOGI(TAG_DTP, "PCI CEP Source: 0x%04x", pxDu->pxPci->connectionId_t.xSource);
+        LOGI(TAG_DTP, "PCI CEP Destination: 0x%04x", pxDu->pxPci->connectionId_t.xDestination);
+        LOGI(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
+        LOGI(TAG_DTP, "PCI Type: 0x%04x", pxDu->pxPci->xType);
+        LOGI(TAG_DTP, "PCI SequenceNumber: 0x%08x", pxDu->pxPci->xSequenceNumber);
+        LOGI(TAG_DTP, "PCI xPDULEN: 0x%04x", pxDu->pxPci->xPduLen);
 #endif
         if (!xPciIsOk(pxDu->pxPci))
         {
-                ESP_LOGE(TAG_DTP, "PCI is not ok");
+                LOGE(TAG_DTP, "PCI is not ok");
                 xDuDestroy(pxDu);
-                return pdFALSE;
+                return false;
         }
 
         // sn = dtcp->sv->snd_lft_win;
@@ -213,7 +184,7 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
                 xPciFlags = pxDu->pxPci->xFlags;
                 xPciFlags |= PDU_FLAGS_DATA_RUN;
                 pxDu->pxPci->xFlags = xPciFlags;
-                ESP_LOGI(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
+                LOGI(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
         }
 #if 0
         LOG_DBG("DTP Sending PDU %u (CPU: %d)", csn, smp_processor_id());
@@ -330,18 +301,17 @@ BaseType_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
                 return 0;
         }
 #endif
-        if (!xDtpPduSend(pxDtpInstance,
-                         pxDtpInstance->pxRmt,
-                         pxDu))
-                return pdFALSE;
+        if (xDtpPduSend(pxDtpInstance,
+                        pxDtpInstance->pxRmt,
+                        pxDu))
+                return false;
         // spin_lock_bh(&instance->sv_lock);
         // stats_inc_bytes(tx, pxDtpInstance->pxDtpStateVector, sbytes);
         // spin_unlock_bh(&instance->sv_lock);
-
-        return pdTRUE;
+        return true;
 }
 
-static inline BaseType_t xDtpPduPost(dtp_t *pxDtpInstance, struct du_t *pxDu)
+static inline bool_t xDtpPduPost(dtp_t *pxDtpInstance, struct du_t *pxDu)
 {
         struct efcp_t *pxEfcp;
 
@@ -349,15 +319,15 @@ static inline BaseType_t xDtpPduPost(dtp_t *pxDtpInstance, struct du_t *pxDu)
 
         if (!xEfcpEnqueue(pxEfcp, pxEfcp->pxConnection->xPortId, pxDu))
         {
-                ESP_LOGE(TAG_DTP, "Could not enqueue SDU to EFCP");
-                return pdFALSE;
+                LOGE(TAG_DTP, "Could not enqueue SDU to EFCP");
+                return false;
         }
 
-        ESP_LOGI(TAG_DTP, "DTP enqueued to upper IPCP");
-        return pdTRUE;
+        LOGI(TAG_DTP, "DTP enqueued to upper IPCP");
+        return true;
 }
 
-BaseType_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
+bool_t xDtpReceive(dtp_t *pxInstance, struct du_t *pxDu)
 {
         // struct dtp_ps *  ps;
         dtcp_t *pxDtcp;
@@ -365,13 +335,13 @@ BaseType_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
         seqNum_t xSeqNum;
         // timeout_t        a, r, mpl;
         seqNum_t xLWE;
-        BaseType_t xInOrder;
-        BaseType_t xRtxCtrl = false;
+        bool_t xInOrder;
+        bool_t xRtxCtrl = false;
         seqNum_t xMaxSduGap;
         int sbytes;
         struct efcp_t *pxEfcp = 0;
 
-        ESP_LOGI(TAG_DTP, "DTP receive started...");
+        LOGI(TAG_DTP, "DTP receive started...");
 
         pxDtcp = pxDtpInstance->pxDtcp;
         pxEfcp = pxDtpInstance->pxEfcp;
@@ -383,8 +353,8 @@ BaseType_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
         // mpl	    = instance->sv->MPL;
         xLWE = pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge;
 
-        xInOrder = pdTRUE; // HardCode for completing the phase one
-        xMaxSduGap = pxDtpInstance->pxDtpCfg->xMaxSduGap;
+        xInOrder = true; // HardCode for completing the phase one
+        xMaxSduGap = pxInstance->pxDtpCfg->xMaxSduGap;
         /* if (pxDtcp) {
                  dtcp_ps = dtcp_ps_get(dtcp);
                  rtx_ctrl = dtcp_ps->rtx_ctrl;
@@ -403,47 +373,46 @@ BaseType_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
                 /* if (rtimer_restart(&instance->timers.receiver_inactivity,
                                     2 * (mpl + r + a))) {
                          ESP_LOGE(TAG_DTP,"Failed to start Receiver Inactivity timer");
-
                          xDuDestroy(pxDu);
                          return pdFALSE;
                  }*/
                 // ESP_LOGE(TAG_DTP, "Flag: %d", pxDu->pxPci->xFlags);
-                ESP_LOGE(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
+                LOGE(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
 
-                // if (pxDu->pxPci->xFlags & PDU_FLAGS_DATA_RUN)//Send 0x0000 FLAG ??? why??
-                //{
-                ESP_LOGI(TAG_DTP, "Data Run Flag");
+                if (pxDu->pxPci->xFlags & PDU_FLAGS_DATA_RUN)
+                {
+                        LOGI(TAG_DTP, "Data Run Flag");
 
-                pxDtpInstance->pxDtpStateVector->xDrfRequired = pdFALSE;
-                pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge = xSeqNum;
+                        pxInstance->pxDtpStateVector->xDrfRequired = false;
+                        pxInstance->pxDtpStateVector->xRcvLeftWindowEdge = xSeqNum;
 
-                // dtp_squeue_flush(pxInstance);
-                /*if (instance->rttq) {
-                        rttq_flush(pxInstance->pxRttq);
-                }*/
+                        // dtp_squeue_flush(pxInstance);
+                        /*if (instance->rttq) {
+                                rttq_flush(pxInstance->pxRttq);
+                        }*/
 
-                /*if (pxDtcp) {
-                        if (dtcp_sv_update(pxDtcp, &pxDu->xPci)) {
-                                ESP_LOGE(TAG_DTP, "Failed to update dtcp sv");
-                                return pdFALSE;
-                        }
-                }*/
+                        /*if (pxDtcp) {
+                                if (dtcp_sv_update(pxDtcp, &pxDu->xPci)) {
+                                        ESP_LOGE(TAG_DTP, "Failed to update dtcp sv");
+                                        return pdFALSE;
+                                }
+                        }*/
 
-                // dtp_send_pending_ctrl_pdus(instance); // check this
-                xDtpPduPost(pxDtpInstance, pxDu); // check this
-                // stats_inc_bytes(rx, instance->sv, sbytes);
+                        // dtp_send_pending_ctrl_pdus(instance); // check this
+                        xDtpPduPost(pxDtpInstance, pxDu); // check this
+                                                          // stats_inc_bytes(rx, instance->sv, sbytes);
 
-                return pdTRUE;
-                //}
+                        return true;
+                }
 
-                /*ESP_LOGE(TAG_DTP, "Expecting DRF but not present, dropping PDU %d...",
-                         xSeqNum);
+                LOGE(TAG_DTP, "Expecting DRF but not present, dropping PDU %d...",
+                     xSeqNum);
 
                 // stats_inc(drop, instance->sv);
                 // spin_unlock_bh(&instance->sv_lock);
 
                 xDuDestroy(pxDu);
-                return pdTRUE;*/
+                return true;
         }
 
         /*
@@ -454,8 +423,8 @@ BaseType_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
         if (xSeqNum <= xLWE)
         {
                 /* Duplicate PDU or flow control overrun */
-                ESP_LOGE(TAG_DTP, "Duplicate PDU or flow control overrun.SN: %u, LWE:%u",
-                         xSeqNum, xLWE);
+                LOGE(TAG_DTP, "Duplicate PDU or flow control overrun.SN: %u, LWE:%u",
+                     xSeqNum, xLWE);
                 // stats_inc(drop, instance->sv);
 
                 // spin_unlock_bh(&instance->sv_lock);
@@ -540,7 +509,7 @@ BaseType_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
 #endif
         xLWE = pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge;
 
-        ESP_LOGI(TAG_DTP, "DTP receive LWE: %u", xLWE);
+        LOGI(TAG_DTP, "DTP receive LWE: %u", xLWE);
         if (xSeqNum == xLWE + 1)
         {
                 pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge = xSeqNum;
@@ -590,21 +559,21 @@ BaseType_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
                  }
          }*/
 
-        ESP_LOGI(TAG_DTP, "DTP receive ended...");
+        LOGI(TAG_DTP, "DTP receive ended...");
 
-        return pdTRUE;
+        return true;
 }
 
-BaseType_t xDtpDestroy(dtp_t *pxInstance)
+bool_t xDtpDestroy(dtp_t *pxInstance)
 {
         dtcp_t *pxDtcp = NULL;
         // struct cwq * cwq = NULL;
         // struct rtxq * rtxq = NULL;
         // struct rttq * rttq = NULL;
-        BaseType_t ret = pdTRUE;
+        bool_t ret = true;
 
         if (!pxInstance)
-                return pdFALSE;
+                return false;
 
         // spin_lock_bh(&instance->lock);
 
@@ -649,8 +618,8 @@ BaseType_t xDtpDestroy(dtp_t *pxInstance)
 
         if (pxDtcp) {
         	if (xDtcpDestroy(pxDtcp)) {
-        		ESP_LOGE(TAG_DTP,"Error destroying DTCP");
-        		ret = pdFALSE;
+        		LOGE(TAG_DTP,"Error destroying DTCP");
+        		ret = false;
         	}
         }
 #endif
@@ -698,11 +667,11 @@ BaseType_t xDtpDestroy(dtp_t *pxInstance)
 
 #endif
         // robject_del(&instance->robj);
-        vPortFree(pxInstance);
+        vRsMemFree(pxInstance);
 
-        ESP_LOGI(TAG_DTP, "DTP %pK destroyed successfully", pxInstance);
+        LOGI(TAG_DTP, "DTP %pK destroyed successfully", pxInstance);
 
-        return pdTRUE;
+        return true;
 }
 /*
 BaseType_t xDtpInitialSequenceNumber(dtp_t * pxInstance)
@@ -729,7 +698,7 @@ BaseType_t xDtpInitialSequenceNumber(dtp_t * pxInstance)
 */
 
 dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
-                   rmt_t *pxRmt,
+                   struct rmt_t *pxRmt,
                    dtpConfig_t *pxDtpCfg)
 {
         dtp_t *pxDtp;
@@ -738,27 +707,26 @@ dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
 
         if (!pxEfcp)
         {
-                ESP_LOGE(TAG_DTP, "No EFCP passed, bailing out");
+                LOGE(TAG_DTP, "No EFCP passed, bailing out");
                 return NULL;
         }
 
         if (!pxDtpCfg)
         {
-                ESP_LOGE(TAG_DTP, "No DTP conf passed, bailing out");
+                LOGE(TAG_DTP, "No DTP conf passed, bailing out");
                 return NULL;
         }
 
         if (!pxRmt)
         {
-                ESP_LOGE(TAG_DTP, "No RMT passed, bailing out");
+                LOGE(TAG_DTP, "No RMT passed, bailing out");
                 return NULL;
         }
 
-        pxDtp = pvPortMalloc(sizeof(*pxDtp));
-
+        pxDtp = pvRsMemAlloc(sizeof(*pxDtp));
         if (!pxDtp)
         {
-                ESP_LOGE(TAG_DTP, "Cannot create DTP instance");
+                LOGE(TAG_DTP, "Cannot create DTP instance");
                 return NULL;
         }
 
@@ -771,24 +739,26 @@ dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
                 dtp_destroy(dtp);
                 return NULL;
         }*/
-        // heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
-        //  pxDtpSv = pvPortMalloc(sizeof(*pxDtpSv));
+
+        pxDtpSv = pvRsMemAlloc(sizeof(*pxDtpSv));
         pxDtp->pxDtpStateVector = pxDtpStateVectorInit();
-        // pxDtp->pxDtpStateVector = pxDtpSv;
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
         if (!pxDtp->pxDtpStateVector)
         {
-                ESP_LOGE(TAG_DTP, "Cannot create DTP state-vector");
-
+                LOGE(TAG_DTP, "Cannot create DTP state-vector");
                 xDtpDestroy(pxDtp);
                 return NULL;
         }
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+
+#ifdef __FREERTOS__
+        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
         //*pxDtp->pxDtpStateVector = default_sv;
         /* FIXME: fixups to the state-vector should be placed here */
 
         // spin_lock_init(&dtp->sv_lock);
-        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
+#ifdef __FREERTOS__
+        heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
         pxDtp->pxDtpCfg = pxDtpCfg;
         pxDtp->pxRmt = pxRmt;
         // dtp->rttq = NULL;
@@ -827,7 +797,7 @@ dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
                 ps_name = RINA_PS_DEFAULT_NAME;
 
         if (dtp_select_policy_set(dtp, "", ps_name)) {
-                ESP_LOGE(TAG_DTP,"Could not load DTP PS %s", ps_name);
+                LOGE(TAG_DTP,"Could not load DTP PS %s", ps_name);
                 xDtpDestroy(pxDtp);
                 return NULL;
         }
@@ -835,7 +805,7 @@ dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
 
 
         if (dtp_initial_sequence_number(dtp)) {
-                ESP_LOGE(TAG_DTP,"Could not create Sequencing queue");
+                LOGE(TAG_DTP,"Could not create Sequencing queue");
                 xDtpDestroy(pxDtp);
                 return NULL;
         }

@@ -8,8 +8,7 @@
 #ifndef COMPONENTS_EFCP_INCLUDE_DELIM_H_
 #define COMPONENTS_EFCP_INCLUDE_DELIM_H_
 
-#include "freertos/FreeRTOS.h"
-#include "common.h"
+#include "portability/port.h"
 #include "efcpStructures.h"
 
 typedef struct xDELIM

@@ -1,35 +1,33 @@
 #include <stdio.h>
 #include <string.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
+#include "portability/port.h"
 
 #include "ShimIPCP.h"
 #include "ARP826.h"
-#include "IPCP.h"
+#include "IPCP_instance.h"
+#include "IPCP_api.h"
+#include "IPCP_events.h"
 #include "NetworkInterface.h"
 #include "configRINA.h"
 #include "configSensor.h"
 #include "BufferManagement.h"
 #include "du.h"
 #include "IpcManager.h"
-#include "rstr.h"
 
-#include "esp_log.h"
+#include "rina_name.h"
+#include "rina_ids.h"
 
 struct ipcpInstanceData_t
 {
 
-	ListItem_t xInstanceListItem;
+	RsListItem_t xInstanceListItem;
 	ipcProcessId_t xId;
 
 	/* IPC Process name */
 	name_t *pxName;
 	name_t *pxDifName;
-	string_t pcIntefaceName;
+	string_t pcInterfaceName;
 
 	MACAddress_t *pxPhyDev;
 	struct flowSpec_t *pxFspec;
@@ -40,7 +38,7 @@ struct ipcpInstanceData_t
 
 	/* Stores the state of flows indexed by port_id */
 	// spinlock_t             lock;
-	List_t xFlowsList;
+	RsList_t xFlowsList;
 
 	/* FIXME: Remove it as soon as the kipcm_kfa gets removed */
 	// struct kfa *           kfa;
@@ -58,7 +56,7 @@ struct ipcpInstanceData_t
 
 struct ipcpFactoryData_t
 {
-	List_t xInstancesShimWifiList;
+	RsList_t xInstancesShimWifiList;
 };
 
 static struct ipcpFactoryData_t xFactoryShimWifiData;
@@ -72,44 +70,10 @@ static shimFlow_t *prvShimFindFlow(struct ipcpInstanceData_t *pxData);
 static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, portId_t xPortId);
 
 /* @brief Destroy an specific Flow */
-static BaseType_t prvShimFlowDestroy(struct ipcpInstanceData_t *xData, shimFlow_t *xFlow);
+static bool_t prvShimFlowDestroy(struct ipcpInstanceData_t *xData, shimFlow_t *xFlow);
 
 /* @brief Unbind and Destroy a Flow*/
-static BaseType_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData, shimFlow_t *xFlow);
-
-/** @brief  Concatenate the Information Application Name into a Complete Address
- * (ProcessName-ProcessInstance-EntityName-EntityInstance).
- * */
-string_t pcShimNameToString(const name_t *xNameInfo); // Could be reutilized by others?, private?
-
-/** @brief Convert the Complete Address (ProcessName-ProcessInstance-EntityName-EntityInstance)
- *  to Generic Protocol Address
- * */
-gpa_t *pxShimNameToGPA(const name_t *xAplicationInfo);
-
-/* @brief Destroy an application Name from the Data structure*/
-void vShimNameDestroy(name_t *pxName);
-
-/* @brief Destroy an application Name from the Data structure*/
-void vShimNameFini(name_t *pxName);
-
-/* @brief Create a generic protocol address based on an string address*/
-gpa_t *pxShimCreateGPA(const uint8_t *pucAddress, size_t xLength); // ARP ALSO CHECK
-
-/* @brief Create a generic hardware address based on the MAC address*/
-gha_t *pxShimCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress);
-
-/* @brief Check if a generic protocol Address was created correctly*/
-BaseType_t xShimIsGPAOK(const gpa_t *pxGpa);
-
-/* @brief Check if a generic hardware Address was created correctly*/
-BaseType_t xShimIsGHAOK(const gha_t *pxGha);
-
-/* @brief Destroy a generic protocol Address to clean up*/
-void vShimGPADestroy(gpa_t *pxGpa);
-
-/* @brief Destroy a generic hardware Address to clean up*/
-void vShimGHADestroy(gha_t *pxGha);
+static bool_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData, shimFlow_t *xFlow);
 
 EthernetHeader_t *vCastConstPointerTo_EthernetHeader_t(const void *pvArgument)
 {
@@ -127,58 +91,58 @@ EthernetHeader_t *vCastConstPointerTo_EthernetHeader_t(const void *pvArgument)
  *
  * @return: pdTrue or pdFalse
  * */
-BaseType_t xShimEnrollToDIF(const MACAddress_t *pxPhyDev)
+bool_t xShimEnrollToDIF(const MACAddress_t *pxPhyDev)
 {
-	ESP_LOGI(TAG_SHIM, "Enrolling to DIF");
+	LOGI(TAG_SHIM, "Enrolling to DIF");
 
-	// Initialization of WiFi interface
+	/* Initialization of WiFi interface */
 
 	if (xNetworkInterfaceInitialise(pxPhyDev))
 	{
-		/*Initialize ARP Cache*/
+		/* Initialize ARP Cache */
 		vARPInitCache();
 
-		/*Connect to remote point (WiFi AP)*/
+		/* Connect to remote point (WiFi AP) */
 		if (xNetworkInterfaceConnect())
 		{
-			ESP_LOGI(TAG_SHIM, "Enrolled To DIF %s", SHIM_DIF_NAME);
-			return pdTRUE;
+			LOGI(TAG_SHIM, "Enrolled To DIF %s", SHIM_DIF_NAME);
+			return true;
 		}
 
-		ESP_LOGE(TAG_SHIM, "Failed to enroll to DIF %s", SHIM_DIF_NAME);
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Failed to enroll to DIF %s", SHIM_DIF_NAME);
+		return false;
 	}
 
-	ESP_LOGE(TAG_SHIM, "Failed to enroll to DIF %s", SHIM_DIF_NAME);
+	LOGE(TAG_SHIM, "Failed to enroll to DIF %s", SHIM_DIF_NAME);
 
-	return pdFALSE;
+	return false;
 }
 
 /*-------------------------------------------*/
 /* @brief Deallocate a flow
  * */
 
-BaseType_t xShimFlowDeallocate(struct ipcpInstanceData_t *xData, portId_t xId)
+bool_t xShimFlowDeallocate(struct ipcpInstanceData_t *xData, portId_t xId)
 {
 	shimFlow_t *xFlow;
 
 	if (!xData)
 	{
-		ESP_LOGE(TAG_SHIM, "Bogus data passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Bogus data passed, bailing out");
+		return false;
 	}
 
-	if (!IS_PORT_ID_OK(xId))
+	if (!is_port_id_ok(xId))
 	{
-		ESP_LOGE(TAG_SHIM, "Invalid port ID passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Invalid port ID passed, bailing out");
+		return false;
 	}
 
 	xFlow = prvShimFindFlow(xData);
 	if (!xFlow)
 	{
-		ESP_LOGE(TAG_SHIM, "Flow does not exist, cannot remove");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Flow does not exist, cannot remove");
+		return false;
 	}
 
 	return prvShimUnbindDestroyFlow(xData, xFlow);
@@ -197,74 +161,73 @@ BaseType_t xShimFlowDeallocate(struct ipcpInstanceData_t *xData, portId_t xId)
  * @param pxData Shim IPCP Data to update during the flow allocation request
  * @return BaseType_t
  */
-BaseType_t xShimFlowAllocateRequest(portId_t xPortId,
-									const name_t *pxSourceInfo,
-									const name_t *pxDestinationInfo,
-									struct ipcpInstanceData_t *pxData)
+bool_t xShimFlowAllocateRequest(struct ipcpInstanceData_t *pxData,
+								name_t *pxSourceInfo,
+								name_t *pxDestinationInfo,
+								portId_t xPortId)
 {
 
-	ESP_LOGI(TAG_SHIM, "New flow allocation request");
+	LOGI(TAG_SHIM, "New flow allocation request");
 
 	shimFlow_t *pxFlow;
 
 	if (!pxData)
 	{
-		ESP_LOGE(TAG_SHIM, "Bogus data passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Bogus data passed, bailing out");
+		return false;
 	}
 
 	if (!pxSourceInfo)
 	{
-		ESP_LOGE(TAG_SHIM, "Bogus data passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Bogus data passed, bailing out");
+		return false;
 	}
 	if (!pxDestinationInfo)
 	{
-		ESP_LOGE(TAG_SHIM, "Bogus data passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Bogus data passed, bailing out");
+		return false;
 	}
 
-	if (!IS_PORT_ID_OK(xPortId))
+	if (!is_port_id_ok(xPortId))
 	{
-		ESP_LOGE(TAG_SHIM, "Bogus data passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Bogus data passed, bailing out");
+		return false;
 	}
 
-	ESP_LOGI(TAG_SHIM, "Finding Flows");
+	LOGI(TAG_SHIM, "Finding Flows");
 	pxFlow = prvShimFindFlowByPortId(pxData, xPortId);
 
 	if (!pxFlow)
 	{
-		pxFlow = pvPortMalloc(sizeof(*pxFlow));
+		pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 		if (!pxFlow)
-			return pdFALSE;
+			return false;
 
 		pxFlow->xPortId = xPortId;
 		pxFlow->ePortIdState = ePENDING;
-		pxFlow->pxDestPa = pxShimNameToGPA(pxDestinationInfo);
+		pxFlow->pxDestPa = pxNameToGPA(pxDestinationInfo);
 		// pxFlow->pxUserIpcp = pxUserIpcp;
 
-		if (!xShimIsGPAOK(pxFlow->pxDestPa))
+		if (!xIsGPAOK(pxFlow->pxDestPa))
 		{
-			ESP_LOGE(TAG_SHIM, "Destination protocol address is not OK");
+			LOGE(TAG_SHIM, "Destination protocol address is not OK");
 			prvShimUnbindDestroyFlow(pxData, pxFlow);
 
-			return pdFALSE;
+			return false;
 		}
 
 		// Register the flow in a list or in the Flow allocator
-
-		ESP_LOGI(TAG_SHIM, "Created Flow: %p, portID: %d, portState: %d", pxFlow, pxFlow->xPortId, pxFlow->ePortIdState);
-		vListInitialiseItem(&pxFlow->xFlowItem);
-		listSET_LIST_ITEM_OWNER(&(pxFlow->xFlowItem), pxFlow);
-		vListInsert(&pxData->xFlowsList, &pxFlow->xFlowItem);
+		LOGI(TAG_SHIM, "Created Flow: %p, portID: %d, portState: %d", pxFlow, pxFlow->xPortId, pxFlow->ePortIdState);
+		vRsListInitItem(&pxFlow->xFlowItem);
+		vRsListSetListItemOwner(&(pxFlow->xFlowItem), pxFlow);
+		vRsListInsert(&pxData->xFlowsList, &pxFlow->xFlowItem);
 
 		pxFlow->pxSduQueue = prvShimCreateQueue();
 		if (!pxFlow->pxSduQueue)
 		{
-			ESP_LOGE(TAG_SHIM, "Destination protocol address is not ok");
+			LOGE(TAG_SHIM, "Destination protocol address is not ok");
 			prvShimUnbindDestroyFlow(pxData, pxFlow);
-			return pdFALSE;
+			return false;
 		}
 
 		//************ RINAARP RESOLVE GPA
@@ -272,20 +235,20 @@ BaseType_t xShimFlowAllocateRequest(portId_t xPortId,
 		if (!xARPResolveGPA(pxFlow->pxDestPa, pxData->pxAppHandle->pxPa, pxData->pxAppHandle->pxHa))
 		{
 			prvShimUnbindDestroyFlow(pxData, pxFlow);
-			return pdFALSE;
+			return false;
 		}
 	}
 	else if (pxFlow->ePortIdState == ePENDING)
 	{
-		ESP_LOGE(TAG_SHIM, "Port-id state is already pending");
+		LOGE(TAG_SHIM, "Port-id state is already pending");
 	}
 	else
 	{
-		ESP_LOGE(TAG_SHIM, "Allocate called in a wrong state");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Allocate called in a wrong state");
+		return false;
 	}
 
-	return pdTRUE;
+	return true;
 }
 
 /**
@@ -294,28 +257,28 @@ BaseType_t xShimFlowAllocateRequest(portId_t xPortId,
  * @param pxShimInstanceData
  * @param pxUserIpcp
  * @param xPortId
- * @return BaseType_t
+ * @return bool_t
  */
-BaseType_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData, portId_t xPortId)
+bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData,
+								 portId_t xPortId)
 
 {
 	RINAStackEvent_t xEnrollEvent = {eShimFlowAllocatedEvent, NULL};
-	const TickType_t xDontBlock = pdMS_TO_TICKS(50); //(TickType_t) 0U; // pdMS_TO_TICKS(50);
 	shimFlow_t *pxFlow;
-	ipcpInstance_t *pxShimIpcp;
+	struct ipcpInstance_t *pxShimIpcp;
 
-	ESP_LOGI(TAG_SHIM, "Generating a Flow Allocate Response for a pending request");
+	LOGI(TAG_SHIM, "Generating a Flow Allocate Response for a pending request");
 
 	if (!pxShimInstanceData)
 	{
-		ESP_LOGE(TAG_SHIM, "Bogus data passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Bogus data passed, bailing out");
+		return false;
 	}
 
-	if (!IS_PORT_ID_OK(xPortId))
+	if (!is_port_id_ok(xPortId))
 	{
-		ESP_LOGE(TAG_SHIM, "Invalid port ID passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Invalid port ID passed, bailing out");
+		return false;
 	}
 
 	/* Searching for the Flow registered into the shim Instance Flow list */
@@ -323,29 +286,30 @@ BaseType_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceDa
 	pxFlow = prvShimFindFlowByPortId(pxShimInstanceData, xPortId);
 	if (!pxFlow)
 	{
-		ESP_LOGE(TAG_SHIM, "Flow does not exist, you shouldn't call this");
-
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Flow does not exist, you shouldn't call this");
+		return false;
 	}
 
 	/* Check if the flow is already allocated*/
 	if (pxFlow->ePortIdState != ePENDING)
 	{
-		ESP_LOGE(TAG_SHIM, "Flow is already allocated");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Flow is already allocated");
+		return false;
 	}
 
 	/* On positive response, flow should transition to allocated state */
 
 	/*Retrieving the IPCP Shim Instance */
+
 	/*Call to IPCP User to flow binding*/
 	/*configASSERT(pxUserIpcp->pxOps);
-	configASSERT(pxUserIpcp->pxOps->flowBindingIpcp);
+	RsAssert(pxUserIpcp->pxOps->flowBindingIpcp);
+
 	if (!pxUserIpcp->pxOps->flowBindingIpcp(pxUserIpcp->pxData,
 											xPortId,
 											pxShimIpcp))
 	{
-		ESP_LOGE(TAG_SHIM, "Could not bind flow with user_ipcp");
+		LOGE(TAG_SHIM, "Could not bind flow with user_ipcp");
 		// kfa_port_id_release(data->kfa, port_id);
 		// unbind_and_destroy_flow(data, flow);
 		return pdFALSE;
@@ -354,6 +318,7 @@ BaseType_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceDa
 	// spin_lock(&data->lock);
 	pxFlow->ePortIdState = eALLOCATED;
 	pxFlow->xPortId = xPortId;
+
 	// pxFlow->pxUserIpcp = pxUserIpcp;
 
 	pxFlow->pxDestHa = pxARPLookupGHA(pxFlow->pxDestPa);
@@ -365,12 +330,12 @@ BaseType_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceDa
 
 	if (pxFlow->ePortIdState == eALLOCATED)
 	{
-		ESP_LOGI(TAG_SHIM, "Flow with id:%d was allocated", pxFlow->xPortId);
+		LOGI(TAG_SHIM, "Flow with id:%d was allocated", pxFlow->xPortId);
 		xEnrollEvent.pvData = xPortId;
-		xSendEventStructToIPCPTask(&xEnrollEvent, xDontBlock);
+		xSendEventStructToIPCPTask(&xEnrollEvent, 250 * 1000);
 	}
 
-	return pdTRUE;
+	return true;
 }
 
 /*-------------------------------------------*/
@@ -383,44 +348,44 @@ BaseType_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceDa
  * the shimWiFi ipcp instance.
  * @return a pdTrue if Success or pdFalse Failure.
  * */
-BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *pxAppName, name_t *pxDafName)
+bool_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *pxAppName, name_t *pxDafName)
 {
-	ESP_LOGI(TAG_SHIM, "Registering Application");
+	LOGI(TAG_SHIM, "Registering Application");
 
 	gpa_t *pxPa;
 	gha_t *pxHa;
 
 	if (!pxData)
 	{
-		ESP_LOGI(TAG_SHIM, "Data no valid ");
-		return pdFALSE;
+		LOGI(TAG_SHIM, "Data no valid ");
+		return false;
 	}
 	if (!pxAppName)
 	{
-		ESP_LOGI(TAG_SHIM, "Name no valid ");
-		return pdFALSE;
+		LOGI(TAG_SHIM, "Name no valid ");
+		return false;
 	}
 	if (pxData->pxAppName != NULL)
 	{
-		ESP_LOGI(TAG_SHIM, "AppName should not exist");
-		return pdFALSE;
+		LOGI(TAG_SHIM, "AppName should not exist");
+		return false;
 	}
 
 	pxData->pxAppName = pxRstrNameDup(pxAppName);
 
 	if (!pxData->pxAppName)
 	{
-		ESP_LOGI(TAG_SHIM, "AppName not created ");
-		return pdFALSE;
+		LOGI(TAG_SHIM, "AppName not created ");
+		return false;
 	}
 
-	pxPa = pxShimNameToGPA(pxAppName);
+	pxPa = pxNameToGPA(pxAppName);
 
-	if (!xShimIsGPAOK(pxPa))
+	if (!xIsGPAOK(pxPa))
 	{
-		ESP_LOGI(TAG_SHIM, "Protocol Address is not OK ");
-		vShimNameFini(pxData->pxAppName);
-		return pdFALSE;
+		LOGI(TAG_SHIM, "Protocol Address is not OK ");
+		vRstrNameFini(pxData->pxAppName);
+		return false;
 	}
 
 	if (!pxData->pxPhyDev)
@@ -428,14 +393,14 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 		xNetworkInterfaceInitialise(pxData->pxPhyDev);
 	}
 
-	pxHa = pxShimCreateGHA(MAC_ADDR_802_3, pxData->pxPhyDev);
+	pxHa = pxCreateGHA(MAC_ADDR_802_3, pxData->pxPhyDev);
 
-	if (!xShimIsGHAOK(pxHa))
+	if (!xIsGHAOK(pxHa))
 	{
-		ESP_LOGI(TAG_SHIM, "Hardware Address is not OK ");
-		vShimNameFini(pxData->pxAppName);
-		vShimGHADestroy(pxHa);
-		return pdFALSE;
+		LOGI(TAG_SHIM, "Hardware Address is not OK ");
+		vRstrNameFini(pxData->pxAppName);
+		vGHADestroy(pxHa);
+		return false;
 	}
 
 	pxData->pxAppHandle = pxARPAdd(pxPa, pxHa);
@@ -443,11 +408,11 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 	if (!pxData->pxAppHandle)
 	{
 		// destroy all
-		ESP_LOGI(TAG_SHIM, "APPHandle was not created ");
-		vShimGPADestroy(pxPa);
-		vShimGHADestroy(pxHa);
-		vShimNameFini(pxData->pxAppName);
-		return pdFALSE;
+		LOGI(TAG_SHIM, "APPHandle was not created ");
+		vGPADestroy(pxPa);
+		vGHADestroy(pxHa);
+		vRstrNameFini(pxData->pxAppName);
+		return false;
 	}
 
 	// vShimGPADestroy( pa );
@@ -456,42 +421,39 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 
 	if (!pxData->pxDafName)
 	{
-
-		ESP_LOGE(TAG_SHIM, "Removing ARP Entry for DAF");
+		LOGE(TAG_SHIM, "Removing ARP Entry for DAF");
 		xARPRemove(pxData->pxAppHandle->pxPa, pxData->pxAppHandle->pxHa);
 		pxData->pxAppHandle = NULL;
-		vShimNameDestroy(pxData->pxAppName);
-		vShimGHADestroy(pxHa);
-		return pdFALSE;
+		vRstrNameFree(pxData->pxAppName);
+		vGHADestroy(pxHa);
+		return false;
 	}
 
-	pxPa = pxShimNameToGPA(pxDafName);
+	pxPa = pxNameToGPA(pxDafName);
 
-	if (!xShimIsGPAOK(pxPa))
+	if (!xIsGPAOK(pxPa))
 	{
-
-		ESP_LOGE(TAG_SHIM, "Failed to create gpa");
+		LOGE(TAG_SHIM, "Failed to create gpa");
 		xARPRemove(pxData->pxAppHandle->pxPa, pxData->pxAppHandle->pxHa);
 		pxData->pxAppHandle = NULL;
-		vShimNameDestroy(pxData->pxDafName);
-		vShimNameDestroy(pxData->pxAppName);
-		vShimGHADestroy(pxHa);
-		return pdFALSE;
+		vRstrNameFree(pxData->pxDafName);
+		vRstrNameFree(pxData->pxAppName);
+		vGHADestroy(pxHa);
+		return false;
 	}
 
 	pxData->pxDafHandle = pxARPAdd(pxPa, pxHa);
 
 	if (!pxData->pxDafHandle)
 	{
-		ESP_LOGE(TAG_SHIM, "Failed to register DAF in ARP");
+		LOGE(TAG_SHIM, "Failed to register DAF in ARP");
 		xARPRemove(pxData->pxAppHandle->pxPa, pxData->pxAppHandle->pxHa);
 		pxData->pxAppHandle = NULL;
-		vShimNameDestroy(pxData->pxAppName);
-		vShimNameDestroy(pxData->pxDafName);
-		vShimGPADestroy(pxPa);
-		vShimGHADestroy(pxHa);
-
-		return pdFALSE;
+		vRstrNameFree(pxData->pxAppName);
+		vRstrNameFree(pxData->pxDafName);
+		vGPADestroy(pxPa);
+		vGHADestroy(pxHa);
+		return false;
 	}
 
 	// vShimGPADestroy(pa);
@@ -500,7 +462,7 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
 
 	// vARPPrintCache();
 
-	return pdTRUE;
+	return true;
 
 	// vShimGHADestroy(ha);
 }
@@ -516,38 +478,37 @@ BaseType_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData, name_t *p
  *
  * @param pxData Shim IPCP Data
  * @param pxName pxName to register. Normal Instance pxName or DIFName
- * @return BaseType_t
+ * @return bool_t
  */
-BaseType_t xShimApplicationUnregister(struct ipcpInstanceData_t *pxData, name_t *pxName)
+bool_t xShimApplicationUnregister(struct ipcpInstanceData_t *pxData, const name_t *pxName)
 {
-	ESP_LOGI(TAG_SHIM, "Application Unregistering");
+	LOGI(TAG_SHIM, "Application Unregistering");
 
 	if (!pxData)
 	{
-		ESP_LOGE(TAG_SHIM, "Bogus data passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Bogus data passed, bailing out");
+		return false;
 	}
 
 	if (!pxName)
 	{
-		ESP_LOGE(TAG_SHIM, "Invalid name passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Invalid name passed, bailing out");
+		return false;
 	}
 
 	if (!pxData->pxAppName)
 	{
-		ESP_LOGE(TAG_SHIM, "Shim-WiFi has no application registered");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Shim-WiFi has no application registered");
+		return false;
 	}
 
 	/* Remove from ARP cache */
 	if (pxData->pxAppHandle)
 	{
-
 		if (xARPRemove(pxData->pxAppHandle->pxPa, pxData->pxAppHandle->pxHa))
 		{
-			ESP_LOGE(TAG_SHIM, "Failed to remove APP entry from the cache");
-			return pdFALSE;
+			LOGE(TAG_SHIM, "Failed to remove APP entry from the cache");
+			return false;
 		}
 		pxData->pxAppHandle = NULL;
 	}
@@ -557,25 +518,25 @@ BaseType_t xShimApplicationUnregister(struct ipcpInstanceData_t *pxData, name_t 
 
 		if (xARPRemove(pxData->pxDafHandle->pxPa, pxData->pxDafHandle->pxHa))
 		{
-			ESP_LOGE(TAG_SHIM, "Failed to remove DAF entry from the cache");
-			return pdFALSE;
+			LOGE(TAG_SHIM, "Failed to remove DAF entry from the cache");
+			return false;
 		}
 		pxData->pxDafHandle = NULL;
 	}
 
-	vShimNameDestroy(pxData->pxAppName);
+	vRstrNameFree(pxData->pxAppName);
 	pxData->pxAppName = NULL;
-	vShimNameDestroy(pxData->pxDafName);
+	vRstrNameFree(pxData->pxDafName);
 	pxData->pxDafName = NULL;
 
-	ESP_LOGI(TAG_SHIM, "Application unregister");
+	LOGI(TAG_SHIM, "Application unregister");
 
-	return pdTRUE;
+	return true;
 }
 
 /***************** **************************/
 
-int string_len(const string_t *s)
+int string_len(const string_t s)
 {
 	return strlen(s);
 }
@@ -604,7 +565,7 @@ string_t pcShimNameToString(const name_t *n)
 	size += (n->pcEntityInstance ? string_len(n->pcEntityInstance) : none_len);
 	size += strlen(DELIMITER);
 
-	tmp = pvPortMalloc(size);
+	tmp = pvRsMemAlloc(size);
 	memset(tmp, 0, sizeof(*tmp));
 
 	if (!tmp)
@@ -621,151 +582,32 @@ string_t pcShimNameToString(const name_t *n)
 				 (n->pcEntityInstance ? n->pcEntityInstance : none)) !=
 		size - 1)
 	{
-		vPortFree(tmp);
+		vRsMemFree(tmp);
 		return NULL;
 	}
 
 	return tmp;
-}
-
-gpa_t *pxShimNameToGPA(const name_t *xLocalInfo)
-{
-	// uint32_t ulIPCPAddress;
-	gpa_t *pxGpa;
-	string_t pcTmp;
-
-	pcTmp = pcShimNameToString(xLocalInfo);
-
-	if (!pcTmp)
-	{
-		ESP_LOGI(TAG_SHIM, "Name to String not correct");
-		return NULL;
-	}
-
-	// Convert the IPCPAddress Concatenate to bits
-	pxGpa = pxShimCreateGPA((uint8_t *)(pcTmp), strlen(pcTmp));
-
-	if (!pxGpa)
-	{
-		ESP_LOGI(TAG_SHIM, "GPA was not created correct");
-		vPortFree(pcTmp);
-		return NULL;
-	}
-
-	// vPortFree(pcTmp);
-
-	return pxGpa;
-}
-
-string_t *xShimGPAAddressToString(const gpa_t *pxGpa)
-{
-	string_t *tmp;
-	string_t *p;
-
-	if (!xShimIsGPAOK(pxGpa))
-	{
-		ESP_LOGE(TAG_ARP, "Bad input parameter, "
-						  "cannot get a meaningful address from GPA");
-		return NULL;
-	}
-
-	tmp = pvPortMalloc(pxGpa->uxLength + 1);
-	if (!tmp)
-		return NULL;
-
-	memcpy(tmp, pxGpa->ucAddress, pxGpa->uxLength);
-
-	p = tmp + pxGpa->uxLength;
-	*(p) = '\0';
-
-	ESP_LOGE(TAG_ARP, "GPA:%s", pxGpa->ucAddress);
-	ESP_LOGE(TAG_ARP, "GPA:%s", *tmp);
-
-	return tmp;
-}
-
-uint8_t *pucCreateAddress(size_t uxLength)
-{
-	uint8_t *pucAddress;
-
-	pucAddress = (uint8_t *)pvPortMalloc(uxLength);
-	memset(pucAddress, 0, uxLength);
-
-	return pucAddress;
-}
-
-gpa_t *pxShimCreateGPA(const uint8_t *pucAddress, size_t uxLength)
-{
-	gpa_t *pxGPA;
-
-	if (!pucAddress || uxLength == 0)
-	{
-		ESP_LOGI(TAG_SHIM, "Bad input parameters, cannot create GPA");
-		return NULL;
-	}
-
-	pxGPA = pvPortMalloc(sizeof(*pxGPA));
-
-	if (!pxGPA)
-		return NULL;
-
-	pxGPA->uxLength = uxLength;						   // strlen of the address without '\0'
-	pxGPA->ucAddress = pucCreateAddress(uxLength + 1); // Create an address an include the '\0'
-
-	if (!pxGPA->ucAddress)
-	{
-		vPortFree(pxGPA);
-		return NULL;
-	}
-
-	memcpy(pxGPA->ucAddress, pucAddress, pxGPA->uxLength);
-
-	ESP_LOGI(TAG_SHIM, "Created GPA address: %s with size %d", pxGPA->ucAddress, pxGPA->uxLength);
-
-	return pxGPA;
-}
-
-gha_t *pxShimCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress) // Changes to uint8_t
-{
-	gha_t *pxGha;
-
-	if (xType != MAC_ADDR_802_3 || !pxAddress->ucBytes)
-	{
-		ESP_LOGE(TAG_SHIM, "Wrong input parameters, cannot create GHA");
-		return NULL;
-	}
-	pxGha = pvPortMalloc(sizeof(*pxGha));
-	if (!pxGha)
-		return NULL;
-
-	pxGha->xType = xType;
-	memcpy(pxGha->xAddress.ucBytes, pxAddress->ucBytes, sizeof(pxGha->xAddress));
-
-	return pxGha;
 }
 
 static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, portId_t xPortId)
 {
 
 	shimFlow_t *pxFlow;
+	RsListItem_t *pxListItem;
+	RsListItem_t const *pxListEnd;
 
-	ListItem_t *pxListItem;
-	ListItem_t const *pxListEnd;
-
-	pxFlow = pvPortMalloc(sizeof(*pxFlow));
+	pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
 	/* Find a way to iterate in the list and compare the addesss*/
-	pxListEnd = listGET_END_MARKER(&pxData->xFlowsList);
-	pxListItem = listGET_HEAD_ENTRY(&pxData->xFlowsList);
+	pxListEnd = pRsListGetEndMarker(&pxData->xFlowsList);
+	pxListItem = pRsListGetHeadEntry(&pxData->xFlowsList);
 
 	while (pxListItem != pxListEnd)
 	{
-
-		pxFlow = (shimFlow_t *)listGET_LIST_ITEM_OWNER(pxListItem);
+		pxFlow = (shimFlow_t *)pRsListGetListItemOwner(pxListItem);
 
 		if (pxFlow)
 		{
-
 			// ESP_LOGI(TAG_SHIM, "Flow founded: %p, portID: %d, portState:%d", pxFlow, pxFlow->xPortId, pxFlow->ePortIdState);
 			if (pxFlow->xPortId == xPortId)
 			{
@@ -773,10 +615,10 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 			}
 		}
 
-		pxListItem = listGET_NEXT(pxListItem);
+		pxListItem = pRsListGetNext(pxListItem);
 	}
 
-	ESP_LOGI(TAG_SHIM, "Flow not founded");
+	LOGI(TAG_SHIM, "Flow not founded");
 	return NULL;
 }
 
@@ -784,46 +626,43 @@ static shimFlow_t *prvShimFindFlow(struct ipcpInstanceData_t *pxData)
 {
 
 	shimFlow_t *pxFlow;
+	RsListItem_t *pxListItem;
+	RsListItem_t const *pxListEnd;
 
-	ListItem_t *pxListItem;
-	ListItem_t const *pxListEnd;
-
-	pxFlow = pvPortMalloc(sizeof(*pxFlow));
+	pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
 	/* Find a way to iterate in the list and compare the addesss*/
-	pxListEnd = listGET_END_MARKER(&pxData->xFlowsList);
-	pxListItem = listGET_HEAD_ENTRY(&pxData->xFlowsList);
+	pxListEnd = pRsListGetEndMarker(&pxData->xFlowsList);
+	pxListItem = pRsListGetHeadEntry(&pxData->xFlowsList);
 
 	while (pxListItem != pxListEnd)
 	{
-
-		pxFlow = (shimFlow_t *)listGET_LIST_ITEM_VALUE(pxListItem);
+		pxFlow = (shimFlow_t *)pRsListGetListItemOwner(pxListItem);
 
 		if (pxFlow)
 		{
-
 			// ESP_LOGI(TAG_SHIM, "Flow founded: %p, portID: %d, portState:%d", pxFlow, pxFlow->xPortId, pxFlow->ePortIdState);
 
 			return pxFlow;
-			// return pdTRUE;
+			// return true;
 		}
 
-		pxListItem = listGET_NEXT(pxListItem);
+		pxListItem = pRsListGetNext(pxListItem);
 	}
 
-	ESP_LOGI(TAG_SHIM, "Flow not founded");
+	LOGI(TAG_SHIM, "Flow not founded");
 	return NULL;
 }
 
 static rfifo_t *prvShimCreateQueue(void)
 {
-	rfifo_t *xFifo = pvPortMalloc(sizeof(*xFifo));
+	rfifo_t *xFifo = pvRsMemAlloc(sizeof(*xFifo));
 
-	xFifo->xQueue = xQueueCreate(SIZE_SDU_QUEUE, sizeof(uint32_t));
+	xFifo->xQueue = pxRsQueueCreate("ShimIPCPQueue", SIZE_SDU_QUEUE, sizeof(uint32_t));
 
 	if (!xFifo->xQueue)
 	{
-		vPortFree(xFifo);
+		vRsMemFree(xFifo);
 		return NULL;
 	}
 
@@ -835,123 +674,26 @@ int QueueDestroy(rfifo_t *f,
 {
 	if (!f)
 	{
-		ESP_LOGE(TAG_SHIM, "Bogus input parameters, can't destroy NULL");
+		LOGE(TAG_SHIM, "Bogus input parameters, can't destroy NULL");
 		return -1;
 	}
 	if (!dtor)
 	{
-		ESP_LOGE(TAG_SHIM, "Bogus input parameters, no destructor provided");
+		LOGE(TAG_SHIM, "Bogus input parameters, no destructor provided");
 		return -1;
 	}
 
-	vQueueDelete(f->xQueue);
+	vRsQueueDelete(f->xQueue);
 
-	vPortFree(f);
+	vRsMemFree(f);
 
-	ESP_LOGI(TAG_SHIM, "FIFO %pK destroyed successfully", f);
+	LOGI(TAG_SHIM, "FIFO %pK destroyed successfully", f);
 
 	return 0;
 }
 
-// Move to ARP
-
-BaseType_t xShimIsGPAOK(const gpa_t *pxGpa)
-{
-
-	if (!pxGpa)
-	{
-		ESP_LOGI(TAG_SHIM, " !Gpa");
-		return pdFALSE;
-	}
-	if (pxGpa->ucAddress == NULL)
-	{
-
-		ESP_LOGI(TAG_SHIM, "xShimIsGPAOK Address is NULL");
-		return pdFALSE;
-	}
-
-	if (pxGpa->uxLength == 0)
-	{
-		ESP_LOGI(TAG_SHIM, "Length = 0");
-		return pdFALSE;
-	}
-	return pdTRUE;
-}
-
-BaseType_t xShimIsGHAOK(const gha_t *pxGha)
-{
-	if (!pxGha)
-	{
-		ESP_LOGI(TAG_SHIM, "No Valid GHA");
-		return pdFALSE;
-	}
-	if (pxGha->xType != MAC_ADDR_802_3)
-	{
-
-		return pdFALSE;
-	}
-	return pdTRUE;
-}
-
-void vShimGPADestroy(gpa_t *pxGpa)
-{
-	if (!xShimIsGPAOK(pxGpa))
-	{
-		return;
-	}
-	vPortFree(pxGpa->ucAddress);
-	vPortFree(pxGpa);
-
-	return;
-}
-
-void vShimGHADestroy(gha_t *pxGha)
-{
-	if (!xShimIsGHAOK(pxGha))
-	{
-		return;
-	}
-
-	vPortFree(pxGha);
-
-	return;
-}
-
-void vShimNameDestroy(name_t *pxName)
-{
-
-	vPortFree(pxName);
-}
-
-void vShimNameFini(name_t *pxName)
-{
-
-	if (pxName->pcProcessName)
-	{
-		vPortFree(pxName->pcProcessName);
-		pxName->pcProcessName = NULL;
-	}
-	if (pxName->pcProcessInstance)
-	{
-		vPortFree(pxName->pcProcessInstance);
-		pxName->pcProcessInstance = NULL;
-	}
-	if (pxName->pcEntityName)
-	{
-		vPortFree(pxName->pcEntityName);
-		pxName->pcEntityName = NULL;
-	}
-	if (pxName->pcEntityInstance)
-	{
-		vPortFree(pxName->pcEntityInstance);
-		pxName->pcEntityInstance = NULL;
-	}
-
-	ESP_LOGI(TAG_SHIM, "Name at %pK finalized successfully", pxName);
-}
-
-static BaseType_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData,
-										   shimFlow_t *xFlow)
+static bool_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData,
+									   shimFlow_t *xFlow)
 {
 
 	/*
@@ -962,89 +704,86 @@ static BaseType_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData,
 				flow->port_id);
 	}*/
 	// Check this
-	ESP_LOGI(TAG_SHIM, "Shim-WiFi unbinded port: %u", xFlow->xPortId);
+	LOGI(TAG_SHIM, "Shim-WiFi unbinded port: %u", xFlow->xPortId);
 	if (prvShimFlowDestroy(xData, xFlow))
 	{
-		ESP_LOGE(TAG_SHIM, "Failed to destroy Shim-WiFi flow");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Failed to destroy Shim-WiFi flow");
+		return false;
 	}
 
-	return pdTRUE;
+	return true;
 }
 
-static BaseType_t prvShimFlowDestroy(struct ipcpInstanceData_t *xData, shimFlow_t *xFlow)
+static bool_t prvShimFlowDestroy(struct ipcpInstanceData_t *xData, shimFlow_t *xFlow)
 {
 
 	/* FIXME: Complete what to do with xData*/
 	if (xFlow->pxDestPa)
-		vShimGPADestroy(xFlow->pxDestPa);
+		vGPADestroy(xFlow->pxDestPa);
 	if (xFlow->pxDestHa)
-		vShimGHADestroy(xFlow->pxDestHa);
+		vGHADestroy(xFlow->pxDestHa);
 	if (xFlow->pxSduQueue)
-		vQueueDelete(xFlow->pxSduQueue->xQueue);
-	vPortFree(xFlow);
+		vRsQueueDelete(xFlow->pxSduQueue->xQueue);
+	vRsMemFree(xFlow);
 
-	return pdTRUE;
+	return true;
 }
 
-BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_t *pxDu, BaseType_t uxBlocking)
+bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_t *pxDu, bool_t uxBlocking)
 {
 
 	shimFlow_t *pxFlow;
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
-
 	EthernetHeader_t *pxEthernetHeader;
 	gha_t *pxSrcHw;
 	gha_t *pxDestHw;
 	size_t uxHeadLen, uxLength;
-
+	struct timespec ts;
 	RINAStackEvent_t xTxEvent = {eNetworkTxEvent, NULL};
-	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(250);
-
 	unsigned char *pucArpPtr;
 
-	ESP_LOGI(TAG_SHIM, "SDU write received");
+	LOGI(TAG_SHIM, "SDU write received");
 
-	if (unlikely(!pxData))
+	if (!pxData)
 	{
-		ESP_LOGE(TAG_SHIM, "Bogus data passed, bailing out");
-		return pdFALSE;
+		LOGE(TAG_SHIM, "Bogus data passed, bailing out");
+		return false;
 	}
 
 	uxHeadLen = sizeof(EthernetHeader_t);		   // Header length Ethernet
 	uxLength = pxDu->pxNetworkBuffer->xDataLength; // total length PDU
 
-	if (unlikely(uxLength > MTU))
+	if (uxLength > MTU)
 	{
-		ESP_LOGE(TAG_SHIM, "SDU too large (%d), dropping", uxLength);
+		LOGE(TAG_SHIM, "SDU too large (%u), dropping", uxLength);
 		xDuDestroy(pxDu);
-		return pdFALSE;
+		return false;
 	}
 
 	pxFlow = prvShimFindFlowByPortId(pxData, xId);
 	if (!pxFlow)
 	{
-		ESP_LOGE(TAG_SHIM, "Flow does not exist, you shouldn't call this");
+		LOGE(TAG_SHIM, "Flow does not exist, you shouldn't call this");
 		xDuDestroy(pxDu);
-		return pdFALSE;
+		return false;
 	}
 
 	// spin_lock_bh(&data->lock);
-	ESP_LOGI(TAG_SHIM, "SDUWrite: flow state check %d", pxFlow->ePortIdState);
+	LOGI(TAG_SHIM, "SDUWrite: flow state check %d", pxFlow->ePortIdState);
 	if (pxFlow->ePortIdState != eALLOCATED)
 	{
-		ESP_LOGE(TAG_SHIM, "Flow is not in the right state to call this");
+		LOGE(TAG_SHIM, "Flow is not in the right state to call this");
 		xDuDestroy(pxDu);
-		return pdFALSE;
+		return false;
 	}
 
-	ESP_LOGI(TAG_SHIM, "SDUWrite: creating source GHA");
-	pxSrcHw = pxShimCreateGHA(MAC_ADDR_802_3, pxData->pxPhyDev);
+	LOGI(TAG_SHIM, "SDUWrite: creating source GHA");
+	pxSrcHw = pxCreateGHA(MAC_ADDR_802_3, pxData->pxPhyDev);
 	if (!pxSrcHw)
 	{
-		ESP_LOGE(TAG_SHIM, "Failed to get source HW addr");
+		LOGE(TAG_SHIM, "Failed to get source HW addr");
 		xDuDestroy(pxDu);
-		return pdFALSE;
+		return false;
 	}
 
 	/*
@@ -1054,26 +793,26 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 	pxDestHw = pxFlow->pxDestHa;
 	if (!pxDestHw)
 	{
-		ESP_LOGE(TAG_SHIM, "Destination HW address is unknown");
+		LOGE(TAG_SHIM, "Destination HW address is unknown");
 		xDuDestroy(pxDu);
-		return pdFALSE;
+		return false;
 	}
 
-	ESP_LOGI(TAG_SHIM, "SDUWrite: Encapsulating packet into Ethernet Frame");
+	LOGI(TAG_SHIM, "SDUWrite: Encapsulating packet into Ethernet Frame");
 	/* Get a Network Buffer with size total ethernet + PDU size*/
 
-	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxHeadLen + uxLength, (TickType_t)0U);
+	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxHeadLen + uxLength, 250 * 1000);
 
 	if (pxNetworkBuffer == NULL)
 	{
-		ESP_LOGE(TAG_SHIM, "pxNetworkBuffer is null");
+		LOGE(TAG_SHIM, "pxNetworkBuffer is null");
 		xDuDestroy(pxDu);
-		return pdFALSE;
+		return false;
 	}
 
 	pxEthernetHeader = CAST_CONST_PTR_TO_CONST_TYPE_PTR(EthernetHeader_t, pxNetworkBuffer->pucEthernetBuffer);
 
-	pxEthernetHeader->usFrameType = FreeRTOS_htons(ETH_P_RINA);
+	pxEthernetHeader->usFrameType = RsHtoNS(ETH_P_RINA);
 
 	memcpy(pxEthernetHeader->xSourceAddress.ucBytes, pxSrcHw->xAddress.ucBytes, sizeof(pxSrcHw->xAddress));
 	memcpy(pxEthernetHeader->xDestinationAddress.ucBytes, pxDestHw->xAddress.ucBytes, sizeof(pxDestHw->xAddress));
@@ -1096,16 +835,16 @@ BaseType_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct
 
 	xTxEvent.pvData = (void *)pxNetworkBuffer;
 
-	if (xSendEventStructToIPCPTask(&xTxEvent, xDescriptorWaitTime) == pdFAIL)
+	if (xSendEventStructToIPCPTask(&xTxEvent, 250 * 1000) == false)
 	{
-		ESP_LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", pxNetworkBuffer, pxNetworkBuffer->xDataLength);
+		LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %u", pxNetworkBuffer, pxNetworkBuffer->xDataLength);
 		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-		return pdFALSE;
+		return false;
 	}
 
-	ESP_LOGI(TAG_SHIM, "Data sent to the IPCP TAsk");
+	LOGE(TAG_SHIM, "Data sent to the IPCP TAsk");
 
-	return pdTRUE;
+	return true;
 }
 
 static struct ipcpInstanceOps_t xShimWifiOps = {
@@ -1159,15 +898,14 @@ static struct ipcpInstanceOps_t xShimWifiOps = {
 
 ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 {
-
 	ipcpInstance_t *pxInst;
 	struct ipcpInstanceData_t *pxInstData;
-	string_t pcIntefaceName = SHIM_INTERFACE;
 	struct flowSpec_t *pxFspec;
+	string_t pcInterfaceName = SHIM_INTERFACE;
 	name_t *pxName;
 	MACAddress_t *pxPhyDev;
 
-	pxPhyDev = pvPortMalloc(sizeof(*pxPhyDev));
+	pxPhyDev = pvRsMemAlloc(sizeof(*pxPhyDev));
 
 	pxPhyDev->ucBytes[0] = 0x00;
 	pxPhyDev->ucBytes[1] = 0x00;
@@ -1177,17 +915,19 @@ ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 	pxPhyDev->ucBytes[5] = 0x00;
 
 	/* Create an instance */
-	pxInst = pvPortMalloc(sizeof(*pxInst));
+	pxInst = pvRsMemAlloc(sizeof(*pxInst));
+	if (!pxInst)
+		return NULL;
 
 	/* Create Data instance and Flow Specifications*/
-	pxInstData = pvPortMalloc(sizeof(*pxInstData));
+	pxInstData = pvRsMemAlloc(sizeof(*pxInstData));
 	pxInst->pxData = pxInstData;
 
-	pxFspec = pvPortMalloc(sizeof(*pxFspec));
+	pxFspec = pvRsMemAlloc(sizeof(*pxFspec));
 	pxInst->pxData->pxFspec = pxFspec;
 
 	/*Create Dif Name and Daf Name*/
-	pxName = pvPortMalloc(sizeof(*pxName));
+	pxName = pvRsMemAlloc(sizeof(*pxName));
 	/*pxDafName = pvPortMalloc(sizeof(struct ipcpInstanceData_t));*/
 
 	pxName->pcProcessName = SHIM_PROCESS_NAME;
@@ -1203,7 +943,7 @@ ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 	pxInst->pxData->xId = xIpcpId;
 	pxInst->pxData->pxPhyDev = pxPhyDev;
 
-	pxInst->pxData->pcIntefaceName = pcIntefaceName;
+	pxInst->pxData->pcInterfaceName = pcInterfaceName;
 
 	pxInst->pxData->pxFspec->ulAverageBandwidth = 0;
 	pxInst->pxData->pxFspec->ulAverageSduBandwidth = 0;
@@ -1222,14 +962,14 @@ ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 	pxInst->xId = xIpcpId;
 
 	/*Initialialise flows list*/
-	vListInitialise(&(pxInst->pxData->xFlowsList));
+	vRsListInit((&pxInst->pxData->xFlowsList));
 
 	/*Initialialise instance item and add to the pxFactory*/
-	/*vListInitialiseItem(&(pxInst->pxData->xInstanceListItem));
-	listSET_LIST_ITEM_OWNER(&(pxInst->pxData->xInstanceListItem), pxInst);
-	vListInsert(&(pxFactoryData->xInstancesShimWifiList), &(pxInst->pxData->xInstanceListItem));*/
+	/* vRsListInitItem(&(pxInst->pxData->xInstanceListItem)); */
+	/* vRsListSetListItemOwner(&(pxInst->pxData->xInstanceListItem), pxInst); */
+	/* vRsListInsert(&(pxFactoryData->xInstancesShimWifiList), &(pxInst->pxData->xInstanceListItem)); */
 
-	ESP_LOGI(TAG_SHIM, "Instance Created: %p, IPCP id:%d", pxInst, pxInst->pxData->xId);
+	LOGI(TAG_SHIM, "Instance Created: %p, IPCP id:%d", pxInst, pxInst->pxData->xId);
 
 	/*Enroll to DIF (Connect to AP)*/
 
@@ -1241,24 +981,16 @@ void vShimWiFiInit(ipcpInstance_t *pxShimWiFiInstance)
 {
 	/*xShimWiFiInit is going to init the  WiFi drivers and associate to the AP.
 	 * Update de MacAddress variable depending on the WiFi drivers. Sent this variable
-	 * as event data to be used when the shimWiFi DIF will be created.*/
+	 * as event data to be used when the shimWiFi D(F will be created.*/
 
-	ESP_LOGI(TAG_SHIM, "Initializing shim WiFi....");
+	LOGI(TAG_SHIM, "Wifi shim initialization");
 	RINAStackEvent_t xEnrollEvent = {eShimEnrolledEvent, NULL};
-	const TickType_t xDontBlock = pdMS_TO_TICKS(50);
 
 	if (!xShimEnrollToDIF(pxShimWiFiInstance->pxData->pxPhyDev))
-	{
-		ESP_LOGE(TAG_SHIM, "SHIM instance can't enroll to DIF");
-
-		return pdFALSE;
-	}
+		LOGE(TAG_SHIM, "Wifi shim instance can't enroll to DIF");
 	else
 	{
 		xEnrollEvent.pvData = (void *)(pxShimWiFiInstance->pxData->pxPhyDev);
-		xSendEventStructToIPCPTask(&xEnrollEvent, xDontBlock);
-		return pdTRUE;
+		xSendEventStructToIPCPTask(&xEnrollEvent, 50 * 1000);
 	}
-
-	// return pdPASS;
 }

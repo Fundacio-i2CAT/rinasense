@@ -8,14 +8,6 @@
 /* static analysis.                                          */
 /*-----------------------------------------------------------*/
 
-#define offsetof(s, m) (size_t)&(((s *)0)->m
-
-#define container_of(ptr, type, member)                    \
-	({                                                     \
-		const typeof(((type *)0)->member) *__mptr = (ptr); \
-		(type *)((char *)__mptr - offsetof(type, member)); \
-	})
-
 #define portINLINE inline
 
 #define CAST_PTR_TO_TYPE_PTR(TYPE, pointer) (vCastPointerTo_##TYPE((void *)(pointer)))
@@ -75,22 +67,25 @@
 #define EVENT_QUEUE_LENGTH (NUM_NETWORK_BUFFER_DESCRIPTORS + 5)
 
 /** @brief Maximum time the IPCP task is allowed to remain in the Blocked state.*/
-#define MAX_IPCP_TASK_SLEEP_TIME (pdMS_TO_TICKS(10000UL))
+#define MAX_IPCP_TASK_SLEEP_TIME_US 10000000UL;
 
 /** @brief Maximun length of chars for an String_t (Application Name) */
 #define MAX_LENGTH_STRING (255)
 
 /** @brief Time delay between repeated attempts to initialise the network hardware. */
-#define INITIALISATION_RETRY_DELAY (pdMS_TO_TICKS(3000U))
+#define INITIALISATION_RETRY_DELAY_SEC 3
 
 /*TAG for Debugging*/
 #define TAG_IPCPNORMAL "[IPCP_NORMAL]"
 #define TAG_IPCPMANAGER "[IPCP_MANAGER]"
 #define TAG_IPCPFACTORY "[IPCP_FACTORY]"
 
+#define configMINIMAL_STACK_SIZE (768)
+
 #define IPCP_TASK_PRIORITY (configMAX_PRIORITIES - 2)
 
-#define IPCP_TASK_STACK_SIZE_WORDS (configMINIMAL_STACK_SIZE * 14)
+/* For ESP32, the "word" is 8 bytes */
+#define IPCP_TASK_STACK_SIZE (configMINIMAL_STACK_SIZE * 14)
 
 /*********   Configure Shim Parameters  ************/
 /*TAG for Debugging*/

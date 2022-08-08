@@ -1,29 +1,28 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-
-#include "IPCP.h"
-#include "common.h"
 #include "configRINA.h"
+#include "configSensor.h"
+
+#include "portability/port.h"
+
 #include "BufferManagement.h"
 #include "CDAP.pb.h"
+#include "Enrollment_api.h"
+#include "FlowAllocator.h"
+#include "FlowAllocator_api.h"
+#include "IPCP_api.h"
+#include "IPCP_events.h"
+#include "IPCP_normal_defs.h"
+#include "IPCP_normal_api.h"
+#include "rina_common_port.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
 #include "Ribd.h"
-#include "configSensor.h"
 #include "Rib.h"
-#include "RINA_API.h"
-#include "normalIPCP.h"
-#include "Rmt.h"
-#include "FlowAllocator.h"
-#include "SerdesMsg.h"
-
-#include "esp_log.h"
+#include "rmt.h"
+#include "RINA_API_flows.h"
 
 int n = 0;
 static char *opcodeNamesTable[] = {[M_CONNECT] = "M_CONNECT",
@@ -57,31 +56,31 @@ NetworkBufferDescriptor_t *prvRibEncodeCDAP(rina_messages_opCode_t xMessageOpCod
                                             int64_t version, authPolicy_t *pxAuth);
 
 /* Decode the CDAP message */
-BaseType_t xRibdecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength, messageCdap_t *pxMessageCdap);
+bool_t xRibdecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength, messageCdap_t *pxMessageCdap);
 
 messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message);
 
-BaseType_t xRibdppConnection(portId_t xPortId);
+bool_t xRibdppConnection(portId_t xPortId);
 
-BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId);
-BaseType_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
+bool_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId);
+bool_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
 
 struct ribCallbackOps_t *pxRibdCreateCdapCallback(opCode_t xOpCode, int invoke_id);
 
 void vRibdAddResponseHandler(int32_t invokeID, struct ribCallbackOps_t *pxCb)
 {
 
-    BaseType_t x = 0;
+    num_t x = 0;
 
     if (pxCb != NULL)
     {
 
         for (x = 0; x < RESPONSE_HANDLER_TABLE_SIZE; x++)
         {
-            if (xPendingResponseHandlersTable[x].xValid == pdFALSE)
+            if (xPendingResponseHandlersTable[x].xValid == false)
             {
                 xPendingResponseHandlersTable[x].invokeID = invokeID;
-                xPendingResponseHandlersTable[x].xValid = pdTRUE;
+                xPendingResponseHandlersTable[x].xValid = true;
                 xPendingResponseHandlersTable[x].pxCallbackHandler = pxCb;
 
                 //                ESP_LOGE(TAG_RIB, "Pending Handlers Entry successful: %p", pxCb);
@@ -92,28 +91,28 @@ void vRibdAddResponseHandler(int32_t invokeID, struct ribCallbackOps_t *pxCb)
     }
     else
     {
-        ESP_LOGE(TAG_RIB, "No pxcb");
+        LOGE(TAG_RIB, "No pxcb");
     }
 }
 
 struct ribCallbackOps_t *pxRibdFindPendingResponseHandler(int32_t invokeID)
 {
 
-    BaseType_t x = 0;
+    num_t x = 0;
     struct ribCallbackOps_t *pxCb;
-    pxCb = pvPortMalloc(sizeof(*pxCb));
+    pxCb = pvRsMemAlloc(sizeof(*pxCb));
 
     for (x = 0; x < RESPONSE_HANDLER_TABLE_SIZE; x++)
 
     {
-        if (xPendingResponseHandlersTable[x].xValid == pdTRUE)
+        if (xPendingResponseHandlersTable[x].xValid == true)
         {
 
             if (xPendingResponseHandlersTable[x].invokeID == invokeID)
             {
 
                 pxCb = xPendingResponseHandlersTable[x].pxCallbackHandler;
-                ESP_LOGI(TAG_IPCPMANAGER, "Cb Handler founded '%p'", pxCb);
+                LOGI(TAG_IPCPMANAGER, "Cb Handler founded '%p'", pxCb);
 
                 return pxCb;
                 break;
@@ -125,37 +124,37 @@ struct ribCallbackOps_t *pxRibdFindPendingResponseHandler(int32_t invokeID)
 
 void vRibdAddAppConnectionEntry(appConnection_t *pxAppConnectionToAdd, portId_t xPortId)
 {
-    ESP_LOGI(TAG_RIB, "Adding a new APP Connection into the AppConnection Table");
+    LOGI(TAG_RIB, "Adding a new APP Connection into the AppConnection Table");
 
-    BaseType_t x = 0;
+    num_t x = 0;
 
     for (x = 0; x < APP_CONNECTION_TABLE_SIZE; x++)
     {
-        if (xAppConnectionTable[x].xValid == pdFALSE)
+        if (xAppConnectionTable[x].xValid == false)
         {
             xAppConnectionTable[x].pxAppConnection = pxAppConnectionToAdd;
             xAppConnectionTable[x].xN1portId = xPortId;
-            xAppConnectionTable[x].xValid = pdTRUE;
-            ESP_LOGI(TAG_RIB, "AppConnection Entry successful: %p,id:%d", pxAppConnectionToAdd, xPortId);
+            xAppConnectionTable[x].xValid = true;
+            LOGI(TAG_RIB, "AppConnection Entry successful: %p,id:%d", pxAppConnectionToAdd, xPortId);
 
             break;
         }
     }
 }
 
-BaseType_t xTest(void);
-BaseType_t xTest(void)
+bool_t xTest(void);
+bool_t xTest(void)
 {
-    return pdTRUE;
+    return true;
 }
 
 messageCdap_t *prvRibMessageCdapInit(void);
 messageCdap_t *prvRibMessageCdapInit(void)
 {
-    messageCdap_t *pxMessage = pvPortMalloc(sizeof(*pxMessage));
-    name_t *pxDestinationInfo = pvPortMalloc(sizeof(*pxDestinationInfo));
-    name_t *pxSourceInfo = pvPortMalloc(sizeof(*pxSourceInfo));
-    authPolicy_t *pxAuthPolicy = pvPortMalloc(sizeof(*pxAuthPolicy));
+    messageCdap_t *pxMessage = pvRsMemAlloc(sizeof(*pxMessage));
+    name_t *pxDestinationInfo = pvRsMemAlloc(sizeof(*pxDestinationInfo));
+    name_t *pxSourceInfo = pvRsMemAlloc(sizeof(*pxSourceInfo));
+    authPolicy_t *pxAuthPolicy = pvRsMemAlloc(sizeof(*pxAuthPolicy));
 
     pxMessage->pxDestinationInfo = pxDestinationInfo;
     pxMessage->pxSourceInfo = pxSourceInfo;
@@ -191,11 +190,11 @@ messageCdap_t *prvRibMessageCdapInit(void)
 messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
 {
     messageCdap_t *pxMessageCdap;
-    name_t *pxDestinationInfo = pvPortMalloc(sizeof(*pxDestinationInfo));
-    name_t *pxSourceInfo = pvPortMalloc(sizeof(*pxSourceInfo));
-    authPolicy_t *pxAuthPolicy = pvPortMalloc(sizeof(*pxAuthPolicy));
+    name_t *pxDestinationInfo = pvRsMemAlloc(sizeof(*pxDestinationInfo));
+    name_t *pxSourceInfo = pvRsMemAlloc(sizeof(*pxSourceInfo));
+    authPolicy_t *pxAuthPolicy = pvRsMemAlloc(sizeof(*pxAuthPolicy));
 
-    pxMessageCdap = pvPortMalloc(sizeof(*pxMessageCdap));
+    pxMessageCdap = pvRsMemAlloc(sizeof(*pxMessageCdap));
 
     pxMessageCdap->pxDestinationInfo = pxDestinationInfo;
     pxMessageCdap->pxSourceInfo = pxSourceInfo;
@@ -252,7 +251,7 @@ messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
         {
             pxMessageCdap->pxAuthPolicy->pcName = strdup(message.authPolicy.name);
         }
-        pxMessageCdap->pxAuthPolicy->pcVersion = strdup(message.authPolicy.versions);
+        pxMessageCdap->pxAuthPolicy->pcVersion = strdup(message.authPolicy.versions[0]);
     }
 
     if (message.has_objClass)
@@ -273,8 +272,8 @@ messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
     if (message.has_objValue)
     {
         // configASSERT(message.objValue.has_byteval == true);
-        serObjectValue_t *pxSerObjVal = pvPortMalloc(sizeof(*pxSerObjVal));
-        void *pvSerBuf = pvPortMalloc(message.objValue.byteval.size);
+        serObjectValue_t *pxSerObjVal = pvRsMemAlloc(sizeof(*pxSerObjVal));
+        void *pvSerBuf = pvRsMemAlloc(message.objValue.byteval.size);
 
         pxMessageCdap->pxObjValue = pxSerObjVal;
         pxMessageCdap->pxObjValue->pvSerBuffer = pvSerBuf;
@@ -373,7 +372,7 @@ rina_messages_CDAPMessage prvRibdSerToRinaMessage(messageCdap_t *pxMessageCdap)
         strcpy(message.authPolicy.name, pxMessageCdap->pxAuthPolicy->pcName);
         message.has_authPolicy = true;
         message.authPolicy.versions_count = 1;
-        strcpy(message.authPolicy.versions, pxMessageCdap->pxAuthPolicy->pcVersion);
+        strcpy(message.authPolicy.versions[0], pxMessageCdap->pxAuthPolicy->pcVersion);
 
         message.authPolicy.has_name = true;
     }
@@ -411,11 +410,12 @@ rina_messages_CDAPMessage prvRibdSerToRinaMessage(messageCdap_t *pxMessageCdap)
 
 NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
 {
-    ESP_LOGI(TAG_RIB, "Encoding an CDAP message...");
-    ESP_LOGI(TAG_RIB, "Encoding a %s message", opcodeNamesTable[pxMessageCdap->eOpCode]);
-    BaseType_t status;
+    LOGI(TAG_RIB, "Encoding an CDAP message...");
+    LOGI(TAG_RIB, "Encoding a %s message", opcodeNamesTable[pxMessageCdap->eOpCode]);
+    bool_t status;
     uint8_t *pucBuffer[128];
     size_t xMessageLength;
+    struct timespec ts;
 
     /*Create a stream that will write to the buffer*/
     pb_ostream_t stream = pb_ostream_from_buffer((pb_byte_t *)pucBuffer, sizeof(pucBuffer));
@@ -493,7 +493,8 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
         strcpy(message.authPolicy.name, pxMessageCdap->pxAuthPolicy->pcName);
         message.has_authPolicy = true;
         message.authPolicy.versions_count = 1;
-        strcpy(message.authPolicy.versions, pxMessageCdap->pxAuthPolicy->pcVersion);
+        strncpy(message.authPolicy.versions[0], pxMessageCdap->pxAuthPolicy->pcVersion,
+                sizeof(message.authPolicy.versions[0]));
 
         message.authPolicy.has_name = true;
     }
@@ -532,32 +533,31 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
 
     if (!status)
     {
-        ESP_LOGE(TAG_RINA, "Encoding failed: %s", PB_GET_ERROR(&stream));
+        LOGE(TAG_RINA, "Encoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
 
-    ESP_LOGI(TAG_RIB, "Message CDAP with length: %d encoded sucessfully ", xMessageLength);
+    LOGI(TAG_RIB, "Message CDAP with length: %u encoded sucessfully ", xMessageLength);
 
     /*Request a Network Buffer according to Message Length*/
     NetworkBufferDescriptor_t *pxNetworkBuffer;
 
-    // ESP_LOGE(TAG_RIB, "Taking Buffer to encode the CDAP message: RIBD");
-    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xMessageLength, (TickType_t)0U);
+    // LOGE(TAG_RIB, "Taking Buffer to encode the CDAP message: RIBD");
+    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xMessageLength, 250 * 1000);
 
     /*Copy Buffer into the NetworkBuffer*/
     memcpy(pxNetworkBuffer->pucEthernetBuffer, &pucBuffer, xMessageLength);
 
     pxNetworkBuffer->xDataLength = xMessageLength;
-    // ESP_LOGE(TAG_RIB, "Buffering OK");
+    // LOGE(TAG_RIB, "Buffering OK");
 
     return pxNetworkBuffer;
 }
 
 messageCdap_t *prvRibdDecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength)
 {
-    ESP_LOGI(TAG_RIB, "Decoding CDAP Message with length:%d", xMessageLength);
 
-    BaseType_t status;
+    bool_t status;
 
     /*Allocate space for the decode message data*/
     rina_messages_CDAPMessage message = rina_messages_CDAPMessage_init_zero;
@@ -569,28 +569,28 @@ messageCdap_t *prvRibdDecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength)
 
     if (!status)
     {
-        ESP_LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
+        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
-    ESP_LOGI(TAG_RIB, "CDAP Message Decode sucessfully");
+    LOGI(TAG_RIB, "CDAP Message Decode sucessfully");
     return prvRibdFillDecodeMessage(message);
 }
 
 appConnection_t *pxRibdFindAppConnection(portId_t xPortId)
 {
-    ESP_LOGI(TAG_RIB, "Looking for an active connection in the port id %d", xPortId);
-    BaseType_t x = 0;
+    LOGI(TAG_RIB, "Looking for an active connection in the port id %d", xPortId);
+    bool_t x = 0;
     appConnection_t *pxAppConnection;
-    pxAppConnection = pvPortMalloc(sizeof(*pxAppConnection));
+    pxAppConnection = pvRsMemAlloc(sizeof(*pxAppConnection));
 
     for (x = 0; x < APP_CONNECTION_TABLE_SIZE; x++)
 
     {
-        if (xAppConnectionTable[x].xValid == pdTRUE)
+        if (xAppConnectionTable[x].xValid == true)
         {
             if (xAppConnectionTable[x].xN1portId == xPortId)
             {
-                ESP_LOGI(TAG_RIB, "AppConnection founded: '%p'", xAppConnectionTable[x].pxAppConnection);
+                LOGI(TAG_RIB, "AppConnection founded: '%p'", xAppConnectionTable[x].pxAppConnection);
                 pxAppConnection = xAppConnectionTable[x].pxAppConnection;
 
                 return pxAppConnection;
@@ -606,9 +606,9 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap);
 appConnection_t *prvRibCreateConnection(name_t *pxSource, name_t *pxDestInfo)
 
 {
-    appConnection_t *pxAppConnectionTmp = pvPortMalloc(sizeof(*pxAppConnectionTmp));
-    name_t *pxDestinationInfo = pvPortMalloc(sizeof(*pxDestinationInfo));
-    name_t *pxSourceInfo = pvPortMalloc(sizeof(*pxSourceInfo));
+    appConnection_t *pxAppConnectionTmp = pvRsMemAlloc(sizeof(*pxAppConnectionTmp));
+    name_t *pxDestinationInfo = pvRsMemAlloc(sizeof(*pxDestinationInfo));
+    name_t *pxSourceInfo = pvRsMemAlloc(sizeof(*pxSourceInfo));
 
     pxAppConnectionTmp->pxDestinationInfo = pxDestinationInfo;
     pxAppConnectionTmp->pxSourceInfo = pxSourceInfo;
@@ -631,19 +631,19 @@ appConnection_t *prvRibCreateConnection(name_t *pxSource, name_t *pxDestInfo)
 void vRibdSentCdapMsg(NetworkBufferDescriptor_t *pxNetworkBuffer, portId_t xN1FlowPortId)
 {
 
-    ESP_LOGI(TAG_RIB, "Sending the CDAP Message to the RMT");
+    LOGI(TAG_RIB, "Sending the CDAP Message to the RMT");
     struct du_t *pxMessagePDU;
     struct rmt_t *pxRmt;
 
     pxRmt = pxIPCPGetRmt();
     /* Fill the DU with PDU type (layer management)*/
-    pxMessagePDU = pvPortMalloc(sizeof(*pxMessagePDU));
+    pxMessagePDU = pvRsMemAlloc(sizeof(*pxMessagePDU));
     pxMessagePDU->pxNetworkBuffer = pxNetworkBuffer;
     pxMessagePDU->pxNetworkBuffer->ulBoundPort = xN1FlowPortId;
 
     if (!xNormalMgmtDuWrite(pxRmt, xN1FlowPortId, pxMessagePDU))
     {
-        ESP_LOGE(TAG_RIB, "Error to send the CDAP message");
+        LOGE(TAG_RIB, "Error to send the CDAP message");
     }
 }
 
@@ -656,7 +656,7 @@ messageCdap_t *prvRibdFillEnrollMsg(string_t pcObjClass, string_t pcObjName, lon
     pxMessage->eOpCode = eOpCode;
     pxMessage->objInst = objInst;
 
-    // ESP_LOGI(TAG_RIB, "pcObjectClass: %s", pcObjClass);
+    // LOGI(TAG_RIB, "pcObjectClass: %s", pcObjClass);
 
     /*if (pcObjClass != NULL)
     {
@@ -736,10 +736,10 @@ messageCdap_t *prvRibdFillEnrollMsgStart(string_t pcObjClass, string_t pcObjName
     return pxMessage;
 }
 
-BaseType_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth)
+bool_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth)
 {
 
-    ESP_LOGI(TAG_RIB, "Preparing a M_CONNECT message");
+    LOGI(TAG_RIB, "Preparing a M_CONNECT message");
     /*Check for app_connections*/
     appConnection_t *pxAppConnectionTmp;
     NetworkBufferDescriptor_t *pxNetworkBuffer;
@@ -771,8 +771,8 @@ BaseType_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSou
     pxNetworkBuffer = prvRibdEncodeCDAP(pxMessageEncode);
     if (!pxNetworkBuffer)
     {
-        ESP_LOGE(TAG_RINA, "Error encoding CDAP message");
-        return pdFALSE;
+        LOGE(TAG_RINA, "Error encoding CDAP message");
+        return false;
     }
 
     /*Testing*/
@@ -781,50 +781,50 @@ BaseType_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSou
 
     vRibdSentCdapMsg(pxNetworkBuffer, xN1flowPortId);
 
-    return pdTRUE;
+    return true;
 }
 
 void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
 {
-    ESP_LOGE(TAG_RIB, "DECODE");
-    ESP_LOGE(TAG_RIB, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
-    ESP_LOGE(TAG_RIB, "Invoke Id: %d ", pxDecodeCdap->invokeID);
-    ESP_LOGE(TAG_RIB, "Version: %lld", pxDecodeCdap->version);
+    LOGE(TAG_RIB, "DECODE");
+    LOGE(TAG_RIB, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
+    LOGE(TAG_RIB, "Invoke Id: %d ", pxDecodeCdap->invokeID);
+    LOGE(TAG_RIB, "Version: %lld", pxDecodeCdap->version);
     if (pxDecodeCdap->pxAuthPolicy->pcName != NULL)
     {
-        ESP_LOGE(TAG_RIB, "AuthPolicy Name: %s", pxDecodeCdap->pxAuthPolicy->pcName);
-        ESP_LOGE(TAG_RIB, "AuthPolicy Version: %s", pxDecodeCdap->pxAuthPolicy->pcVersion);
+        LOGE(TAG_RIB, "AuthPolicy Name: %s", pxDecodeCdap->pxAuthPolicy->pcName);
+        LOGE(TAG_RIB, "AuthPolicy Version: %s", pxDecodeCdap->pxAuthPolicy->pcVersion);
     }
 
-    ESP_LOGE(TAG_RIB, "Source AEI: %s", pxDecodeCdap->pxSourceInfo->pcEntityInstance);
-    ESP_LOGE(TAG_RIB, "Source AEN: %s", pxDecodeCdap->pxSourceInfo->pcEntityName);
-    ESP_LOGE(TAG_RIB, "Source API: %s", pxDecodeCdap->pxSourceInfo->pcProcessInstance);
-    ESP_LOGE(TAG_RIB, "Source APN: %s", pxDecodeCdap->pxSourceInfo->pcProcessName);
-    ESP_LOGE(TAG_RIB, "Dest AEI: %s", pxDecodeCdap->pxDestinationInfo->pcEntityInstance);
-    ESP_LOGE(TAG_RIB, "Dest AEN: %s", pxDecodeCdap->pxDestinationInfo->pcEntityName);
-    ESP_LOGE(TAG_RIB, "Dest API: %s", pxDecodeCdap->pxDestinationInfo->pcProcessInstance);
-    ESP_LOGE(TAG_RIB, "Dest APN: %s", pxDecodeCdap->pxDestinationInfo->pcProcessName);
-    ESP_LOGE(TAG_RIB, "Result: %d", pxDecodeCdap->result);
+    LOGD(TAG_RIB, "Source AEI: %s", pxDecodeCdap->pxSourceInfo->pcEntityInstance);
+    LOGD(TAG_RIB, "Source AEN: %s", pxDecodeCdap->pxSourceInfo->pcEntityName);
+    LOGD(TAG_RIB, "Source API: %s", pxDecodeCdap->pxSourceInfo->pcProcessInstance);
+    LOGD(TAG_RIB, "Source APN: %s", pxDecodeCdap->pxSourceInfo->pcProcessName);
+    LOGD(TAG_RIB, "Dest AEI: %s", pxDecodeCdap->pxDestinationInfo->pcEntityInstance);
+    LOGD(TAG_RIB, "Dest AEN: %s", pxDecodeCdap->pxDestinationInfo->pcEntityName);
+    LOGD(TAG_RIB, "Dest API: %s", pxDecodeCdap->pxDestinationInfo->pcProcessInstance);
+    LOGD(TAG_RIB, "Dest APN: %s", pxDecodeCdap->pxDestinationInfo->pcProcessName);
+    LOGD(TAG_RIB, "Result: %d", pxDecodeCdap->result);
 
     // configASSERT(pxDecodeCdap->xObjName == NULL);
 
     if (pxDecodeCdap->pcObjName)
     {
-        ESP_LOGE(TAG_RIB, "ObjectName:%s", pxDecodeCdap->pcObjName);
+        LOGE(TAG_RIB, "ObjectName:%s", pxDecodeCdap->pcObjName);
     }
     if (!pxDecodeCdap->objInst)
     {
-        ESP_LOGE(TAG_RIB, "ObjectInstance:%d", (int)pxDecodeCdap->objInst);
+        LOGE(TAG_RIB, "ObjectInstance:%d", (int)pxDecodeCdap->objInst);
     }
     if (!pxDecodeCdap->pcObjClass)
     {
-        ESP_LOGE(TAG_RIB, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
+        LOGE(TAG_RIB, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
     }
 }
 
-BaseType_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu)
+bool_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu)
 {
-    ESP_LOGI(TAG_RIB, "Processing a Management PDU");
+    LOGI(TAG_RIB, "Processing a Management PDU");
 
     /*Struct parallel CDAP message*/
     messageCdap_t *pxDecodeCdap;
@@ -836,18 +836,18 @@ BaseType_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portI
 
     if (!pxDecodeCdap)
     {
-        ESP_LOGE(TAG_RINA, "Error decoding CDAP message");
-        return pdFALSE;
+        LOGE(TAG_RINA, "Error decoding CDAP message");
+        return false;
     }
 
     /* Destroying the PDU it is not longer required */
-    ESP_LOGI(TAG_RIB, "Destroying the PDU that is no longer used");
+    LOGI(TAG_RIB, "Destroying the PDU that is no longer used");
     xDuDestroy(pxDu);
 
     /*Call to rib Handle Message*/
     vRibHandleMessage(pxData, pxDecodeCdap, xN1flowPortId);
 
-    return pdTRUE;
+    return true;
 }
 
 void prvRibdHandledAData(serObjectValue_t *pxObjValue)
@@ -893,36 +893,37 @@ void prvRibdHandledAData(serObjectValue_t *pxObjValue)
 
 void vPrintAppConnection(appConnection_t *pxAppConnection)
 {
-    ESP_LOGI(TAG_RIB, "--------APP CONNECTION--------");
-    ESP_LOGI(TAG_RIB, "Destination EI:%s", pxAppConnection->pxDestinationInfo->pcEntityInstance);
-    ESP_LOGI(TAG_RIB, "Destination EN:%s", pxAppConnection->pxDestinationInfo->pcEntityName);
-    ESP_LOGI(TAG_RIB, "Destination PI:%s", pxAppConnection->pxDestinationInfo->pcProcessInstance);
-    ESP_LOGI(TAG_RIB, "Destination PN:%s", pxAppConnection->pxDestinationInfo->pcProcessName);
+    LOGI(TAG_RIB, "--------APP CONNECTION--------");
+    LOGI(TAG_RIB, "Destination EI:%s", pxAppConnection->pxDestinationInfo->pcEntityInstance);
+    LOGI(TAG_RIB, "Destination EN:%s", pxAppConnection->pxDestinationInfo->pcEntityName);
+    LOGI(TAG_RIB, "Destination PI:%s", pxAppConnection->pxDestinationInfo->pcProcessInstance);
+    LOGI(TAG_RIB, "Destination PN:%s", pxAppConnection->pxDestinationInfo->pcProcessName);
 
-    ESP_LOGI(TAG_RIB, "Source EI:%s", pxAppConnection->pxSourceInfo->pcEntityInstance);
-    ESP_LOGI(TAG_RIB, "Source EN:%s", pxAppConnection->pxSourceInfo->pcEntityName);
-    ESP_LOGI(TAG_RIB, "Source PI:%s", pxAppConnection->pxSourceInfo->pcProcessInstance);
-    ESP_LOGI(TAG_RIB, "Source PN:%s", pxAppConnection->pxSourceInfo->pcProcessName);
-    ESP_LOGI(TAG_RIB, "Connection Status:%d", pxAppConnection->xStatus);
+    LOGI(TAG_RIB, "Source EI:%s", pxAppConnection->pxSourceInfo->pcEntityInstance);
+    LOGI(TAG_RIB, "Source EN:%s", pxAppConnection->pxSourceInfo->pcEntityName);
+    LOGI(TAG_RIB, "Source PI:%s", pxAppConnection->pxSourceInfo->pcProcessInstance);
+    LOGI(TAG_RIB, "Source PN:%s", pxAppConnection->pxSourceInfo->pcProcessName);
+    LOGI(TAG_RIB, "Connection Status:%d", pxAppConnection->xStatus);
 }
 
-BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId)
+bool_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId)
 {
 
-    BaseType_t ret = pdTRUE;
+    bool_t ret = true;
     appConnection_t *pxAppConnectionTmp;
     struct ribObject_t *pxRibObject;
     struct ribCallbackOps_t *pxCallback;
+    struct timespec ts;
 
     /*Check if the Operation Code is valid*/
     if (pxDecodeCdap->eOpCode > MAX_CDAP_OPCODE)
     {
-        ESP_LOGE(TAG_RIB, "Invalid opcode %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
-        vPortFree(pxDecodeCdap);
+        LOGE(TAG_RIB, "Invalid opcode %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
+        vRsMemFree(pxDecodeCdap);
         return ret;
     }
 
-    ESP_LOGI(TAG_RIB, "Handling CDAP Message: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
+    LOGI(TAG_RIB, "Handling CDAP Message: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
     /* Looking for an App Connection using the N-1 Flow Port */
     pxAppConnectionTmp = pxRibdFindAppConnection(xN1FlowPortId);
 
@@ -933,7 +934,7 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
 
     /*if (!pxRibObject)
     {
-        return pdFALSE;
+        return false;
     }*/
 
     switch (pxDecodeCdap->eOpCode)
@@ -949,8 +950,8 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
             /*Check that the OpCode is a M_Connect*/
             if (pxDecodeCdap->eOpCode != M_CONNECT)
             {
-                ESP_LOGE(TAG_RIB, "Error wrong opCode in cdap PDU");
-                vPortFree(pxDecodeCdap);
+                LOGE(TAG_RIB, "Error wrong opCode in cdap PDU");
+                vRsMemFree(pxDecodeCdap);
             }
 
             // TODO: Create Connection and add into the table
@@ -967,14 +968,14 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
         /* Check if the current AppConnection status is in progress */
         if (pxAppConnectionTmp->xStatus != eCONNECTION_IN_PROGRESS)
         {
-            ESP_LOGE(TAG_RIB, "Invalid AppConnection State");
-            return pdTRUE;
+            LOGE(TAG_RIB, "Invalid AppConnection State");
+            return true;
         }
 
         /*Update Connection Status*/
         pxAppConnectionTmp->pxDestinationInfo->pcProcessName = pxDecodeCdap->pxSourceInfo->pcProcessName;
         pxAppConnectionTmp->xStatus = eCONNECTED;
-        ESP_LOGI(TAG_RIB, "Application Connection Status Updated to 'CONNECTED'");
+        LOGI(TAG_RIB, "Application Connection Status Updated to 'CONNECTED'");
 
         /*Call to Enrollment Handle ConnectR*/
         xEnrollmentHandleConnectR(pxData, pxAppConnectionTmp->pxDestinationInfo->pcProcessName, xN1FlowPortId);
@@ -989,12 +990,12 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
 
         if (pxAppConnectionTmp->xStatus != eRELEASED)
         {
-            ESP_LOGE(TAG_RIB, "The connection is already released");
-            return pdTRUE;
+            LOGE(TAG_RIB, "The connection is already released");
+            return true;
         }
         /*Update Connection Status*/
         pxAppConnectionTmp->xStatus = eRELEASED;
-        ESP_LOGI(TAG_RIB, "Status Updated Released");
+        LOGI(TAG_RIB, "Status Updated Released");
 
         // TODO: delete App connection from the table (APPConnection)
 
@@ -1010,7 +1011,7 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
 
     case M_STOP:
         // configASSERT(pxRibObject != NULL);
-        ESP_LOGI(TAG_RIB, "Preparing a M_STOP_R");
+        LOGI(TAG_RIB, "Preparing a M_STOP_R");
         pxRibObject->pxObjOps->stop(pxRibObject, pxDecodeCdap->pxObjValue, pxAppConnectionTmp->pxDestinationInfo->pcProcessName,
                                     pxAppConnectionTmp->pxSourceInfo->pcProcessName, pxDecodeCdap->invokeID, xN1FlowPortId);
         break;
@@ -1046,11 +1047,11 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
     // for testing purposes
     case M_WRITE:
 
-        ESP_LOGE(TAG_RIB, "-------Handling M_WRITE----------");
+        LOGD(TAG_RIB, "-------Handling M_WRITE----------");
         // must write into the object
         if (strcmp(pxDecodeCdap->pcObjName, "a_data") == 0)
         {
-            ESP_LOGI(TAG_RIB, "Handling M_WRITE a_data sending to decode");
+            LOGD(TAG_RIB, "Handling M_WRITE a_data sending to decode");
 
             aDataMsg_t *pxADataMsg;
             pxADataMsg = pxSerdesMsgDecodeAData(pxDecodeCdap->pxObjValue->pvSerBuffer,
@@ -1065,21 +1066,21 @@ BaseType_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxD
         break;
 
     case M_DELETE:
-        ESP_LOGI(TAG_RIB, "Deleting");
+        LOGD(TAG_RIB, "Deleting");
         break;
 
     default:
-        ret = pdFALSE;
+        ret = false;
         break;
     }
 
     return ret;
 }
 
-BaseType_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objInst,
-                             int result, string_t pcResultReason,
-                             opCode_t eOpCode, int invokeId, portId_t xN1Port,
-                             serObjectValue_t *pxObjVal)
+bool_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objInst,
+                         int result, string_t pcResultReason,
+                         opCode_t eOpCode, int invokeId, portId_t xN1Port,
+                         serObjectValue_t *pxObjVal)
 {
     messageCdap_t *pxMsgCdap = NULL;
     NetworkBufferDescriptor_t *pxNetworkBuffer;
@@ -1091,7 +1092,6 @@ BaseType_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objIn
         pxMsgCdap = prvRibdFillEnrollMsgStart(pcObjClass, pcObjName, objInst, eOpCode, pxObjVal,
                                               result, pcResultReason, invokeId);
     case M_STOP_R:
-
         pxMsgCdap = prvRibdFillEnrollMsgStop(pcObjClass, pcObjName, objInst, eOpCode, pxObjVal,
                                              result, pcResultReason, invokeId);
         break;
@@ -1105,18 +1105,18 @@ BaseType_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objIn
 
     if (!pxNetworkBuffer)
     {
-        ESP_LOGE(TAG_RINA, "Error encoding CDAP message");
-        return pdFALSE;
+        LOGE(TAG_RINA, "Error encoding CDAP message");
+        return false;
     }
 
     /*Sent to the IPCP task*/
     vRibdSentCdapMsg(pxNetworkBuffer, xN1Port);
 
-    return pdTRUE;
+    return true;
 }
 
-BaseType_t xRibdSendRequest(string_t pcObjClass, string_t pcObjName, long objInst,
-                            opCode_t eOpCode, portId_t xN1flowPortId, serObjectValue_t *pxObjVal)
+bool_t xRibdSendRequest(string_t pcObjClass, string_t pcObjName, long objInst,
+                        opCode_t eOpCode, portId_t xN1flowPortId, serObjectValue_t *pxObjVal)
 {
     messageCdap_t *pxMsgCdap = NULL;
     NetworkBufferDescriptor_t *pxNetworkBuffer;
@@ -1139,8 +1139,8 @@ BaseType_t xRibdSendRequest(string_t pcObjClass, string_t pcObjName, long objIns
         break;
 
     default:
-        ESP_LOGE(TAG_RIB, "Can't process request with mesg type %s", opcodeNamesTable[eOpCode]);
-        return pdFALSE;
+        LOGE(TAG_RIB, "Can't process request with mesg type %s", opcodeNamesTable[eOpCode]);
+        return false;
 
         break;
     }
@@ -1153,19 +1153,19 @@ BaseType_t xRibdSendRequest(string_t pcObjClass, string_t pcObjName, long objIns
 
     if (!pxNetworkBuffer)
     {
-        ESP_LOGE(TAG_RINA, "Error encoding CDAP message");
-        return pdFALSE;
+        LOGE(TAG_RINA, "Error encoding CDAP message");
+        return false;
     }
 
     /*Sent to the IPCP task*/
     vRibdSentCdapMsg(pxNetworkBuffer, xN1flowPortId);
 
-    return pdTRUE;
+    return true;
 }
 
 struct ribCallbackOps_t *pxRibdCreateCdapCallback(opCode_t xOpCode, int invoke_id)
 {
-    struct ribCallbackOps_t *pxCallback = pvPortMalloc(sizeof(*pxCallback));
+    struct ribCallbackOps_t *pxCallback = pvRsMemAlloc(sizeof(*pxCallback));
 
     switch (xOpCode)
     {

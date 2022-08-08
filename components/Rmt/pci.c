@@ -8,17 +8,8 @@
 
 #include <stdio.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-
-#include "esp_log.h"
-
-#include "Rmt.h"
+#include "rmt.h"
 #include "configSensor.h"
-#include "common.h"
 #include "du.h"
 
 #include "efcpStructures.h"
@@ -50,7 +41,7 @@ static efcpConfig_t * pxPciGetEfcpConfig(const pci_t * pxPci)
 	}								\
 	return pdFALSE;}
 
-BaseType_t xPCIGetterNoDtc (pci_t * pxPci);
+bool_t xPCIGetterNoDtc (pci_t * pxPci);
 
 pduType_t xPciType(const pci_t * pxPci)
 { PCI_GETTER_NO_DTC(pxPci, PCI_BASE_TYPE, TYPE_SIZE, pduType_t); }
@@ -59,7 +50,7 @@ pduType_t xPciType(const pci_t * pxPci)
 #endif
 
 
-BaseType_t xPciIsOk(const pci_t *pxPci)
+bool_t xPciIsOk(const pci_t *pxPci)
 {
 
 	if (pxPci && sizeof(pxPci) > 0 && pdu_type_is_ok(pxPci->xType))
@@ -69,16 +60,16 @@ BaseType_t xPciIsOk(const pci_t *pxPci)
 
 void vPciPrint(const pci_t * pxPciTmp)
 {
-	ESP_LOGE(TAG_RINA, "Printing PCI");
-	ESP_LOGE(TAG_RINA, "Type: %02x", pxPciTmp->xType);
-	ESP_LOGE(TAG_RINA, "PDU len: %04x", pxPciTmp->xPduLen);
-	ESP_LOGE(TAG_RINA, "PDU Address Source: %02x", pxPciTmp->xSource);
-	ESP_LOGE(TAG_RINA, "PDU Address Destination: %02x", pxPciTmp->xDestination);
-	ESP_LOGE(TAG_RINA, "CEP destination: %02x",pxPciTmp->connectionId_t.xDestination);
-	ESP_LOGE(TAG_RINA, "CEP source: %02x",pxPciTmp->connectionId_t.xSource);
-	ESP_LOGE(TAG_RINA, "QoSid: %02x",pxPciTmp->connectionId_t.xQosId);
-	ESP_LOGE(TAG_RINA, "PDU Flag : %02x",pxPciTmp->xFlags);
-	ESP_LOGE(TAG_RINA, "Version: %02x",pxPciTmp->ucVersion);
+	LOGE(TAG_RINA, "Printing PCI");
+	LOGE(TAG_RINA, "Type: %02x", pxPciTmp->xType);
+	LOGE(TAG_RINA, "PDU len: %04x", pxPciTmp->xPduLen);
+	LOGE(TAG_RINA, "PDU Address Source: %02x", pxPciTmp->xSource);
+	LOGE(TAG_RINA, "PDU Address Destination: %02x", pxPciTmp->xDestination);
+	LOGE(TAG_RINA, "CEP destination: %02x",pxPciTmp->connectionId_t.xDestination);
+	LOGE(TAG_RINA, "CEP source: %02x",pxPciTmp->connectionId_t.xSource);
+	LOGE(TAG_RINA, "QoSid: %02x",pxPciTmp->connectionId_t.xQosId);
+	LOGE(TAG_RINA, "PDU Flag : %02x",pxPciTmp->xFlags);
+	LOGE(TAG_RINA, "Version: %02x",pxPciTmp->ucVersion);
 }
 
 #if 0

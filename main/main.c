@@ -13,6 +13,8 @@
 
 #include "configRINA.h"
 #include "IPCP.h"
+#include "IPCP_api.h"
+//#include "normalIPCP.h"
 #include "RINA_API.h"
 
 #include "esp_wifi.h"

@@ -12,60 +12,14 @@
 /* Miscellaneous structure and definitions. */
 /*-----------------------------------------------------------*/
 
-#include "common.h"
-#include "IPCP.h"
-
-// enum MAC Address
-typedef enum
-{
-	MAC_ADDR_802_3
-} eGHAType_t;
-
-// Structure Generic Protocol Address
-typedef struct xGENERIC_PROTOCOL_ADDRESS
-{
-	uint8_t *ucAddress;
-	size_t uxLength;
-} gpa_t;
-
-// Structure Generic Hardware Address
-typedef struct xGENERIC_HARDWARE_ADDRESS
-{
-	eGHAType_t xType;
-	MACAddress_t xAddress;
-} gha_t;
-
-// Structure Ethernet Header
-typedef struct __attribute__((packed))
-{
-	MACAddress_t xDestinationAddress; /**< Destination address  0 + 6 = 6  */
-	MACAddress_t xSourceAddress;	  /**< Source address       6 + 6 = 12 */
-	uint16_t usFrameType;			  /**< The EtherType field 12 + 2 = 14 */
-} EthernetHeader_t;
+#include "ARP826_defs.h"
+#include "mac.h"
+#include "rina_gpha.h"
+#include "portability/port.h"
+#include "IPCP_frames.h"
 
 // DECL_CAST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
 // DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
-
-// Structure ARP Header
-typedef struct __attribute__((packed))
-{
-	uint16_t usHType;	  /**< Network Link Protocol type                     0 +  2 =  2 */
-	uint16_t usPType;	  /**< The internetwork protocol                      2 +  2 =  4 */
-	uint8_t ucHALength;	  /**< Length in octets of a hardware address         4 +  1 =  5 */
-	uint8_t ucPALength;	  /**< Length in octets of the internetwork protocol  5 +  1 =  6 */
-	uint16_t usOperation; /**< Operation that the sender is performing        6 +  2 =  8 */
-						  // MACAddress_t xSha;             /**< Media address of the sender                    8 +  6 = 14 */
-						  // uint32_t ucSpa;            		/**< Internetwork address of sender                14 +  4 = 18  */
-						  // MACAddress_t xTha;             /**< Media address of the intended receiver        18 +  6 = 24  */
-						  // uint32_t ulTpa;                /**< Internetwork address of the intended receiver 24 +  4 = 28  */
-} ARPHeader_t;
-
-// Structure ARP Packet
-typedef struct __attribute__((packed))
-{
-	EthernetHeader_t xEthernetHeader; /**< The ethernet header of an ARP Packet  0 + 14 = 14 */
-	ARPHeader_t xARPHeader;			  /**< The ARP header of an ARP Packet       14 + 28 = 42 */
-} ARPPacket_t;
 
 extern DECL_CAST_PTR_FUNC_FOR_TYPE(ARPPacket_t);
 extern DECL_CAST_CONST_PTR_FUNC_FOR_TYPE(ARPPacket_t);
@@ -101,10 +55,10 @@ struct rinarpHandle_t
 #define ARP_FRAME_TYPE (0x0608U)
 
 /* ARP related definitions. */
-#define ARP_PROTOCOL_TYPE (0x0008U)
-#define ARP_HARDWARE_TYPE_ETHERNET (0x0001U)
-#define ARP_REQUEST (0x0100U)
-#define ARP_REPLY (0x0200U)
+#define ARP_PROTOCOL_TYPE                ( 0x0008U )
+#define ARP_HARDWARE_TYPE_ETHERNET       ( 0x0001U )
+#define ARP_REQUEST                      ( 0x0100U )
+#define ARP_REPLY                        ( 0x0200U )
 
 /************** ARP and Ethernet events handle *************************/
 /*
@@ -126,29 +80,29 @@ void vARPUpdateMACAddress(const uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES], 
 void RINA_vARPMapping(uint32_t ulIPCPAddress);
 
 // Adds a mapping of application name to MAC address in the ARP cache.
-int vARPSendRequest(gpa_t *tpa, gpa_t *spa, gha_t *sha);
+bool_t vARPSendRequest(gpa_t * tpa, gpa_t * spa, gha_t * sha);
 
 // Remove all ARP entry in the ARP cache.
 void vARPRemoveAll(void);
 
 eARPLookupResult_t eARPLookupGPA(const gpa_t *gpaToLookup);
 
-void vARPRefreshCacheEntry(const gpa_t *ulIPCPAddress, const gha_t *pxMACAddress);
+void vARPRefreshCacheEntry(gpa_t *ulIPCPAddress, gha_t *pxMACAddress);
 void vARPRemoveCacheEntry(const gpa_t *ulIPCPAddress, const gha_t *pxMACAddress);
-
-BaseType_t xARPRemove(const gpa_t *pxPa, const gha_t *pxHa);
 
 struct rinarpHandle_t *pxARPAdd(gpa_t *pxPa, gha_t *pxHa);
 
-BaseType_t xARPResolveGPA(const gpa_t *tpa, const gpa_t *spa, const gha_t *sha);
-
 void vARPInitCache(void);
+
+bool_t xARPRemove(const gpa_t * pxPa, const gha_t * pxHa);
 
 void vARPPrintCache(void);
 
 void vPrintMACAddress(const gha_t *gha);
 
+bool_t xARPResolveGPA(gpa_t * tpa, gpa_t * spa, gha_t * sha);
+
 gha_t *pxARPLookupGHA(const gpa_t *pxGpaToLookup);
-void vARPPrintMACAddress(const gha_t *pxGha);
+
 
 #endif /* ARP_H_ */

@@ -18,12 +18,14 @@
 
 #include "BufferManagement.h"
 #include "configSensor.h"
-#include "common.h"
+#include "rina_common.h"
 #include "esp_log.h"
 #include "RINA_API.h"
-#include "rstr.h"
-#include "FlowAllocator.h"
-#include "normalIpcp.h"
+#include "rina_ids.h"
+#include "rina_name.h"
+#include "IPCP.h"
+#include "IPCP_api.h"
+#include "IPCP_events.h"
 
 static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -477,12 +479,10 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
     EventBits_t xEventBits = (EventBits_t)0;
     size_t uxPayloadLength;
 
-    ESP_LOGE(TAG_RINA, "RINA_FLOW_READ Called");
-
     // Validate if the flow is valid, if the xPortId is working status CONNECTED
     if (RINA_flowStatus(xPortId) != 1)
     {
-        ESP_LOGE(TAG_RINA, "There is not a flow allocated for that port Id");
+        LOGE(TAG_RINA, "There is not a flow allocated for that port Id");
         return 0;
     }
     else
@@ -492,7 +492,7 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
 
         xPacketCount = (BaseType_t)listCURRENT_LIST_LENGTH(&(pxFlowHandle->xListWaitingPackets));
 
-        ESP_LOGI(TAG_RINA, "Numbers of packet in the queue: %d", xPacketCount);
+        LOGD(TAG_RINA, "Numbers of packet in the queue to read: %d", xPacketCount);
 
         while (xPacketCount == 0)
         {
@@ -502,13 +502,13 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
                  * iteration.  */
 
                 xRemainingTime = pxFlowHandle->xReceiveBlockTime;
-                ESP_LOGI(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+                LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
 
                 if (xRemainingTime == (TickType_t)0)
                 {
 
                     /*check for the interrupt flag. */
-                    ESP_LOGI(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+                    LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
 
                     break;
                 }
@@ -519,8 +519,6 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
                 /* Fetch the current time. */
                 vTaskSetTimeOutState(&xTimeOut);
             }
-
-            ESP_LOGI(TAG_RINA, "waiting...");
 
             /* Wait for arrival of data.  While waiting, the IPCP-task may set the
              * 'eFLOW_RECEIVE' bit in 'xEventGroup', if it receives data for this
@@ -540,11 +538,11 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
             }
 
             xTaskCheckForTimeOut(&xTimeOut, &xRemainingTime);
-            ESP_LOGI(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+            LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
             /* Has the timeout been reached ? */
             if (xTaskCheckForTimeOut(&xTimeOut, &xRemainingTime) != pdFALSE)
             {
-                ESP_LOGI(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+                LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
                 break;
             }
         } /* End while */
@@ -561,7 +559,7 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
             taskEXIT_CRITICAL(&mux);
 
             lDataLength = (int32_t)pxNetworkBuffer->xDataLength;
-            ESP_LOGI(TAG_RINA, "Reading %d bytes", lDataLength);
+            LOGD(TAG_RINA, "Reading %d bytes", lDataLength);
 
             // vPrintBytes((void *)pxNetworkBuffer->pucDataBuffer, lDataLength);
 
@@ -572,12 +570,10 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
 
         else
         {
-            ESP_LOGE(TAG_RINA, "Error Timeout");
+            LOGE(TAG_RINA, "Error Timeout");
             lDataLength = -1;
         }
     }
-
-    ESP_LOGE(TAG_RINA, "Returning to main");
 
     return lDataLength;
 }

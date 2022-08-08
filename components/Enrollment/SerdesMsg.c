@@ -4,17 +4,12 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* FreeRTOS includes. */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-
 /* RINA includes. */
-#include "common.h"
+#include "rina_common_port.h"
 #include "configSensor.h"
 #include "configRINA.h"
 #include "Ribd.h"
+#include "Ribd_api.h"
 #include "Enrollment.h"
 #include "EnrollmentInformationMessage.pb.h"
 #include "NeighborMessage.pb.h"
@@ -23,8 +18,6 @@
 #include "Rib.h"
 #include "FlowMessage.pb.h"
 #include "FlowAllocator.h"
-
-#include "esp_log.h"
 
 /**
  * @brief Encode a Enrollment message and return the serialized object value to be
@@ -35,7 +28,7 @@
  */
 serObjectValue_t *pxSerdesMsgEnrollmentEncode(enrollmentMessage_t *pxMsg)
 {
-    BaseType_t status;
+    bool_t status;
     rina_messages_enrollmentInformation_t enrollMsg = rina_messages_enrollmentInformation_t_init_zero;
 
     /*adding the address msg struct*/
@@ -47,7 +40,7 @@ serObjectValue_t *pxSerdesMsgEnrollmentEncode(enrollmentMessage_t *pxMsg)
     }
 
     // Allocate space on the stack to store the message data.
-    void *pvBuffer = pvPortMalloc(MTU);
+    void *pvBuffer = pvRsMemAlloc(MTU);
     int maxLength = MTU;
 
     // Create a stream that writes to our buffer.
@@ -59,11 +52,11 @@ serObjectValue_t *pxSerdesMsgEnrollmentEncode(enrollmentMessage_t *pxMsg)
     // Check for errors...
     if (!status)
     {
-        ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return NULL;
     }
 
-    serObjectValue_t *pxSerMsg = pvPortMalloc(sizeof(*pxSerMsg));
+    serObjectValue_t *pxSerMsg = pvRsMemAlloc(sizeof(*pxSerMsg));
     pxSerMsg->pvSerBuffer = pvBuffer;
     pxSerMsg->xSerLength = stream.bytes_written;
 
@@ -73,7 +66,7 @@ serObjectValue_t *pxSerdesMsgEnrollmentEncode(enrollmentMessage_t *pxMsg)
 static enrollmentMessage_t *prvSerdesMsgDecodeEnrollment(rina_messages_enrollmentInformation_t message)
 {
     enrollmentMessage_t *pxMsg;
-    pxMsg = pvPortMalloc(sizeof(*pxMsg));
+    pxMsg = pvRsMemAlloc(sizeof(*pxMsg));
 
     if (message.has_address)
     {
@@ -89,8 +82,7 @@ static enrollmentMessage_t *prvSerdesMsgDecodeEnrollment(rina_messages_enrollmen
 
 enrollmentMessage_t *pxSerdesMsgEnrollmentDecode(uint8_t *pucBuffer, size_t xMessageLength)
 {
-
-    BaseType_t status;
+    bool_t status;
 
     /*Allocate space for the decode message data*/
     rina_messages_enrollmentInformation_t message = rina_messages_enrollmentInformation_t_init_zero;
@@ -102,7 +94,7 @@ enrollmentMessage_t *pxSerdesMsgEnrollmentDecode(uint8_t *pucBuffer, size_t xMes
 
     if (!status)
     {
-        ESP_LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
+        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
 
@@ -120,7 +112,7 @@ static neighborMessage_t *prvSerdesMsgDecodeNeighbor(rina_messages_neighbor_t me
 {
     neighborMessage_t *pxMessage;
 
-    pxMessage = pvPortMalloc(sizeof(*pxMessage));
+    pxMessage = pvRsMemAlloc(sizeof(*pxMessage));
 
     if (message.has_apname)
     {
@@ -152,8 +144,7 @@ static neighborMessage_t *prvSerdesMsgDecodeNeighbor(rina_messages_neighbor_t me
 
 neighborMessage_t *pxserdesMsgDecodeNeighbor(uint8_t *pucBuffer, size_t xMessageLength)
 {
-
-    BaseType_t status;
+    bool_t status;
 
     /*Allocate space for the decode message data*/
     rina_messages_neighbor_t message = rina_messages_neighbor_t_init_zero;
@@ -165,7 +156,7 @@ neighborMessage_t *pxserdesMsgDecodeNeighbor(uint8_t *pucBuffer, size_t xMessage
 
     if (!status)
     {
-        ESP_LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
+        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
 
@@ -252,9 +243,10 @@ static rina_messages_neighbor_t prvSerdesMsgEncodeNeighbor(neighborMessage_t *px
 
     return message;
 }
+
 serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMessage)
 {
-    BaseType_t status;
+    bool_t status;
     rina_messages_neighbor_t message = rina_messages_neighbor_t_init_zero;
 
     if (pxMessage->pcAeInstance)
@@ -278,7 +270,7 @@ serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMessage)
         message.has_apname = true;
     }
     // Allocate space on the stack to store the message data.
-    void *pvBuffer = pvPortMalloc(MTU);
+    void *pvBuffer = pvRsMemAlloc(MTU);
     int maxLength = MTU;
 
     // Create a stream that writes to our buffer.
@@ -290,11 +282,11 @@ serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMessage)
     // Check for errors...
     if (!status)
     {
-        ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return NULL;
     }
 
-    serObjectValue_t *pxSerMsg = pvPortMalloc(sizeof(*pxSerMsg));
+    serObjectValue_t *pxSerMsg = pvRsMemAlloc(sizeof(*pxSerMsg));
     pxSerMsg->pvSerBuffer = pvBuffer;
     pxSerMsg->xSerLength = stream.bytes_written;
 
@@ -303,9 +295,12 @@ serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMessage)
 
 serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 {
-    ESP_LOGI(TAG_RIB, "Encoding flow message");
 
-    BaseType_t status;
+#ifdef ESP_PLATFORM
+    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
+#endif
+
+    bool_t status;
     rina_messages_Flow message = rina_messages_Flow_init_zero;
 
     // Allocate space on the stack to store the message data.
@@ -314,7 +309,7 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 
     if (!pxMsg)
     {
-        ESP_LOGE(TAG_RIB, "No flow message to be sended");
+        LOGE(TAG_RIB, "No flow message to be sended");
         return NULL;
     }
 
@@ -369,11 +364,11 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
     // Check for errors...
     if (!status)
     {
-        ESP_LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return NULL;
     }
 
-    serObjectValue_t *pxSerValue = pvPortMalloc(sizeof(*pxSerValue));
+    serObjectValue_t *pxSerValue = pvRsMemAlloc(sizeof(*pxSerValue));
     pxSerValue->pvSerBuffer = pucBuffer;
     pxSerValue->xSerLength = stream.bytes_written;
 
@@ -384,10 +379,10 @@ static flow_t *prvSerdesMsgDecodeFlow(rina_messages_Flow message)
 {
     flow_t *pxMessage;
 
-    pxMessage = pvPortMalloc(sizeof(*pxMessage));
-    pxMessage->pxDestInfo = pvPortMalloc(sizeof(name_t));
-    pxMessage->pxSourceInfo = pvPortMalloc(sizeof(name_t));
-    pxMessage->pxConnectionId = pvPortMalloc(sizeof(connectionId_t));
+    pxMessage = pvRsMemAlloc(sizeof(*pxMessage));
+    pxMessage->pxDestInfo = pvRsMemAlloc(sizeof(name_t));
+    pxMessage->pxSourceInfo = pvRsMemAlloc(sizeof(name_t));
+    pxMessage->pxConnectionId = pvRsMemAlloc(sizeof(connectionId_t));
 
     if (message.has_destinationAddress)
         pxMessage->xRemoteAddress = message.destinationAddress;
@@ -424,38 +419,38 @@ static flow_t *prvSerdesMsgDecodeFlow(rina_messages_Flow message)
 }
 void prvPrintDecodeFlow(rina_messages_Flow message)
 {
-    ESP_LOGI(TAG_RIB, "--------Flow Message--------");
+    LOGI(TAG_RIB, "--------Flow Message--------");
 
     if (message.has_destinationAddress)
-        ESP_LOGI(TAG_RIB, "Destination Address:%lld", message.destinationAddress);
+        LOGI(TAG_RIB, "Destination Address:%lld", message.destinationAddress);
 
-    ESP_LOGI(TAG_RIB, "Destination PN:%s", message.destinationNamingInfo.applicationProcessName);
+    LOGI(TAG_RIB, "Destination PN:%s", message.destinationNamingInfo.applicationProcessName);
     if (message.destinationNamingInfo.has_applicationEntityName)
-        ESP_LOGI(TAG_RIB, "Destination EN:%s", message.destinationNamingInfo.applicationEntityName);
+        LOGI(TAG_RIB, "Destination EN:%s", message.destinationNamingInfo.applicationEntityName);
     if (message.destinationNamingInfo.has_applicationEntityInstance)
-        ESP_LOGI(TAG_RIB, "Destination EI:%s", message.destinationNamingInfo.applicationEntityInstance);
+        LOGI(TAG_RIB, "Destination EI:%s", message.destinationNamingInfo.applicationEntityInstance);
     if (message.destinationNamingInfo.has_applicationProcessInstance)
-        ESP_LOGI(TAG_RIB, "Destination PI:%s", message.destinationNamingInfo.applicationProcessInstance);
+        LOGI(TAG_RIB, "Destination PI:%s", message.destinationNamingInfo.applicationProcessInstance);
     if (message.has_destinationPortId)
-        ESP_LOGI(TAG_RIB, "Destination PortId:%lld", message.destinationPortId);
+        LOGI(TAG_RIB, "Destination PortId:%lld", message.destinationPortId);
 
-    ESP_LOGI(TAG_RIB, "Source Address:%lld", message.sourceAddress);
-    ESP_LOGI(TAG_RIB, "Source PN:%s", message.sourceNamingInfo.applicationProcessName);
+    LOGI(TAG_RIB, "Source Address:%lld", message.sourceAddress);
+    LOGI(TAG_RIB, "Source PN:%s", message.sourceNamingInfo.applicationProcessName);
     if (message.sourceNamingInfo.has_applicationEntityName)
-        ESP_LOGI(TAG_RIB, "Source EN:%s", message.sourceNamingInfo.applicationEntityName);
+        LOGI(TAG_RIB, "Source EN:%s", message.sourceNamingInfo.applicationEntityName);
     if (message.sourceNamingInfo.has_applicationEntityInstance)
-        ESP_LOGI(TAG_RIB, "Source EI:%s", message.sourceNamingInfo.applicationEntityInstance);
+        LOGI(TAG_RIB, "Source EI:%s", message.sourceNamingInfo.applicationEntityInstance);
     if (message.sourceNamingInfo.has_applicationProcessInstance)
-        ESP_LOGI(TAG_RIB, "Source PI:%s", message.sourceNamingInfo.applicationProcessInstance);
+        LOGI(TAG_RIB, "Source PI:%s", message.sourceNamingInfo.applicationProcessInstance);
 
-    ESP_LOGI(TAG_RIB, "Source PortId:%lld", message.sourcePortId);
+    LOGI(TAG_RIB, "Source PortId:%lld", message.sourcePortId);
 
     if (message.connectionIds->has_destinationCEPId)
-        ESP_LOGI(TAG_RIB, "Connection Dest Cep Id:%d", (int)message.connectionIds->destinationCEPId);
+        LOGI(TAG_RIB, "Connection Dest Cep Id:%d", (int)message.connectionIds->destinationCEPId);
     if (message.connectionIds->has_sourceCEPId)
-        ESP_LOGI(TAG_RIB, "Connection Src Cep Id:%d", (int)message.connectionIds->sourceCEPId);
+        LOGI(TAG_RIB, "Connection Src Cep Id:%d", (int)message.connectionIds->sourceCEPId);
     if (message.connectionIds->has_qosId)
-        ESP_LOGI(TAG_RIB, "Connection QoS Id:%d", (int)message.connectionIds->qosId);
+        LOGI(TAG_RIB, "Connection QoS Id:%d", (int)message.connectionIds->qosId);
 }
 
 flow_t *pxSerdesMsgDecodeFlow(uint8_t *pucBuffer, size_t xMessageLength)
@@ -473,7 +468,7 @@ flow_t *pxSerdesMsgDecodeFlow(uint8_t *pucBuffer, size_t xMessageLength)
 
     if (!status)
     {
-        ESP_LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
+        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
 
