@@ -209,7 +209,7 @@ aDataMsg_t *pxSerdesMsgDecodeAData(uint8_t *pucBuffer, size_t xMessageLength)
 
     if (!status)
     {
-        ESP_LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
+        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
 

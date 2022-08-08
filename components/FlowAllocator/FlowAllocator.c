@@ -282,7 +282,7 @@ void vFlowAllocatorFlowRequest(
 
     if (!pxRibCreateObject(flowObj, -1, "Flow", "Flow", FLOW))
     {
-        ESP_LOGE(TAG_FA, "It was a problem to create Rib Object");
+        LOGE(TAG_FA, "It was a problem to create Rib Object");
     }
 
     if (!xRibdSendRequest("Flow", flowObj, -1, M_CREATE, pxNeighbor->xN1Port, pxObjVal))
@@ -301,7 +301,7 @@ bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
 
     if (pxSerObjValue == NULL)
     {
-        ESP_LOGI(TAG_FA, "no object value ");
+        LOGI(TAG_FA, "no object value ");
         return false;
     }
 

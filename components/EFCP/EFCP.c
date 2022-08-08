@@ -16,7 +16,7 @@
 #include "IPCP_instance.h"
 #include "num_mgr.h"
 #include "rina_common_port.h"
-#include "FlowAllocator.h"
+#include "FlowAllocator_api.h"
 
 /* CHeck if a Connection is ok*/
 static bool_t is_candidate_connection_ok(const struct connection_t *pxConnection);

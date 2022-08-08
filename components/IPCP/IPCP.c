@@ -293,13 +293,13 @@ static void *prvIPCPTask(void *pvParameters)
 
             break;
         case eFATimerEvent:
-            ESP_LOGI(TAG_IPCPMANAGER, "Setting FA timer to expired");
+            LOGI(TAG_IPCPMANAGER, "Setting FA timer to expired");
             vIpcpSetFATimerExpiredState(pdTRUE);
 
             break;
         case eFlowDeallocateEvent:
 
-            ESP_LOGI(TAG_IPCPMANAGER, "---------- Flow Deallocation -------");
+            LOGI(TAG_IPCPMANAGER, "---------- Flow Deallocation -------");
             //(void)vFlowAllocatorDeallocate((portId_t *)xReceivedEvent.pvData);
 
             break;

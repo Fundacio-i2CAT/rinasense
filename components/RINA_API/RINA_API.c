@@ -482,7 +482,7 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
     // Validate if the flow is valid, if the xPortId is working status CONNECTED
     if (RINA_flowStatus(xPortId) != 1)
     {
-        LOGE(TAG_RINA, "There is not a flow allocated for that port Id");
+        ESP_LOGE(TAG_RINA, "There is not a flow allocated for that port Id");
         return 0;
     }
     else
@@ -492,7 +492,7 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
 
         xPacketCount = (BaseType_t)listCURRENT_LIST_LENGTH(&(pxFlowHandle->xListWaitingPackets));
 
-        LOGD(TAG_RINA, "Numbers of packet in the queue to read: %d", xPacketCount);
+        ESP_LOGD(TAG_RINA, "Numbers of packet in the queue to read: %d", xPacketCount);
 
         while (xPacketCount == 0)
         {
@@ -502,13 +502,13 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
                  * iteration.  */
 
                 xRemainingTime = pxFlowHandle->xReceiveBlockTime;
-                LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+                ESP_LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
 
                 if (xRemainingTime == (TickType_t)0)
                 {
 
                     /*check for the interrupt flag. */
-                    LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+                    ESP_LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
 
                     break;
                 }
@@ -538,11 +538,11 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
             }
 
             xTaskCheckForTimeOut(&xTimeOut, &xRemainingTime);
-            LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+            ESP_LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
             /* Has the timeout been reached ? */
             if (xTaskCheckForTimeOut(&xTimeOut, &xRemainingTime) != pdFALSE)
             {
-                LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+                ESP_LOGE(TAG_RINA, "xRemainingTime");
                 break;
             }
         } /* End while */
@@ -559,7 +559,6 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
             taskEXIT_CRITICAL(&mux);
 
             lDataLength = (int32_t)pxNetworkBuffer->xDataLength;
-            LOGD(TAG_RINA, "Reading %d bytes", lDataLength);
 
             // vPrintBytes((void *)pxNetworkBuffer->pucDataBuffer, lDataLength);
 
@@ -570,7 +569,7 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
 
         else
         {
-            LOGE(TAG_RINA, "Error Timeout");
+            ESP_LOGE(TAG_RINA, "Error Timeout");
             lDataLength = -1;
         }
     }

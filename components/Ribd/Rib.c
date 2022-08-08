@@ -45,7 +45,7 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
         if (xRibObjectTable[x].xValid == true)
         {
             pxRibObject = xRibObjectTable[x].pxRibObject;
-            ESP_LOGD(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
+            LOGD(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
             if (!strcmp(pxRibObject->ucObjName, ucRibObjectName))
             {
                 LOGI(TAG_RIB, "RibObj founded '%p', '%s'", pxRibObject, pxRibObject->ucObjName);

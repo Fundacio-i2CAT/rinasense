@@ -862,11 +862,11 @@ void prvRibdHandledAData(serObjectValue_t *pxObjValue)
 
     if (pxDecodeCdap->eOpCode > MAX_CDAP_OPCODE)
     {
-        ESP_LOGE(TAG_RIB, "Invalid opcode %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
+        LOGE(TAG_RIB, "Invalid opcode %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
         vPortFree(pxDecodeCdap);
     }
 
-    ESP_LOGI(TAG_RIB, "Handling CDAP Message: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
+    LOGI(TAG_RIB, "Handling CDAP Message: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
 
     pxRibObject = pxRibFindObject(pxDecodeCdap->pcObjName);
 
@@ -877,7 +877,7 @@ void prvRibdHandledAData(serObjectValue_t *pxObjValue)
         pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
         if (!pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result))
         {
-            ESP_LOGE(TAG_RIB, "It was not possible to handle the a_data message properly");
+            LOGE(TAG_RIB, "It was not possible to handle the a_data message properly");
         }
         break;
 
@@ -913,7 +913,6 @@ bool_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxDecod
     appConnection_t *pxAppConnectionTmp;
     struct ribObject_t *pxRibObject;
     struct ribCallbackOps_t *pxCallback;
-    struct timespec ts;
 
     /*Check if the Operation Code is valid*/
     if (pxDecodeCdap->eOpCode > MAX_CDAP_OPCODE)
@@ -1040,7 +1039,7 @@ bool_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxDecod
         break;
     case M_CREATE_R:
         pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
-        ESP_LOGI(TAG_RIB, "Result:%d", pxDecodeCdap->result);
+        LOGI(TAG_RIB, "Result:%d", pxDecodeCdap->result);
         pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result);
 
         break;

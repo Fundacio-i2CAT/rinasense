@@ -9,6 +9,7 @@
 #include "IPCP_instance.h"
 #include "IPCP_normal_defs.h"
 #include "EFCP.h"
+#include "configRINA"
 
 /** @brief RMT Array PortId Created.
  *  */
@@ -354,7 +355,7 @@ bool_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portId_t 
 		case PDU_TYPE_ACK_AND_FC:
 		case PDU_TYPE_RENDEZVOUS:
 		case PDU_TYPE_DT:
-			ESP_LOGI(TAG_RMT, "DT PDU!!!");
+			LOGD(TAG_RMT, "DT PDU!!!");
 			/*
 			 * (FUTURE)
 			 *
@@ -381,6 +382,7 @@ bool_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portId_t 
 			return false;
 		}
 	}
+	return true;
 }
 
 static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,

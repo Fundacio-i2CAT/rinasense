@@ -36,25 +36,6 @@ struct rinaFlowSpec_t
     uint8_t msg_boundaries;    /* boolean */
 };
 
-/*Handle of flow to be allocated or already allocated in the IPCP from the APP*/
-typedef struct xFLOW_ALLOCATE_HANDLE
-{
-
-    EventBits_t xEventBits;         /*Keep Tract of events*/
-    EventGroupHandle_t xEventGroup; /*Event Group for this flow allocate request*/
-    TickType_t xReceiveBlockTime;   /**< if recv[to] is called while no data is available, wait this amount of time. Unit in clock-ticks */
-    TickType_t xSendBlockTime;
-    uint16_t usTimeout; /**< Time (in ticks) after which this socket needs attention */
-
-    portId_t xPortId; /*Should be change by the TASK*/
-    name_t *pxLocal;
-    name_t *pxRemote;
-    name_t *pxDifName;
-    struct flowSpec_t *pxFspec;
-    List_t xListWaitingPackets; /* List of packets received */
-
-} flowAllocateHandle_t;
-
 typedef struct xREGISTER_APPLICATION_HANDLE
 {
     uint32_t xSrcPort;
