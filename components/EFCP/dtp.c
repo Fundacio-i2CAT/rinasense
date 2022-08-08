@@ -327,7 +327,7 @@ static inline bool_t xDtpPduPost(dtp_t *pxDtpInstance, struct du_t *pxDu)
         return true;
 }
 
-bool_t xDtpReceive(dtp_t *pxInstance, struct du_t *pxDu)
+bool_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
 {
         // struct dtp_ps *  ps;
         dtcp_t *pxDtcp;
@@ -346,57 +346,25 @@ bool_t xDtpReceive(dtp_t *pxInstance, struct du_t *pxDu)
         pxDtcp = pxDtpInstance->pxDtcp;
         pxEfcp = pxDtpInstance->pxEfcp;
 
-        // spin_lock_bh(&instance->sv_lock);
-
-        // a           = instance->sv->A;
-        // r 	    = instance->sv->R;
-        // mpl	    = instance->sv->MPL;
         xLWE = pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge;
 
         xInOrder = true; // HardCode for completing the phase one
-        xMaxSduGap = pxInstance->pxDtpCfg->xMaxSduGap;
-        /* if (pxDtcp) {
-                 dtcp_ps = dtcp_ps_get(dtcp);
-                 rtx_ctrl = dtcp_ps->rtx_ctrl;
-         }*/
+        xMaxSduGap = pxDtpInstance->pxDtpCfg->xMaxSduGap;
 
         xSeqNum = pxDu->pxPci->xSequenceNumber;
         sbytes = xDuDataLen(pxDu);
 
-        // LOG_DBG("local_soft_irq_pending: %d", local_softirq_pending());
-        /*LOG_DBG("DTP Received PDU %u (CPU: %d)",
-                seq_num, smp_processor_id());*/
-
         if (pxDtpInstance->pxDtpStateVector->xDrfRequired)
         {
-                /* Start ReceiverInactivityTimer */
-                /* if (rtimer_restart(&instance->timers.receiver_inactivity,
-                                    2 * (mpl + r + a))) {
-                         ESP_LOGE(TAG_DTP,"Failed to start Receiver Inactivity timer");
-                         xDuDestroy(pxDu);
-                         return pdFALSE;
-                 }*/
-                // ESP_LOGE(TAG_DTP, "Flag: %d", pxDu->pxPci->xFlags);
+
                 LOGE(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
 
                 if (pxDu->pxPci->xFlags & PDU_FLAGS_DATA_RUN)
                 {
                         LOGI(TAG_DTP, "Data Run Flag");
 
-                        pxInstance->pxDtpStateVector->xDrfRequired = false;
-                        pxInstance->pxDtpStateVector->xRcvLeftWindowEdge = xSeqNum;
-
-                        // dtp_squeue_flush(pxInstance);
-                        /*if (instance->rttq) {
-                                rttq_flush(pxInstance->pxRttq);
-                        }*/
-
-                        /*if (pxDtcp) {
-                                if (dtcp_sv_update(pxDtcp, &pxDu->xPci)) {
-                                        ESP_LOGE(TAG_DTP, "Failed to update dtcp sv");
-                                        return pdFALSE;
-                                }
-                        }*/
+                        pxDtpInstance->pxDtpStateVector->xDrfRequired = false;
+                        pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge = xSeqNum;
 
                         // dtp_send_pending_ctrl_pdus(instance); // check this
                         xDtpPduPost(pxDtpInstance, pxDu); // check this
@@ -431,82 +399,9 @@ bool_t xDtpReceive(dtp_t *pxInstance, struct du_t *pxDu)
 
                 xDuDestroy(pxDu);
 
-                if (pxDtcp)
-                {
-                        /* Send an ACK/Flow Control PDU with current window values */
-                        /* FIXME: we have to send a Control ACK PDU, not an
-                         * ack flow control one
-                         */
-                        /*if (dtcp_ack_flow_control_pdu_send(dtcp, LWE)) {
-                                LOG_ERR("Failed to send ack/flow control pdu");
-                                return -1;
-                        }*/
-                }
                 return 0;
         }
 
-        /* Start ReceiverInactivityTimer */
-        /* if (rtimer_restart(&instance->timers.receiver_inactivity,
-                            2 * (mpl + r + a ))) {
-                 spin_unlock_bh(&instance->sv_lock);
-                 LOG_ERR("Failed to start Receiver Inactivity timer");
-                 du_destroy(du);
-                 return -1;
-         }*/
-
-#if 0
-        /* This is an acceptable data PDU, stop reliable ACK timer */
-        if (dtcp->sv->rendezvous_rcvr) {
-        	LOG_DBG("RV at receiver put to false");
-        	dtcp->sv->rendezvous_rcvr = false;
-        	rtimer_stop(&dtcp->rendezvous_rcv);
-        }
-        if (!a) {
-                bool set_lft_win_edge;
-
-                if (!in_order && !dtcp) {
-                	spin_unlock_bh(&instance->sv_lock);
-                        LOG_DBG("DTP Receive deliver, seq_num: %d, LWE: %d",
-                                seq_num, LWE);
-                        if (pdu_post(instance, du))
-                                return -1;
-
-                        return 0;
-                }
-
-                set_lft_win_edge = !(dtcp_rtx_ctrl(dtcp->cfg) &&
-                                     ((seq_num -LWE) > (max_sdu_gap + 1)));
-                if (set_lft_win_edge) {
-                	instance->sv->rcv_left_window_edge = seq_num;
-                }
-
-                spin_unlock_bh(&instance->sv_lock);
-
-                if (dtcp) {
-                        if (dtcp_sv_update(dtcp, &du->pci)) {
-                                LOG_ERR("Failed to update dtcp sv");
-                                goto fail;
-                        }
-                        dtp_send_pending_ctrl_pdus(instance);
-                        if (!set_lft_win_edge) {
-                                du_destroy(du);
-                                return 0;
-                        }
-                }
-
-                if (pdu_post(instance, du))
-                        return -1;
-
-                spin_lock_bh(&instance->sv_lock);
-		stats_inc_bytes(rx, instance->sv, sbytes);
-		spin_unlock_bh(&instance->sv_lock);
-                return 0;
-
-        fail:
-                du_destroy(du);
-                return -1;
-        }
-#endif
         xLWE = pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge;
 
         LOGI(TAG_DTP, "DTP receive LWE: %u", xLWE);
@@ -514,50 +409,10 @@ bool_t xDtpReceive(dtp_t *pxInstance, struct du_t *pxDu)
         {
                 pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge = xSeqNum;
 
-                //       ringq_push(instance->to_post, pxDu);
                 xLWE = xSeqNum;
         }
 
         xDtpPduPost(pxDtpInstance, pxDu);
-        /*else {
-                 seq_queue_push_ni(instance->seqq->queue, du);
-         }
-
-         while (are_there_pdus(instance->seqq->queue, LWE)) {
-                 du = seq_queue_pop(instance->seqq->queue);
-                 if (!du)
-                         break;+/
-                 xSeqNum = pxDu->pxPci->xSequenceNumber;
-                 xLWE     = xSeqNum;
-                 instance->sv->rcv_left_window_edge = xSeqNum;
-                 ringq_push(instance->to_post, du);
-         }
-
-         //spin_unlock_bh(&instance->sv_lock);
-
-         if (dtcp) {
-                 if (dtcp_sv_update(dtcp, &du->pci)) {
-                         LOG_ERR("Failed to update dtcp sv");
-                 }
-         }
-
-         dtp_send_pending_ctrl_pdus(instance);
-
-         if (list_empty(&instance->seqq->queue->head))
-                 rtimer_stop(&instance->timers.a);
-         else
-                 rtimer_start(&instance->timers.a, a/AF);
-
-         while (!ringq_is_empty(instance->to_post)) {
-                 du = (struct du_t *) ringq_pop(instance->to_post);
-                 if (du) {
-                         sbytes = du_data_len(du);
-                         pdu_post(instance, du);
-                         spin_lock_bh(&instance->sv_lock);
-                         stats_inc_bytes(rx, instance->sv, sbytes);
-                         spin_unlock_bh(&instance->sv_lock);
-                 }
-         }*/
 
         LOGI(TAG_DTP, "DTP receive ended...");
 
@@ -575,97 +430,12 @@ bool_t xDtpDestroy(dtp_t *pxInstance)
         if (!pxInstance)
                 return false;
 
-        // spin_lock_bh(&instance->lock);
-
-        /* Stop all the timer so they do not happen while we're freeing
-           the object. */
-
-        // rtimer_destroy(&instance->timers.a);
-        /* tf_a posts workers that restart sender_inactivity timer, so the wq
-         * must be flushed before destroying the timer */
-
-        /*rtimer_stop(&instance->timers.sender_inactivity);
-        rtimer_stop(&instance->timers.receiver_inactivity);
-        rtimer_stop(&instance->timers.rate_window);
-        rtimer_stop(&instance->timers.rtx);
-        rtimer_stop(&instance->timers.rendezvous);*/
-
         if (pxInstance->pxDtcp)
         {
                 pxDtcp = pxInstance->pxDtcp;
                 pxInstance->pxDtcp = NULL; /* Useful */
         }
 
-#if 0
-       if (instance->cwq) {
-                cwq = instance->cwq;
-                instance->cwq = NULL; /* Useful */
-        }
-
-        if (instance->rtxq) {
-        	rtxq = instance->rtxq;
-        	instance->rtxq = NULL; /* Useful */
-        }
-
-        if (instance->rttq) {
-        	rttq = instance->rttq;
-        	instance->rttq = NULL;
-        }*/
-
-        spin_unlock_bh(&instance->lock);
-
-
-
-        if (pxDtcp) {
-        	if (xDtcpDestroy(pxDtcp)) {
-        		LOGE(TAG_DTP,"Error destroying DTCP");
-        		ret = false;
-        	}
-        }
-#endif
-#if 0
-        if (cwq) {
-        	if (cwq_destroy(cwq)) {
-        		LOG_WARN("Error destroying CWQ");
-        		ret = -1;
-        	}
-        }
-
-        if (rtxq) {
-                if (rtxq_destroy(rtxq)) {
-                        LOG_ERR("Failed to destroy rexmsn queue");
-                        ret = -1;
-                }
-        }
-
-        if (rttq) {
-        	if (rttq_destroy(rttq)) {
-        		LOG_ERR("Failed to destroy rexmsn queue");
-        		ret = -1;
-        	}
-        }
-
-        rtimer_destroy(&instance->timers.a);
-        /* tf_a posts workers that restart sender_inactivity timer, so the wq
-         * must be flushed before destroying the timer */
-
-        rtimer_destroy(&instance->timers.sender_inactivity);
-        rtimer_destroy(&instance->timers.receiver_inactivity);
-        rtimer_destroy(&instance->timers.rate_window);
-        rtimer_destroy(&instance->timers.rtx);
-        rtimer_destroy(&instance->timers.rendezvous);
-
-        if (instance->to_post) ringq_destroy(instance->to_post,
-                               (void (*)(void *)) du_destroy);
-        if (instance->to_send) ringq_destroy(instance->to_send,
-                               (void (*)(void *)) du_destroy);
-
-        if (instance->seqq) squeue_destroy(instance->seqq);
-        if (instance->sv)   rkfree(instance->sv);
-        if (instance->cfg) dtp_config_destroy(instance->cfg);
-        rina_component_fini(&instance->base);
-
-#endif
         // robject_del(&instance->robj);
         vRsMemFree(pxInstance);
 
@@ -673,29 +443,6 @@ bool_t xDtpDestroy(dtp_t *pxInstance)
 
         return true;
 }
-/*
-BaseType_t xDtpInitialSequenceNumber(dtp_t * pxInstance)
-{
-        dtpPs_t * pxPs;
-
-        if (!instance) {
-                LOG_ERR("Bogus instance passed");
-                return -1;
-        }
-
-        rcu_read_lock();
-        ps = container_of(rcu_dereference(instance->base.ps),
-                          struct dtp_ps, base);
-        ASSERT(ps->initial_sequence_number);
-        if (ps->initial_sequence_number(ps)) {
-                rcu_read_unlock();
-                return -1;
-        }
-        rcu_read_unlock();
-
-        return 0;
-}
-*/
 
 dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
                    struct rmt_t *pxRmt,

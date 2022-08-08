@@ -113,9 +113,8 @@ static ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
     return NULL;
 }
 
-void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, NumMgr_t *pxPidm, name_t *pxIPCPName)
+void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName)
 {
-    portId_t xPortId;
 
     /*This should be proposed by the Flow Allocator?*/
     name_t *destinationInfo = pvRsMemAlloc(sizeof(*destinationInfo));
@@ -140,7 +139,7 @@ void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, NumMgr_t *
     if (pxShimInstance->pxOps->flowAllocateRequest(pxShimInstance->pxData,
                                                    pxIPCPName,
                                                    destinationInfo,
-                                                   xPortId))
+                                                   xN1PortId))
         LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
 }
 

@@ -3,6 +3,7 @@
 
 #include "IPCP_normal_defs.h"
 #include "rina_ids.h"
+#include "Enrollment.h"
 #include "Ribd.h"
 
 void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xPortId);

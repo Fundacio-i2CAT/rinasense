@@ -22,8 +22,10 @@
 #include "Ribd.h"
 #include "Ribd_api.h"
 #include "rina_common_port.h"
+#include "rina_common.h"
 #include "RINA_API_flows.h"
 #include "SerdesMsg.h"
+#include "IPCP_api.h"
 
 static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 

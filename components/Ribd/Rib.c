@@ -11,6 +11,7 @@
 #include "configSensor.h"
 #include "Rib.h"
 #include "Enrollment_api.h"
+#include "FlowAllocator_api.h"
 
 /*Table of Objects*/
 struct ribObjectRow_t xRibObjectTable[RIB_TABLE_SIZE];

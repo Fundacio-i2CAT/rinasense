@@ -23,6 +23,7 @@
 #include "Rib.h"
 #include "rmt.h"
 #include "RINA_API_flows.h"
+#include "SerdesMsg.h"
 
 int n = 0;
 static char *opcodeNamesTable[] = {[M_CONNECT] = "M_CONNECT",

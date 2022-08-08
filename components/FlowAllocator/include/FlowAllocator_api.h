@@ -7,11 +7,11 @@ void vFlowAllocatorFlowRequest(
     portId_t xAppPortId,
     flowAllocateHandle_t *pxFlowRequest);
 
-BaseType_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
+bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
 
 void vFlowAllocatorDeallocate(portId_t xAppPortId);
 
-BaseType_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id);
+bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id);
 
 flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId);
 

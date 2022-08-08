@@ -26,6 +26,8 @@
 #include "IPCP.h"
 #include "IPCP_api.h"
 #include "IPCP_events.h"
+#include "IPCP_normal_api.h"
+#include "FlowAllocator_api.h"
 
 static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 

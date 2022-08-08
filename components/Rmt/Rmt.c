@@ -9,7 +9,7 @@
 #include "IPCP_instance.h"
 #include "IPCP_normal_defs.h"
 #include "EFCP.h"
-#include "configRINA"
+#include "configRINA.h"
 
 /** @brief RMT Array PortId Created.
  *  */

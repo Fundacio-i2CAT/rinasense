@@ -17,6 +17,7 @@
 #include "Rib.h"
 #include "SerdesMsg.h"
 #include "IPCP_normal_defs.h"
+#include "IPCP_api.h"
 
 static neighborsTableRow_t xNeighborsTable[NEIGHBOR_TABLE_SIZE];
 

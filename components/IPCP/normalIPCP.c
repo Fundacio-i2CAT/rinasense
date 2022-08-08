@@ -14,6 +14,7 @@
 #include "BufferManagement.h"
 #include "Ribd.h"
 #include "Ribd_api.h"
+#include "IPCP_api.h"
 
 extern struct ipcpNormalData_t *pxIpcpData;
 
@@ -713,7 +714,7 @@ BaseType_t xNormalUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlow
         return pdTRUE;
 }
 
-BaseType_t xNormalIsFlowAllocated(portId_t xPortId)
+bool_t xNormalIsFlowAllocated(portId_t xPortId)
 {
         struct normalFlow_t *pxFlow = NULL;
 
@@ -721,18 +722,18 @@ BaseType_t xNormalIsFlowAllocated(portId_t xPortId)
         if (!pxFlow)
         {
                 LOGE(TAG_IPCPNORMAL, "Flow not found");
-                return pdFALSE;
+                return false;
         }
         if (pxFlow->eState == ePORT_STATE_ALLOCATED)
         {
                 LOGI(TAG_IPCPNORMAL, "Flow status: Allocated");
-                return pdTRUE;
+                return true;
         }
 
-        return pdFALSE;
+        return false;
 }
 
-BaseType_t xNormalUpdateCepIdFlow(portId_t xPortId, cepId_t xCepId)
+bool_t xNormalUpdateCepIdFlow(portId_t xPortId, cepId_t xCepId)
 {
         struct normalFlow_t *pxFlow = NULL;
 
@@ -740,48 +741,48 @@ BaseType_t xNormalUpdateCepIdFlow(portId_t xPortId, cepId_t xCepId)
         if (!pxFlow)
         {
                 LOGE(TAG_IPCPNORMAL, "Flow not found");
-                return pdFALSE;
+                return false;
         }
         pxFlow->xActive = xCepId;
 
-        return pdTRUE;
+        return true;
 }
 
-BaseType_t xNormalConnectionModify(cepId_t xCepId,
-                                   address_t xSrc,
-                                   address_t xDst)
+bool_t xNormalConnectionModify(cepId_t xCepId,
+                               address_t xSrc,
+                               address_t xDst)
 {
         struct efcpContainer_t *pxEfcpContainer;
-        pxEfcpContainer = pxIPCPGetEfcpc;
+        pxEfcpContainer = pxIPCPGetEfcpc();
         if (!xEfcpConnectionModify(pxEfcpContainer, xCepId,
                                    xSrc,
                                    xDst))
-                return pdFALSE;
-        return pdTRUE;
+                return false;
+        return true;
 }
 
-BaseType_t xNormalConnectionUpdate(portId_t xAppPortId, cepId_t xSrcCepId, cepId_t xDstCepId)
+bool_t xNormalConnectionUpdate(portId_t xAppPortId, cepId_t xSrcCepId, cepId_t xDstCepId)
 {
         struct efcpContainer_t *pxEfcpContainer;
         struct normalFlow_t *pxFlow = NULL;
 
-        pxEfcpContainer = pxIPCPGetEfcpc;
+        pxEfcpContainer = pxIPCPGetEfcpc();
 
         if (!xEfcpConnectionUpdate(pxEfcpContainer,
                                    xSrcCepId,
                                    xDstCepId))
-                return pdFALSE;
+                return false;
 
         pxFlow = prvNormalFindFlow(pxIpcpData, xAppPortId);
         if (!pxFlow)
         {
                 LOGE(TAG_IPCPNORMAL, "Flow not found");
-                return pdFALSE;
+                return false;
         }
         pxFlow->eState = ePORT_STATE_ALLOCATED;
         LOGI(TAG_IPCPNORMAL, "Flow state updated");
 
-        return pdTRUE;
+        return true;
 }
 
 static BaseType_t prvRemoveCepIdFromFlow(struct normalFlow_t *pxFlow,

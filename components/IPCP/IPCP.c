@@ -31,6 +31,8 @@
 #include "portability/rsqueue.h"
 #include "portability/rstime.h"
 #include "rina_buffers.h"
+#include "rina_common.h"
+#include "RINA_API.h"
 
 MACAddress_t xlocalMACAddress = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 
@@ -1006,5 +1008,5 @@ struct ipcpNormalInstance_t *pxIpcpGetData(void)
 
 portId_t xIPCPAllocatePortId(void)
 {
-    return xPidmAllocate(pxIpcManager->pxPidm);
+    return ulNumMgrAllocate(pxIpcManager->pxPidm);
 }
