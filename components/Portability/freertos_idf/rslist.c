@@ -68,4 +68,12 @@ RsListItem_t *pRsListGetNext(RsListItem_t *const pList)
     return listGET_NEXT(pList);
 }
 
-return listLIST_IS_INITIALISED(pList);
+bool RsListIsInitilised(RsList_t *const pList)
+{
+    return listLIST_IS_INITIALISED(pList);
+}
+
+bool RsListIsEmpty(RsList_t *const pList)
+{
+    return listLIST_IS_EMPTY(pList);
+}

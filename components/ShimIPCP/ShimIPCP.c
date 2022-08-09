@@ -598,6 +598,17 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 
 	pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
+	if (!RsListIsInitilised(&pxData->xFlowsList))
+	{
+		LOGE(TAG_SHIM, "Flow list is not initilized");
+		return NULL;
+	}
+	if (!RsListIsEmpty(&pxData->xFlowsList))
+	{
+		LOGE(TAG_SHIM, "Flow list is empty");
+		return NULL;
+	}
+
 	/* Find a way to iterate in the list and compare the addesss*/
 	pxListEnd = pRsListGetEndMarker(&pxData->xFlowsList);
 	pxListItem = pRsListGetHeadEntry(&pxData->xFlowsList);
