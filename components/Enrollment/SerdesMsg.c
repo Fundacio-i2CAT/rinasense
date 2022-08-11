@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 /* RINA includes. */
+#include "portability/rsmem.h"
 #include "rina_common_port.h"
 #include "configSensor.h"
 #include "configRINA.h"
@@ -167,7 +168,7 @@ static aDataMsg_t *prvSerdesMsgDecodeAData(rina_messages_a_data_t message)
 {
     aDataMsg_t *pxMessage;
 
-    pxMessage = pvPortMalloc(sizeof(*pxMessage));
+    pxMessage = pvRsMemAlloc(sizeof(*pxMessage));
 
     if (message.has_destAddress)
     {
@@ -180,8 +181,8 @@ static aDataMsg_t *prvSerdesMsgDecodeAData(rina_messages_a_data_t message)
     }
     if (message.has_cdapMessage)
     {
-        serObjectValue_t *pxMsgCdap = pvPortMalloc(sizeof(*pxMsgCdap));
-        void *pvSerBuf = pvPortMalloc(message.cdapMessage.size);
+        serObjectValue_t *pxMsgCdap = pvRsMemAlloc(sizeof(*pxMsgCdap));
+        void *pvSerBuf = pvRsMemAlloc(message.cdapMessage.size);
 
         pxMessage->pxMsgCdap = pxMsgCdap;
         pxMessage->pxMsgCdap->pvSerBuffer = pvSerBuf;
@@ -196,8 +197,7 @@ static aDataMsg_t *prvSerdesMsgDecodeAData(rina_messages_a_data_t message)
 
 aDataMsg_t *pxSerdesMsgDecodeAData(uint8_t *pucBuffer, size_t xMessageLength)
 {
-
-    BaseType_t status;
+    bool_t status;
 
     /*Allocate space for the decode message data*/
     rina_messages_a_data_t message = rina_messages_a_data_t_init_zero;
@@ -456,7 +456,7 @@ void prvPrintDecodeFlow(rina_messages_Flow message)
 flow_t *pxSerdesMsgDecodeFlow(uint8_t *pucBuffer, size_t xMessageLength)
 {
 
-    BaseType_t status;
+    bool_t status;
 
     /*Allocate space for the decode message data*/
     rina_messages_Flow message = rina_messages_Flow_init_zero;

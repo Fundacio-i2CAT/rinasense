@@ -8,10 +8,6 @@
 #ifndef RINA_API_H_INCLUDED
 #define RINA_API_H_INCLUDED
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
-
 #include "ARP826.h"
 #include "RINA_API_flows.h"
 
@@ -19,7 +15,7 @@ struct appRegistration_t
 {
     string_t pcNameDIF;
     string_t pcApplicationName;
-    List_t xFlowsList;
+    RsList_t xFlowsList;
 };
 
 struct rinaFlowSpec_t
@@ -52,7 +48,7 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif,
                                                     string_t pcLocalApp,
                                                     uint8_t Flags);
 
-BaseType_t RINA_application_unregister(struct appRegistration_t *xAppRegistration);
+bool_t RINA_application_unregister(struct appRegistration_t *xAppRegistration);
 
 portId_t RINA_flow_accept(struct appRegistration_t *xAppRegistration,
                           string_t pcRemoteApp,
@@ -68,11 +64,15 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
 int32_t RINA_flow_read(portId_t xPortId,
                        void *pvBuffer,
                        size_t uxBufferLength);
+
 size_t RINA_flow_write(portId_t xPortId,
                        void *pvBuffer,
                        size_t uxTotalDataLength);
-BaseType_t RINA_flow_close(portId_t xPortId);
 
-void vRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse);
+bool_t RINA_flow_close(portId_t xPortId);
+
+//void vRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse);
+
+void vRINA_WakeUpFlowRequest(flowAllocateHandle_t *pxFlowAllocateResponse, int nNewBits);
 
 #endif /* RINA_API_H_ */

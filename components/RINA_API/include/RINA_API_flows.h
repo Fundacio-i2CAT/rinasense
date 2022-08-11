@@ -14,10 +14,12 @@ typedef struct xFLOW_ALLOCATE_HANDLE
 #ifdef ESP_PLATFORM
     EventBits_t xEventBits;         /*Keep Tract of events*/
     EventGroupHandle_t xEventGroup; /*Event Group for this flow allocate request*/
-    TickType_t xReceiveBlockTime;   /**< if recv[to] is called while no data is available, wait this amount of time. Unit in clock-ticks */
-    TickType_t xSendBlockTime;
-    uint16_t usTimeout; /**< Time (in ticks) after which this socket needs attention */
 #endif
+
+    useconds_t xSendBlockTime;
+
+    useconds_t xReceiveBlockTime;   /**< if recv[to] is called while no data is available, wait this amount of time. Unit in microseconds */
+    useconds_t usTimeout; /**< Time (in microseconds) after which this socket needs attention */
 
     portId_t xPortId; /*Should be change by the TASK*/
     name_t *pxLocal;
@@ -25,6 +27,15 @@ typedef struct xFLOW_ALLOCATE_HANDLE
     name_t *pxDifName;
     struct flowSpec_t *pxFspec;
     RsList_t xListWaitingPackets;
+
+    /* Condition variable. */
+    pthread_cond_t xEventCond;
+
+    /* */
+    long nEventBits;
+
+    /* Mutex for nEventBits. */
+    pthread_mutex_t xEventMutex;
 
 } flowAllocateHandle_t;
 

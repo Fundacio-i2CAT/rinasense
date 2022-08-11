@@ -25,9 +25,9 @@ else()
     rt
 
     mock_NetworkInterface
-    mock_EFCP
+    #mock_EFCP
     mock_FlowAllocator
     mock_IPCP
-    mock_Ribd
+    #mock_Ribd
   )
 endif()

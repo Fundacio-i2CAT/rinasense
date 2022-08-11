@@ -79,6 +79,9 @@ void vRsListSetListItemOwner(RsListItem_t * const pListItem, void *pOwner)
 
 RsListItem_t* pRsListGetHeadEntry(RsList_t * const pList)
 {
+    RsAssert(pList);
+    RsAssert(pList->pxGList);
+
     if (pList->pxGList->next != NULL)
         return (RsListItem_t *)pList->pxGList->next->data;
     return NULL;

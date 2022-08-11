@@ -26,4 +26,15 @@ else()
     NAME test_queues
     COMMAND "./test_queues"
   )
+
+  add_executable(test_time "${CMAKE_CURRENT_LIST_DIR}/test_time.c")
+  target_link_libraries(test_time
+    portability
+    unity
+  )
+
+  add_test(
+    NAME test_time
+    COMMAND "./test_time"
+  )
 endif()

@@ -82,17 +82,6 @@ typedef struct xDIF_CONFIG
 #define FreeRTOS_ntohl(x) FreeRTOS_htonl(x)
 #define SOCKET_EVENT_BIT_COUNT 8
 
-enum eFLOW_EVENT
-{
-        eFLOW_RECEIVE = 0x0001,
-        eFLOW_SEND = 0x0002,
-        eFLOW_ACCEPT = 0x0004,
-        eFLOW_CONNECT = 0x0008,
-        eFLOW_BOUND = 0x0010,
-        eFLOW_CLOSED = 0x0020,
-        eSELECT_ALL = 0x000F,
-
-};
 
 // name_t *xRinaNameCreate(void);
 

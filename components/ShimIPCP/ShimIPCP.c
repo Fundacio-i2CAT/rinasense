@@ -596,7 +596,13 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 	RsListItem_t *pxListItem;
 	RsListItem_t const *pxListEnd;
 
+    RsAssert(pxData);
+
 	pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
+    if (!pxFlow) {
+        LOGE(TAG_SHIM, "Failed to allocate memory for flow");
+        return NULL;
+    }
 
 	if (!RsListIsInitilised(&pxData->xFlowsList))
 	{
@@ -629,7 +635,7 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 		pxListItem = pRsListGetNext(pxListItem);
 	}
 
-	LOGI(TAG_SHIM, "Flow not founded");
+	LOGI(TAG_SHIM, "Flow not found");
 	return NULL;
 }
 
@@ -661,7 +667,7 @@ static shimFlow_t *prvShimFindFlow(struct ipcpInstanceData_t *pxData)
 		pxListItem = pRsListGetNext(pxListItem);
 	}
 
-	LOGI(TAG_SHIM, "Flow not founded");
+	LOGI(TAG_SHIM, "Flow not found");
 	return NULL;
 }
 
@@ -848,7 +854,7 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 
 	if (xSendEventStructToIPCPTask(&xTxEvent, 250 * 1000) == false)
 	{
-		LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %u", pxNetworkBuffer, pxNetworkBuffer->xDataLength);
+		LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %zu", pxNetworkBuffer, pxNetworkBuffer->xDataLength);
 		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 		return false;
 	}
@@ -907,9 +913,9 @@ static struct ipcpInstanceOps_t xShimWifiOps = {
 
 /************* CREATED, DESTROY, INIT, CLEAN SHIM IPCP ******/
 
-ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
+struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 {
-	ipcpInstance_t *pxInst;
+	struct ipcpInstance_t *pxInst;
 	struct ipcpInstanceData_t *pxInstData;
 	struct flowSpec_t *pxFspec;
 	string_t pcInterfaceName = SHIM_INTERFACE;
@@ -917,6 +923,10 @@ ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 	MACAddress_t *pxPhyDev;
 
 	pxPhyDev = pvRsMemAlloc(sizeof(*pxPhyDev));
+    if (!pxPhyDev) {
+        LOGE(TAG_WIFI, "Failed to allocate memory for WiFi shim instance");
+        return NULL;
+    }
 
 	pxPhyDev->ucBytes[0] = 0x00;
 	pxPhyDev->ucBytes[1] = 0x00;
@@ -927,11 +937,12 @@ ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 
 	/* Create an instance */
 	pxInst = pvRsMemAlloc(sizeof(*pxInst));
-	if (!pxInst)
-		return NULL;
+	if (!pxInst) return NULL;
 
 	/* Create Data instance and Flow Specifications*/
 	pxInstData = pvRsMemAlloc(sizeof(*pxInstData));
+    if (!pxInstData) return NULL;
+
 	pxInst->pxData = pxInstData;
 
 	pxFspec = pvRsMemAlloc(sizeof(*pxFspec));
@@ -988,7 +999,7 @@ ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 }
 
 /*Check this logic.*/
-void vShimWiFiInit(ipcpInstance_t *pxShimWiFiInstance)
+void vShimWiFiInit(struct ipcpInstance_t *pxShimWiFiInstance)
 {
 	/*xShimWiFiInit is going to init the  WiFi drivers and associate to the AP.
 	 * Update de MacAddress variable depending on the WiFi drivers. Sent this variable
