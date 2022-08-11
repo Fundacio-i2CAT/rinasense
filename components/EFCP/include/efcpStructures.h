@@ -333,7 +333,7 @@ struct efcp_t
 {
 
         struct connection_t *pxConnection;
-        ipcpInstance_t *pxUserIpcp; // IPCP NORMAL
+        struct ipcpInstance_t *pxUserIpcp; // IPCP NORMAL
         dtp_t *pxDtp;               // implement in EFCP Component
         delim_t *pxDelim;           // delimiting module
         struct efcpContainer_t *pxEfcpContainer;

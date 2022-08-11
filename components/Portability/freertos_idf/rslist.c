@@ -55,11 +55,14 @@ void *pRsListGetListItemOwner(RsListItem_t *const pList)
 
 RsListItem_t *pRsListGetHeadEntry(RsList_t *const pList)
 {
-    return listGET_HEAD_ENTRY(pList);
+    //    return listGET_HEAD_ENTRY(pList);
+    RsAssert(pList != NULL);
+    return ( ( ( pList )->xListEnd ).pxNext );
 }
 
 RsListItem_t *pRsListGetEndMarker(RsList_t *const pList)
 {
+    RsAssert(pList != NULL);
     return listGET_END_MARKER(pList);
 }
 

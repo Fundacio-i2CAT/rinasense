@@ -119,9 +119,9 @@ void vShimWrite(void);
  * */
 void vShimRead(void);
 
-void vShimWiFiInit(ipcpInstance_t *pxShimWiFiInstance);
+void vShimWiFiInit(struct ipcpInstance_t *pxShimWiFiInstance);
 
-ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId);
+struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId);
 
 bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_t *pxDu, bool_t uxBlocking);
 

@@ -33,7 +33,7 @@ elseif(${TARGET_TYPE} STREQUAL "linux_glib")
 
   set(CMAKE_VERBOSE_MAKEFILE ON)
 
-  # set(CMAKE_C_COMPILER " /ugcc ")
+  # set(CMAKE_C_COMPILER"/ugcc")
 
   #
   # Set all include path variables here so as to avoid circular
@@ -133,7 +133,7 @@ elseif(${TARGET_TYPE} STREQUAL "linux_glib")
   )
 
   file(GLOB mock_EFCP_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_EFCP/*.c"
+   "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_EFCP/*.c"
   )
   add_library(mock_EFCP STATIC ${mock_EFCP_SOURCES})
   target_include_directories(mock_EFCP PUBLIC
@@ -151,7 +151,7 @@ elseif(${TARGET_TYPE} STREQUAL "linux_glib")
   # Component: CDAP
   #
   file(GLOB CdapProto_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/components/CdapProto/*.c"
+   "${CMAKE_CURRENT_SOURCE_DIR}/components/CdapProto/*.c"
   )
   add_library(CdapProto STATIC ${CdapProto_SOURCES})
   target_include_directories(CdapProto PUBLIC ${CdapProto_INCLUDES})
@@ -161,7 +161,7 @@ elseif(${TARGET_TYPE} STREQUAL "linux_glib")
   # Component: configSensor
   #
   file(GLOB configSensor_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/components/configSensor/*.c"
+   "${CMAKE_CURRENT_SOURCE_DIR}/components/configSensor/*.c"
   )
   add_library(configSensor STATIC ${configSensor_SOURCES})
   target_include_directories(configSensor PUBLIC ${configSensor_INCLUDES})
@@ -173,7 +173,7 @@ elseif(${TARGET_TYPE} STREQUAL "linux_glib")
   set(Common_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/Common")
   set(Common_TEST_DIR "${Common_DIR}/test")
   file(GLOB Common_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/components/Common/*.c"
+   "${CMAKE_CURRENT_SOURCE_DIR}/components/Common/*.c"
   )
   add_library(Common STATIC ${Common_SOURCES})
   target_include_directories(Common PUBLIC
@@ -221,7 +221,7 @@ elseif(${TARGET_TYPE} STREQUAL "linux_glib")
   # figure out how to support multiple type of NetworkInterface.
   set(NetworkInterface_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface")
   file(GLOB NetworkInterface_SOURCES
-    "${NetworkInterface_DIR}/mq/*.c"
+   "${NetworkInterface_DIR}/mq/*.c"
   )
   add_library(NetworkInterface STATIC ${NetworkInterface_SOURCES})
   target_include_directories(NetworkInterface PUBLIC
@@ -273,7 +273,7 @@ elseif(${TARGET_TYPE} STREQUAL "linux_glib")
   # Component: Rmt
   #
   file(GLOB Rmt_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/*.c"
+   "${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/*.c"
   )
   add_library(Rmt STATIC ${Rmt_SOURCES})
   target_include_directories(Rmt PUBLIC
@@ -389,6 +389,7 @@ elseif(${TARGET_TYPE} STREQUAL "linux_glib")
     Enrollment
     Ribd
     FlowAllocator
+    RINA_API
   )
   include("${IPCP_TESTS_DIR}/CMakeLists.txt")
 
@@ -493,10 +494,29 @@ elseif(${TARGET_TYPE} STREQUAL "linux_glib")
     Rmt
   )
 
-  set(CMAKE_C_FLAGS " ${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h ")
+  #
+  # Component: RINA API
+  #
+  file(GLOB RINA_API_SOURCES
+   "${CMAKE_CURRENT_SOURCE_DIR}/components/RINA_API/*.c"
+  )
+  add_library(RINA_API STATIC ${RINA_API_SOURCES})
+  target_include_directories(RINA_API PUBLIC
+    ${configSensor_INCLUDES}
+    ${configRINA_INCLUDES}
+    ${Common_INCLUDES}
+    ${Portability_INCLUDES}
+  )
+  target_link_libraries(RINA_API
+    Common
+    portability
+    BufferManagement
+  )
+
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h")
 
   add_subdirectory(unity)
 
 else()
-  message(" Unknown target ${TARGET_TYPE} ")
+  message("Unknown target ${TARGET_TYPE}")
 endif()

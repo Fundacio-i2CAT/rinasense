@@ -166,7 +166,7 @@ neighborInfo_t *pxEnrollmentCreateNeighInfo(string_t pcApName, portId_t xN1Port)
 }
 
 /*EnrollmentInit should create neighbor and enrollment object into the RIB*/
-void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xN1PortId)
+void xEnrollmentInit(struct ipcpInstanceData_t *pxIpcpData, portId_t xN1PortId)
 {
         LOGI(TAG_ENROLLMENT, "-------- Init Enrollment Task --------");
         name_t *pxSource;
@@ -300,7 +300,7 @@ bool_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj,
         return true;
 }
 
-bool_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t pcRemoteApName, portId_t xN1Port)
+bool_t xEnrollmentHandleConnectR(struct ipcpInstanceData_t *pxData, string_t pcRemoteApName, portId_t xN1Port)
 {
         neighborInfo_t *pxNeighbor = NULL;
         struct rmt_t *pxRmt;

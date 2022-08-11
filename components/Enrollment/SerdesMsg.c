@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 /* RINA includes. */
+#include "portability/rsmem.h"
 #include "rina_common_port.h"
 #include "configSensor.h"
 #include "configRINA.h"
@@ -196,7 +197,6 @@ static aDataMsg_t *prvSerdesMsgDecodeAData(rina_messages_a_data_t message)
 
 aDataMsg_t *pxSerdesMsgDecodeAData(uint8_t *pucBuffer, size_t xMessageLength)
 {
-
     bool_t status;
 
     /*Allocate space for the decode message data*/

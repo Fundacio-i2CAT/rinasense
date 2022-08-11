@@ -16,7 +16,7 @@
 #include "Ribd_api.h"
 #include "IPCP_api.h"
 
-extern struct ipcpNormalData_t *pxIpcpData;
+extern struct ipcpInstanceData_t *pxIpcpData;
 
 struct cepIdsEntry_t
 {
@@ -32,48 +32,6 @@ struct normalFlow_t
         eNormalFlowState_t eState;
         flowAllocateHandle_t *pxFlowHandle;
         RsListItem_t xFlowListItem;
-};
-
-struct ipcpInstanceData_t
-{
-        /* FIXME: add missing needed attributes */
-        /* Unique IPCP Instance Identifier (uint16_t) */
-        ipcProcessId_t xId;
-
-        /* IPCP Instance's Name */
-        name_t *pxName;
-
-        /* IPCP Instance's DIF Name */
-        name_t *pxDifName;
-
-        /* IPCP Instance's List of Flows created */
-        RsList_t xFlowsList;
-
-        /*  FIXME: Remove it as soon as the kipcm_kfa gets removed*/
-        // struct kfa *            kfa;
-
-        /* Efcp Container asociated at the IPCP Instance */
-        struct efcpContainer_t *pxEfcpc;
-
-        /* RMT asociated at the IPCP Instance */
-        struct rmt_t *pxRmt;
-
-        /* SDUP asociated at the IPCP Instance */
-        // struct sdup *           sdup;
-
-        address_t xAddress;
-        address_t xOldAddress;
-
-        /// spinlock_t              lock;
-
-        /* Instance List Item to be add into the Factory List*/
-        RsListItem_t xInstanceListItem;
-
-        /* Timers required for the address change procedure
-        struct {
-                struct timer_list use_naddress;
-            struct timer_list kill_oaddress;
-        } timers;*/
 };
 
 struct ipcpFactoryData_t
@@ -92,13 +50,13 @@ static bool_t xNormalInit(struct ipcpFactoryData_t *pxData)
         return true;
 }
 
-static ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t *pxFactoryData,
-                                                 ipcpInstanceType_t xType);
+static struct ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t *pxFactoryData,
+                                                        ipcpInstanceType_t xType);
 
-static ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t *pxFactoryData,
-                                                 ipcpInstanceType_t xType)
+static struct ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t *pxFactoryData,
+                                                        ipcpInstanceType_t xType)
 {
-        ipcpInstance_t *pxInstance;
+        struct ipcpInstance_t *pxInstance;
         RsListItem_t *pxListItem;
         RsListItem_t const *pxListEnd;
 
@@ -111,7 +69,7 @@ static ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t *pxFac
 
         while (pxListItem != pxListEnd)
         {
-                pxInstance = (ipcpInstance_t *)pRsListGetListItemOwner(pxListItem);
+                pxInstance = (struct ipcpInstance_t *)pRsListGetListItemOwner(pxListItem);
 
                 if (pxInstance)
                 {
@@ -147,9 +105,6 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
         while (pxListItem != pxListEnd)
         {
                 pxFlow = (struct normalFlow_t *)pRsListGetListItemOwner(pxListItem);
-
-                if (pxFlow == NULL)
-                        return false;
 
                 if (!pxFlow)
                         return false;
@@ -215,7 +170,7 @@ bool_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
         return pdTRUE;
 }*/
 
-bool_t xNormalFlowPrebind(struct ipcpNormalData_t *pxData,
+bool_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
                           flowAllocateHandle_t *pxFlowHandle)
 {
 
@@ -259,7 +214,7 @@ cepId_t xNormalConnectionCreateRequest(struct efcpContainer_t *pxEfcpc,
         cepId_t xCepId;
         struct normalFlow_t *pxFlow;
         struct cepIdsEntry_t *pxCepEntry;
-        ipcpInstance_t *pxIpcp;
+        struct ipcpInstance_t *pxIpcp;
 
         xCepId = xEfcpConnectionCreate(pxEfcpc, xSource, xDest,
                                        xAppPortId, xQosId,
@@ -331,14 +286,14 @@ cepId_t xNormalConnectionCreateRequest(struct efcpContainer_t *pxEfcpc,
  * @param pxN1Ipcp Ipcp Instance N-1 DIF
  * @return BaseType_t
  */
-bool_t xNormalFlowBinding(struct ipcpNormalData_t *pxUserData,
+bool_t xNormalFlowBinding(struct ipcpInstanceData_t *pxUserData,
                           portId_t xPid,
-                          ipcpInstance_t *pxN1Ipcp)
+                          struct ipcpInstance_t *pxN1Ipcp)
 {
         return xRmtN1PortBind(pxUserData->pxRmt, xPid, pxN1Ipcp);
 }
 
-bool_t xNormalTest(ipcpInstance_t *pxNormalInstance, ipcpInstance_t *pxN1Ipcp)
+bool_t xNormalTest(struct ipcpInstance_t *pxNormalInstance, struct ipcpInstance_t *pxN1Ipcp)
 {
         LOGI(TAG_IPCPNORMAL, "Test");
 
@@ -356,7 +311,7 @@ bool_t xNormalTest(ipcpInstance_t *pxNormalInstance, ipcpInstance_t *pxN1Ipcp)
         xBufferSize = strlen(ucStringTest);
         pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, 1000); // sizeof length DataUser packet.
 
-        LOGI(TAG_IPCPNORMAL, "BufferSize DU:%u", xBufferSize);
+        LOGI(TAG_IPCPNORMAL, "BufferSize DU:%zu", xBufferSize);
 
         /*Copy the string to the Buffer Network*/
         memcpy(pxNetworkBuffer->pucEthernetBuffer, ucStringTest, xBufferSize);
@@ -377,7 +332,7 @@ bool_t xNormalTest(ipcpInstance_t *pxNormalInstance, ipcpInstance_t *pxN1Ipcp)
         }*/
 
         /*Call to Normalwrite function to send data*/
-        if (xNormalDuWrite(pxNormalInstance->pxData, xId, testDu))
+        if (xNormalDuWrite(pxNormalInstance->pxData, xId, testDu->pxNetworkBuffer))
         {
                 LOGI(TAG_IPCPNORMAL, "Wrote packet on the shimWiFi");
                 return true;
@@ -475,7 +430,7 @@ static bool_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t *pxD
         return true;
 }
 
-bool_t xNormalDuEnqueue(struct ipcpNormalData_t *pxData,
+bool_t xNormalDuEnqueue(struct ipcpInstanceData_t *pxData,
                         portId_t xN1PortId,
                         struct du_t *pxDu)
 {
@@ -559,7 +514,7 @@ bool_t xNormalMgmtDuWrite(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *px
         return true;
 }
 
-bool_t xNormalMgmtDuPost(struct ipcpNormalData_t *pxData, portId_t xPortId, struct du_t *pxDu)
+bool_t xNormalMgmtDuPost(struct ipcpInstanceData_t *pxData, portId_t xPortId, struct du_t *pxDu)
 {
 
         if (!is_port_id_ok(xPortId))
@@ -633,7 +588,9 @@ static struct ipcpInstanceOps_t xNormalInstanceOps = {
 
 /* Called from the IPCP Task to the NormalIPCP register as APP into the SHIM DIF
  * depending on the Type of ShimDIF.*/
-bool_t xNormalRegistering(ipcpInstance_t *pxShimInstance, name_t *pxDifName, name_t *pxName)
+bool_t xNormalRegistering(struct ipcpInstance_t *pxShimInstance,
+                          name_t *pxDifName,
+                          name_t *pxName)
 {
 
         if (pxShimInstance->pxOps->applicationRegister == NULL)
@@ -698,6 +655,7 @@ xNormalConnectionCreateRequest(pxNormalInstance->pxData, xPortId,
                                pxDtcpCfg);
 
 #endif
+
 bool_t xNormalUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlowstate)
 {
         struct normalFlow_t *pxFlow = NULL;
@@ -786,7 +744,7 @@ bool_t xNormalConnectionUpdate(portId_t xAppPortId, cepId_t xSrcCepId, cepId_t x
 }
 
 static bool_t prvRemoveCepIdFromFlow(struct normalFlow_t *pxFlow,
-                                         cepId_t xCepId)
+                                     cepId_t xCepId)
 {
 #if 0
         
@@ -809,8 +767,8 @@ static bool_t prvRemoveCepIdFromFlow(struct normalFlow_t *pxFlow,
         pxFlow = pvPortMalloc(sizeof(*pxFlow));
 
         /* Find a way to iterate in the list and compare the addesss*/
-        pxListEnd = listGET_END_MARKER(&(pxIpcpData->xFlowsList));
-        pxListItem = listGET_HEAD_ENTRY(&(pxIpcpData->xFlowsList));
+        //pxListEnd = listGET_END_MARKER(&(pxIpcpData->xFlowsList));
+        //pxListItem = listGET_HEAD_ENTRY(&(pxIpcpData->xFlowsList));
 
         while (pxListItem != pxListEnd)
         {

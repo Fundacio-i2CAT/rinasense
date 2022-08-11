@@ -5,6 +5,7 @@
 
 #include "portability/port.h"
 
+#include "efcpStructures.h"
 #include "IPCP_frames.h"
 #include "IPCP_events.h"
 #include "rina_ids.h"
@@ -27,7 +28,7 @@ eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEth
 bool_t RINA_IPCPInit(void);
 
 struct rmt_t *pxIPCPGetRmt(void);
-struct efpcContainer_t *pxIPCPGetEfcpc(void);
+struct efcpContainer_t *pxIPCPGetEfcpc(void);
 
 portId_t xIPCPAllocatePortId(void);
 

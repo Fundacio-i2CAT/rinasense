@@ -13,6 +13,7 @@ else()
     CdapProto
     Rmt
     BufferManagement
+    IPCP
     EFCP
     FlowAllocator
     unity

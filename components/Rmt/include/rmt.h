@@ -4,7 +4,6 @@
 #include "du.h"
 #include "efcpStructures.h"
 #include "IPCP_instance.h"
-#include "IPCP_normal_defs.h"
 
 #define TAG_RMT "[RMT]"
 
@@ -47,7 +46,7 @@ typedef struct xRMT_N1_PORT
     portId_t xPortId;
 
     /* Shim Instance*/
-    ipcpInstance_t *pxN1Ipcp;
+    struct ipcpInstance_t *pxN1Ipcp;
 
     /* State of the Port*/
     eFlowState_t eState;
@@ -81,7 +80,7 @@ struct rmt_t
     RsList_t xAddresses;
 
     /* IPCP Instances Parent*/
-    ipcpInstance_t *pxParent;
+    struct ipcpInstance_t *pxParent;
 
     /* EFCP Container associated with */
     struct efcpContainer_t *pxEfcpc;
@@ -100,12 +99,12 @@ typedef struct xPORT_TABLE_ENTRY
 pci_t *vCastPointerTo_pci_t(void *pvArgument);
 bool_t xRmtSend(struct rmt_t *pxRmtInstance, struct du_t *pxDu);
 struct rmt_t *pxRmtCreate(struct efcpContainer_t *pxEfcpc);
-bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, ipcpInstance_t *pxN1Ipcp);
+bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, struct ipcpInstance_t *pxN1Ipcp);
 bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
                       portId_t xPortId,
                       struct du_t *pxDu);
 
-bool_t xRmtReceive(struct ipcpNormalData_t *pxRmt, struct du_t *pxDu, portId_t xFrom);
+bool_t xRmtReceive(struct ipcpInstanceData_t *pxRmt, struct du_t *pxDu, portId_t xFrom);
 bool_t xRmtAddressAdd(struct rmt_t *pxInstance, address_t xAddress);
 
 #endif /* COMPONENTS_RMT_INCLUDE_DU_H_ */
