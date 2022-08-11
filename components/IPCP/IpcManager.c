@@ -127,14 +127,6 @@ void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, portId_t x
     {
         LOGI(TAG_IPCPNORMAL, "There is not Flow Allocate Request API");
     }
-    if (pxShimInstance->pxOps->flowAllocateRequest(xN1PortId,
-                                                   pxIPCPName,
-                                                   destinationInfo,
-                                                   pxShimInstance->pxData))
-    {
-        LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
-        return pdTRUE;
-    }
 
     if (pxShimInstance->pxOps->flowAllocateRequest(pxShimInstance->pxData,
                                                    pxIPCPName,

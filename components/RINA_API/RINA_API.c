@@ -368,9 +368,9 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
                 break;
             }
 
-            (void)xEventGroupWaitBits(pxFlowAllocateRequest->xEventGroup, (EventBits_t)eFLOW_BOUND, pdTRUE, pdFALSE, portMAX_DELAY);
+            (void)xEventGroupWaitBits(pxFlowAllocateRequest->xEventGroup, (EventBits_t)eFLOW_ACCEPT, pdTRUE, pdFALSE, portMAX_DELAY);
         }
-        /* The IPCP-task will set the 'eFLOW_BOUND' bit when it has done its
+        /* The IPCP-task will set the 'eFLOW_ACCEPT' Allocated bit when it has done its
          * job. */
     }
     ESP_LOGI(TAG_RINA, "Flow allocated in the port Id:%d", pxFlowAllocateRequest->xPortId);
@@ -527,10 +527,6 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
              * flow, thus unblocking this API call. */
             xEventBits = xEventGroupWaitBits(pxFlowHandle->xEventGroup, ((EventBits_t)eFLOW_RECEIVE),
                                              pdTRUE /*xClearOnExit*/, pdFALSE /*xWaitAllBits*/, xRemainingTime);
-
-            {
-                (void)xEventBits;
-            }
 
             xPacketCount = (BaseType_t)listCURRENT_LIST_LENGTH(&(pxFlowHandle->xListWaitingPackets));
 

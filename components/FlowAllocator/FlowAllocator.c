@@ -345,9 +345,9 @@ bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
     pxFAI->eFaiState = eFAI_ALLOCATED;
     LOGI(TAG_FA, "Flow state updated to Allocated");
 
-    if (pxFAI->pxFlowAllocatorHandle->xEventBits != NULL)
+    if (pxFAI->pxFlowAllocatorHandle != NULL)
     {
-        (void)xEventGroupSetBits(pxFAI->pxFlowAllocatorHandle->xEventGroup, (EventBits_t)eFLOW_BOUND);
+        (void)xEventGroupSetBits(pxFAI->pxFlowAllocatorHandle->xEventGroup, (EventBits_t)eFLOW_ACCEPT);
     }
 
     return true;
