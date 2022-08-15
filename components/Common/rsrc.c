@@ -351,7 +351,7 @@ static int prviRsrcAdd2Pool (rsrcPoolP_t pxPool, unsigned int uiCount, size_t xR
 	if (pxPool->uiNumInUse + pxPool->uiNumFree == 0)
 		pxPool->uiLowWater = uiCount;	// only happens once, at first allocation
 	
-	for (int i = 0; i < uiCount; i++, space += xResSize) {
+	for (unsigned int i = 0; i < uiCount; i++, space += xResSize) {
 		struct rsrc *rsrc = (struct rsrc *)space;
 		
 		prvvFreeResTail (pxPool, rsrc, 0); // FIXME! Is 0 right on new ones?
@@ -411,7 +411,7 @@ void vRsrcDefaultPrintPoolHelper (rsrcPoolP_t pxOwningPool, void *pxPool2Print)
 {
 	rsrcPoolP_t pxPool = (rsrcPoolP_t) pxPool2Print;
 	
-	logPrintf(TAG, "=== Pool %s: %llu(Tot), %u(A), %u(AHi), %u(F), %u(FLo)",
+	logPrintf(TAG, "=== Pool %s: %ju(Tot), %u(A), %u(AHi), %u(F), %u(FLo)",
 			  pxPool->pcName, pxPool->ulTotalAllocs, pxPool->uiNumInUse,
 			  pxPool->uiHiWater, pxPool->uiNumFree, pxPool->uiLowWater);
 }
@@ -432,7 +432,7 @@ void prvvRsrcPrintCom (rsrcPoolP_t pxPool2Print, int iPrintRsrcs)
 		rsrcPoolP_t pxPool = (rsrcPoolP_t)pxPoolWalker;
 		if (pxPool2Print && pxPool2Print != pxPool) // ignore uninteresting pools
 			continue;
-		DEBUGPRINTF(TAG, "%s: %llu(Tot), %u(A), %u(AHi), %u(F), %u(FLo)\n",
+		DEBUGPRINTF(TAG, "%s: %ju(Tot), %u(A), %u(AHi), %u(F), %u(FLo)\n",
 				  pxPool->pcName, pxPool->ulTotalAllocs,
 				  pxPool->uiNumInUse, pxPool->uiHiWater, pxPool->uiNumFree, pxPool->uiLowWater);
 		if (xRsrcPoolPool.pxPrintHelper) {
@@ -558,7 +558,7 @@ void vRsrcPrintResInHexHelper (rsrcPoolP_t pxPool, void *pvRsrcPayload)
 		for (int i = 0; i < numtoprint; i++) {
 			logPrintf (TAG, "%08x ", pi[i]);
 		}
-		for (int i = 0; i < (numtoprint*(sizeof (int))); i++) {
+		for (unsigned int i = 0; i < (numtoprint*(sizeof (int))); i++) {
 			c = (*pi >> (24 - i*8)) & 0xff;
 			if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
 				(c >= '0' && c <= '9')) {

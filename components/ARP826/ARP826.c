@@ -331,9 +331,10 @@ bool_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, 0);
 
-	if (pxNetworkBuffer != NULL)
-	{
-		pxNetworkBuffer->ulGpa = pxTpa->pucAddress;
+	if (pxNetworkBuffer != NULL) {
+        /* FIXME: This assignment makes no sense and the compiler
+           complains about it. */
+		/*pxNetworkBuffer->ulGpa = pxTpa->pucAddress; */
 
 		prvARPGeneratePacket(pxNetworkBuffer, pxSha, pxSpa, pxTpa, ARP_REQUEST);
 

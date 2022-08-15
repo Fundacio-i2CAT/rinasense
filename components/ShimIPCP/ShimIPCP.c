@@ -330,7 +330,7 @@ bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData,
 	if (pxFlow->ePortIdState == eALLOCATED)
 	{
 		LOGI(TAG_SHIM, "Flow with id:%d was allocated", pxFlow->xPortId);
-		xEnrollEvent.pvData = xPortId;
+		xEnrollEvent.pvData = (void *)(uintptr_t)xPortId;
 		xSendEventStructToIPCPTask(&xEnrollEvent, 250 * 1000);
 	}
 
@@ -535,15 +535,10 @@ bool_t xShimApplicationUnregister(struct ipcpInstanceData_t *pxData, const name_
 
 /***************** **************************/
 
-int string_len(const string_t s)
-{
-	return strlen(s);
-}
-
 string_t pcShimNameToString(const name_t *n)
 {
 	string_t tmp;
-	size_t size;
+	ssize_t size;
 	const string_t none = "";
 	size_t none_len = strlen(none);
 
@@ -552,16 +547,16 @@ string_t pcShimNameToString(const name_t *n)
 
 	size = 0;
 
-	size += (n->pcProcessName ? string_len(n->pcProcessName) : none_len);
+	size += (n->pcProcessName ? strlen(n->pcProcessName) : none_len);
 	size += strlen(DELIMITER);
 
-	size += (n->pcProcessInstance ? string_len(n->pcProcessInstance) : none_len);
+	size += (n->pcProcessInstance ? strlen(n->pcProcessInstance) : none_len);
 	size += strlen(DELIMITER);
 
-	size += (n->pcEntityName ? string_len(n->pcEntityName) : none_len);
+	size += (n->pcEntityName ? strlen(n->pcEntityName) : none_len);
 	size += strlen(DELIMITER);
 
-	size += (n->pcEntityInstance ? string_len(n->pcEntityInstance) : none_len);
+	size += (n->pcEntityInstance ? strlen(n->pcEntityInstance) : none_len);
 	size += strlen(DELIMITER);
 
 	tmp = pvRsMemAlloc(size);
@@ -700,9 +695,9 @@ int QueueDestroy(rfifo_t *f,
 
 	vRsQueueDelete(f->xQueue);
 
-	vRsMemFree(f);
-
 	LOGI(TAG_SHIM, "FIFO %pK destroyed successfully", f);
+
+	vRsMemFree(f);
 
 	return 0;
 }
@@ -770,7 +765,7 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 
 	if (uxLength > MTU)
 	{
-		LOGE(TAG_SHIM, "SDU too large (%u), dropping", uxLength);
+		LOGE(TAG_SHIM, "SDU too large (%zu), dropping", uxLength);
 		xDuDestroy(pxDu);
 		return false;
 	}

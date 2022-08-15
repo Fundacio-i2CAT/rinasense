@@ -147,10 +147,10 @@ static bool_t xEfcpDestroy(struct efcp_t *pxInstance)
                 delim_destroy(pxInstance->delim);
         }*/
 
+        LOGI(TAG_EFCP, "EFCP instance %pK finalized successfully", pxInstance);
+
         /*robject_del(&instance->robj);*/
         vRsMemFree(pxInstance);
-
-        LOGI(TAG_EFCP, "EFCP instance %pK finalized successfully", pxInstance);
 
         return true;
 }
@@ -700,6 +700,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         }
 
         pxDtcp = NULL;
+
 #if 0
         rcu_read_lock();
         dtp_ps = dtp_ps_get(efcp->dtp);

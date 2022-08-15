@@ -30,7 +30,16 @@ if(NOT $ENV{IDF_PATH} STREQUAL "")
   set(ENV{NETWORKINTERFACE_MODULE} "mq")
 
   include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+
+  add_compile_options(
+    -Wno-unused-but-set-variable
+    -Wno-unused-function
+    -Wno-unused-variable
+    -Wno-unused-parameter
+  )
+
   project(unit_test)
+
 else()
   message(FATAL "This CMakeLists.txt file is to use with the ESP IDF only!")
 endif()

@@ -55,7 +55,7 @@ RS_TEST_CASE(BitArrayLarge, "[bitarray]")
         vBitArraySetBit(ba, i);
 
     for (int i = 0; i < (10000 / 32) - 1; i++)
-        TEST_ASSERT(*(uint32_t *)((void *)ba + sizeof(bitarray_t) + i * sizeof(uint32_t)) == -1);
+        TEST_ASSERT(*(uint32_t *)((void *)ba + sizeof(bitarray_t) + i * sizeof(uint32_t)) == (uint32_t)-1);
 
     vBitArrayFree(ba);
 

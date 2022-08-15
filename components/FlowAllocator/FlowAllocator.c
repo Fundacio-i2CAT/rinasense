@@ -26,11 +26,7 @@
 #include "SerdesMsg.h"
 #include "IPCP_api.h"
 
-#ifdef ESP_PLATFORM
-static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
-#else
 static pthread_mutex_t mux;
-#endif
 
 static FlowRequestRow_t xFlowRequestTable[FLOWS_REQUEST];
 
@@ -155,7 +151,7 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 
     dtpConfig_t *pxDtpConfig;
     policy_t *pxDtpPolicySet;
-    struct dtcpConfig_t *pxDtcpConfig = NULL;
+    /* UNUSED struct dtcpConfig_t *pxDtcpConfig = NULL; */
 
     pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
@@ -415,27 +411,12 @@ bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
     /* Add the network packet to the list of packets to be
      * processed by the socket. */
 
-#ifdef ESP_PLATFORM
-    // wakeup client setting bits
-    vTaskSuspendAll();
-    {
-        taskENTER_CRITICAL(&mux);
-        {
-            vListInitialiseItem(&(pxNetworkBuffer->xBufferListItem));
-            listSET_LIST_ITEM_OWNER(&(pxNetworkBuffer->xBufferListItem), (void *)pxNetworkBuffer);
-            vListInsertEnd(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxNetworkBuffer->xBufferListItem));
-        }
-        taskEXIT_CRITICAL(&mux);
-    }
-    (void)xTaskResumeAll();
-#else
     pthread_mutex_lock(&mux);
     {
         vRsListInitItem(&(pxNetworkBuffer->xBufferListItem), (void *)pxNetworkBuffer);
         vRsListInsert(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxNetworkBuffer->xBufferListItem));
     }
     pthread_mutex_unlock(&mux);
-#endif
 
     pthread_mutex_lock(&pxFlowAllocatorInstance->pxFlowAllocatorHandle->xEventMutex);
     {

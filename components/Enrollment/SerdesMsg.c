@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 
 /* RINA includes. */
 #include "portability/rsmem.h"
@@ -19,6 +20,18 @@
 #include "Rib.h"
 #include "FlowMessage.pb.h"
 #include "FlowAllocator.h"
+
+#ifdef __LONG_WIDTH__
+#if __LONG_WIDTH__ == 32
+#define ULONG_FMT "%llu"
+#elif __LONG_WIDTH__ == 64
+#define ULONG_FMT "%lu"
+#else
+#error Not sure how to handle this __LONG_WIDTH__
+#endif
+#else
+#error __LONG_WIDTH__ is not defined
+#endif
 
 /**
  * @brief Encode a Enrollment message and return the serialized object value to be
@@ -417,12 +430,13 @@ static flow_t *prvSerdesMsgDecodeFlow(rina_messages_Flow message)
 
     return pxMessage;
 }
+
 void prvPrintDecodeFlow(rina_messages_Flow message)
 {
     LOGI(TAG_RIB, "--------Flow Message--------");
 
     if (message.has_destinationAddress)
-        LOGI(TAG_RIB, "Destination Address:%lld", message.destinationAddress);
+        LOGI(TAG_RIB, "Destination Address:"ULONG_FMT, message.destinationAddress);
 
     LOGI(TAG_RIB, "Destination PN:%s", message.destinationNamingInfo.applicationProcessName);
     if (message.destinationNamingInfo.has_applicationEntityName)
@@ -432,9 +446,10 @@ void prvPrintDecodeFlow(rina_messages_Flow message)
     if (message.destinationNamingInfo.has_applicationProcessInstance)
         LOGI(TAG_RIB, "Destination PI:%s", message.destinationNamingInfo.applicationProcessInstance);
     if (message.has_destinationPortId)
-        LOGI(TAG_RIB, "Destination PortId:%lld", message.destinationPortId);
+        LOGI(TAG_RIB, "Destination PortId:"ULONG_FMT, message.destinationPortId);
 
-    LOGI(TAG_RIB, "Source Address:%lld", message.sourceAddress);
+    LOGI(TAG_RIB, "Source Address:"ULONG_FMT, message.sourceAddress);
+
     LOGI(TAG_RIB, "Source PN:%s", message.sourceNamingInfo.applicationProcessName);
     if (message.sourceNamingInfo.has_applicationEntityName)
         LOGI(TAG_RIB, "Source EN:%s", message.sourceNamingInfo.applicationEntityName);
@@ -443,7 +458,7 @@ void prvPrintDecodeFlow(rina_messages_Flow message)
     if (message.sourceNamingInfo.has_applicationProcessInstance)
         LOGI(TAG_RIB, "Source PI:%s", message.sourceNamingInfo.applicationProcessInstance);
 
-    LOGI(TAG_RIB, "Source PortId:%lld", message.sourcePortId);
+    LOGI(TAG_RIB, "Source PortId:"ULONG_FMT, message.sourcePortId);
 
     if (message.connectionIds->has_destinationCEPId)
         LOGI(TAG_RIB, "Connection Dest Cep Id:%d", (int)message.connectionIds->destinationCEPId);

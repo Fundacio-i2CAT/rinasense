@@ -202,7 +202,7 @@ messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
     pxMessageCdap->pxSourceInfo = pxSourceInfo;
     pxMessageCdap->pxAuthPolicy = pxAuthPolicy;
 
-    pxMessageCdap->eOpCode = message.opCode;
+    pxMessageCdap->eOpCode = (opCode_t)message.opCode;
     pxMessageCdap->version = message.version;
     pxMessageCdap->invokeID = message.invokeID;
     pxMessageCdap->result = message.result;
@@ -307,7 +307,7 @@ rina_messages_CDAPMessage prvRibdSerToRinaMessage(messageCdap_t *pxMessageCdap)
     message.version = pxMessageCdap->version;
     message.has_version = true;
 
-    message.opCode = pxMessageCdap->eOpCode;
+    message.opCode = (rina_messages_opCode_t)pxMessageCdap->eOpCode;
 
     message.invokeID = pxMessageCdap->invokeID;
     message.has_invokeID = true;
@@ -417,7 +417,6 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
     bool_t status;
     uint8_t *pucBuffer[128];
     size_t xMessageLength;
-    struct timespec ts;
 
     /*Create a stream that will write to the buffer*/
     pb_ostream_t stream = pb_ostream_from_buffer((pb_byte_t *)pucBuffer, sizeof(pucBuffer));
@@ -428,7 +427,7 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
     message.version = pxMessageCdap->version;
     message.has_version = true;
 
-    message.opCode = pxMessageCdap->eOpCode;
+    message.opCode = (rina_messages_opCode_t)pxMessageCdap->eOpCode;
 
     message.invokeID = pxMessageCdap->invokeID;
     message.has_invokeID = true;
@@ -539,7 +538,7 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
         return NULL;
     }
 
-    LOGI(TAG_RIB, "Message CDAP with length: %u encoded sucessfully ", xMessageLength);
+    LOGI(TAG_RIB, "Message CDAP with length: %zu encoded sucessfully ", xMessageLength);
 
     /*Request a Network Buffer according to Message Length*/
     NetworkBufferDescriptor_t *pxNetworkBuffer;
@@ -581,12 +580,11 @@ messageCdap_t *prvRibdDecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength)
 appConnection_t *pxRibdFindAppConnection(portId_t xPortId)
 {
     LOGI(TAG_RIB, "Looking for an active connection in the port id %d", xPortId);
-    bool_t x = 0;
+    num_t x = 0;
     appConnection_t *pxAppConnection;
     pxAppConnection = pvRsMemAlloc(sizeof(*pxAppConnection));
 
     for (x = 0; x < APP_CONNECTION_TABLE_SIZE; x++)
-
     {
         if (xAppConnectionTable[x].xValid == true)
         {
@@ -750,7 +748,7 @@ bool_t xRibdConnectToIpcp(struct ipcpInstanceData_t *pxIpcpData, name_t *pxSourc
     messageCdap_t *pxMessageEncode = prvRibMessageCdapInit();
 
     /*Fill the Message to be encoded in the connection*/
-    pxMessageEncode->eOpCode = rina_messages_opCode_t_M_CONNECT;
+    pxMessageEncode->eOpCode = (opCode_t)rina_messages_opCode_t_M_CONNECT;
     pxMessageEncode->pxDestinationInfo->pcEntityName = strdup(pxDestInfo->pcEntityName);
     pxMessageEncode->pxDestinationInfo->pcProcessInstance = strdup(pxDestInfo->pcProcessInstance);
     pxMessageEncode->pxDestinationInfo->pcProcessName = strdup(pxDestInfo->pcProcessName);
@@ -791,7 +789,7 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
     LOGE(TAG_RIB, "DECODE");
     LOGE(TAG_RIB, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
     LOGE(TAG_RIB, "Invoke Id: %d ", pxDecodeCdap->invokeID);
-    LOGE(TAG_RIB, "Version: %lld", pxDecodeCdap->version);
+    LOGE(TAG_RIB, "Version: %jd", pxDecodeCdap->version);
     if (pxDecodeCdap->pxAuthPolicy->pcName != NULL)
     {
         LOGE(TAG_RIB, "AuthPolicy Name: %s", pxDecodeCdap->pxAuthPolicy->pcName);
@@ -1092,6 +1090,7 @@ bool_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objInst,
     case M_START_R:
         pxMsgCdap = prvRibdFillEnrollMsgStart(pcObjClass, pcObjName, objInst, eOpCode, pxObjVal,
                                               result, pcResultReason, invokeId);
+        break;
     case M_STOP_R:
         pxMsgCdap = prvRibdFillEnrollMsgStop(pcObjClass, pcObjName, objInst, eOpCode, pxObjVal,
                                              result, pcResultReason, invokeId);

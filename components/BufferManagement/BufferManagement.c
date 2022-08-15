@@ -36,9 +36,6 @@
 STATIC_ASSERT(ipconfigETHERNET_MINIMUM_PACKET_BYTES <= baMINIMAL_BUFFER_SIZE);
 #endif
 
-
-#define BUFFER_PADDING 0U
-
 int count = 0;
 
 /* A list of free (available) NetworkBufferDescriptor_t structures. */

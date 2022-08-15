@@ -63,7 +63,7 @@ struct rsrcPool {
 	rsrcFreeHelper_t	*pxFreeHelper;
 	rsrcPrintHelper_t	*pxPrintHelper;
 	const char	*pcName;			// lifetime must be >= that of the rsrcPool
-	uint64_t	ulTotalAllocs;
+	uintmax_t	ulTotalAllocs;
 	size_t		uxSizeEach;			// sizeof of the resource type, 0 if variable
 	uint16_t	uiIncrement;		// additional to allocate when free list empty
 	uint16_t	uiFreeOnFree;		// nonzero for dynamic pools

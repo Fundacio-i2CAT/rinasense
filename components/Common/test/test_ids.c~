@@ -1,3 +1,0 @@
-
-RS_TEST_CASE_SETUP(test_ids) {}
-RS_TEST_CASE_TEARDOWN(test_ids) {}
