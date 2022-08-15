@@ -1,4 +1,5 @@
 #include "common/rina_ids.h"
+#include "efcpStructures.h"
 #include "du.h"
 #include "efcpStructures.h"
 

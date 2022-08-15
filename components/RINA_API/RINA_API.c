@@ -61,7 +61,10 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif,
 {
     name_t *xDn, *xAppn, *xDan;
     registerApplicationHandle_t *xRegAppRequest;
-    RINAStackEvent_t xStackAppRegistrationEvent = {eStackAppRegistrationEvent, NULL};
+    RINAStackEvent_t xStackAppRegistrationEvent = {
+        .eEventType = eStackAppRegistrationEvent,
+        .xData.PV = NULL
+    };
 
     xRegAppRequest = pvRsMemAlloc(sizeof(registerApplicationHandle_t));
     if (!xRegAppRequest) {
@@ -107,7 +110,7 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif,
     xRegAppRequest->pxDifName = xDn;
     xRegAppRequest->pxDafName = xDan;
 
-    xStackAppRegistrationEvent.pvData = xRegAppRequest;
+    xStackAppRegistrationEvent.xData.PV = xRegAppRequest;
 
     if (xSendEventStructToIPCPTask(&xStackAppRegistrationEvent, (TickType_t)0U) == pdPASS)
         {
@@ -128,7 +131,7 @@ bool_t xRINA_bind(flowAllocateHandle_t *pxFlowRequest)
     }
 
     xBindEvent.eEventType = eFlowBindEvent;
-    xBindEvent.pvData = (void *)pxFlowRequest;
+    xBindEvent.xData.PV = (void *)pxFlowRequest;
 
     if (xSendEventStructToIPCPTask(&xBindEvent, 0) == false)
         /* Failed to wake-up the IPCP-task, no use to wait for it */
@@ -292,7 +295,10 @@ bool_t RINA_flowStatus(portId_t xAppPortId)
 bool_t prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
 {
     bool_t xResult = 0;
-    RINAStackEvent_t xStackFlowAllocateEvent = {eStackFlowAllocateEvent, NULL};
+    RINAStackEvent_t xStackFlowAllocateEvent = {
+        .eEventType = eStackFlowAllocateEvent,
+        .xData.PV = NULL
+    };
 
     if (pxFlowAllocateRequest == NULL) {
         LOGE(TAG_RINA, "No flow request passed");
@@ -405,7 +411,10 @@ size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
     void *pvCopyDest;
     struct RsTimeOut xTimeOut;
     useconds_t xTimeToWait, xTimeDiff;
-    RINAStackEvent_t xStackTxEvent = {eStackTxEvent, NULL};
+    RINAStackEvent_t xStackTxEvent = {
+        .eEventType = eStackTxEvent,
+        .xData.PV = NULL
+    };
 
     /* Check that DataLength is not longer than MAX_SDU_SIZE. We
      * don't know yet WHAT to do if this is not true so make sure we
@@ -437,7 +446,7 @@ size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
         pxNetworkBuffer->xDataLength = uxTotalDataLength;
         pxNetworkBuffer->ulBoundPort = xPortId;
 
-        xStackTxEvent.pvData = pxNetworkBuffer;
+        xStackTxEvent.xData.PV = pxNetworkBuffer;
 
         if (xSendEventStructToIPCPTask(&xStackTxEvent, xTimeToWait))
             return uxTotalDataLength;
@@ -460,7 +469,7 @@ bool_t RINA_close(portId_t xAppPortId)
 
     RINAStackEvent_t xDeallocateEvent;
     xDeallocateEvent.eEventType = eFlowDeallocateEvent;
-    xDeallocateEvent.pvData = (void *)(long)xAppPortId;
+    xDeallocateEvent.xData.UN = xAppPortId;
 
     if (!is_port_id_ok(xAppPortId))
         xResult = false;

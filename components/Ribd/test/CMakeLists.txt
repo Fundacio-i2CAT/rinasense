@@ -21,6 +21,7 @@ else()
     pthread
     Common
     portability
+    NetworkInterface_MQ
   )
 
   add_executable(test_rib "${CMAKE_CURRENT_LIST_DIR}/test_rib.c")

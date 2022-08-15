@@ -1,6 +1,8 @@
 #ifndef _COMPONENTS_IPCP_EVENTS_H
 #define _COMPONENTS_IPCP_EVENTS_H
 
+#include <stdint.h>
+
 typedef enum RINA_EVENTS
 {
     eNoEvent = -1,
@@ -28,7 +30,13 @@ typedef enum RINA_EVENTS
 typedef struct xRINA_TASK_COMMANDS
 {
     eRINAEvent_t eEventType; /**< The event-type enum */
-    void *pvData;            /**< The data in the event */
+    union {
+        void    *PV;
+        uint32_t UN;
+        int32_t  N;
+        char     C;
+        uint8_t  B;
+    } xData;                 /**< The data in the event */
 } RINAStackEvent_t;
 
 #endif // _COMPONENTS_IPCP_EVENTS_H

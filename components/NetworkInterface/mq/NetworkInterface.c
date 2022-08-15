@@ -299,7 +299,7 @@ bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 		/* Copy the packet data. */
 		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
-		xRxEvent.pvData = (void *)pxNetworkBuffer;
+		xRxEvent.xData.PV = (void *)pxNetworkBuffer;
 
 		if (xSendEventStructToIPCPTask(&xRxEvent, 0) == false)
 		{

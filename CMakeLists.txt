@@ -18,7 +18,7 @@ if("${TARGET_TYPE}" STREQUAL "" OR "${TARGET_TYPE}" STREQUAL "freertos_idf")
 
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
     add_compile_definitions(configUSE_POSIX_ERRNO=1)
-    add_compile_definitions(
+    add_compile_options(
       -Wno-unused-but-set-variable
       -Wno-unused-function
       -Wno-unused-variable

@@ -353,7 +353,7 @@ bool_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 
 			/* Send a message to the IPCP-task to send this ARP packet. */
 			xSendEvent.eEventType = eNetworkTxEvent;
-			xSendEvent.pvData = pxNetworkBuffer;
+			xSendEvent.xData.PV = (void *)pxNetworkBuffer;
 
 			if (!xSendEventStructToIPCPTask(&xSendEvent, 1000))
 			{
