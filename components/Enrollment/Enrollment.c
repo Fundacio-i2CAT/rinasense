@@ -17,6 +17,7 @@
 #include "Rib.h"
 #include "SerdesMsg.h"
 #include "IPCP_normal_defs.h"
+#include "IPCP_api.h"
 
 static neighborsTableRow_t xNeighborsTable[NEIGHBOR_TABLE_SIZE];
 
@@ -165,7 +166,7 @@ neighborInfo_t *pxEnrollmentCreateNeighInfo(string_t pcApName, portId_t xN1Port)
 }
 
 /*EnrollmentInit should create neighbor and enrollment object into the RIB*/
-void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xPortId)
+void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xN1PortId)
 {
         LOGI(TAG_ENROLLMENT, "-------- Init Enrollment Task --------");
         name_t *pxSource;
@@ -203,7 +204,7 @@ void xEnrollmentInit(struct ipcpNormalData_t *pxIpcpData, portId_t xPortId)
         /*Creating Operational Status into the the RIB*/
         pxRibCreateObject("/difm/ops", 1, "OperationalStatus", "OperationalStatus", OPERATIONAL);
 
-        (void)xRibdConnectToIpcp(pxIpcpData, pxSource, pxDestInfo, xPortId, pxAuth);
+        (void)xRibdConnectToIpcp(pxIpcpData, pxSource, pxDestInfo, xN1PortId, pxAuth);
 }
 
 bool_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj,
@@ -302,6 +303,7 @@ bool_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj,
 bool_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t pcRemoteApName, portId_t xN1Port)
 {
         neighborInfo_t *pxNeighbor = NULL;
+        struct rmt_t *pxRmt;
 
         // Check if the neighbor is already in the neighbor list, add it if not
         pxNeighbor = pxEnrollmentFindNeighbor(pcRemoteApName);
@@ -315,13 +317,15 @@ bool_t xEnrollmentHandleConnectR(struct ipcpNormalData_t *pxData, string_t pcRem
 
         pxNeighbor->eEnrollmentState = eENROLLMENT_IN_PROGRESS;
 
+        pxRmt = pxIPCPGetRmt();
+
         // Send M_START to the enroller if not enrolled
         enrollmentMessage_t *pxEnrollmentMsg = pvRsMemAlloc(sizeof(*pxEnrollmentMsg));
         pxEnrollmentMsg->ullAddress = LOCAL_ADDRESS;
 
         serObjectValue_t *pxObjVal = pxSerdesMsgEnrollmentEncode(pxEnrollmentMsg);
 
-        if (!xRibdSendRequest(pxData, "Enrollment", "/difm/enr", -1, M_START, xN1Port, pxObjVal))
+        if (!xRibdSendRequest("Enrollment", "/difm/enr", -1, M_START, xN1Port, pxObjVal))
         {
                 LOGE(TAG_ENROLLMENT, "It was a problem to sen the request");
                 return false;

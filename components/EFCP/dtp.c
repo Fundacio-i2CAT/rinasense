@@ -12,34 +12,6 @@
 #include "EFCP.h"
 
 #define TAG_DTP "[DTP]"
-/*
-static dtpSv_t default_sv = {
-    .xNextSeqNumberToSend = 0,        // ok
-    .xMaxSeqNumberToSend = 0,         // ok
-    .xSeqNumberRolloverThreshold = 0, // ok
-    .xMaxSeqNumberRcvd = 0,           // ok
-    .stats = {
-        .drop_pdus = 0,          // ok
-        .err_pdus = 0,           // ok
-        .tx_pdus = 0,            // ok
-        .tx_bytes = 0,           // ok
-        .rx_pdus = 0,            // ok
-        .rx_bytes = 0},          // ok
-    .xRexmsnCtrl = false,        // ok
-    .xRateBased = false,         // ok
-    .xWindowBased = false,       // ok
-    .xDrfRequired = true,        // ok
-    .xRateFulfiled = false,      // ok
-    .xMaxFlowPduSize = UINT_MAX, // ok
-    .xMaxFlowSduSize = UINT_MAX, // ok
-    //.MPL                  = 1000,
-    //.R                    = 100,
-    //.A                    = 0,
-    //.tr                   = 0,
-    .xRcvLeftWindowEdge = 0, // ok
-    .xWindowClosed = false,  // ok
-    .xDrfFlag = true,        // ok
-};*/
 
 dtpSv_t *pxDtpStateVectorInit(void);
 dtpSv_t *pxDtpStateVectorInit(void)
@@ -58,20 +30,20 @@ dtpSv_t *pxDtpStateVectorInit(void)
         pxDtpSv->stats.rx_pdus = 0;               // ok
         pxDtpSv->stats.rx_bytes = 0;
         // ok
-        pxDtpSv->xRexmsnCtrl = false;        // ok
-        pxDtpSv->xRateBased = false;         // ok
-        pxDtpSv->xWindowBased = false;       // ok
-        pxDtpSv->xDrfRequired = true;        // ok
-        pxDtpSv->xRateFulfiled = false;      // ok
+        pxDtpSv->xRexmsnCtrl = pdFALSE;      // ok
+        pxDtpSv->xRateBased = pdFALSE;       // ok
+        pxDtpSv->xWindowBased = pdFALSE;     // ok
+        pxDtpSv->xDrfRequired = pdTRUE;      // ok
+        pxDtpSv->xRateFulfiled = pdFALSE;    // ok
         pxDtpSv->xMaxFlowPduSize = UINT_MAX; // ok
         pxDtpSv->xMaxFlowSduSize = UINT_MAX; // ok
         //.MPL                  = 1000,
         //.R                    = 100,
         //.A                    = 0,
         //.tr                   = 0,
-        pxDtpSv->xRcvLeftWindowEdge = 0; // ok
-        pxDtpSv->xWindowClosed = false;  // ok
-        pxDtpSv->xDrfFlag = true;        // ok
+        pxDtpSv->xRcvLeftWindowEdge = 0;  // ok
+        pxDtpSv->xWindowClosed = pdFALSE; // ok
+        pxDtpSv->xDrfFlag = pdTRUE;       // ok
 
         return pxDtpSv;
 }
@@ -91,7 +63,7 @@ bool_t xDtpPduSend(dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu)
                         ESP_LOGI(TAG_DTP,"Sending to RMT in RV at RCVR");
                 }*/
 
-                if (xRmtSend(pxRmt, pxDu))
+                if (!xRmtSend(pxRmt, pxDu))
                 {
                         LOGE(TAG_DTP, "Problems sending PDU to RMT");
                         return false;
@@ -107,7 +79,7 @@ bool_t xDtpPduSend(dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu)
         if (!pxEfcpContainer || xDuDecap(pxDu) || !xDuIsOk(pxDu))
         { /*Decap PDU */
                 LOGE(TAG_DTP, "Could not retrieve the EFCP container in"
-                                  "loopback operation");
+                              "loopback operation");
                 xDuDestroy(pxDu);
                 return false;
         }
@@ -159,14 +131,16 @@ bool_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
         /* Probably needs to be revised */
 
         sbytes = xDuLen(pxDu);
+        sbytes = pxDu->pxNetworkBuffer->xDataLength;
 
-        LOGI(TAG_DTP,"Calling DUEncap");
-        LOGI(TAG_DTP,"Sbytes: %d", sbytes);
-	if (!xDuEncap(pxDu, PDU_TYPE_DT)){
-		LOGE(TAG_DTP,"Could not encap PDU");
-		xDuDestroy(pxDu);
-	        return false;
-	}
+        LOGI(TAG_DTP, "Calling DUEncap");
+        LOGI(TAG_DTP, "Sbytes: %d", sbytes);
+        if (!xDuEncap(pxDu, PDU_TYPE_DT))
+        {
+                LOGE(TAG_DTP, "Could not encap PDU");
+                xDuDestroy(pxDu);
+                return false;
+        }
 
         xCsn = ++pxDtpInstance->pxDtpStateVector->xNextSeqNumberToSend;
 
@@ -181,27 +155,20 @@ bool_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
         pxDu->pxPci->xType = PDU_TYPE_DT;
         pxDu->pxPci->xPduLen = pxDu->pxNetworkBuffer->xDataLength;
         pxDu->pxPci->xSequenceNumber = xCsn;
-
-        LOGI(TAG_DTP,"------------ PCI -----------");
-        LOGI(TAG_DTP,"PCI Version: 0x%04x",pxDu->pxPci->ucVersion);
-        LOGI(TAG_DTP,"PCI SourceAddress: 0x%04x",pxDu->pxPci->xSource);
-        LOGI(TAG_DTP,"PCI DestinationAddress: 0x%04x",pxDu->pxPci->xDestination);
-        LOGI(TAG_DTP,"PCI QoS: 0x%04x",pxDu->pxPci->connectionId_t.xQosId);
-        LOGI(TAG_DTP,"PCI CEP Source: 0x%04x",pxDu->pxPci->connectionId_t.xSource);
-        LOGI(TAG_DTP,"PCI CEP Destination: 0x%04x",pxDu->pxPci->connectionId_t.xDestination);
-        LOGI(TAG_DTP,"PCI FLAG: 0x%04x",pxDu->pxPci->xFlags);
-        LOGI(TAG_DTP,"PCI Type: 0x%04x",pxDu->pxPci->xType);
-        LOGI(TAG_DTP,"PCI SequenceNumber: 0x%08x",pxDu->pxPci->xSequenceNumber);
-        LOGI(TAG_DTP,"PCI xPDULEN: 0x%04x",pxDu->pxPci->xPduLen);
-
-        if (!xPciIsOk(pxDu->pxPci)) {
-            LOGE(TAG_DTP,"PCI is not ok");
-            xDuDestroy(pxDu);
-	        return false;
-        }
-
-        if (pxDtpInstance->pxDtpStateVector->xDrfFlag) //||
-        		//((sn == (csn - 1)) && instance->sv->rexmsn_ctrl)) 
+#if 0
+        LOGI(TAG_DTP, "------------ PCI DT-----------");
+        LOGI(TAG_DTP, "PCI Version: 0x%04x", pxDu->pxPci->ucVersion);
+        LOGI(TAG_DTP, "PCI SourceAddress: 0x%04x", pxDu->pxPci->xSource);
+        LOGI(TAG_DTP, "PCI DestinationAddress: 0x%04x", pxDu->pxPci->xDestination);
+        LOGI(TAG_DTP, "PCI QoS: 0x%04x", pxDu->pxPci->connectionId_t.xQosId);
+        LOGI(TAG_DTP, "PCI CEP Source: 0x%04x", pxDu->pxPci->connectionId_t.xSource);
+        LOGI(TAG_DTP, "PCI CEP Destination: 0x%04x", pxDu->pxPci->connectionId_t.xDestination);
+        LOGI(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
+        LOGI(TAG_DTP, "PCI Type: 0x%04x", pxDu->pxPci->xType);
+        LOGI(TAG_DTP, "PCI SequenceNumber: 0x%08x", pxDu->pxPci->xSequenceNumber);
+        LOGI(TAG_DTP, "PCI xPDULEN: 0x%04x", pxDu->pxPci->xPduLen);
+#endif
+        if (!xPciIsOk(pxDu->pxPci))
         {
                 LOGE(TAG_DTP, "PCI is not ok");
                 xDuDestroy(pxDu);
@@ -217,6 +184,7 @@ bool_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
                 xPciFlags = pxDu->pxPci->xFlags;
                 xPciFlags |= PDU_FLAGS_DATA_RUN;
                 pxDu->pxPci->xFlags = xPciFlags;
+                LOGI(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
         }
 #if 0
         LOG_DBG("DTP Sending PDU %u (CPU: %d)", csn, smp_processor_id());
@@ -334,32 +302,32 @@ bool_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
         }
 #endif
         if (xDtpPduSend(pxDtpInstance,
-                         pxDtpInstance->pxRmt,
-                         pxDu))
-            return false;
-       // spin_lock_bh(&instance->sv_lock);
-	//stats_inc_bytes(tx, pxDtpInstance->pxDtpStateVector, sbytes);
-	//spin_unlock_bh(&instance->sv_lock);
-	return true;
-       
-}
-
-static inline bool_t xDtpPduPost(dtp_t * pxDtpInstance, struct du_t * pxDu)
-{
-        struct efcp_t *   pxEfcp;
-
-        pxEfcp = pxDtpInstance->pxEfcp;
-
-        if (xEfcpEnqueue(pxEfcp, pxEfcp->pxConnection->xPortId, pxDu)) {
-        	LOGE( TAG_DTP, "Could not enqueue SDU to EFCP");
-        	return false;
-        }
-
-        LOGI(TAG_DTP,"DTP enqueued to upper IPCP");
+                        pxDtpInstance->pxRmt,
+                        pxDu))
+                return false;
+        // spin_lock_bh(&instance->sv_lock);
+        // stats_inc_bytes(tx, pxDtpInstance->pxDtpStateVector, sbytes);
+        // spin_unlock_bh(&instance->sv_lock);
         return true;
 }
 
-bool_t xDtpReceive(dtp_t *pxInstance, struct du_t *pxDu)
+static inline bool_t xDtpPduPost(dtp_t *pxDtpInstance, struct du_t *pxDu)
+{
+        struct efcp_t *pxEfcp;
+
+        pxEfcp = pxDtpInstance->pxEfcp;
+
+        if (!xEfcpEnqueue(pxEfcp, pxEfcp->pxConnection->xPortId, pxDu))
+        {
+                LOGE(TAG_DTP, "Could not enqueue SDU to EFCP");
+                return false;
+        }
+
+        LOGI(TAG_DTP, "DTP enqueued to upper IPCP");
+        return true;
+}
+
+bool_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
 {
         // struct dtp_ps *  ps;
         dtcp_t *pxDtcp;
@@ -375,68 +343,38 @@ bool_t xDtpReceive(dtp_t *pxInstance, struct du_t *pxDu)
 
         LOGI(TAG_DTP, "DTP receive started...");
 
-        pxDtcp = pxInstance->pxDtcp;
-        pxEfcp = pxInstance->pxEfcp;
+        pxDtcp = pxDtpInstance->pxDtcp;
+        pxEfcp = pxDtpInstance->pxEfcp;
 
-        // spin_lock_bh(&instance->sv_lock);
-
-        // a           = instance->sv->A;
-        // r 	    = instance->sv->R;
-        // mpl	    = instance->sv->MPL;
-        xLWE = pxInstance->pxDtpStateVector->xRcvLeftWindowEdge;
+        xLWE = pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge;
 
         xInOrder = true; // HardCode for completing the phase one
-        xMaxSduGap = pxInstance->pxDtpCfg->xMaxSduGap;
-        /* if (pxDtcp) {
-                 dtcp_ps = dtcp_ps_get(dtcp);
-                 rtx_ctrl = dtcp_ps->rtx_ctrl;
-         }*/
+        xMaxSduGap = pxDtpInstance->pxDtpCfg->xMaxSduGap;
 
         xSeqNum = pxDu->pxPci->xSequenceNumber;
         sbytes = xDuDataLen(pxDu);
 
-        // LOG_DBG("local_soft_irq_pending: %d", local_softirq_pending());
-        /*LOG_DBG("DTP Received PDU %u (CPU: %d)",
-                seq_num, smp_processor_id());*/
-
-        if (pxInstance->pxDtpStateVector->xDrfRequired)
+        if (pxDtpInstance->pxDtpStateVector->xDrfRequired)
         {
-                /* Start ReceiverInactivityTimer */
-                /* if (rtimer_restart(&instance->timers.receiver_inactivity,
-                                    2 * (mpl + r + a))) {
-                         ESP_LOGE(TAG_DTP,"Failed to start Receiver Inactivity timer");
-                         xDuDestroy(pxDu);
-                         return pdFALSE;
-                 }*/
+
+                LOGE(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
 
                 if (pxDu->pxPci->xFlags & PDU_FLAGS_DATA_RUN)
                 {
                         LOGI(TAG_DTP, "Data Run Flag");
 
-                        pxInstance->pxDtpStateVector->xDrfRequired = false;
-                        pxInstance->pxDtpStateVector->xRcvLeftWindowEdge = xSeqNum;
+                        pxDtpInstance->pxDtpStateVector->xDrfRequired = false;
+                        pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge = xSeqNum;
 
-                        // dtp_squeue_flush(pxInstance);
-                        /*if (instance->rttq) {
-                                rttq_flush(pxInstance->pxRttq);
-                        }*/
-
-                        /*if (pxDtcp) {
-                                if (dtcp_sv_update(pxDtcp, &pxDu->xPci)) {
-                                        ESP_LOGE(TAG_DTP, "Failed to update dtcp sv");
-                                        return pdFALSE;
-                                }
-                        }*/
-
-                        // dtp_send_pending_ctrl_pdus(instance);
-                        // pdu_post(instance, du);
-                        // stats_inc_bytes(rx, instance->sv, sbytes);
+                        // dtp_send_pending_ctrl_pdus(instance); // check this
+                        xDtpPduPost(pxDtpInstance, pxDu); // check this
+                                                          // stats_inc_bytes(rx, instance->sv, sbytes);
 
                         return true;
                 }
 
                 LOGE(TAG_DTP, "Expecting DRF but not present, dropping PDU %d...",
-                         xSeqNum);
+                     xSeqNum);
 
                 // stats_inc(drop, instance->sv);
                 // spin_unlock_bh(&instance->sv_lock);
@@ -454,162 +392,43 @@ bool_t xDtpReceive(dtp_t *pxInstance, struct du_t *pxDu)
         {
                 /* Duplicate PDU or flow control overrun */
                 LOGE(TAG_DTP, "Duplicate PDU or flow control overrun.SN: %u, LWE:%u",
-                         xSeqNum, xLWE);
+                     xSeqNum, xLWE);
                 // stats_inc(drop, instance->sv);
 
                 // spin_unlock_bh(&instance->sv_lock);
 
                 xDuDestroy(pxDu);
 
-                if (pxDtcp)
-                {
-                        /* Send an ACK/Flow Control PDU with current window values */
-                        /* FIXME: we have to send a Control ACK PDU, not an
-                         * ack flow control one
-                         */
-                        /*if (dtcp_ack_flow_control_pdu_send(dtcp, LWE)) {
-                                LOG_ERR("Failed to send ack/flow control pdu");
-                                return -1;
-                        }*/
-                }
                 return 0;
         }
 
-        /* Start ReceiverInactivityTimer */
-        /* if (rtimer_restart(&instance->timers.receiver_inactivity,
-                            2 * (mpl + r + a ))) {
-                 spin_unlock_bh(&instance->sv_lock);
-                 LOG_ERR("Failed to start Receiver Inactivity timer");
-                 du_destroy(du);
-                 return -1;
-         }*/
-
-#if 0
-        /* This is an acceptable data PDU, stop reliable ACK timer */
-        if (dtcp->sv->rendezvous_rcvr) {
-        	LOG_DBG("RV at receiver put to false");
-        	dtcp->sv->rendezvous_rcvr = false;
-        	rtimer_stop(&dtcp->rendezvous_rcv);
-        }
-        if (!a) {
-                bool set_lft_win_edge;
-
-                if (!in_order && !dtcp) {
-                	spin_unlock_bh(&instance->sv_lock);
-                        LOG_DBG("DTP Receive deliver, seq_num: %d, LWE: %d",
-                                seq_num, LWE);
-                        if (pdu_post(instance, du))
-                                return -1;
-
-                        return 0;
-                }
-
-                set_lft_win_edge = !(dtcp_rtx_ctrl(dtcp->cfg) &&
-                                     ((seq_num -LWE) > (max_sdu_gap + 1)));
-                if (set_lft_win_edge) {
-                	instance->sv->rcv_left_window_edge = seq_num;
-                }
-
-                spin_unlock_bh(&instance->sv_lock);
-
-                if (dtcp) {
-                        if (dtcp_sv_update(dtcp, &du->pci)) {
-                                LOG_ERR("Failed to update dtcp sv");
-                                goto fail;
-                        }
-                        dtp_send_pending_ctrl_pdus(instance);
-                        if (!set_lft_win_edge) {
-                                du_destroy(du);
-                                return 0;
-                        }
-                }
-
-                if (pdu_post(instance, du))
-                        return -1;
-
-                spin_lock_bh(&instance->sv_lock);
-		stats_inc_bytes(rx, instance->sv, sbytes);
-		spin_unlock_bh(&instance->sv_lock);
-                return 0;
-
-        fail:
-                du_destroy(du);
-                return -1;
-        }
-#endif
-        xLWE = pxInstance->pxDtpStateVector->xRcvLeftWindowEdge;
+        xLWE = pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge;
 
         LOGI(TAG_DTP, "DTP receive LWE: %u", xLWE);
         if (xSeqNum == xLWE + 1)
         {
-                pxInstance->pxDtpStateVector->xRcvLeftWindowEdge = xSeqNum;
+                pxDtpInstance->pxDtpStateVector->xRcvLeftWindowEdge = xSeqNum;
 
-                //       ringq_push(instance->to_post, pxDu);
                 xLWE = xSeqNum;
-        } /*else {
-                seq_queue_push_ni(instance->seqq->queue, du);
         }
-        while (are_there_pdus(instance->seqq->queue, LWE)) {
-                du = seq_queue_pop(instance->seqq->queue);
-                if (!du)
-                        break;+/
-                xSeqNum = pxDu->pxPci->xSequenceNumber;
-                xLWE     = xSeqNum;
-                instance->sv->rcv_left_window_edge = xSeqNum;
-                ringq_push(instance->to_post, du);
-        }
-        //spin_unlock_bh(&instance->sv_lock);
-        if (dtcp) {
-                if (dtcp_sv_update(dtcp, &du->pci)) {
-                        LOG_ERR("Failed to update dtcp sv");
-                }
-        }
-        dtp_send_pending_ctrl_pdus(instance);
-        if (list_empty(&instance->seqq->queue->head))
-                rtimer_stop(&instance->timers.a);
-        else
-                rtimer_start(&instance->timers.a, a/AF);
-        while (!ringq_is_empty(instance->to_post)) {
-                du = (struct du_t *) ringq_pop(instance->to_post);
-                if (du) {
-                        sbytes = du_data_len(du);
-                        pdu_post(instance, du);
-                        spin_lock_bh(&instance->sv_lock);
-                        stats_inc_bytes(rx, instance->sv, sbytes);
-                        spin_unlock_bh(&instance->sv_lock);
-                }
-        }*/
+
+        xDtpPduPost(pxDtpInstance, pxDu);
 
         LOGI(TAG_DTP, "DTP receive ended...");
 
         return true;
 }
 
-bool_t xDtpDestroy(dtp_t * pxInstance)
+bool_t xDtpDestroy(dtp_t *pxInstance)
 {
-	dtcp_t * pxDtcp = NULL;
-	//struct cwq * cwq = NULL;
-	//struct rtxq * rtxq = NULL;
-	//struct rttq * rttq = NULL;
-    bool_t ret = true;
+        dtcp_t *pxDtcp = NULL;
+        // struct cwq * cwq = NULL;
+        // struct rtxq * rtxq = NULL;
+        // struct rttq * rttq = NULL;
+        bool_t ret = true;
 
         if (!pxInstance)
                 return false;
-
-        // spin_lock_bh(&instance->lock);
-
-        /* Stop all the timer so they do not happen while we're freeing
-           the object. */
-
-        // rtimer_destroy(&instance->timers.a);
-        /* tf_a posts workers that restart sender_inactivity timer, so the wq
-         * must be flushed before destroying the timer */
-
-        /*rtimer_stop(&instance->timers.sender_inactivity);
-        rtimer_stop(&instance->timers.receiver_inactivity);
-        rtimer_stop(&instance->timers.rate_window);
-        rtimer_stop(&instance->timers.rtx);
-        rtimer_stop(&instance->timers.rendezvous);*/
 
         if (pxInstance->pxDtcp)
         {
@@ -617,133 +436,44 @@ bool_t xDtpDestroy(dtp_t * pxInstance)
                 pxInstance->pxDtcp = NULL; /* Useful */
         }
 
-#if 0
-       if (instance->cwq) {
-                cwq = instance->cwq;
-                instance->cwq = NULL; /* Useful */
-        }
-
-        if (instance->rtxq) {
-        	rtxq = instance->rtxq;
-        	instance->rtxq = NULL; /* Useful */
-        }
-
-        if (instance->rttq) {
-        	rttq = instance->rttq;
-        	instance->rttq = NULL;
-        }*/
-
-        spin_unlock_bh(&instance->lock);
-
-
-
-        if (pxDtcp) {
-        	if (xDtcpDestroy(pxDtcp)) {
-        		LOGE(TAG_DTP,"Error destroying DTCP");
-        		ret = false;
-        	}
-        }
-#endif
-#if 0
-        if (cwq) {
-        	if (cwq_destroy(cwq)) {
-        		LOG_WARN("Error destroying CWQ");
-        		ret = -1;
-        	}
-        }
-
-        if (rtxq) {
-                if (rtxq_destroy(rtxq)) {
-                        LOG_ERR("Failed to destroy rexmsn queue");
-                        ret = -1;
-                }
-        }
-
-        if (rttq) {
-        	if (rttq_destroy(rttq)) {
-        		LOG_ERR("Failed to destroy rexmsn queue");
-        		ret = -1;
-        	}
-        }
-
-        rtimer_destroy(&instance->timers.a);
-        /* tf_a posts workers that restart sender_inactivity timer, so the wq
-         * must be flushed before destroying the timer */
-
-        rtimer_destroy(&instance->timers.sender_inactivity);
-        rtimer_destroy(&instance->timers.receiver_inactivity);
-        rtimer_destroy(&instance->timers.rate_window);
-        rtimer_destroy(&instance->timers.rtx);
-        rtimer_destroy(&instance->timers.rendezvous);
-
-        if (instance->to_post) ringq_destroy(instance->to_post,
-                               (void (*)(void *)) du_destroy);
-        if (instance->to_send) ringq_destroy(instance->to_send,
-                               (void (*)(void *)) du_destroy);
-
-        if (instance->seqq) squeue_destroy(instance->seqq);
-        if (instance->sv)   rkfree(instance->sv);
-        if (instance->cfg) dtp_config_destroy(instance->cfg);
-        rina_component_fini(&instance->base);
-
-#endif
-	//robject_del(&instance->robj);
+        // robject_del(&instance->robj);
         vRsMemFree(pxInstance);
 
-        LOGI(TAG_DTP,"DTP %pK destroyed successfully", pxInstance);
+        LOGI(TAG_DTP, "DTP %pK destroyed successfully", pxInstance);
 
         return true;
 }
-/*
-BaseType_t xDtpInitialSequenceNumber(dtp_t * pxInstance)
-{
-        dtpPs_t * pxPs;
 
-        if (!instance) {
-                LOG_ERR("Bogus instance passed");
-                return -1;
-        }
-
-        rcu_read_lock();
-        ps = container_of(rcu_dereference(instance->base.ps),
-                          struct dtp_ps, base);
-        ASSERT(ps->initial_sequence_number);
-        if (ps->initial_sequence_number(ps)) {
-                rcu_read_unlock();
-                return -1;
-        }
-        rcu_read_unlock();
-
-        return 0;
-}
-*/
-
-dtp_t * pxDtpCreate(struct efcp_t *       pxEfcp,
-                    struct rmt_t *        pxRmt,
-                        dtpConfig_t * pxDtpCfg)
+dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
+                   struct rmt_t *pxRmt,
+                   dtpConfig_t *pxDtpCfg)
 {
         dtp_t *pxDtp;
         string_t *psName;
         dtpSv_t *pxDtpSv;
 
-        if (!pxEfcp) {
-                LOGE(TAG_DTP,"No EFCP passed, bailing out");
+        if (!pxEfcp)
+        {
+                LOGE(TAG_DTP, "No EFCP passed, bailing out");
                 return NULL;
         }
 
-        if (!pxDtpCfg) {
-                LOGE(TAG_DTP,"No DTP conf passed, bailing out");
+        if (!pxDtpCfg)
+        {
+                LOGE(TAG_DTP, "No DTP conf passed, bailing out");
                 return NULL;
         }
 
-        if (!pxRmt) {
-                LOGE(TAG_DTP,"No RMT passed, bailing out");
+        if (!pxRmt)
+        {
+                LOGE(TAG_DTP, "No RMT passed, bailing out");
                 return NULL;
         }
 
         pxDtp = pvRsMemAlloc(sizeof(*pxDtp));
-        if (!pxDtp) {
-                LOGE(TAG_DTP,"Cannot create DTP instance");
+        if (!pxDtp)
+        {
+                LOGE(TAG_DTP, "Cannot create DTP instance");
                 return NULL;
         }
 
@@ -755,12 +485,13 @@ dtp_t * pxDtpCreate(struct efcp_t *       pxEfcp,
                                  "dtp")) {
                 dtp_destroy(dtp);
                 return NULL;
-	}*/
+        }*/
 
         pxDtpSv = pvRsMemAlloc(sizeof(*pxDtpSv));
         pxDtp->pxDtpStateVector = pxDtpStateVectorInit();
-        if (!pxDtp->pxDtpStateVector) {
-                LOGE(TAG_DTP,"Cannot create DTP state-vector");
+        if (!pxDtp->pxDtpStateVector)
+        {
+                LOGE(TAG_DTP, "Cannot create DTP state-vector");
                 xDtpDestroy(pxDtp);
                 return NULL;
         }

@@ -107,4 +107,11 @@ typedef struct xMESSAGE_CDAP
 
 } messageCdap_t;
 
+typedef struct xA_DATA_MESSAGE
+{
+    int32_t xSourceAddress;
+    int32_t xDestinationAddress;
+    serObjectValue_t *pxMsgCdap;
+} aDataMsg_t;
+
 #endif // _RIBD_H_INCLUDED

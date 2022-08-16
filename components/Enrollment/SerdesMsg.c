@@ -163,6 +163,59 @@ neighborMessage_t *pxserdesMsgDecodeNeighbor(uint8_t *pucBuffer, size_t xMessage
     return prvSerdesMsgDecodeNeighbor(message);
 }
 
+static aDataMsg_t *prvSerdesMsgDecodeAData(rina_messages_a_data_t message)
+{
+    aDataMsg_t *pxMessage;
+
+    pxMessage = pvPortMalloc(sizeof(*pxMessage));
+
+    if (message.has_destAddress)
+    {
+        pxMessage->xDestinationAddress = message.destAddress;
+    }
+
+    if (message.has_sourceAddress)
+    {
+        pxMessage->xSourceAddress = message.sourceAddress;
+    }
+    if (message.has_cdapMessage)
+    {
+        serObjectValue_t *pxMsgCdap = pvPortMalloc(sizeof(*pxMsgCdap));
+        void *pvSerBuf = pvPortMalloc(message.cdapMessage.size);
+
+        pxMessage->pxMsgCdap = pxMsgCdap;
+        pxMessage->pxMsgCdap->pvSerBuffer = pvSerBuf;
+        pxMessage->pxMsgCdap->xSerLength = message.cdapMessage.size;
+
+        memcpy(pxMessage->pxMsgCdap->pvSerBuffer, message.cdapMessage.bytes,
+               pxMessage->pxMsgCdap->xSerLength);
+    }
+
+    return pxMessage;
+}
+
+aDataMsg_t *pxSerdesMsgDecodeAData(uint8_t *pucBuffer, size_t xMessageLength)
+{
+
+    BaseType_t status;
+
+    /*Allocate space for the decode message data*/
+    rina_messages_a_data_t message = rina_messages_a_data_t_init_zero;
+
+    /*Create a stream that will read from the buffer*/
+    pb_istream_t stream = pb_istream_from_buffer((pb_byte_t *)pucBuffer, xMessageLength);
+
+    status = pb_decode(&stream, rina_messages_a_data_t_fields, &message);
+
+    if (!status)
+    {
+        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
+        return NULL;
+    }
+
+    return prvSerdesMsgDecodeAData(message);
+}
+
 static rina_messages_neighbor_t prvSerdesMsgEncodeNeighbor(neighborMessage_t *pxMessage)
 {
     rina_messages_neighbor_t message = rina_messages_neighbor_t_init_zero;
@@ -240,84 +293,25 @@ serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMessage)
     return pxSerMsg;
 }
 
-static rina_messages_Flow prvSerdesMsgEncodeFlow(flow_t *pxMsg)
-{
-    rina_messages_Flow message = rina_messages_Flow_init_zero;
-
-    // Fill required attributes
-    strcpy(message.sourceNamingInfo.applicationProcessName, pxMsg->pxSourceInfo->pcProcessName);
-    strcpy(message.destinationNamingInfo.applicationProcessName, pxMsg->pxDestInfo->pcProcessName);
-
-    message.sourcePortId = pxMsg->xSourcePortId;
-    message.sourceAddress = pxMsg->xSourceAddress;
-
-    message.connectionIds->sourceCEPId = pxMsg->pxConnectionId->xSource;
-    message.connectionIds->has_sourceCEPId = true;
-    message.connectionIds->qosId = pxMsg->pxConnectionId->xQosId;
-    message.connectionIds->has_qosId = true;
-
-    message.has_qosParameters = true;
-    message.qosParameters.qosid = pxMsg->pxQosSpec->xQosId;
-    message.qosParameters.has_qosid = true;
-    strcpy(message.qosParameters.name, pxMsg->pxQosSpec->pcQosName);
-    message.qosParameters.has_name = true;
-    message.qosParameters.partialDelivery = pxMsg->pxQosSpec->pxFlowSpec->xPartialDelivery;
-    message.qosParameters.has_partialDelivery = true;
-    message.qosParameters.order = pxMsg->pxQosSpec->pxFlowSpec->xOrderedDelivery;
-    message.qosParameters.has_order = true;
-
-    message.has_dtpConfig = true;
-    strcpy(message.dtpConfig.dtppolicyset.policyName,
-           pxMsg->pxDtpConfig->pxDtpPolicySet->pcPolicyName);
-    message.dtpConfig.dtppolicyset.has_policyName = true;
-    strcpy(message.dtpConfig.dtppolicyset.version,
-           pxMsg->pxDtpConfig->pxDtpPolicySet->pcPolicyVersion);
-    message.dtpConfig.dtppolicyset.has_version = true;
-
-    message.dtpConfig.initialATimer = pxMsg->pxDtpConfig->xInitialATimer;
-    message.dtpConfig.has_initialATimer = true;
-
-    message.dtpConfig.dtcpPresent = pxMsg->pxDtpConfig->xDtcpPresent;
-    message.dtpConfig.has_dtcpPresent = true;
-
-    return message;
-}
-
 serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 {
-    LOGI(TAG_RIB, "Calling: %s", __func__);
 
 #ifdef ESP_PLATFORM
     heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
 #endif
 
     bool_t status;
-
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
     rina_messages_Flow message = rina_messages_Flow_init_zero;
-
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
 
     // Allocate space on the stack to store the message data.
     uint8_t *pucBuffer[1500];
     int maxLength = MTU;
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
     if (!pxMsg)
     {
         LOGE(TAG_RIB, "No flow message to be sended");
         return NULL;
     }
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
 
     // Fill required attributes
     strcpy(message.sourceNamingInfo.applicationProcessName, pxMsg->pxSourceInfo->pcProcessName);
@@ -325,6 +319,9 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 
     message.sourcePortId = pxMsg->xSourcePortId;
     message.sourceAddress = pxMsg->xSourceAddress;
+
+    message.has_hopCount = true;
+    message.hopCount = pxMsg->ulHopCount;
 
     message.connectionIds_count = 1;
     message.connectionIds->sourceCEPId = pxMsg->pxConnectionId->xSource;
@@ -358,23 +355,11 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
     message.dtpConfig.dtcpPresent = pxMsg->pxDtpConfig->xDtcpPresent;
     message.dtpConfig.has_dtcpPresent = true;
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
     // Create a stream that writes to our buffer.
     pb_ostream_t stream = pb_ostream_from_buffer((pb_byte_t *)pucBuffer, sizeof(pucBuffer));
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
     // Now we are ready to encode the message.
     status = pb_encode(&stream, rina_messages_Flow_fields, &message);
-
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
 
     // Check for errors...
     if (!status)
@@ -383,19 +368,111 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
         return NULL;
     }
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
     serObjectValue_t *pxSerValue = pvRsMemAlloc(sizeof(*pxSerValue));
     pxSerValue->pvSerBuffer = pucBuffer;
     pxSerValue->xSerLength = stream.bytes_written;
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
-    LOGE(TAG_ENROLLMENT, "Encoding Flow Message ok");
-
     return pxSerValue;
+}
+
+static flow_t *prvSerdesMsgDecodeFlow(rina_messages_Flow message)
+{
+    flow_t *pxMessage;
+
+    pxMessage = pvRsMemAlloc(sizeof(*pxMessage));
+    pxMessage->pxDestInfo = pvRsMemAlloc(sizeof(name_t));
+    pxMessage->pxSourceInfo = pvRsMemAlloc(sizeof(name_t));
+    pxMessage->pxConnectionId = pvRsMemAlloc(sizeof(connectionId_t));
+
+    if (message.has_destinationAddress)
+        pxMessage->xRemoteAddress = message.destinationAddress;
+
+    pxMessage->pxDestInfo->pcProcessName = strdup(message.destinationNamingInfo.applicationProcessName);
+    if (message.destinationNamingInfo.has_applicationEntityName)
+        pxMessage->pxDestInfo->pcEntityName = strdup(message.destinationNamingInfo.applicationEntityName);
+    if (message.destinationNamingInfo.has_applicationEntityInstance)
+        pxMessage->pxDestInfo->pcEntityInstance = strdup(message.destinationNamingInfo.applicationEntityInstance);
+    if (message.destinationNamingInfo.has_applicationProcessInstance)
+        pxMessage->pxDestInfo->pcProcessInstance = strdup(message.destinationNamingInfo.applicationProcessInstance);
+    if (message.has_destinationPortId)
+        pxMessage->xDestinationPortId = message.destinationPortId;
+
+    pxMessage->xSourceAddress = message.sourceAddress;
+    pxMessage->pxSourceInfo->pcProcessName = strdup(message.sourceNamingInfo.applicationProcessName);
+    if (message.sourceNamingInfo.has_applicationEntityName)
+        pxMessage->pxSourceInfo->pcEntityName = strdup(message.sourceNamingInfo.applicationEntityName);
+    if (message.sourceNamingInfo.has_applicationEntityInstance)
+        pxMessage->pxSourceInfo->pcEntityInstance = strdup(message.sourceNamingInfo.applicationEntityInstance);
+    if (message.sourceNamingInfo.has_applicationProcessInstance)
+        pxMessage->pxSourceInfo->pcProcessInstance = strdup(message.sourceNamingInfo.applicationProcessInstance);
+
+    pxMessage->xSourcePortId = message.sourcePortId;
+
+    if (message.connectionIds->has_destinationCEPId)
+        pxMessage->pxConnectionId->xDestination = (int)message.connectionIds->destinationCEPId;
+    if (message.connectionIds->has_sourceCEPId)
+        pxMessage->pxConnectionId->xSource = (int)message.connectionIds->sourceCEPId;
+    if (message.connectionIds->has_qosId)
+        pxMessage->pxConnectionId->xQosId = (int)message.connectionIds->qosId;
+
+    return pxMessage;
+}
+void prvPrintDecodeFlow(rina_messages_Flow message)
+{
+    LOGI(TAG_RIB, "--------Flow Message--------");
+
+    if (message.has_destinationAddress)
+        LOGI(TAG_RIB, "Destination Address:%lld", message.destinationAddress);
+
+    LOGI(TAG_RIB, "Destination PN:%s", message.destinationNamingInfo.applicationProcessName);
+    if (message.destinationNamingInfo.has_applicationEntityName)
+        LOGI(TAG_RIB, "Destination EN:%s", message.destinationNamingInfo.applicationEntityName);
+    if (message.destinationNamingInfo.has_applicationEntityInstance)
+        LOGI(TAG_RIB, "Destination EI:%s", message.destinationNamingInfo.applicationEntityInstance);
+    if (message.destinationNamingInfo.has_applicationProcessInstance)
+        LOGI(TAG_RIB, "Destination PI:%s", message.destinationNamingInfo.applicationProcessInstance);
+    if (message.has_destinationPortId)
+        LOGI(TAG_RIB, "Destination PortId:%lld", message.destinationPortId);
+
+    LOGI(TAG_RIB, "Source Address:%lld", message.sourceAddress);
+    LOGI(TAG_RIB, "Source PN:%s", message.sourceNamingInfo.applicationProcessName);
+    if (message.sourceNamingInfo.has_applicationEntityName)
+        LOGI(TAG_RIB, "Source EN:%s", message.sourceNamingInfo.applicationEntityName);
+    if (message.sourceNamingInfo.has_applicationEntityInstance)
+        LOGI(TAG_RIB, "Source EI:%s", message.sourceNamingInfo.applicationEntityInstance);
+    if (message.sourceNamingInfo.has_applicationProcessInstance)
+        LOGI(TAG_RIB, "Source PI:%s", message.sourceNamingInfo.applicationProcessInstance);
+
+    LOGI(TAG_RIB, "Source PortId:%lld", message.sourcePortId);
+
+    if (message.connectionIds->has_destinationCEPId)
+        LOGI(TAG_RIB, "Connection Dest Cep Id:%d", (int)message.connectionIds->destinationCEPId);
+    if (message.connectionIds->has_sourceCEPId)
+        LOGI(TAG_RIB, "Connection Src Cep Id:%d", (int)message.connectionIds->sourceCEPId);
+    if (message.connectionIds->has_qosId)
+        LOGI(TAG_RIB, "Connection QoS Id:%d", (int)message.connectionIds->qosId);
+}
+
+flow_t *pxSerdesMsgDecodeFlow(uint8_t *pucBuffer, size_t xMessageLength)
+{
+
+    BaseType_t status;
+
+    /*Allocate space for the decode message data*/
+    rina_messages_Flow message = rina_messages_Flow_init_zero;
+
+    /*Create a stream that will read from the buffer*/
+    pb_istream_t stream = pb_istream_from_buffer((pb_byte_t *)pucBuffer, xMessageLength);
+
+    status = pb_decode(&stream, rina_messages_Flow_fields, &message);
+
+    if (!status)
+    {
+        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
+        return NULL;
+    }
+
+    prvPrintDecodeFlow(message);
+
+    return prvSerdesMsgDecodeFlow(message);
 }

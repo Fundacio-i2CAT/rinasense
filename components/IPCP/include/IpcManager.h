@@ -6,6 +6,7 @@
 #include "EFCP.h"
 #include "IPCP_normal_defs.h"
 #include "rina_buffers.h"
+#include "RINA_API_flows.h"
 
 typedef struct xINSTANCE_TABLE_ROW
 {
@@ -43,9 +44,9 @@ typedef struct xIPC_MANAGER
 
 bool_t xIpcManagerInit(ipcManager_t *pxIpcManager);
 
-void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, NumMgr_t *pxPidm, name_t *pxIPCPName);
+void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName);
 
-void vIpcpManagerAppFlowAllocateRequestHandle(NumMgr_t *pxPidm, struct efcpContainer_t *pxEfcpc, struct ipcpNormalData_t *pxIpcpData);
+void vIpcpManagerAppFlowAllocateRequestHandle(flowAllocateHandle_t *pxFlowAllocateRequest);
 
 // BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData);
 

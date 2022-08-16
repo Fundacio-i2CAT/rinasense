@@ -9,6 +9,7 @@
 #include "IPCP_instance.h"
 #include "IPCP_normal_defs.h"
 #include "EFCP.h"
+#include "configRINA.h"
 
 /** @brief RMT Array PortId Created.
  *  */
@@ -17,7 +18,7 @@ static portTableEntry_t xPortIdTable[2];
 pci_t *vCastPointerTo_pci_t(void *pvArgument);
 
 /* @brief Called when a SDU arrived into the RMT from the Shim DIF */
-//bool_t xRmtReceive(struct ipcpInstance_t *pxRmt, struct du_t *pxDu, portId_t xFrom);
+// bool_t xRmtReceive(struct ipcpInstance_t *pxRmt, struct du_t *pxDu, portId_t xFrom);
 
 /* @brief Called when a SDU arrived into the RMT from the EFCP Container*/
 static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt, rmtN1Port_t *pxN1Port, struct du_t *pxDu);
@@ -64,7 +65,7 @@ bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, ipcpInstance_t 
 
 bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, ipcpInstance_t *pxN1Ipcp)
 {
-    LOGI(TAG_RMT, "Binding the RMT with the port id:%d", xId);
+	LOGI(TAG_RMT, "Binding the RMT with the port id:%d", xId);
 
 	rmtN1Port_t *pxTmp;
 	// struct rmt_ps *ps;
@@ -147,13 +148,13 @@ bool_t xRmtAddressAdd(struct rmt_t *pxInstance, address_t xAddress)
 
 	LOGE(TAG_RMT, "Adding and Address into the RMT list:%d", pxRmtAddr->xAddress);
 
-	//vListInitialiseItem(&(pxRmtAddr->xAddressListItem));
-	//listSET_LIST_ITEM_OWNER(&(pxRmtAddr->xAddressListItem), pxRmtAddr);
-	//vListInsert(&pxInstance->xAddresses,
+	// vListInitialiseItem(&(pxRmtAddr->xAddressListItem));
+	// listSET_LIST_ITEM_OWNER(&(pxRmtAddr->xAddressListItem), pxRmtAddr);
+	// vListInsert(&pxInstance->xAddresses,
 	//&(pxRmtAddr->xAddressListItem));
-    vRsListInitItem(&(pxRmtAddr->xAddressListItem));
-    vRsListSetListItemOwner(&(pxRmtAddr->xAddressListItem), pxRmtAddr);
-    vRsListInsert(&pxInstance->xAddresses, &(pxRmtAddr->xAddressListItem));
+	vRsListInitItem(&(pxRmtAddr->xAddressListItem));
+	vRsListSetListItemOwner(&(pxRmtAddr->xAddressListItem), pxRmtAddr);
+	vRsListInsert(&pxInstance->xAddresses, &(pxRmtAddr->xAddressListItem));
 
 	return true;
 }
@@ -171,12 +172,12 @@ bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 	pxAddr = pvRsMemAlloc(sizeof(*pxAddr));
 
 	/* Find a way to iterate in the list and compare the addesss*/
-    pxListEnd = pRsListGetEndMarker(&pxRmt->xAddresses);
-    pxListItem = pRsListGetHeadEntry(&pxRmt->xAddresses);
+	pxListEnd = pRsListGetEndMarker(&pxRmt->xAddresses);
+	pxListItem = pRsListGetHeadEntry(&pxRmt->xAddresses);
 
 	while (pxListItem != pxListEnd)
 	{
-        pxAddr = (rmtAddress_t *)pRsListGetListItemOwner(pxListItem);
+		pxAddr = (rmtAddress_t *)pRsListGetListItemOwner(pxListItem);
 
 		if (pxAddr->xAddress == xAddress)
 		{
@@ -185,12 +186,11 @@ bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 			return true;
 		}
 
-        pxListItem = pRsListGetNext(pxListItem);
+		pxListItem = pRsListGetNext(pxListItem);
 	}
 
 	return false;
 }
-
 
 static bool_t xRmtProcessMgmtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
 {
@@ -251,7 +251,7 @@ static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_
 		return false;
 	}
 
-	if (xEfcpContainerReceive(pxRmt->pxEfcpc, xCepTmp, pxDu))
+	if (!xEfcpContainerReceive(pxRmt->pxEfcpc, xCepTmp, pxDu))
 	{
 		LOGE(TAG_RMT, "EFCP container problems");
 		return false;
@@ -278,7 +278,7 @@ bool_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portId_t 
 		xDuDestroy(pxDu);
 		return false;
 	}
-    if (!is_port_id_ok(xFrom))
+	if (!is_port_id_ok(xFrom))
 	{
 		LOGE(TAG_RMT, "Wrong port-id %d", xFrom);
 		xDuDestroy(pxDu);
@@ -331,13 +331,14 @@ bool_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portId_t 
 		!is_qos_id_ok(xQosId))
 	{
 		LOGE(TAG_RMT, "Wrong PDU type (%u), dst address (%u) or qos_id (%u)",
-				 xPduType, xDstAddr, xQosId);
+			 xPduType, xDstAddr, xQosId);
 		xDuDestroy(pxDu);
 		return false;
 	}
 
 	/* pdu is for me */
-	if (xRmtPduIsAddressedToMe(pxData->pxRmt, xDstAddr))
+	// if (xRmtPduIsAddressedToMe(pxData->pxRmt, xDstAddr))
+	if (xDstAddr == LOCAL_ADDRESS)
 	{
 		/* pdu is for me */
 		switch (xPduType)
@@ -354,6 +355,7 @@ bool_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portId_t 
 		case PDU_TYPE_ACK_AND_FC:
 		case PDU_TYPE_RENDEZVOUS:
 		case PDU_TYPE_DT:
+			LOGD(TAG_RMT, "DT PDU!!!");
 			/*
 			 * (FUTURE)
 			 *
@@ -380,11 +382,12 @@ bool_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portId_t 
 			return false;
 		}
 	}
+	return true;
 }
 
 static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
-									rmtN1Port_t *pxN1Port,
-									struct du_t *pxDu)
+								rmtN1Port_t *pxN1Port,
+								struct du_t *pxDu)
 {
 
 	bool_t ret;
@@ -403,7 +406,7 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 		if (pxN1Port->pxPendingDu)
 		{
 			LOGE(TAG_RMT, "Already a pending SDU present for port %d",
-                 pxN1Port->xPortId);
+				 pxN1Port->xPortId);
 			xDuDestroy(pxN1Port->pxPendingDu);
 			pxN1Port->xStats.plen--;
 		}
@@ -427,8 +430,8 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 }
 
 bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
-                      portId_t xPortId,
-                      struct du_t *pxDu)
+					  portId_t xPortId,
+					  struct du_t *pxDu)
 {
 
 	LOGI(TAG_RMT, "xRmtSendPortId");
@@ -456,7 +459,7 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 		LOGE(TAG_RMT, "Could not find the N-1 port");
 		xDuDestroy(pxDu);
 		return false;
-	} 
+	}
 
 	// n1_port_lock(n1_port);
 
@@ -527,7 +530,7 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 }
 
 bool_t xRmtSend(struct rmt_t *pxRmtInstance,
-                struct du_t *pxDu)
+				struct du_t *pxDu)
 {
 	int i;
 

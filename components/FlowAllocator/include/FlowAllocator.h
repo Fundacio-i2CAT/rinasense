@@ -43,7 +43,10 @@ typedef struct xFLOW_ALLOCATOR_INSTANCE
     /* State */
     eFaiState_t eFaiState;
 
-} flowAllocatorInstace_t;
+    /* Flow Allocator Request*/
+    flowAllocateHandle_t *pxFlowAllocatorHandle;
+
+} flowAllocatorInstance_t;
 
 typedef struct xFLOW_ALLOCATOR
 {
@@ -108,6 +111,15 @@ typedef struct xFLOW_MESSAGE
     /* Source Port Id */
     portId_t xSourcePortId;
 
+    portId_t xDestinationPortId;
+
 } flow_t;
+
+typedef struct xREQUEST_HANDLER_ROW
+{
+    flowAllocatorInstance_t *pxFAI;
+    BaseType_t xValid;
+
+} FlowRequestRow_t;
 
 #endif

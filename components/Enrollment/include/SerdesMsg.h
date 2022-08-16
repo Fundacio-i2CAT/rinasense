@@ -11,4 +11,7 @@ neighborMessage_t *pxserdesMsgDecodeNeighbor(uint8_t *pucBuffer, size_t xMessage
 
 serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxFlow);
 
+aDataMsg_t *pxSerdesMsgDecodeAData(uint8_t *pucBuffer, size_t xMessageLength);
+flow_t *pxSerdesMsgDecodeFlow(uint8_t *pucBuffer, size_t xMessageLength);
+
 #endif /* SERDES_MSG_H_ */

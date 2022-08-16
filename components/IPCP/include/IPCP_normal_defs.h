@@ -4,6 +4,15 @@
 #include "rina_ids.h"
 #include "rina_name.h"
 
+typedef enum eNormal_Flow_State
+{
+    ePORT_STATE_NULL = 1,
+    ePORT_STATE_PENDING,
+    ePORT_STATE_ALLOCATED,
+    ePORT_STATE_DEALLOCATED,
+    ePORT_STATE_DISABLED
+} eNormalFlowState_t;
+
 struct ipcpNormalData_t
 {
     /* FIXME: add missing needed attributes */

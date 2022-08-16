@@ -319,11 +319,11 @@ typedef struct xEFCP_IMAP_ROW
 struct efcpContainer_t
 {
         // struct rset *        rset;
-        efcpImapRow_t           *pxEfcpImap;
-        NumMgr_t               *pxCidm;
-    //cepIdm_t                *pxCidm;
-        efcpConfig_t            *pxConfig;
-        struct rmt_t            *pxRmt;
+        efcpImapRow_t *pxEfcpImap;
+        NumMgr_t *pxCidm;
+        // cepIdm_t                *pxCidm;
+        efcpConfig_t *pxConfig;
+        struct rmt_t *pxRmt;
         // struct kfa *         kfa;
         // spinlock_t           lock;
         // wait_queue_head_t    del_wq;

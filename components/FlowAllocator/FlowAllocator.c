@@ -22,24 +22,107 @@
 #include "Ribd.h"
 #include "Ribd_api.h"
 #include "rina_common_port.h"
+#include "rina_common.h"
 #include "RINA_API_flows.h"
 #include "SerdesMsg.h"
+#include "IPCP_api.h"
+
+static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+
+static FlowRequestRow_t xFlowRequestTable[FLOWS_REQUEST];
+
+void prvAddFlowRequestEntry(flowAllocatorInstance_t *pxFAI)
+{
+
+    BaseType_t x = 0;
+
+    for (x = 0; x < FLOWS_REQUEST; x++)
+    {
+        if (xFlowRequestTable[x].xValid == pdFALSE)
+        {
+            xFlowRequestTable[x].pxFAI = pxFAI;
+            xFlowRequestTable[x].xValid = pdTRUE;
+
+            break;
+        }
+    }
+}
+
+flowAllocatorInstance_t *pxFAFindInstance(portId_t xPortId)
+{
+    BaseType_t x = 0;
+    flowAllocatorInstance_t *pxFAI;
+
+    for (x = 0; x < FLOWS_REQUEST; x++)
+    {
+        if (xFlowRequestTable[x].xValid == pdTRUE)
+        {
+            pxFAI = xFlowRequestTable->pxFAI;
+            if (pxFAI->xPortId == xPortId) // ad xPortId
+            {
+                return pxFAI;
+            }
+        }
+    }
+    return NULL;
+}
+flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId)
+{
+    BaseType_t x = 0;
+    flowAllocatorInstance_t *pxFAI;
+    flowAllocateHandle_t *pxFlowAllocateRequest;
+
+    for (x = 0; x < FLOWS_REQUEST; x++)
+    {
+        if (xFlowRequestTable[x].xValid == pdTRUE)
+        {
+            pxFAI = xFlowRequestTable->pxFAI;
+            if (pxFAI->xPortId == xPortId) // ad xPortId
+            {
+
+                return pxFAI->pxFlowAllocatorHandle;
+            }
+        }
+    }
+    return NULL;
+}
+
+flowAllocateHandle_t *prvGetPendingFlowRequest(portId_t xPortId)
+{
+    BaseType_t x = 0;
+    flowAllocateHandle_t *pxFlowAllocateRequest;
+    flowAllocatorInstance_t *pxFAI;
+
+    for (x = 0; x < FLOWS_REQUEST; x++)
+    {
+        if (xFlowRequestTable[x].xValid == pdTRUE)
+        {
+            pxFAI = xFlowRequestTable->pxFAI;
+            if (pxFAI->xPortId == xPortId) // ad xPortId
+            {
+
+                pxFlowAllocateRequest = pxFAI->pxFlowAllocatorHandle;
+                return pxFlowAllocateRequest;
+            }
+        }
+    }
+    return NULL;
+}
 
 /* Create_Request: handle the request send by other IPCP. Consults the local
  * directory Forwarding Table. It is to me, create a FAI*/
 
-bool_t xFlowAllocatorInit()
+flowAllocator_t *pxFlowAllocatorInit(void)
 {
     flowAllocator_t *pxFlowAllocator;
     pxFlowAllocator = pvRsMemAlloc(sizeof(*pxFlowAllocator));
 
     /* Create object in the Rib*/
-    pxRibCreateObject("/fa/flows/", 0, "Flow", "Flow", FLOW_ALLOCATOR);
 
     /*Init List*/
-    // vListInitialise(&pxFlowAllocator->xFlowAllocatorInstances);
+    vListInitialise(&pxFlowAllocator->xFlowAllocatorInstances);
 
-    return true;
+    return pxFlowAllocator;
 }
 
 static qosSpec_t *prvFlowAllocatorSelectQoSCube(void)
@@ -79,21 +162,9 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 
     // ESP_LOGI(TAG_FA, "DEst:%s", strdup(pxFlowRequest->pxRemote));
 
-    LOGE(TAG_FA, "pxLocal:%p", pxFlowRequest->pxLocal);
-    LOGE(TAG_FA, "pxRemote:%p", pxFlowRequest->pxRemote);
-    LOGE(TAG_FA, "-----DETAILS----");
-    LOGE(TAG_FA, "pxLocal_APName:%s", pxFlowRequest->pxLocal->pcProcessName);
-    LOGE(TAG_FA, "pxLocal_APInstance:%s", pxFlowRequest->pxLocal->pcProcessInstance);
-    LOGE(TAG_FA, "pxLocal_AEName:%s", pxFlowRequest->pxLocal->pcEntityName);
-    LOGE(TAG_FA, "pxLocal_AEInstance:%s", pxFlowRequest->pxLocal->pcEntityInstance);
-    LOGE(TAG_FA, "pxRemote_APName:%s", pxFlowRequest->pxRemote->pcProcessName);
-    LOGE(TAG_FA, "pxRemote_APInstance:%s", pxFlowRequest->pxRemote->pcProcessInstance);
-    LOGE(TAG_FA, "pxRemote_AEName:%s", pxFlowRequest->pxRemote->pcEntityName);
-    LOGE(TAG_FA, "pxRemote_AEInstnace:%s", pxFlowRequest->pxRemote->pcEntityInstance);
-
     pxFlow->pxSourceInfo = pxFlowRequest->pxLocal;
     pxFlow->pxDestInfo = pxFlowRequest->pxRemote;
-    pxFlow->ulHopCount = 3;
+    pxFlow->ulHopCount = 4;
     pxFlow->ulMaxCreateFlowRetries = 1;
     pxFlow->eState = eFA_ALLOCATION_IN_PROGRESS;
     pxFlow->xSourceAddress = LOCAL_ADDRESS;
@@ -120,105 +191,81 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 
 /*Allocate_Request: Handle the request send by the application
  * if it is well-formed, create a new FlowAllocator-Instance*/
-void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId, flowAllocateHandle_t *pxFlowRequest, struct ipcpNormalData_t *pxIpcpData)
+
+void vFlowAllocatorFlowRequest(
+    portId_t xAppPortId,
+    flowAllocateHandle_t *pxFlowRequest)
 {
-    LOGE(TAG_FA, "calling:%s", __func__);
 
     flow_t *pxFlow;
+    neighborInfo_t *pxNeighbor;
     cepId_t xCepSourceId;
-    flowAllocatorInstace_t *pxFlowAllocatorInstance;
+    flowAllocatorInstance_t *pxFlowAllocatorInstance;
     connectionId_t *pxConnectionId;
-
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
+    string_t pcNeighbor;
+    struct efcpContainter_t *pxEfcpc;
 
     /* Create a flow object and fill using the event FlowRequest */
     pxFlow = prvFlowAllocatorNewFlow(pxFlowRequest);
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
     pxConnectionId = pvRsMemAlloc(sizeof(*pxConnectionId));
-
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
 
     /* Create a FAI and fill the struct properly*/
     pxFlowAllocatorInstance = pvRsMemAlloc(sizeof(*pxFlowAllocatorInstance));
-
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
 
     if (!pxFlowAllocatorInstance)
     {
         LOGE(TAG_FA, "FAI was not allocated");
     }
-
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
+    // heap_caps_check_integrity(MALLOC_CAP_DEFAULT, pdTRUE);
     pxFlowAllocatorInstance->eFaiState = eFAI_NONE;
-    pxFlowAllocatorInstance->xPortId = xPortId;
+    pxFlowAllocatorInstance->xPortId = xAppPortId;
+    pxFlowAllocatorInstance->pxFlowAllocatorHandle = pxFlowRequest;
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
+    prvAddFlowRequestEntry(pxFlowAllocatorInstance);
+    LOGD(TAG_FA, "FAI added properly");
 
-    LOGE(TAG_FA, "GetNeighbor");
+    // Query NameManager to getting neighbor how knows the destination requested
+    // pcNeighbor = xNmsGetNextHop(pxFlow->pxDesInfo->pcProcessName;
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
+    pcNeighbor = REMOTE_ADDRESS_AP_NAME; // "ar1.mobile"; // Hardcode for testing
+    LOGD(TAG_FA, "Getting Neighbor");
 
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
-    pxFlow->xRemoteAddress = xEnrollmentGetNeighborAddress(pxFlow->pxDestInfo->pcProcessName);
+    pxNeighbor = pxEnrollmentFindNeighbor(pcNeighbor);
+    if (!pxNeighbor)
+    {
+        LOGE(TAG_FA, "No Neighbor founded");
+    }
+    pxFlow->xRemoteAddress = pxNeighbor->xNeighborAddress;
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
-    pxFlow->xSourcePortId = xPortId;
-
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
+    pxFlow->xSourcePortId = xAppPortId;
 
     if (pxFlow->xRemoteAddress == 0)
     {
         LOGE(TAG_FA, "Error to get Next Hop");
     }
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
 
     /* Call EFCP to create an EFCP instance following the EFCP Config */
-    LOGE(TAG_FA, "Calling EFCP");
+    LOGD(TAG_FA, "Creating a Connection");
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
+    pxEfcpc = pxIPCPGetEfcpc();
 
-    xCepSourceId = xNormalConnectionCreateRequest(pxEfcpc, 1,
+    xCepSourceId = xNormalConnectionCreateRequest(pxEfcpc, xAppPortId,
                                                   LOCAL_ADDRESS, pxFlow->xRemoteAddress, pxFlow->pxQosSpec->xQosId,
                                                   pxFlow->pxDtpConfig, pxFlow->pxDtcpConfig);
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
 
     if (xCepSourceId == 0)
     {
         LOGE(TAG_FA, "CepId was not create properly");
     }
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
+    /*------ Add CepSourceID into the Flow------*/
+    if (!xNormalUpdateCepIdFlow(xAppPortId, xCepSourceId))
+    {
+        LOGE(TAG_FA, "CepId not updated into the flow");
+    }
+    LOGD(TAG_FA, "CepId updated into the flow");
     /* Fill the Flow connectionId */
     pxConnectionId->xSource = xCepSourceId;
     pxConnectionId->xQosId = pxFlow->pxQosSpec->xQosId;
@@ -226,57 +273,160 @@ void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc, portId_t xPortId
 
     pxFlow->pxConnectionId = pxConnectionId;
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
     /* Send the flow message to the neighbor */
     // Serialize the pxFLow Struct into FlowMsg and Encode the FlowMsg as obj_value
-    LOGE(TAG_FA, "EncodingFLow");
-
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
     serObjectValue_t *pxObjVal = NULL;
 
-    // ESP_LOGI(TAG_RIB, "Pointer Flow_t: %p", pxFlow);
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
-    LOGE(TAG_FA, "Calling SerdesMsgFlow");
     pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
 
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
+    char flowObj[24];
+    sprintf(flowObj, "/fa/flows/key=%d-%d", pxFlow->xSourceAddress, pxFlow->xSourcePortId);
 
-    // Send using the ribd_send_req M_Create
-    LOGE(TAG_FA, "SendingFlow");
+    if (!pxRibCreateObject(flowObj, -1, "Flow", "Flow", FLOW))
+    {
+        LOGE(TAG_FA, "It was a problem to create Rib Object");
+    }
 
-    if (!xRibdSendRequest(pxIpcpData, "Flow", "/fa/flows/key=1-33", -1, M_CREATE, 1, pxObjVal))
+    if (!xRibdSendRequest("Flow", flowObj, -1, M_CREATE, pxNeighbor->xN1Port, pxObjVal))
     {
         LOGE(TAG_FA, "It was a problem to send the request");
         // return pdFALSE;
     }
-    LOGE(TAG_FA, "end");
 }
 
 bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
 {
-    /*if (!pxSerObjValue)
+    portId_t xAppPortId;
+    flowAllocatorInstance_t *pxFAI;
+
+    flow_t *pxFlow;
+
+    if (pxSerObjValue == NULL)
     {
-        ESP_LOGE(TAG_FA, "No Object Value");
-        return pdFALSE;
-    }*/
+        LOGI(TAG_FA, "no object value ");
+        return false;
+    }
 
     if (result != 0)
     {
-        LOGI(TAG_FA, "Was not possible to create the Flow...");
+        LOGE(TAG_FA, "Was not possible to create the Flow...");
+        return false;
     }
     // Decode the FA message
-    LOGI(TAG_FA, "CDAP Message Result: Flow allocated ");
-    // Do something with the decode message.
+
+    pxFlow = pxSerdesMsgDecodeFlow(pxSerObjValue->pvSerBuffer, pxSerObjValue->xSerLength);
+
+    if (!pxFlow)
+        return false;
+
+    pxFAI = pxFAFindInstance(pxFlow->xDestinationPortId);
+
+    if (!pxFAI)
+    {
+        LOGE(TAG_FA, "Flow Allocator Instance was not founded ");
+        return false;
+    }
+
+    if (!xNormalConnectionModify(pxFlow->pxConnectionId->xDestination,
+                                 pxFlow->xRemoteAddress,
+                                 pxFlow->xSourceAddress))
+    {
+        LOGE(TAG_FA, "It was not possible to modify the connection");
+        return false;
+    }
+
+    if (!xNormalConnectionUpdate(pxFlow->xDestinationPortId, pxFlow->pxConnectionId->xSource,
+                                 pxFlow->pxConnectionId->xDestination))
+    {
+        LOGE(TAG_FA, "It was not possible to update the connection");
+        return false;
+    }
+
+    pxFAI->eFaiState = eFAI_ALLOCATED;
+    LOGI(TAG_FA, "Flow state updated to Allocated");
+
+    if (pxFAI->pxFlowAllocatorHandle != NULL)
+    {
+        (void)xEventGroupSetBits(pxFAI->pxFlowAllocatorHandle->xEventGroup, (EventBits_t)eFLOW_ACCEPT);
+    }
+
+    return true;
+}
+
+bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id)
+
+{
+    LOGD(TAG_FA, "Calling: %s", __func__);
+
+    // Delete connection
+    // delete EFCP instance
+    // change portId to NO ALLOCATED,
+    // Send message to User with close,
+
+    return false;
+}
+
+void vFlowAllocatorDeallocate(portId_t xAppPortId)
+{
+
+    if (!xAppPortId)
+    {
+        LOGE(TAG_FA, "Bogus data passed, bailing out");
+    }
+
+    // Find Flow and move to deallocate status.
+}
+
+bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
+{
+    flowAllocatorInstance_t *pxFlowAllocatorInstance;
+    NetworkBufferDescriptor_t *pxNetworkBuffer;
+
+    if (!xDuIsOk(pxDu) || !is_port_id_ok(xAppPortId))
+    {
+        LOGE(TAG_FA, "Bogus Network Buffer passed, cannot post SDU");
+        xDuDestroy(pxDu);
+        return false;
+    }
+    pxFlowAllocatorInstance = pxFAFindInstance(xAppPortId);
+    if (!pxFlowAllocatorInstance)
+    {
+        LOGE(TAG_FA, "Flow Allocator instance was not founded");
+        xDuDestroy(pxDu);
+        return false;
+    }
+
+    LOGE(TAG_FA, "Posting DU to port-id %d ", xAppPortId);
+
+    pxNetworkBuffer = pxDu->pxNetworkBuffer;
+
+    if (pxFlowAllocatorInstance->eFaiState != eFAI_ALLOCATED)
+    {
+        LOGE(TAG_FA, "Flow with port-id %d is not allocated", xAppPortId);
+        xDuDestroy(pxDu);
+        return false;
+    }
+
+    // wakeup client setting bits
+    vTaskSuspendAll();
+    {
+        taskENTER_CRITICAL(&mux);
+        {
+            /* Add the network packet to the list of packets to be
+             * processed by the socket. */
+            vListInitialiseItem(&(pxNetworkBuffer->xBufferListItem));
+            listSET_LIST_ITEM_OWNER(&(pxNetworkBuffer->xBufferListItem), (void *)pxNetworkBuffer);
+            vListInsertEnd(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxNetworkBuffer->xBufferListItem));
+        }
+        taskEXIT_CRITICAL(&mux);
+    }
+    (void)xTaskResumeAll();
+
+    /* Set the socket's receive event */
+    if (pxFlowAllocatorInstance->pxFlowAllocatorHandle->xEventBits != NULL)
+    {
+        (void)xEventGroupSetBits(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xEventGroup, (EventBits_t)eFLOW_RECEIVE);
+    }
+
     return true;
 }

@@ -21,6 +21,7 @@ typedef enum
     ENROLLMENT,
     FLOW_ALLOCATOR,
     OPERATIONAL,
+    FLOW,
 
 } eObjectType_t;
 
@@ -53,10 +54,8 @@ struct ribObjOps_t
 
     bool_t (*create)(struct ribObject_t *, serObjectValue_t *pxObjValue, string_t remote_process_name,
                          string_t local_process_name, int invokeId, portId_t xN1Port);
-    /*
-        BaseType_t (*delete)(struct rib_obj *, struct ipcp *,
-                      struct ser_obj_value *obj_value, void *remote_process_name,
-                      void *local_process_name, int invoke_id, int n1_port);*/
+
+    BaseType_t (*delete)(struct ribObject_t *pxRibObject, int invoke_id);
 };
 
 struct ribObject_t

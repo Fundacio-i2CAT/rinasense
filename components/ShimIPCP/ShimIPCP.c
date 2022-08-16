@@ -162,9 +162,9 @@ bool_t xShimFlowDeallocate(struct ipcpInstanceData_t *xData, portId_t xId)
  * @return BaseType_t
  */
 bool_t xShimFlowAllocateRequest(struct ipcpInstanceData_t *pxData,
-                                name_t *pxSourceInfo,
-                                name_t *pxDestinationInfo,
-                                portId_t xPortId)
+								name_t *pxSourceInfo,
+								name_t *pxDestinationInfo,
+								portId_t xPortId)
 {
 
 	LOGI(TAG_SHIM, "New flow allocation request");
@@ -218,9 +218,9 @@ bool_t xShimFlowAllocateRequest(struct ipcpInstanceData_t *pxData,
 
 		// Register the flow in a list or in the Flow allocator
 		LOGI(TAG_SHIM, "Created Flow: %p, portID: %d, portState: %d", pxFlow, pxFlow->xPortId, pxFlow->ePortIdState);
-        vRsListInitItem(&pxFlow->xFlowItem);
-        vRsListSetListItemOwner(&(pxFlow->xFlowItem), pxFlow);
-        vRsListInsert(&pxData->xFlowsList, &pxFlow->xFlowItem);
+		vRsListInitItem(&pxFlow->xFlowItem);
+		vRsListSetListItemOwner(&(pxFlow->xFlowItem), pxFlow);
+		vRsListInsert(&pxData->xFlowsList, &pxFlow->xFlowItem);
 
 		pxFlow->pxSduQueue = prvShimCreateQueue();
 		if (!pxFlow->pxSduQueue)
@@ -260,7 +260,7 @@ bool_t xShimFlowAllocateRequest(struct ipcpInstanceData_t *pxData,
  * @return bool_t
  */
 bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData,
-                                 portId_t xPortId)
+								 portId_t xPortId)
 
 {
 	RINAStackEvent_t xEnrollEvent = {eShimFlowAllocatedEvent, NULL};
@@ -303,7 +303,7 @@ bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData,
 
 	/*Call to IPCP User to flow binding*/
 	/*configASSERT(pxUserIpcp->pxOps);
-    RsAssert(pxUserIpcp->pxOps->flowBindingIpcp);
+	RsAssert(pxUserIpcp->pxOps->flowBindingIpcp);
 
 	if (!pxUserIpcp->pxOps->flowBindingIpcp(pxUserIpcp->pxData,
 											xPortId,
@@ -598,13 +598,24 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 
 	pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
+	if (!RsListIsInitilised(&pxData->xFlowsList))
+	{
+		LOGE(TAG_SHIM, "Flow list is not initilized");
+		return NULL;
+	}
+	if (!RsListIsEmpty(&pxData->xFlowsList))
+	{
+		LOGE(TAG_SHIM, "Flow list is empty");
+		return NULL;
+	}
+
 	/* Find a way to iterate in the list and compare the addesss*/
-    pxListEnd = pRsListGetEndMarker(&pxData->xFlowsList);
-    pxListItem = pRsListGetHeadEntry(&pxData->xFlowsList);
+	pxListEnd = pRsListGetEndMarker(&pxData->xFlowsList);
+	pxListItem = pRsListGetHeadEntry(&pxData->xFlowsList);
 
 	while (pxListItem != pxListEnd)
 	{
-        pxFlow = (shimFlow_t *)pRsListGetListItemOwner(pxListItem);
+		pxFlow = (shimFlow_t *)pRsListGetListItemOwner(pxListItem);
 
 		if (pxFlow)
 		{
@@ -615,7 +626,7 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 			}
 		}
 
-        pxListItem = pRsListGetNext(pxListItem);
+		pxListItem = pRsListGetNext(pxListItem);
 	}
 
 	LOGI(TAG_SHIM, "Flow not founded");
@@ -629,15 +640,15 @@ static shimFlow_t *prvShimFindFlow(struct ipcpInstanceData_t *pxData)
 	RsListItem_t *pxListItem;
 	RsListItem_t const *pxListEnd;
 
-    pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
+	pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
 	/* Find a way to iterate in the list and compare the addesss*/
-    pxListEnd = pRsListGetEndMarker(&pxData->xFlowsList);
-    pxListItem = pRsListGetHeadEntry(&pxData->xFlowsList);
+	pxListEnd = pRsListGetEndMarker(&pxData->xFlowsList);
+	pxListItem = pRsListGetHeadEntry(&pxData->xFlowsList);
 
 	while (pxListItem != pxListEnd)
 	{
-        pxFlow = (shimFlow_t *)pRsListGetListItemOwner(pxListItem);
+		pxFlow = (shimFlow_t *)pRsListGetListItemOwner(pxListItem);
 
 		if (pxFlow)
 		{
@@ -647,7 +658,7 @@ static shimFlow_t *prvShimFindFlow(struct ipcpInstanceData_t *pxData)
 			// return true;
 		}
 
-        pxListItem = pRsListGetNext(pxListItem);
+		pxListItem = pRsListGetNext(pxListItem);
 	}
 
 	LOGI(TAG_SHIM, "Flow not founded");
@@ -658,7 +669,7 @@ static rfifo_t *prvShimCreateQueue(void)
 {
 	rfifo_t *xFifo = pvRsMemAlloc(sizeof(*xFifo));
 
-    xFifo->xQueue = pxRsQueueCreate("ShimIPCPQueue", SIZE_SDU_QUEUE, sizeof(uint32_t));
+	xFifo->xQueue = pxRsQueueCreate("ShimIPCPQueue", SIZE_SDU_QUEUE, sizeof(uint32_t));
 
 	if (!xFifo->xQueue)
 	{
@@ -693,7 +704,7 @@ int QueueDestroy(rfifo_t *f,
 }
 
 static bool_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData,
-										   shimFlow_t *xFlow)
+									   shimFlow_t *xFlow)
 {
 
 	/*
@@ -738,7 +749,7 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 	gha_t *pxSrcHw;
 	gha_t *pxDestHw;
 	size_t uxHeadLen, uxLength;
-    struct timespec ts;
+	struct timespec ts;
 	RINAStackEvent_t xTxEvent = {eNetworkTxEvent, NULL};
 	unsigned char *pucArpPtr;
 
@@ -835,15 +846,16 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 
 	xTxEvent.pvData = (void *)pxNetworkBuffer;
 
-    if (xSendEventStructToIPCPTask(&xTxEvent, 250 * 1000) == false) {
-        LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %u", pxNetworkBuffer, pxNetworkBuffer->xDataLength);
-        vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-        return false;
-    }
+	if (xSendEventStructToIPCPTask(&xTxEvent, 250 * 1000) == false)
+	{
+		LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %u", pxNetworkBuffer, pxNetworkBuffer->xDataLength);
+		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+		return false;
+	}
 
-    LOGE(TAG_SHIM, "Data sent to the IPCP TAsk");
+	LOGE(TAG_SHIM, "Data sent to the IPCP TAsk");
 
-    return true;
+	return true;
 }
 
 static struct ipcpInstanceOps_t xShimWifiOps = {
@@ -961,12 +973,12 @@ ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 	pxInst->xId = xIpcpId;
 
 	/*Initialialise flows list*/
-    vRsListInit((&pxInst->pxData->xFlowsList));
+	vRsListInit((&pxInst->pxData->xFlowsList));
 
 	/*Initialialise instance item and add to the pxFactory*/
-    /* vRsListInitItem(&(pxInst->pxData->xInstanceListItem)); */
-    /* vRsListSetListItemOwner(&(pxInst->pxData->xInstanceListItem), pxInst); */
-    /* vRsListInsert(&(pxFactoryData->xInstancesShimWifiList), &(pxInst->pxData->xInstanceListItem)); */
+	/* vRsListInitItem(&(pxInst->pxData->xInstanceListItem)); */
+	/* vRsListSetListItemOwner(&(pxInst->pxData->xInstanceListItem), pxInst); */
+	/* vRsListInsert(&(pxFactoryData->xInstancesShimWifiList), &(pxInst->pxData->xInstanceListItem)); */
 
 	LOGI(TAG_SHIM, "Instance Created: %p, IPCP id:%d", pxInst, pxInst->pxData->xId);
 

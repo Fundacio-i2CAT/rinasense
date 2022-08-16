@@ -26,10 +26,18 @@
 #include "IPCP.h"
 #include "IPCP_api.h"
 #include "IPCP_events.h"
+#include "IPCP_normal_api.h"
+#include "FlowAllocator_api.h"
 
-struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t pcLocalApp, uint8_t Flags);
+static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
-struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t pcLocalApp, uint8_t Flags)
+struct appRegistration_t *RINA_application_register(string_t pcNameDif,
+                                                    string_t pcLocalApp,
+                                                    uint8_t Flags);
+
+struct appRegistration_t *RINA_application_register(string_t pcNameDif,
+                                                    string_t pcLocalApp,
+                                                    uint8_t Flags)
 {
     name_t *xDn, *xAppn, *xDan;
     registerApplicationHandle_t *xRegAppRequest = pvPortMalloc(sizeof(*xRegAppRequest));
@@ -84,9 +92,40 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif, string_t
     return NULL;
 }
 
-void xRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse)
+BaseType_t xRINA_bind(flowAllocateHandle_t *pxFlowRequest)
 {
+    RINAStackEvent_t xBindEvent;
 
+    if (!pxFlowRequest)
+    {
+        ESP_LOGE(TAG_RINA, "No flow Request");
+    }
+    xBindEvent.eEventType = eFlowBindEvent;
+    xBindEvent.pvData = (void *)pxFlowRequest;
+
+    if (xSendEventStructToIPCPTask(&xBindEvent, (TickType_t)portMAX_DELAY) == pdFAIL)
+    {
+        /* Failed to wake-up the IPCP-task, no use to wait for it */
+        return -1;
+    }
+    else
+    {
+        /* The IPCP-task will set the 'eFLOW_BOUND' bit when it has done its
+         * job. */
+        (void)xEventGroupWaitBits(pxFlowRequest->xEventGroup,
+                                  (EventBits_t)eFLOW_BOUND,
+                                  pdTRUE /*xClearOnExit*/,
+                                  pdFALSE /*xWaitAllBits*/,
+                                  portMAX_DELAY);
+
+        ESP_LOGI(TAG_RINA, "Flow Bound");
+        return 0;
+    }
+}
+
+void vRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse)
+{
+    ESP_LOGE(TAG_RINA, "Weaking up user");
     if (!pxFlowAllocateResponse)
     {
         ESP_LOGE(TAG_RINA, "No Bits set");
@@ -100,19 +139,17 @@ void xRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse)
     pxFlowAllocateResponse->xEventBits = 0U;
 }
 
-void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags);
-
-void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteApp, struct rinaFlowSpec_t *xFlowSpec, uint8_t Flags)
+static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
+                                                      string_t pcLocalApp,
+                                                      string_t pcRemoteApp,
+                                                      struct rinaFlowSpec_t *xFlowSpec)
 {
+    ESP_LOGI(TAG_RINA, "Creating a new flow request");
     portId_t xPortId; /* PortId to return to the user*/
-    RINAStackEvent_t xStackFlowAllocateEvent = {eStackFlowAllocateEvent, NULL};
     name_t *pxDIFName, *pxLocalName, *pxRemoteName;
-    flowAllocateHandle_t *pxFlowAllocateRequest;
     struct flowSpec_t *pxFlowSpecTmp;
     EventGroupHandle_t xEventGroup;
-    TickType_t xRemainingTime;
-    BaseType_t xTimed = pdFALSE; /* Check non-blocking*/
-    TimeOut_t xTimeOut;
+    flowAllocateHandle_t *pxFlowAllocateRequest;
 
     pxFlowSpecTmp = pvPortMalloc(sizeof(*pxFlowSpecTmp));
 
@@ -120,15 +157,11 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
 
     xEventGroup = xEventGroupCreate();
 
-    ESP_LOGE(TAG_RINA, "pcNameDIF:%s", pcNameDIF);
-    ESP_LOGE(TAG_RINA, "pcLocalApp:%s", pcLocalApp);
-    ESP_LOGE(TAG_RINA, "pcRemoteApp:%s", pcRemoteApp);
-
     if (xEventGroup == NULL)
     {
         vPortFree(pxFlowAllocateRequest);
         vPortFree(pxFlowSpecTmp);
-        // return -1;
+        return 0;
     }
     else
     {
@@ -139,8 +172,6 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
         (void)memset(pxFlowAllocateRequest, 0, sizeof(*pxFlowAllocateRequest));
 
         /*Create objetcs type name_t from string_t*/
-        ESP_LOGI(TAG_RINA, "FlowAllocate: NameCreate");
-
         pxDIFName = pxRStrNameCreate();
         pxLocalName = pxRStrNameCreate();
         pxRemoteName = pxRStrNameCreate();
@@ -150,16 +181,13 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
             ESP_LOGE(TAG_RINA, "Rina Names were not created properly");
         }
 
-        if (!pcNameDIF)
-        {
-            ESP_LOGE(TAG_RINA, "DIFName incorrect");
-            vRstrNameFree(pxDIFName);
-            // return -1;
-        }
+        // ESP_LOGI(TAG_RINA, "Rina Names created properly");
+
         if (!xRinaNameFromString(pcNameDIF, pxDIFName))
         {
             ESP_LOGE(TAG_RINA, "No possible to convert String to Rina Name");
             vRstrNameFree(pxDIFName);
+            return -1;
         }
 
         if (!pcLocalApp || !xRinaNameFromString(pcLocalApp, pxLocalName))
@@ -167,7 +195,7 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
             ESP_LOGE(TAG_RINA, "LocalName incorrect");
             vRstrNameFree(pxDIFName);
             vRstrNameFree(pxLocalName);
-            // return -1;
+            return -1;
         }
         if (!pcRemoteApp || !xRinaNameFromString(pcRemoteApp, pxRemoteName))
         {
@@ -175,20 +203,12 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
             vRstrNameFree(pxDIFName);
             vRstrNameFree(pxLocalName);
             vRstrNameFree(pxRemoteName);
-            // return -1;
+            return -1;
         }
 
-        /*pxRemoteName = pvPortMalloc(sizeof(*pxRemoteName));
-        pxRemoteName->pcProcessName = strdup(pcRemoteApp);
-
-        pxLocalName = pvPortMalloc(sizeof(*pxLocalName));
-        pxLocalName->pcProcessName = strdup(pcLocalApp);
-
-        pxDIFName = pvPortMalloc(sizeof(*pxDIFName));
-        pxDIFName->pcProcessName = strdup(pcNameDIF);*/
-
         /*xPortId set to zero until the TASK fill properly.*/
-        xPortId = 0;
+        xPortId = xIPCPAllocatePortId();
+        ESP_LOGI(TAG_RINA, "Port Id: %d Allocated", xPortId);
 
         /*Struct Data to sent attached into the event*/
 
@@ -203,6 +223,8 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
             pxFlowAllocateRequest->pxDifName = pxDIFName;
             pxFlowAllocateRequest->pxFspec = pxFlowSpecTmp;
             pxFlowAllocateRequest->xPortId = xPortId;
+
+            vListInitialise(&pxFlowAllocateRequest->xListWaitingPackets);
 
             if (!xFlowSpec)
             {
@@ -230,53 +252,134 @@ void RINA_flow_alloc(string_t pcNameDIF, string_t pcLocalApp, string_t pcRemoteA
                 pxFlowAllocateRequest->pxFspec->xPartialDelivery = true;
                 pxFlowAllocateRequest->pxFspec->xMsgBoundaries = xFlowSpec->msg_boundaries;
             }
-
-            xStackFlowAllocateEvent.pvData = (void *)pxFlowAllocateRequest;
-            ESP_LOGE(TAG_FA, "-----RINA API----");
-            ESP_LOGE(TAG_FA, "pxLocal:%p", pxFlowAllocateRequest->pxLocal);
-            ESP_LOGE(TAG_FA, "pxRemote:%p", pxFlowAllocateRequest->pxRemote);
-            ESP_LOGE(TAG_FA, "-----DETAILS----");
-            ESP_LOGE(TAG_FA, "pxLocal_APName:%s", pxFlowAllocateRequest->pxLocal->pcProcessName);
-            ESP_LOGE(TAG_FA, "pxLocal_APInstance:%s", pxFlowAllocateRequest->pxLocal->pcProcessInstance);
-            ESP_LOGE(TAG_FA, "pxLocal_AEName:%s", pxFlowAllocateRequest->pxLocal->pcEntityName);
-            ESP_LOGE(TAG_FA, "pxLocal_AEInstance:%s", pxFlowAllocateRequest->pxLocal->pcEntityInstance);
-            ESP_LOGE(TAG_FA, "pxRemote_APName:%s", pxFlowAllocateRequest->pxRemote->pcProcessName);
-            ESP_LOGE(TAG_FA, "pxRemote_APInstance:%s", pxFlowAllocateRequest->pxRemote->pcProcessInstance);
-            ESP_LOGE(TAG_FA, "pxRemote_AEName:%s", pxFlowAllocateRequest->pxRemote->pcEntityName);
-            ESP_LOGE(TAG_FA, "pxRemote_AEInstnace:%s", pxFlowAllocateRequest->pxRemote->pcEntityInstance);
-
-            if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, (TickType_t)0U) == pdFAIL)
-            {
-                ESP_LOGE(TAG_RINA, "IPCP Task not working properly");
-                // return -1;
-            }
-#if 0
-            else
-            {
-                /* The IP-task will set the 'eFLOW_BOUND' bit when it has done its
-             * job. */
-
-              (void)xEventGroupWaitBits(pxFlowAllocateRequest->xEventGroup, (EventBits_t)eFLOW_BOUND, pdTRUE /*xClearOnExit*/, pdFALSE /*xWaitAllBits*/, portMAX_DELAY);
-
-               ESP_LOGE(TAG_RINA, "TEST OK:%d",pxFlowAllocateRequest->xPortId);
-
-                /*Check if the flow was bound*/
-                /* if (!socketSOCKET_IS_BOUND(pxSocket))
-                {
-                    xReturn = -pdFREERTOS_ERRNO_EINVAL;
-                }*/
-              return pxFlowAllocateRequest->xPortId;
-            }
-#endif
-            // return pxFlowAllocateRequest->xPortId;
         }
     }
-
-    // return -1;
+    return pxFlowAllocateRequest;
 }
 
-BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength);
-BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength)
+BaseType_t RINA_flowStatus(portId_t xAppPortId)
+{
+    // Request to the Ipcm to check what is the flow status of that port Id
+
+    if (xNormalIsFlowAllocated(xAppPortId) == pdFALSE)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+BaseType_t prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
+{
+    BaseType_t xResult = 0;
+    RINAStackEvent_t xStackFlowAllocateEvent = {eStackFlowAllocateEvent, NULL};
+
+    if (pxFlowAllocateRequest == NULL)
+    {
+        ESP_LOGE(TAG_RINA, "No flow request passed");
+        xResult = -1;
+    }
+    else if (RINA_flowStatus(pxFlowAllocateRequest->xPortId) == 1) // check if the flow is already allocated
+    {
+        ESP_LOGE(TAG_RINA, "There is a flow allocated for that port Id");
+        xResult = -1;
+    }
+    xResult = xRINA_bind(pxFlowAllocateRequest);
+    // maybe do a prebind?
+    if (xResult == 0)
+    {
+
+        vFlowAllocatorFlowRequest(pxFlowAllocateRequest->xPortId, pxFlowAllocateRequest);
+
+        pxFlowAllocateRequest->usTimeout = 1U;
+
+        if (xSendEventToIPCPTask(eFATimerEvent) != pdPASS)
+        {
+            xResult = -1;
+        }
+        /*xStackFlowAllocateEvent.pvData = (void *)pxFlowAllocateRequest;
+
+        if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, (TickType_t)0U) == pdFAIL)
+        {
+            ESP_LOGE(TAG_RINA, "IPCP Task not working properly");
+            xResult = -1;
+        }*/
+    }
+    return xResult;
+}
+
+portId_t RINA_flow_alloc(string_t pcNameDIF,
+                         string_t pcLocalApp,
+                         string_t pcRemoteApp,
+                         struct rinaFlowSpec_t *xFlowSpec,
+                         uint8_t Flags);
+
+portId_t RINA_flow_alloc(string_t pcNameDIF,
+                         string_t pcLocalApp,
+                         string_t pcRemoteApp,
+                         struct rinaFlowSpec_t *xFlowSpec,
+                         uint8_t Flags)
+{
+
+    flowAllocateHandle_t *pxFlowAllocateRequest;
+    TickType_t xRemainingTime;
+    BaseType_t xTimed = pdFALSE; /* Check non-blocking*/
+    TimeOut_t xTimeOut;
+    BaseType_t xResult = -1;
+
+    pxFlowAllocateRequest = prvRINACreateFlowRequest(pcNameDIF, pcLocalApp, pcRemoteApp, xFlowSpec);
+
+    ESP_LOGI(TAG_RINA, "Connecting to IPCP Task");
+
+    xResult = prvConnect(pxFlowAllocateRequest);
+
+    if (xResult == 0)
+    {
+
+        for (;;)
+        {
+            if (xTimed == pdFALSE)
+            {
+                xRemainingTime = pxFlowAllocateRequest->xReceiveBlockTime;
+
+                if (xRemainingTime == (TickType_t)0)
+                {
+                    xResult = -1;
+                    break;
+                }
+
+                xTimed = pdTRUE;
+
+                vTaskSetTimeOutState(&xTimeOut);
+            }
+
+            ESP_LOGI(TAG_RINA, "Checking Flow Status");
+            xResult = RINA_flowStatus(pxFlowAllocateRequest->xPortId);
+
+            if (xResult > 0)
+            {
+                xResult = 0;
+                break;
+            }
+
+            if (xTaskCheckForTimeOut(&xTimeOut, &xRemainingTime) != pdFALSE)
+            {
+                xResult = -1;
+                break;
+            }
+
+            (void)xEventGroupWaitBits(pxFlowAllocateRequest->xEventGroup, (EventBits_t)eFLOW_ACCEPT, pdTRUE, pdFALSE, portMAX_DELAY);
+        }
+        /* The IPCP-task will set the 'eFLOW_ACCEPT' Allocated bit when it has done its
+         * job. */
+    }
+    ESP_LOGI(TAG_RINA, "Flow allocated in the port Id:%d", pxFlowAllocateRequest->xPortId);
+
+    return pxFlowAllocateRequest->xPortId;
+}
+
+size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength);
+size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength)
 {
     NetworkBufferDescriptor_t *pxNetworkBuffer;
     void *pvCopyDest;
@@ -286,6 +389,7 @@ BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataL
 
     /*Check that DataLength is not longer than MAX_SDU_SIZE*/
     // This should not consider??? because the delimiter split into several packets??
+
     if (uxTotalDataLength <= MAX_SDU_SIZE)
     {
         /*Check if the Flow is active*/
@@ -299,7 +403,7 @@ BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataL
 
         if (pxNetworkBuffer != NULL)
         {
-            pvCopyDest = (void *)&pxNetworkBuffer->pucEthernetBuffer;
+            pvCopyDest = (void *)pxNetworkBuffer->pucEthernetBuffer;
             (void)memcpy(pvCopyDest, pvBuffer, uxTotalDataLength);
 
             if (xTaskCheckForTimeOut(&xTimeOut, &xTicksToWait) == pdTRUE)
@@ -313,22 +417,160 @@ BaseType_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataL
         {
             /*Fill the pxNetworkBuffer descriptor properly*/
             pxNetworkBuffer->xDataLength = uxTotalDataLength;
+            pxNetworkBuffer->ulBoundPort = xPortId;
 
             xStackTxEvent.pvData = pxNetworkBuffer;
 
             if (xSendEventStructToIPCPTask(&xStackTxEvent, xTicksToWait) == pdPASS)
             {
-                return pdTRUE;
+                return uxTotalDataLength;
             }
             else
             {
                 vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-                return pdFALSE;
+                return 0;
             }
         }
 
-        return pdFALSE;
+        return 0;
     }
 
-    return pdFALSE;
+    return 0;
+}
+
+BaseType_t RINA_close(portId_t xAppPortId)
+{
+    BaseType_t xResult;
+
+    RINAStackEvent_t xDeallocateEvent;
+    xDeallocateEvent.eEventType = eFlowDeallocateEvent;
+    xDeallocateEvent.pvData = xAppPortId;
+
+    if ((xAppPortId == NULL) || (is_port_id_ok(xAppPortId)))
+    {
+        xResult = pdFALSE;
+    }
+    else
+    {
+
+        if (xSendEventStructToIPCPTask(&xDeallocateEvent, (TickType_t)portMAX_DELAY) == pdFAIL)
+        {
+            ESP_LOGI(TAG_RINA, "RINA Deallocate Flow: failed");
+            xResult = pdFALSE;
+        }
+        else
+        {
+            xResult = pdTRUE;
+        }
+    }
+
+    return xResult;
+}
+
+int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength)
+{
+
+    BaseType_t xPacketCount;
+    const void *pvCopySource; // to copy data from networkBuffer to pvBuffer
+    NetworkBufferDescriptor_t *pxNetworkBuffer;
+    flowAllocateHandle_t *pxFlowHandle;
+    TickType_t xRemainingTime = (TickType_t)0;
+    BaseType_t xTimed = pdFALSE;
+    TimeOut_t xTimeOut;
+    int32_t lDataLength;
+    EventBits_t xEventBits = (EventBits_t)0;
+    size_t uxPayloadLength;
+
+    // Validate if the flow is valid, if the xPortId is working status CONNECTED
+    if (RINA_flowStatus(xPortId) != 1)
+    {
+        ESP_LOGE(TAG_RINA, "There is not a flow allocated for that port Id");
+        return 0;
+    }
+    else
+    {
+        // find the flow handle associated to the xPortId.
+        pxFlowHandle = pxFAFindFlowHandle(xPortId);
+
+        xPacketCount = (BaseType_t)listCURRENT_LIST_LENGTH(&(pxFlowHandle->xListWaitingPackets));
+
+        ESP_LOGD(TAG_RINA, "Numbers of packet in the queue to read: %d", xPacketCount);
+
+        while (xPacketCount == 0)
+        {
+            if (xTimed == pdFALSE)
+            {
+                /* Check to see if the flow is non blocking on the first
+                 * iteration.  */
+
+                xRemainingTime = pxFlowHandle->xReceiveBlockTime;
+                ESP_LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+
+                if (xRemainingTime == (TickType_t)0)
+                {
+
+                    /*check for the interrupt flag. */
+                    ESP_LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+
+                    break;
+                }
+
+                /* To ensure this part only executes once. */
+                xTimed = pdTRUE;
+
+                /* Fetch the current time. */
+                vTaskSetTimeOutState(&xTimeOut);
+            }
+
+            /* Wait for arrival of data.  While waiting, the IPCP-task may set the
+             * 'eFLOW_RECEIVE' bit in 'xEventGroup', if it receives data for this
+             * flow, thus unblocking this API call. */
+            xEventBits = xEventGroupWaitBits(pxFlowHandle->xEventGroup, ((EventBits_t)eFLOW_RECEIVE),
+                                             pdTRUE /*xClearOnExit*/, pdFALSE /*xWaitAllBits*/, xRemainingTime);
+
+            xPacketCount = (BaseType_t)listCURRENT_LIST_LENGTH(&(pxFlowHandle->xListWaitingPackets));
+
+            if (xPacketCount != 0)
+            {
+                break;
+            }
+
+            xTaskCheckForTimeOut(&xTimeOut, &xRemainingTime);
+            ESP_LOGD(TAG_RINA, "xRemainingTime: %d", xRemainingTime);
+            /* Has the timeout been reached ? */
+            if (xTaskCheckForTimeOut(&xTimeOut, &xRemainingTime) != pdFALSE)
+            {
+                ESP_LOGE(TAG_RINA, "xRemainingTime");
+                break;
+            }
+        } /* End while */
+
+        if (xPacketCount != 0)
+        {
+
+            taskENTER_CRITICAL(&mux);
+            {
+                /* The owner of the list item is the network buffer. */
+                pxNetworkBuffer = ((NetworkBufferDescriptor_t *)listGET_OWNER_OF_HEAD_ENTRY(&(pxFlowHandle->xListWaitingPackets)));
+                (void)uxListRemove(&(pxNetworkBuffer->xBufferListItem));
+            }
+            taskEXIT_CRITICAL(&mux);
+
+            lDataLength = (int32_t)pxNetworkBuffer->xDataLength;
+
+            // vPrintBytes((void *)pxNetworkBuffer->pucDataBuffer, lDataLength);
+
+            (void)memcpy(pvBuffer, (const void *)pxNetworkBuffer->pucDataBuffer, (size_t)lDataLength);
+
+            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+        }
+
+        else
+        {
+            ESP_LOGE(TAG_RINA, "Error Timeout");
+            lDataLength = -1;
+        }
+    }
+
+    return lDataLength;
 }
