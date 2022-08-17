@@ -1,4 +1,4 @@
-/*Standard includes. */
+#include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,14 +6,14 @@
 
 #include "configSensor.h"
 #include "configRINA.h"
-
 #include "portability/port.h"
 
-#include "EFCP.h"
+#include "efcpStructures.h"
 #include "Enrollment.h"
 #include "Enrollment_api.h"
 #include "EnrollmentInformationMessage.pb.h"
 #include "FlowAllocator.h"
+#include "FlowAllocator_api.h"
 #include "IPCP_normal_defs.h"
 #include "IPCP_normal_api.h"
 #include "pb_encode.h"
@@ -21,27 +21,30 @@
 #include "Rib.h"
 #include "Ribd.h"
 #include "Ribd_api.h"
+#include "portability/rslist.h"
 #include "rina_common_port.h"
-#include "rina_common.h"
 #include "RINA_API_flows.h"
 #include "SerdesMsg.h"
 #include "IPCP_api.h"
 
+#ifdef ESP_PLATFORM
 static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+#else
+static pthread_mutex_t mux;
+#endif
 
 static FlowRequestRow_t xFlowRequestTable[FLOWS_REQUEST];
 
 void prvAddFlowRequestEntry(flowAllocatorInstance_t *pxFAI)
 {
-
-    BaseType_t x = 0;
+    num_t x = 0;
 
     for (x = 0; x < FLOWS_REQUEST; x++)
     {
-        if (xFlowRequestTable[x].xValid == pdFALSE)
+        if (xFlowRequestTable[x].xValid == false)
         {
             xFlowRequestTable[x].pxFAI = pxFAI;
-            xFlowRequestTable[x].xValid = pdTRUE;
+            xFlowRequestTable[x].xValid = true;
 
             break;
         }
@@ -50,12 +53,12 @@ void prvAddFlowRequestEntry(flowAllocatorInstance_t *pxFAI)
 
 flowAllocatorInstance_t *pxFAFindInstance(portId_t xPortId)
 {
-    BaseType_t x = 0;
+    num_t x = 0;
     flowAllocatorInstance_t *pxFAI;
 
     for (x = 0; x < FLOWS_REQUEST; x++)
     {
-        if (xFlowRequestTable[x].xValid == pdTRUE)
+        if (xFlowRequestTable[x].xValid == true)
         {
             pxFAI = xFlowRequestTable->pxFAI;
             if (pxFAI->xPortId == xPortId) // ad xPortId
@@ -66,15 +69,16 @@ flowAllocatorInstance_t *pxFAFindInstance(portId_t xPortId)
     }
     return NULL;
 }
+
 flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId)
 {
-    BaseType_t x = 0;
+    num_t x = 0;
     flowAllocatorInstance_t *pxFAI;
     flowAllocateHandle_t *pxFlowAllocateRequest;
 
     for (x = 0; x < FLOWS_REQUEST; x++)
     {
-        if (xFlowRequestTable[x].xValid == pdTRUE)
+        if (xFlowRequestTable[x].xValid == true)
         {
             pxFAI = xFlowRequestTable->pxFAI;
             if (pxFAI->xPortId == xPortId) // ad xPortId
@@ -89,18 +93,17 @@ flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId)
 
 flowAllocateHandle_t *prvGetPendingFlowRequest(portId_t xPortId)
 {
-    BaseType_t x = 0;
+    num_t x = 0;
     flowAllocateHandle_t *pxFlowAllocateRequest;
     flowAllocatorInstance_t *pxFAI;
 
     for (x = 0; x < FLOWS_REQUEST; x++)
     {
-        if (xFlowRequestTable[x].xValid == pdTRUE)
+        if (xFlowRequestTable[x].xValid == true)
         {
             pxFAI = xFlowRequestTable->pxFAI;
             if (pxFAI->xPortId == xPortId) // ad xPortId
             {
-
                 pxFlowAllocateRequest = pxFAI->pxFlowAllocatorHandle;
                 return pxFlowAllocateRequest;
             }
@@ -120,7 +123,7 @@ flowAllocator_t *pxFlowAllocatorInit(void)
     /* Create object in the Rib*/
 
     /*Init List*/
-    vListInitialise(&pxFlowAllocator->xFlowAllocatorInstances);
+    vRsListInit(&pxFlowAllocator->xFlowAllocatorInstances);
 
     return pxFlowAllocator;
 }
@@ -203,7 +206,7 @@ void vFlowAllocatorFlowRequest(
     flowAllocatorInstance_t *pxFlowAllocatorInstance;
     connectionId_t *pxConnectionId;
     string_t pcNeighbor;
-    struct efcpContainter_t *pxEfcpc;
+    struct efcpContainer_t *pxEfcpc;
 
     /* Create a flow object and fill using the event FlowRequest */
     pxFlow = prvFlowAllocatorNewFlow(pxFlowRequest);
@@ -345,16 +348,17 @@ bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
     pxFAI->eFaiState = eFAI_ALLOCATED;
     LOGI(TAG_FA, "Flow state updated to Allocated");
 
-    if (pxFAI->pxFlowAllocatorHandle != NULL)
+    pthread_mutex_lock(&pxFAI->pxFlowAllocatorHandle->xEventMutex);
     {
-        (void)xEventGroupSetBits(pxFAI->pxFlowAllocatorHandle->xEventGroup, (EventBits_t)eFLOW_ACCEPT);
+        pxFAI->pxFlowAllocatorHandle->nEventBits |= eFLOW_BOUND;
+        pthread_cond_signal(&pxFAI->pxFlowAllocatorHandle->xEventCond);
     }
+    pthread_mutex_unlock(&pxFAI->pxFlowAllocatorHandle->xEventMutex);
 
     return true;
 }
 
 bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id)
-
 {
     LOGD(TAG_FA, "Calling: %s", __func__);
 
@@ -388,7 +392,9 @@ bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
         xDuDestroy(pxDu);
         return false;
     }
+
     pxFlowAllocatorInstance = pxFAFindInstance(xAppPortId);
+
     if (!pxFlowAllocatorInstance)
     {
         LOGE(TAG_FA, "Flow Allocator instance was not founded");
@@ -407,13 +413,15 @@ bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
         return false;
     }
 
+    /* Add the network packet to the list of packets to be
+     * processed by the socket. */
+
+#ifdef ESP_PLATFORM
     // wakeup client setting bits
     vTaskSuspendAll();
     {
         taskENTER_CRITICAL(&mux);
         {
-            /* Add the network packet to the list of packets to be
-             * processed by the socket. */
             vListInitialiseItem(&(pxNetworkBuffer->xBufferListItem));
             listSET_LIST_ITEM_OWNER(&(pxNetworkBuffer->xBufferListItem), (void *)pxNetworkBuffer);
             vListInsertEnd(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxNetworkBuffer->xBufferListItem));
@@ -421,12 +429,22 @@ bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
         taskEXIT_CRITICAL(&mux);
     }
     (void)xTaskResumeAll();
-
-    /* Set the socket's receive event */
-    if (pxFlowAllocatorInstance->pxFlowAllocatorHandle->xEventBits != NULL)
+#else
+    pthread_mutex_lock(&mux);
     {
-        (void)xEventGroupSetBits(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xEventGroup, (EventBits_t)eFLOW_RECEIVE);
+        vRsListInitItem(&(pxNetworkBuffer->xBufferListItem));
+        vRsListSetListItemOwner(&(pxNetworkBuffer->xBufferListItem), (void *)pxNetworkBuffer);
+        vRsListInsert(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxNetworkBuffer->xBufferListItem));
     }
+    pthread_mutex_unlock(&mux);
+#endif
+
+    pthread_mutex_lock(&pxFlowAllocatorInstance->pxFlowAllocatorHandle->xEventMutex);
+    {
+        pxFlowAllocatorInstance->pxFlowAllocatorHandle->nEventBits |= eFLOW_RECEIVE;
+        pthread_cond_signal(&pxFlowAllocatorInstance->pxFlowAllocatorHandle->xEventCond);
+    }
+    pthread_mutex_unlock(&pxFlowAllocatorInstance->pxFlowAllocatorHandle->xEventMutex);
 
     return true;
 }

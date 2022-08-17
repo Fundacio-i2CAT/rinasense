@@ -222,5 +222,16 @@ typedef struct xIPCP_TIMER
     useconds_t ulReloadTimeUS;    /**< The value of reload time. */
 } IPCPTimer_t;
 
+enum eFLOW_EVENT
+{
+        eFLOW_RECEIVE = 0x0001,
+        eFLOW_SEND = 0x0002,
+        eFLOW_ACCEPT = 0x0004,
+        eFLOW_CONNECT = 0x0008,
+        eFLOW_BOUND = 0x0010,
+        eFLOW_CLOSED = 0x0020,
+        eSELECT_ALL = 0x000F,
+};
+
 #endif // _COMPONENTS_IPCP_INCLUDE_COMMON_PORT_H#
 

@@ -55,7 +55,7 @@ struct ribObjOps_t
     bool_t (*create)(struct ribObject_t *, serObjectValue_t *pxObjValue, string_t remote_process_name,
                          string_t local_process_name, int invokeId, portId_t xN1Port);
 
-    BaseType_t (*delete)(struct ribObject_t *pxRibObject, int invoke_id);
+    bool_t (*delete)(struct ribObject_t *pxRibObject, int invoke_id);
 };
 
 struct ribObject_t

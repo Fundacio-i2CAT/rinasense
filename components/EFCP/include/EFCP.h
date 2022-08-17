@@ -23,9 +23,9 @@ bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCep
 
 bool_t xEfcpConnectionDestroy(struct efcpContainer_t * pxContainer, cepId_t xId);
 
-BaseType_t xEfcpConnectionUpdate(struct efcpContainer_t *pxContainer,
-                                 cepId_t from,
-                                 cepId_t to);
+bool_t xEfcpConnectionUpdate(struct efcpContainer_t *pxContainer,
+                             cepId_t from,
+                             cepId_t to);
 
 cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               address_t xSrcAddr,
@@ -37,9 +37,9 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               dtpConfig_t *pxDtpCfg,
                               struct dtcpConfig_t *pxDtcpCfg);
 
-BaseType_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,
-                                 cepId_t xCepId,
-                                 address_t xSrc,
-                                 address_t xDst);
+bool_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,
+                             cepId_t xCepId,
+                             address_t xSrc,
+                             address_t xDst);
 
 #endif /* EFCP_H__*/

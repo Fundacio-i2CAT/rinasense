@@ -31,8 +31,7 @@
 #include "portability/rsqueue.h"
 #include "portability/rstime.h"
 #include "rina_buffers.h"
-#include "rina_common.h"
-#include "RINA_API.h"
+#include "rina_common_port.h"
 
 MACAddress_t xlocalMACAddress = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 
@@ -111,7 +110,7 @@ static void *prvIPCPTask(void *pvParameters);
 
 static bool_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer);
 
-void vIpcpSetFATimerExpiredState(BaseType_t xExpiredState);
+void vIpcpSetFATimerExpiredState(bool_t xExpiredState);
 
 /*
  * Utility functions for the light weight IP timers.
@@ -296,7 +295,7 @@ static void *prvIPCPTask(void *pvParameters)
             break;
         case eFATimerEvent:
             LOGI(TAG_IPCPMANAGER, "Setting FA timer to expired");
-            vIpcpSetFATimerExpiredState(pdTRUE);
+            vIpcpSetFATimerExpiredState(true);
 
             break;
         case eFlowDeallocateEvent:
@@ -308,6 +307,7 @@ static void *prvIPCPTask(void *pvParameters)
 
         case eFlowBindEvent:
 
+#if 0
             pxFlowAllocateRequest = ((flowAllocateHandle_t *)xReceivedEvent.pvData);
 
             (void)xNormalFlowPrebind(pxIpcpData, pxFlowAllocateRequest);
@@ -315,7 +315,7 @@ static void *prvIPCPTask(void *pvParameters)
             pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
 
             vRINA_WeakUpUser(pxFlowAllocateRequest);
-
+#endif
             break;
 
         case eSendMgmtEvent:
@@ -831,17 +831,17 @@ static bool_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer)
  *
  * @param[in] xExpiredState: pdTRUE - set as expired; pdFALSE - set as non-expired.
  */
-void vIpcpSetFATimerExpiredState(BaseType_t xExpiredState)
+void vIpcpSetFATimerExpiredState(bool_t xExpiredState)
 {
-    xFATimer.bActive = pdTRUE_UNSIGNED;
+    xFATimer.bActive = true;
 
-    if (xExpiredState != pdFALSE)
+    if (xExpiredState != false)
     {
-        xFATimer.bExpired = pdTRUE_UNSIGNED;
+        xFATimer.bExpired = true;
     }
     else
     {
-        xFATimer.bExpired = pdFALSE_UNSIGNED;
+        xFATimer.bExpired = false;
     }
 }
 

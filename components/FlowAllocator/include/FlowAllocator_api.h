@@ -3,9 +3,8 @@
 
 #include "FlowAllocator.h"
 
-void vFlowAllocatorFlowRequest(
-    portId_t xAppPortId,
-    flowAllocateHandle_t *pxFlowRequest);
+void vFlowAllocatorFlowRequest(portId_t xAppPortId,
+                               flowAllocateHandle_t *pxFlowRequest);
 
 bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
 
