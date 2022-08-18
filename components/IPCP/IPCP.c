@@ -32,6 +32,7 @@
 #include "portability/rstime.h"
 #include "rina_buffers.h"
 #include "rina_common_port.h"
+#include "RINA_API.h"
 
 MACAddress_t xlocalMACAddress = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 
@@ -74,7 +75,7 @@ ipcManager_t *pxIpcManager;
 
 /*********************************************************/
 
-struct ipcpNormalData_t *pxIpcpData;
+struct ipcpInstanceData_t *pxIpcpData;
 
 /* RIBD module */
 
@@ -83,7 +84,7 @@ struct ipcpNormalData_t *pxIpcpData;
 /* Flow Allocator */
 
 /**************************************/
-ipcpInstance_t *pxShimInstance;
+struct ipcpInstance_t *pxShimInstance;
 
 /** @brief ARP timer, to check its table entries. */
 static IPCPTimer_t xARPTimer;
@@ -305,17 +306,20 @@ static void *prvIPCPTask(void *pvParameters)
 
             break;
 
+
         case eFlowBindEvent:
 
-#if 0
             pxFlowAllocateRequest = ((flowAllocateHandle_t *)xReceivedEvent.pvData);
 
             (void)xNormalFlowPrebind(pxIpcpData, pxFlowAllocateRequest);
 
+#if 0
             pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
-
             vRINA_WeakUpUser(pxFlowAllocateRequest);
 #endif
+
+            vRINA_WakeUpFlowRequest(&pxFlowAllocateRequest, eFLOW_BOUND);
+
             break;
 
         case eSendMgmtEvent:
@@ -534,7 +538,7 @@ void prvHandleEthernetPacket(NetworkBufferDescriptor_t *pxBuffer)
         /* When ipconfigUSE_LINKED_RX_MESSAGES is not set to 0 then only one
          * buffer will be sent at a time.  This is the default way for +TCP to pass
          * messages from the MAC to the TCP/IP stack. */
-        LOGI(TAG_IPCPMANAGER, "Packet to network stack %p, len %d", pxBuffer, pxBuffer->xDataLength);
+        LOGI(TAG_IPCPMANAGER, "Packet to network stack %p, len %zu", pxBuffer, pxBuffer->xDataLength);
         prvProcessEthernetPacket(pxBuffer);
     }
 #else  /* configUSE_LINKED_RX_MESSAGES */
@@ -836,13 +840,9 @@ void vIpcpSetFATimerExpiredState(bool_t xExpiredState)
     xFATimer.bActive = true;
 
     if (xExpiredState != false)
-    {
         xFATimer.bExpired = true;
-    }
     else
-    {
         xFATimer.bExpired = false;
-    }
 }
 
 /**
@@ -996,12 +996,12 @@ struct rmt_t *pxIPCPGetRmt(void)
     return pxIpcpData->pxRmt;
 }
 
-struct efpcContainer_t *pxIPCPGetEfcpc(void)
+struct efcpContainer_t *pxIPCPGetEfcpc(void)
 {
     return pxIpcpData->pxEfcpc;
 }
 
-struct ipcpNormalInstance_t *pxIpcpGetData(void)
+struct ipcpInstanceData_t *pxIpcpGetData(void)
 {
     return pxIpcpData;
 }

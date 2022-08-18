@@ -53,5 +53,3 @@ flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId)
 {
     return NULL;
 }
-
-

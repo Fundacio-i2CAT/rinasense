@@ -19,7 +19,7 @@ RS_TEST_CASE_TEARDOWN(test_shim_ipcp) {}
 RS_TEST_CASE(ShimIpcpBasic, "[shimipcp][ipcp]")
 {
     name_t n1;
-    ipcpInstance_t *ipcp;
+    struct ipcpInstance_t *ipcp;
 
     RS_TEST_CASE_BEGIN(test_shim_ipcp);
 

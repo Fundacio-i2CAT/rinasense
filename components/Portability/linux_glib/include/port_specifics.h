@@ -6,5 +6,7 @@
 #include "glib_rsassert.h"
 #include "glib_rsnet.h"
 
+#define USECONDS_FMT "%lu"
+
 #endif // _PORT_LINUX_GLIB_PORT_H
 

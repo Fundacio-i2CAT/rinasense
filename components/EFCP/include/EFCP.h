@@ -11,10 +11,6 @@
 #include "du.h"
 #include "efcpStructures.h"
 
-struct efcp_t;
-struct du_t;
-struct efcpContainer_t;
-
 bool_t xEfcpEnqueue(struct efcp_t * pxEfcp, portId_t xPort, struct du_t * pxDu);
 bool_t xEfcpContainerReceive( struct efcpContainer_t * pxContainer, cepId_t xCepId, struct du_t * pxDu);
 bool_t xEfcpReceive(struct efcp_t * pxEfcp,  struct du_t *  pxDu);
