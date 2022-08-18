@@ -1,4 +1,5 @@
 set(Portability_INCLUDES
+  "${COMMON_INCLUDES}"
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/posix/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/${TARGET_TYPE}/include")

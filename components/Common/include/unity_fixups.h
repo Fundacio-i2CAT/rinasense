@@ -21,6 +21,8 @@
  * }
  * #endif */
 
+#include <stdlib.h> /* For exit() below */
+
 #define RS_TEST_CASE_SETUP(name) \
     void local_testcase_setUp_##name()
 
@@ -37,6 +39,14 @@
 void setUp() {}
 void tearDown() {}
 
+#define RS_SUITE_BEGIN() \
+    vRsLogInit(); \
+    vRsLogSetLevel("*", LOG_VERBOSE); \
+    UNITY_BEGIN()
+
+#define RS_SUITE_END() \
+    exit(UNITY_END());
+
 #define RS_TEST_CASE(name, desc) \
     void test_##name()
 
@@ -44,6 +54,10 @@ void tearDown() {}
     RUN_TEST(test_##name);
 
 #else /* We're running in the ESP-IDF */
+
+#define RS_SUITE_BEGIN() goto _error_dont_use_this_;
+
+#define RS_SUITE_END()  goto _error_dont_use_this_;
 
 #define RS_TEST_CASE(name, desc) \
     TEST_CASE(#name, desc)

@@ -51,8 +51,8 @@ RS_TEST_CASE(IPCPSendEvent, "[ipcp]")
 #ifndef TEST_CASE
 int main()
 {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(IPCPSendEvent);
-    return UNITY_END();
+    RS_SUITE_END();
 }
 #endif // TEST_CASE

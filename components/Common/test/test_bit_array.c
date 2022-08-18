@@ -64,9 +64,9 @@ RS_TEST_CASE(BitArrayLarge, "[bitarray]")
 
 #ifndef TEST_CASE
 int main() {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(BitArrayBasics);
     RS_RUN_TEST(BitArrayLarge);
-    return UNITY_END();
+    RS_SUITE_END();
 }
 #endif

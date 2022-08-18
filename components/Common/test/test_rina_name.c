@@ -92,11 +92,11 @@ RS_TEST_CASE(RinaStringToName, "[rina_name]")
 
 #ifndef TEST_CASE
 int main() {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(StringDup);
     RS_RUN_TEST(RinaNameBreakdown);
     RS_RUN_TEST(RinaNameFromString);
     RS_RUN_TEST(RinaStringToName);
-    return UNITY_END();
+    RS_SUITE_END();
 }
 #endif

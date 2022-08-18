@@ -29,9 +29,9 @@ RS_TEST_CASE(RibFindObject, "[rib]")
 #ifndef TEST_CASE
 int main()
 {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(RibCreateObject);
     RS_RUN_TEST(RibFindObject);
-    exit(UNITY_END());
+    RS_SUITE_END();
 }
 #endif
