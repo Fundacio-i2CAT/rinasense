@@ -118,7 +118,7 @@ typedef struct xFLOW_MESSAGE
 typedef struct xREQUEST_HANDLER_ROW
 {
     flowAllocatorInstance_t *pxFAI;
-    BaseType_t xValid;
+    bool_t xValid;
 
 } FlowRequestRow_t;
 

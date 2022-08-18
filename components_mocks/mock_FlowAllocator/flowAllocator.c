@@ -27,3 +27,29 @@ bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
     return true;
 }
 
+#ifdef ESP_PLATFORM
+bool_t mock_FlowAllocator_xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
+#else
+bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
+#endif
+{
+    return true;
+}
+
+#ifdef ESP_PLATFORM
+bool_t mock_FlowAllocator_xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id)
+#else
+bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id)
+#endif
+{
+    return true;
+}
+
+#ifdef ESP_PLATFORM
+flowAllocateHandle_t *mock_FlowAllocator_pxFAFindFlowHandle(portId_t xPortId)
+#else
+flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId)
+#endif
+{
+    return NULL;
+}

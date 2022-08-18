@@ -13,7 +13,7 @@ typedef enum eNormal_Flow_State
     ePORT_STATE_DISABLED
 } eNormalFlowState_t;
 
-struct ipcpNormalData_t
+struct ipcpInstanceData_t
 {
     /* FIXME: add missing needed attributes */
 

@@ -4,14 +4,13 @@
 
 #include "num_mgr.h"
 #include "EFCP.h"
-#include "IPCP_normal_defs.h"
 #include "rina_buffers.h"
 #include "RINA_API_flows.h"
 
 typedef struct xINSTANCE_TABLE_ROW
 {
 	/*The Ipcp Instance to register*/
-	ipcpInstance_t *pxIpcpInstance;
+	struct ipcpInstance_t *pxIpcpInstance;
 
 	/*Type of the Ipcp Instance to register*/
 	ipcpInstanceType_t pxIpcpType;
@@ -44,16 +43,16 @@ typedef struct xIPC_MANAGER
 
 bool_t xIpcManagerInit(ipcManager_t *pxIpcManager);
 
-void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName);
+void vIcpManagerEnrollmentFlowRequest(struct ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName);
 
 void vIpcpManagerAppFlowAllocateRequestHandle(flowAllocateHandle_t *pxFlowAllocateRequest);
 
 // BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData);
 
-ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId);
+struct ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId);
 
-void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
+void vIpcManagerRINAPackettHandler(struct ipcpInstanceData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
 
-ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager);
+struct ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager);
 
 #endif

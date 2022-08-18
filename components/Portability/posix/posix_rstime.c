@@ -1,6 +1,10 @@
 #include <assert.h>
 #include <time.h>
+#include <string.h>
+
 #include "portability/port.h"
+
+#define SEC_TO_NS(sec) ((sec)*1000000000)
 
 bool_t rstime_waitsec(struct timespec *ts, uint32_t n)
 {
@@ -19,6 +23,48 @@ bool_t rstime_waitnsec(struct timespec *ts, uint64_t n) {
      * nanosleep(1) */
     ts->tv_sec += (time_t)(n / 1000000000);
     ts->tv_nsec += (n % 1000000000);
+
+    return true;
+}
+
+bool_t xRsTimeSetTimeOut(struct RsTimeOut *pTimeOut)
+{
+    if (clock_gettime(CLOCK_MONOTONIC, &(pTimeOut->xTimespec)))
+        return false;
+
+    return true;
+}
+
+bool_t xRsTimeCheckTimeOut(struct RsTimeOut *pTimeOut,
+                           useconds_t *pxTimeLeft)
+{
+    struct timespec xCheckTimespec;
+    uint64_t unNsTimeNow, unNsTimeThen, unNsTimeDone;
+    int64_t nNsTimeLeft;
+
+    /* It makes no sense to call this function without wanting some
+     * kind of result back */
+    RsAssert(pxTimeLeft);
+
+    if (clock_gettime(CLOCK_MONOTONIC, &xCheckTimespec) < 0)
+        return false;
+
+    /* unTimeThen -- Time at the first call of xRsSetTimeOut or
+       previous call to xRsTimeCheckTimeOut */
+    unNsTimeThen = SEC_TO_NS(pTimeOut->xTimespec.tv_sec) + pTimeOut->xTimespec.tv_nsec;
+
+    /* unTimeNow -- Time at this moment. */
+    unNsTimeNow = SEC_TO_NS(xCheckTimespec.tv_sec) + xCheckTimespec.tv_nsec;
+
+    /* unTimeDone -- Time at which the timeout will be expired. */
+    unNsTimeDone = unNsTimeThen + (*pxTimeLeft * 1000);
+
+    /* Update the time left with in the timeout */
+    nNsTimeLeft = unNsTimeDone - unNsTimeNow;
+    *pxTimeLeft = nNsTimeLeft > 0 ? nNsTimeLeft / 1000 : 0;
+
+    /* Save the new time. */
+    memcpy(&pTimeOut->xTimespec, &xCheckTimespec, sizeof(struct timespec));
 
     return true;
 }

@@ -11,10 +11,6 @@
 #include "du.h"
 #include "efcpStructures.h"
 
-struct efcp_t;
-struct du_t;
-struct efcpContainer_t;
-
 bool_t xEfcpEnqueue(struct efcp_t * pxEfcp, portId_t xPort, struct du_t * pxDu);
 bool_t xEfcpContainerReceive( struct efcpContainer_t * pxContainer, cepId_t xCepId, struct du_t * pxDu);
 bool_t xEfcpReceive(struct efcp_t * pxEfcp,  struct du_t *  pxDu);
@@ -23,9 +19,9 @@ bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCep
 
 bool_t xEfcpConnectionDestroy(struct efcpContainer_t * pxContainer, cepId_t xId);
 
-BaseType_t xEfcpConnectionUpdate(struct efcpContainer_t *pxContainer,
-                                 cepId_t from,
-                                 cepId_t to);
+bool_t xEfcpConnectionUpdate(struct efcpContainer_t *pxContainer,
+                             cepId_t from,
+                             cepId_t to);
 
 cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               address_t xSrcAddr,
@@ -37,9 +33,9 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               dtpConfig_t *pxDtpCfg,
                               struct dtcpConfig_t *pxDtcpCfg);
 
-BaseType_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,
-                                 cepId_t xCepId,
-                                 address_t xSrc,
-                                 address_t xDst);
+bool_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,
+                             cepId_t xCepId,
+                             address_t xSrc,
+                             address_t xDst);
 
 #endif /* EFCP_H__*/

@@ -26,9 +26,9 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt, rmtN1Port_t *pxN1Port, stru
 static bool_t xRmtProcessMgmtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu);
 
 /* @brief Create an N-1 Port in the RMT Component*/
-static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, ipcpInstance_t *pxN1Ipcp);
+static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, struct ipcpInstance_t *pxN1Ipcp);
 
-static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, ipcpInstance_t *pxN1Ipcp)
+static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, struct ipcpInstance_t *pxN1Ipcp)
 {
 
 	LOGI(TAG_RMT, "Creating a N-1 Port in the RMT");
@@ -61,9 +61,9 @@ static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, ipcpInstance_t *pxN1Ipcp)
 /* @brief Bind the N-1 Port with the RMT. SDUP and RMT Policies are not considered.�
  * It is called from the IPCP normal when a Flow is required to be bounded. From the
  * IPCP normal is send the RMT instance, the portId from the Shim, and Shim Instance */
-bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, ipcpInstance_t *pxN1Ipcp);
+bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, struct ipcpInstance_t *pxN1Ipcp);
 
-bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, ipcpInstance_t *pxN1Ipcp)
+bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, struct ipcpInstance_t *pxN1Ipcp)
 {
 	LOGI(TAG_RMT, "Binding the RMT with the port id:%d", xId);
 
@@ -262,7 +262,7 @@ static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_
 	return true;
 }
 
-bool_t xRmtReceive(struct ipcpNormalData_t *pxData, struct du_t *pxDu, portId_t xFrom)
+bool_t xRmtReceive(struct ipcpInstanceData_t *pxData, struct du_t *pxDu, portId_t xFrom)
 {
 	LOGI(TAG_RMT, "RMT has received a RINA packet from the port %d", xFrom);
 

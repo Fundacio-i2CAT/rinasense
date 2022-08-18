@@ -16,6 +16,7 @@
 #include "IPCP_events.h"
 #include "IPCP_normal_defs.h"
 #include "IPCP_normal_api.h"
+#include "portability/rsmem.h"
 #include "rina_common_port.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
@@ -63,8 +64,8 @@ messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message);
 
 bool_t xRibdppConnection(portId_t xPortId);
 
-bool_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId);
-bool_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
+bool_t vRibHandleMessage(struct ipcpInstanceData_t *pxData, messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId);
+bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu);
 
 struct ribCallbackOps_t *pxRibdCreateCdapCallback(opCode_t xOpCode, int invoke_id);
 
@@ -737,7 +738,7 @@ messageCdap_t *prvRibdFillEnrollMsgStart(string_t pcObjClass, string_t pcObjName
     return pxMessage;
 }
 
-bool_t xRibdConnectToIpcp(struct ipcpNormalData_t *pxIpcpData, name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth)
+bool_t xRibdConnectToIpcp(struct ipcpInstanceData_t *pxIpcpData, name_t *pxSource, name_t *pxDestInfo, portId_t xN1flowPortId, authPolicy_t *pxAuth)
 {
 
     LOGI(TAG_RIB, "Preparing a M_CONNECT message");
@@ -823,7 +824,7 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
     }
 }
 
-bool_t xRibdProcessLayerManagementPDU(struct ipcpNormalData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu)
+bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu)
 {
     LOGI(TAG_RIB, "Processing a Management PDU");
 
@@ -864,7 +865,7 @@ void prvRibdHandledAData(serObjectValue_t *pxObjValue)
     if (pxDecodeCdap->eOpCode > MAX_CDAP_OPCODE)
     {
         LOGE(TAG_RIB, "Invalid opcode %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
-        vPortFree(pxDecodeCdap);
+        vRsMemFree(pxDecodeCdap);
     }
 
     LOGI(TAG_RIB, "Handling CDAP Message: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
@@ -907,7 +908,7 @@ void vPrintAppConnection(appConnection_t *pxAppConnection)
     LOGI(TAG_RIB, "Connection Status:%d", pxAppConnection->xStatus);
 }
 
-bool_t vRibHandleMessage(struct ipcpNormalData_t *pxData, messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId)
+bool_t vRibHandleMessage(struct ipcpInstanceData_t *pxData, messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId)
 {
 
     bool_t ret = true;

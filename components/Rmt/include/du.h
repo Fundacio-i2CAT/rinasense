@@ -11,7 +11,7 @@
 #include "portability/port.h"
 #include "rina_buffers.h"
 #include "pci.h"
-#include "efcpStructures.h"
+#include "rina_common_port.h"
 
 struct du_t
 {

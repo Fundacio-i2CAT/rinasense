@@ -51,7 +51,7 @@ bool_t xIpcManagerInit(ipcManager_t *pxIpcManager)
  *
  * @param pxIpcpInstaceToAdd to added into the table
  */
-void vIpcpManagerAddInstanceEntry(ipcpInstance_t *pxIpcpInstaceToAdd)
+void vIpcpManagerAddInstanceEntry(struct ipcpInstance_t *pxIpcpInstaceToAdd)
 {
     num_t x = 0;
 
@@ -69,7 +69,7 @@ void vIpcpManagerAddInstanceEntry(ipcpInstance_t *pxIpcpInstaceToAdd)
     }
 }
 
-ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId)
+struct ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId)
 {
     num_t x = 0;
 
@@ -95,7 +95,7 @@ ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId)
  * @return ipcpInstance_t* pointer to the ipcp instance.
  */
 
-static ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
+static struct ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
 {
     num_t x = 0;
 
@@ -113,9 +113,9 @@ static ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
     return NULL;
 }
 
-void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName)
-{
 
+void vIcpManagerEnrollmentFlowRequest(struct ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName)
+{
     /*This should be proposed by the Flow Allocator?*/
     name_t *destinationInfo = pvRsMemAlloc(sizeof(*destinationInfo));
     destinationInfo->pcProcessName = REMOTE_ADDRESS_AP_NAME;
@@ -135,17 +135,18 @@ void vIcpManagerEnrollmentFlowRequest(ipcpInstance_t *pxShimInstance, portId_t x
         LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
 }
 
-void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
-void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer)
+void vIpcManagerRINAPackettHandler(struct ipcpInstanceData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
+void vIpcManagerRINAPackettHandler(struct ipcpInstanceData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer)
 {
     struct du_t *pxMessagePDU;
 
     pxMessagePDU = pvRsMemAlloc(sizeof(*pxMessagePDU));
 
-    if (!pxMessagePDU)
-    {
+    if (!pxMessagePDU) {
         LOGE(TAG_IPCPMANAGER, "pxMessagePDU was not allocated");
+        return;
     }
+
     pxMessagePDU->pxNetworkBuffer = pxNetworkBuffer;
 
     if (!xNormalDuEnqueue(pxData, 1, pxMessagePDU)) // must change this
@@ -155,8 +156,8 @@ void vIpcManagerRINAPackettHandler(struct ipcpNormalData_t *pxData, NetworkBuffe
     }
 }
 
-ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager);
-ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager)
+struct ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager);
+struct ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager)
 {
 
     ipcProcessId_t xIpcpId;

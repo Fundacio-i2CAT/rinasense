@@ -6,6 +6,7 @@
 
 #include "portability/port.h"
 #include "EFCP.h"
+#include "rina_ids.h"
 #include "rmt.h"
 #include "pci.h"
 #include "du.h"
@@ -310,8 +311,7 @@ bool_t xEfcpContainerReceive(struct efcpContainer_t *pxEfcpContainer, cepId_t xC
         // atomic_inc(&efcp->pending_ops);
 
         xPduType = pxDu->pxPci->xType; // Check this
-        if (xPduType == PDU_TYPE_DT &&
-            pxEfcp->pxConnection->xDestinationCepId < 0)
+        if (xPduType == PDU_TYPE_DT && pxEfcp->pxConnection->xDestinationCepId != CEP_ID_WRONG)
         {
                 /* Check that the destination cep-id is set to avoid races,
                  * otherwise set it*/

@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(TARGET_TYPE "freertos_idf"
-  CACHE STRING "Type of build: 'linux_glibc', 'freertos_idf'")
+  CACHE STRING "Type of build: 'linux_glib', 'freertos_idf'")
 
 file(TO_CMAKE_PATH "$ENV{IDF_PATH}" ENV_IDF_PATH)
 
@@ -20,12 +20,12 @@ if("${TARGET_TYPE}" STREQUAL "" OR "${TARGET_TYPE}" STREQUAL "freertos_idf")
     add_compile_definitions(configUSE_POSIX_ERRNO=1)
     project(RINA_sensor)
   else()
-    message(FATAL_ERROR " The 'freertos_idf' target needs the IDF_PATH environment variable to be defined ")
+    message(FATAL_ERROR "The 'freertos_idf' target needs the IDF_PATH environment variable to be defined")
   endif()
-elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
+elseif(${TARGET_TYPE} STREQUAL "linux_glib")
   project(RINA_sensor)
 
-  message(" Configuring: POSIX build ")
+  message("Configuring: POSIX build")
 
   include(CTest)
 
@@ -33,44 +33,44 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
 
   set(CMAKE_VERBOSE_MAKEFILE ON)
 
-  # set(CMAKE_C_COMPILER " /ugcc ")
+  # set(CMAKE_C_COMPILER"/ugcc")
 
   #
   # Set all include path variables here so as to avoid circular
   # dependencies problem below.
   #
-  set(CdapProto_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/CdapProto/include ")
-  set(configSensor_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/configSensor/include ")
-  set(configRINA_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/configRINA/include ")
-  set(Common_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/Common/include ")
-  set(ARP826_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/ARP826/include ")
-  set(BufferManagement_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/BufferManagement/include ")
-  set(EFCP_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/EFCP/include ")
-  set(IPCP_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/IPCP/include ")
-  set(NetworkInterface_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface/include ")
-  set(NetworkInterface_MQ_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface/mq/include ")
-  set(RINA_API_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/RINA_API/include ")
-  set(Rmt_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/include ")
-  set(ShimIPCP_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/ShimIPCP/include ")
-  set(FlowAllocator_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/FlowAllocator/include ")
-  set(Ribd_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/Ribd/include ")
-  set(Enrollment_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components/Enrollment/include ")
+  set(CdapProto_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/CdapProto/include")
+  set(configSensor_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/configSensor/include")
+  set(configRINA_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/configRINA/include")
+  set(Common_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/Common/include")
+  set(ARP826_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/ARP826/include")
+  set(BufferManagement_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/BufferManagement/include")
+  set(EFCP_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/EFCP/include")
+  set(IPCP_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/IPCP/include")
+  set(NetworkInterface_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface/include")
+  set(NetworkInterface_MQ_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface/mq/include")
+  set(RINA_API_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/RINA_API/include")
+  set(Rmt_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/include")
+  set(ShimIPCP_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/ShimIPCP/include")
+  set(FlowAllocator_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/FlowAllocator/include")
+  set(Ribd_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/Ribd/include")
+  set(Enrollment_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components/Enrollment/include")
 
-  set(mock_IPCP_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_IPCP/include ")
+  set(mock_IPCP_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_IPCP/include")
   set(mock_NetworkInterface_INCLUDES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_NetworkInterface/include ")
-  set(mock_FlowAllocator_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_FlowAllocator/include ")
-  set(mock_Ribd_INCLUDES " ${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_Ribd/include ")
+    "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_NetworkInterface/include ")
+  set(mock_FlowAllocator_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_FlowAllocator/include")
+  set(mock_Ribd_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_Ribd/include")
 
   #
   # Portability layer, target specific
   #
-  include(" ${CMAKE_CURRENT_SOURCE_DIR}/components/Portability/${TARGET_TYPE}/CMakeLists.txt ")
+  include("${CMAKE_CURRENT_SOURCE_DIR}/components/Portability/${TARGET_TYPE}/CMakeLists.txt")
 
   #
   # Portability layer tests
   #
-  include(" ${CMAKE_CURRENT_SOURCE_DIR}/components/Portability/test/CMakeLists.txt ")
+  include("${CMAKE_CURRENT_SOURCE_DIR}/components/Portability/test/CMakeLists.txt")
 
   #
   # Mock objects
@@ -78,9 +78,9 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   # FIXME: THIS IS BORING AND REPETITIVE, MOVE THAT ELSEWHERE!
   #
   set(mock_NetworkInterface_INCLUDES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_NetworkInterface/include ")
+    "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_NetworkInterface/include")
   file(GLOB mock_NetworkInterface_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_NetworkInterface/*.c "
+    "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_NetworkInterface/*.c"
   )
   add_library(mock_NetworkInterface STATIC ${mock_NetworkInterface_SOURCES})
   target_include_directories(mock_NetworkInterface PUBLIC
@@ -93,7 +93,7 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   )
 
   file(GLOB mock_IPCP_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_IPCP/*.c "
+    "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_IPCP/*.c"
   )
   add_library(mock_IPCP STATIC ${mock_IPCP_SOURCES})
   target_include_directories(mock_IPCP PUBLIC
@@ -103,7 +103,7 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   )
 
   file(GLOB mock_RIBD_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_Ribd/*.c "
+    "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_Ribd/*.c"
   )
   add_library(mock_Ribd STATIC ${mock_RIBD_SOURCES})
   target_include_directories(mock_Ribd PUBLIC
@@ -117,7 +117,7 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   )
 
   file(GLOB mock_FlowAllocator_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_FlowAllocator/*.c "
+    "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_FlowAllocator/*.c"
   )
   add_library(mock_FlowAllocator STATIC ${mock_FlowAllocator_SOURCES})
   target_include_directories(mock_FlowAllocator PUBLIC
@@ -133,7 +133,7 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   )
 
   file(GLOB mock_EFCP_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_EFCP/*.c "
+   "${CMAKE_CURRENT_SOURCE_DIR}/components_mocks/mock_EFCP/*.c"
   )
   add_library(mock_EFCP STATIC ${mock_EFCP_SOURCES})
   target_include_directories(mock_EFCP PUBLIC
@@ -151,7 +151,7 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   # Component: CDAP
   #
   file(GLOB CdapProto_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components/CdapProto/*.c "
+   "${CMAKE_CURRENT_SOURCE_DIR}/components/CdapProto/*.c"
   )
   add_library(CdapProto STATIC ${CdapProto_SOURCES})
   target_include_directories(CdapProto PUBLIC ${CdapProto_INCLUDES})
@@ -161,7 +161,7 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   # Component: configSensor
   #
   file(GLOB configSensor_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components/configSensor/*.c "
+   "${CMAKE_CURRENT_SOURCE_DIR}/components/configSensor/*.c"
   )
   add_library(configSensor STATIC ${configSensor_SOURCES})
   target_include_directories(configSensor PUBLIC ${configSensor_INCLUDES})
@@ -170,10 +170,10 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   #
   # Component: Common
   #
-  set(Common_DIR " ${CMAKE_CURRENT_SOURCE_DIR}/components/Common ")
-  set(Common_TEST_DIR " ${Common_DIR}/test ")
+  set(Common_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/Common")
+  set(Common_TEST_DIR "${Common_DIR}/test")
   file(GLOB Common_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components/Common/*.c "
+   "${CMAKE_CURRENT_SOURCE_DIR}/components/Common/*.c"
   )
   add_library(Common STATIC ${Common_SOURCES})
   target_include_directories(Common PUBLIC
@@ -181,15 +181,15 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
     ${Portability_INCLUDES}
     ${configSensor_INCLUDES}
   )
-  include(" ${Common_TEST_DIR}/CMakeLists.txt ")
+  include("${Common_TEST_DIR}/CMakeLists.txt")
 
   #
   # Component: BufferManagement
   #
-  set(BufferManagement_DIR " ${CMAKE_CURRENT_SOURCE_DIR}/components/BufferManagement ")
-  set(BufferManagement_TEST_DIR " ${BufferManagement_DIR}/test ")
+  set(BufferManagement_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/BufferManagement")
+  set(BufferManagement_TEST_DIR "${BufferManagement_DIR}/test")
   file(GLOB BufferManagement_SOURCES
-    " ${BufferManagement_DIR}/*.c "
+    "${BufferManagement_DIR}/*.c"
   )
   add_library(BufferManagement STATIC ${BufferManagement_SOURCES})
   target_include_directories(BufferManagement PUBLIC
@@ -212,16 +212,16 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
     IPCP
     portability
   )
-  include(" ${BufferManagement_TEST_DIR}/CMakeLists.txt ")
+  include("${BufferManagement_TEST_DIR}/CMakeLists.txt")
 
   #
   # Component: NetworkInterface
   #
   # FIXME: The 'mq' NetworkInterface is for testing only. We need to
   # figure out how to support multiple type of NetworkInterface.
-  set(NetworkInterface_DIR " ${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface ")
+  set(NetworkInterface_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface")
   file(GLOB NetworkInterface_SOURCES
-    " ${NetworkInterface_DIR}/mq/*.c "
+   "${NetworkInterface_DIR}/mq/*.c"
   )
   add_library(NetworkInterface STATIC ${NetworkInterface_SOURCES})
   target_include_directories(NetworkInterface PUBLIC
@@ -238,13 +238,16 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
     ${EFCP_INCLUDES}
     ${Portability_INCLUDES}
   )
-  include(" ${NetworkInterface_DIR}/test/CMakeLists.txt ")
+  target_link_libraries(NetworkInterface PUBLIC
+    Common
+  )
+  include("${NetworkInterface_DIR}/test/CMakeLists.txt")
 
   # Component: ARP826
   #
-  set(ARP826_DIR " ${CMAKE_CURRENT_SOURCE_DIR}/components/ARP826 ")
-  set(ARP826_TEST_DIR " ${ARP826_DIR}/test ")
-  file(GLOB ARP826_SOURCES " ${ARP826_DIR}/*.c ")
+  set(ARP826_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/ARP826")
+  set(ARP826_TEST_DIR "${ARP826_DIR}/test")
+  file(GLOB ARP826_SOURCES "${ARP826_DIR}/*.c")
   add_library(ARP826 STATIC ${ARP826_SOURCES})
   target_include_directories(ARP826 PUBLIC
     ${configSensor_INCLUDES}
@@ -264,13 +267,13 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
     portability
     ShimIPCP
   )
-  include(" ${ARP826_TEST_DIR}/CMakeLists.txt ")
+  include("${ARP826_TEST_DIR}/CMakeLists.txt")
 
   #
   # Component: Rmt
   #
   file(GLOB Rmt_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/*.c "
+   "${CMAKE_CURRENT_SOURCE_DIR}/components/Rmt/*.c"
   )
   add_library(Rmt STATIC ${Rmt_SOURCES})
   target_include_directories(Rmt PUBLIC
@@ -295,7 +298,7 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   # Component: EFCP
   #
   file(GLOB EFCP_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components/EFCP/*.c "
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/EFCP/*.c"
   )
   add_library(EFCP STATIC ${EFCP_SOURCES})
   target_include_directories(EFCP PUBLIC
@@ -318,9 +321,9 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   #
   # Component: ShimIPCP
   #
-  set(ShimIPCP_DIR " ${CMAKE_CURRENT_SOURCE_DIR}/components/ShimIPCP ")
-  set(ShimIPCP_TESTS_DIR " ${ShimIPCP_DIR}/test ")
-  file(GLOB ShimIPCP_SOURCES " ${ShimIPCP_DIR}/*.c ")
+  set(ShimIPCP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/ShimIPCP")
+  set(ShimIPCP_TESTS_DIR "${ShimIPCP_DIR}/test")
+  file(GLOB ShimIPCP_SOURCES "${ShimIPCP_DIR}/*.c")
   add_library(ShimIPCP STATIC ${ShimIPCP_SOURCES})
   target_include_directories(ShimIPCP PUBLIC
     ${ShimIPCP_INCLUDES}
@@ -345,15 +348,15 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
     NetworkInterface
     Rmt
   )
-  include(" ${ShimIPCP_TESTS_DIR}/CMakeLists.txt ")
+  include("${ShimIPCP_TESTS_DIR}/CMakeLists.txt")
 
   #
   # Component: IPCP
   #
-  set(IPCP_DIR " ${CMAKE_CURRENT_SOURCE_DIR}/components/IPCP ")
-  set(IPCP_TESTS_DIR " ${IPCP_DIR}/test ")
-  set(IPCP_TEST_DIR " ${IPCP_DIR}/test ")
-  file(GLOB IPCP_SOURCES " ${IPCP_DIR}/*.c ")
+  set(IPCP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/IPCP")
+  set(IPCP_TESTS_DIR "${IPCP_DIR}/test")
+  set(IPCP_TEST_DIR "${IPCP_DIR}/test")
+  file(GLOB IPCP_SOURCES "${IPCP_DIR}/*.c")
   add_library(IPCP STATIC ${IPCP_SOURCES})
   target_include_directories(IPCP PUBLIC
     ${configSensor_INCLUDES}
@@ -386,15 +389,16 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
     Enrollment
     Ribd
     FlowAllocator
+    RINA_API
   )
-  include(" ${IPCP_TESTS_DIR}/CMakeLists.txt ")
+  include("${IPCP_TESTS_DIR}/CMakeLists.txt")
 
   #
   # Component: Ribd
   #
-  set(Ribd_DIR " ${CMAKE_CURRENT_SOURCE_DIR}/components/Ribd ")
-  set(Ribd_TEST_DIR " ${Ribd_DIR}/test ")
-  file(GLOB Ribd_SOURCES " ${Ribd_DIR}/*.c ")
+  set(Ribd_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/Ribd")
+  set(Ribd_TEST_DIR "${Ribd_DIR}/test")
+  file(GLOB Ribd_SOURCES "${Ribd_DIR}/*.c")
   add_library(Ribd STATIC ${Ribd_SOURCES})
   target_include_directories(Ribd PUBLIC
     ${CdapProto_INCLUDES}
@@ -422,13 +426,13 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
     Rmt
     FlowAllocator
   )
-  include(" ${Ribd_TEST_DIR}/CMakeLists.txt ")
+  include("${Ribd_TEST_DIR}/CMakeLists.txt")
 
   #
   # Component: FlowAllocator
   #
   file(GLOB FlowAllocator_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components/FlowAllocator/*.c "
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/FlowAllocator/*.c"
   )
   add_library(FlowAllocator STATIC ${FlowAllocator_SOURCES})
   target_include_directories(FlowAllocator PUBLIC
@@ -462,7 +466,7 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
   # Component: Enrollment
   #
   file(GLOB Enrollment_SOURCES
-    " ${CMAKE_CURRENT_SOURCE_DIR}/components/Enrollment/*.c "
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/Enrollment/*.c"
   )
   add_library(Enrollment STATIC ${Enrollment_SOURCES})
   target_include_directories(Enrollment PUBLIC
@@ -490,10 +494,29 @@ elseif(${TARGET_TYPE} STREQUAL " linux_glib ")
     Rmt
   )
 
-  set(CMAKE_C_FLAGS " ${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h ")
+  #
+  # Component: RINA API
+  #
+  file(GLOB RINA_API_SOURCES
+   "${CMAKE_CURRENT_SOURCE_DIR}/components/RINA_API/*.c"
+  )
+  add_library(RINA_API STATIC ${RINA_API_SOURCES})
+  target_include_directories(RINA_API PUBLIC
+    ${configSensor_INCLUDES}
+    ${configRINA_INCLUDES}
+    ${Common_INCLUDES}
+    ${Portability_INCLUDES}
+  )
+  target_link_libraries(RINA_API
+    Common
+    portability
+    BufferManagement
+  )
+
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h")
 
   add_subdirectory(unity)
 
 else()
-  message(" Unknown target ${TARGET_TYPE} ")
+  message("Unknown target ${TARGET_TYPE}")
 endif()

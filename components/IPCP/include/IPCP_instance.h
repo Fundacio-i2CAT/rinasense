@@ -25,14 +25,14 @@ typedef enum TYPE_IPCP_INSTANCE
 } ipcpInstanceType_t;
 
 /*Structure of a IPCP instance. Could be type Normal or Shim*/
-typedef struct xIPCP_INSTANCE
+struct ipcpInstance_t
 {
     ipcpInstanceId_t xId;
     ipcpInstanceType_t xType;
     struct ipcpInstanceData_t *pxData;
     struct ipcpInstanceOps_t *pxOps;
     RsListItem_t xInstanceItem;
-} ipcpInstance_t;
+};
 
 /*
  * Contains all the information associated to an instance of a
