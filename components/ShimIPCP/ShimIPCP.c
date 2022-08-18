@@ -598,12 +598,14 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 
 	pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
+#if 0
 	if (!RsListIsInitilised(&pxData->xFlowsList))
 	{
 		LOGE(TAG_SHIM, "Flow list is not initilized");
 		return NULL;
 	}
-	if (!RsListIsEmpty(&pxData->xFlowsList))
+#endif
+	if (!unRsListCurrentListLength(&pxData->xFlowsList))
 	{
 		LOGE(TAG_SHIM, "Flow list is empty");
 		return NULL;

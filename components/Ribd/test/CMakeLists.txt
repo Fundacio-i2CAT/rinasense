@@ -13,8 +13,6 @@ else()
     CdapProto
     Rmt
     BufferManagement
-    mock_IPCP
-    IPCP
     EFCP
     FlowAllocator
     unity

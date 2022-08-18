@@ -30,11 +30,11 @@ dtpSv_t *pxDtpStateVectorInit(void)
         pxDtpSv->stats.rx_pdus = 0;               // ok
         pxDtpSv->stats.rx_bytes = 0;
         // ok
-        pxDtpSv->xRexmsnCtrl = pdFALSE;      // ok
-        pxDtpSv->xRateBased = pdFALSE;       // ok
-        pxDtpSv->xWindowBased = pdFALSE;     // ok
-        pxDtpSv->xDrfRequired = pdTRUE;      // ok
-        pxDtpSv->xRateFulfiled = pdFALSE;    // ok
+        pxDtpSv->xRexmsnCtrl = false;      // ok
+        pxDtpSv->xRateBased = false;       // ok
+        pxDtpSv->xWindowBased = false;     // ok
+        pxDtpSv->xDrfRequired = true;      // ok
+        pxDtpSv->xRateFulfiled = false;    // ok
         pxDtpSv->xMaxFlowPduSize = UINT_MAX; // ok
         pxDtpSv->xMaxFlowSduSize = UINT_MAX; // ok
         //.MPL                  = 1000,
@@ -42,8 +42,8 @@ dtpSv_t *pxDtpStateVectorInit(void)
         //.A                    = 0,
         //.tr                   = 0,
         pxDtpSv->xRcvLeftWindowEdge = 0;  // ok
-        pxDtpSv->xWindowClosed = pdFALSE; // ok
-        pxDtpSv->xDrfFlag = pdTRUE;       // ok
+        pxDtpSv->xWindowClosed = false; // ok
+        pxDtpSv->xDrfFlag = true;       // ok
 
         return pxDtpSv;
 }

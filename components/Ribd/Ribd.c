@@ -864,7 +864,7 @@ void prvRibdHandledAData(serObjectValue_t *pxObjValue)
     if (pxDecodeCdap->eOpCode > MAX_CDAP_OPCODE)
     {
         LOGE(TAG_RIB, "Invalid opcode %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
-        vPortFree(pxDecodeCdap);
+        vRsMemFree(pxDecodeCdap);
     }
 
     LOGI(TAG_RIB, "Handling CDAP Message: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);

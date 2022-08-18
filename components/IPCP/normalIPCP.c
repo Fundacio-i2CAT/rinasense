@@ -149,10 +149,10 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
                 pxFlow = (struct normalFlow_t *)pRsListGetListItemOwner(pxListItem);
 
                 if (pxFlow == NULL)
-                        return pdFALSE;
+                        return false;
 
                 if (!pxFlow)
-                        return pdFALSE;
+                        return false;
 
                 if (pxFlow && pxFlow->xPortId == xPortId)
                 {
@@ -168,9 +168,9 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
         return NULL;
 }
 
-BaseType_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
-                          portId_t xAppPortId,
-                          NetworkBufferDescriptor_t *pxNetworkBuffer)
+bool_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
+                      portId_t xAppPortId,
+                      NetworkBufferDescriptor_t *pxNetworkBuffer)
 {
         LOGI(TAG_IPCPNORMAL, "Writing Data into the IPCP Normal");
         struct du_t *pxDu;
@@ -678,7 +678,7 @@ bool_t xNormalFlowAllocationRequest(ipcpInstance_t *pxInstanceFrom, ipcpInstance
         return false;
 }
 
-BaseType_t xNormalAppFlowAllocationRequestHandle(ipcpInstance_t)
+bool_t xNormalAppFlowAllocationRequestHandle(ipcpInstance_t)
 
 
 
@@ -698,7 +698,7 @@ xNormalConnectionCreateRequest(pxNormalInstance->pxData, xPortId,
                                pxDtcpCfg);
 
 #endif
-BaseType_t xNormalUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlowstate)
+bool_t xNormalUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlowstate)
 {
         struct normalFlow_t *pxFlow = NULL;
 
@@ -706,12 +706,12 @@ BaseType_t xNormalUpdateFlowStatus(portId_t xPortId, eNormalFlowState_t eNewFlow
         if (!pxFlow)
         {
                 LOGE(TAG_IPCPNORMAL, "Flow not found");
-                return pdFALSE;
+                return false;
         }
         pxFlow->eState = eNewFlowstate;
         LOGI(TAG_IPCPNORMAL, "Flow state updated");
 
-        return pdTRUE;
+        return true;
 }
 
 bool_t xNormalIsFlowAllocated(portId_t xPortId)
@@ -785,7 +785,7 @@ bool_t xNormalConnectionUpdate(portId_t xAppPortId, cepId_t xSrcCepId, cepId_t x
         return true;
 }
 
-static BaseType_t prvRemoveCepIdFromFlow(struct normalFlow_t *pxFlow,
+static bool_t prvRemoveCepIdFromFlow(struct normalFlow_t *pxFlow,
                                          cepId_t xCepId)
 {
 #if 0
@@ -849,7 +849,7 @@ static BaseType_t prvRemoveCepIdFromFlow(struct normalFlow_t *pxFlow,
         }
         return -1;
 #endif
-        return pdFALSE;
+        return false;
 }
 
 static struct normalFlow_t *prvFindFlowCepid(cepId_t xCepId)
@@ -861,31 +861,27 @@ static struct normalFlow_t *prvFindFlowCepid(cepId_t xCepId)
 
         // shimFlow_t *pxFlowNext;
 
-        ListItem_t *pxListItem;
-        ListItem_t const *pxListEnd;
+        RsListItem_t *pxListItem;
+        RsListItem_t const *pxListEnd;
 
-        if (listLIST_IS_EMPTY(&(pxIpcpData->xFlowsList)) == pdTRUE)
+        if (unRsListCurrentListLength(&(pxIpcpData->xFlowsList)) == 0)
         {
                 LOGE(TAG_IPCPNORMAL, "Flow list is empty");
                 return NULL;
         }
 
-        pxFlow = pvPortMalloc(sizeof(*pxFlow));
+        pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
         /* Find a way to iterate in the list and compare the addesss*/
-        pxListEnd = listGET_END_MARKER(&(pxIpcpData->xFlowsList));
-        pxListItem = listGET_HEAD_ENTRY(&(pxIpcpData->xFlowsList));
+        pxListEnd = pRsListGetEndMarker(&(pxIpcpData->xFlowsList));
+        pxListItem = pRsListGetHeadEntry(&(pxIpcpData->xFlowsList));
 
         while (pxListItem != pxListEnd)
         {
-
-                pxFlow = (struct normalFlow_t *)listGET_LIST_ITEM_OWNER(pxListItem);
-
-                if (pxFlow == NULL)
-                        return pdFALSE;
+                pxFlow = (struct normalFlow_t *)pRsListGetListItemOwner(pxListItem);
 
                 if (!pxFlow)
-                        return pdFALSE;
+                        return false;
 
                 if (pxFlow && pxFlow->xActive == xCepId)
                 {
@@ -894,14 +890,14 @@ static struct normalFlow_t *prvFindFlowCepid(cepId_t xCepId)
                         return pxFlow;
                 }
 
-                pxListItem = listGET_NEXT(pxListItem);
+                pxListItem = pRsListGetNext(pxListItem);
         }
 
         LOGI(TAG_IPCPNORMAL, "Flow not founded");
         return NULL;
 }
 
-BaseType_t xNormalConnectionDestroy(cepId_t xSrcCepId)
+bool_t xNormalConnectionDestroy(cepId_t xSrcCepId)
 {
         struct normalFlow_t *pxFlow;
 
@@ -913,14 +909,14 @@ BaseType_t xNormalConnectionDestroy(cepId_t xSrcCepId)
         {
                 // CRITICAL
                 LOGE(TAG_EFCP, "Could not destroy EFCP instance: %d", xSrcCepId);
-                return pdFALSE;
+                return false;
         }
         pxFlow = prvFindFlowCepid(xSrcCepId);
         if (!pxFlow)
         {
                 // CRITICAL
                 LOGE(TAG_IPCPNORMAL, "Could not retrieve flow by cep_id :%d", xSrcCepId);
-                return pdFALSE;
+                return false;
         }
         /*if (remove_cep_id_from_flow(flow, src_cep_id))
                 LOG_ERR("Could not remove cep_id: %d", src_cep_id);
@@ -932,5 +928,5 @@ BaseType_t xNormalConnectionDestroy(cepId_t xSrcCepId)
         }*/
         // CRITICAL
 
-        return pdTRUE;
+        return true;
 }
