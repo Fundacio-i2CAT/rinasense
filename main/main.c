@@ -21,6 +21,7 @@
 #include "esp_system.h"
 #include "esp_event.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "nvs_flash.h"
 
 #define TAG_APP "[PING-APP]"
@@ -124,7 +125,7 @@ void app_main(void)
 
                     time_delta = time2 - time1;
 
-                    ns = (t2 - t1) / portTICK_RATE_MS;
+                    ns = (t2 - t1) / portTICK_PERIOD_MS;
 
                     // ESP_LOGI(TAG_APP, "%d bytes from server: rtt = %.3f ms\n", uxRxBytes, ns);
                     ESP_LOGI(TAG_APP, "%d bytes from server: rtt = %d us\n", uxRxBytes, time_delta);
@@ -132,7 +133,7 @@ void app_main(void)
                 }
             }
 
-            vTaskDelay(1000 / portTICK_RATE_MS);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
             i = i + 1;
         }
     }

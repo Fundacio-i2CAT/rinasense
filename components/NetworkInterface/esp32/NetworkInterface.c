@@ -26,7 +26,9 @@
 /* ESP includes.*/
 #include "esp_log.h"
 #include "esp_wifi.h"
-//#include "esp_mac.h"
+#if ESP_IDF_VERSION_MAJOR > 4
+#include "esp_mac.h"
+#endif
 #include "esp_event.h"
 #include "esp_system.h"
 #include "esp_event_base.h"
