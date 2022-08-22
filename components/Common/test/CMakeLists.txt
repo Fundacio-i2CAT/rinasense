@@ -3,6 +3,13 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
     INCLUDE_DIRS "."
     REQUIRES unity Common)
 else()
+  add_executable(test_lists "${CMAKE_CURRENT_LIST_DIR}/test_lists.c")
+  target_link_libraries(test_lists
+    Common
+    portability
+    unity
+  )
+
   add_executable(test_rina_name "${CMAKE_CURRENT_LIST_DIR}/test_rina_name.c")
   target_link_libraries(test_rina_name
     Common
@@ -29,6 +36,11 @@ else()
     Common
     portability
     unity
+  )
+
+  add_test(
+    NAME test_lists
+    COMMAND "./test_lists"
   )
 
   add_test(

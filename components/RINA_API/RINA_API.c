@@ -12,17 +12,17 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "portability/port.h"
+#include "common/list.h"
+#include "common/rina_ids.h"
+#include "common/rina_name.h"
+
 #include "BufferManagement.h"
 #include "RINA_API_flows.h"
 #include "configSensor.h"
-#include "portability/rslist.h"
-#include "portability/rsmem.h"
-#include "portability/rstime.h"
 #include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
-#include "rina_ids.h"
-#include "rina_name.h"
 #include "IPCP.h"
 #include "IPCP_api.h"
 #include "IPCP_events.h"
@@ -493,7 +493,7 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
     } else {
         // find the flow handle associated to the xPortId.
         pxFlowHandle = pxFAFindFlowHandle(xPortId);
-        xPacketCount = unRsListCurrentListLength(&(pxFlowHandle->xListWaitingPackets));
+        xPacketCount = unRsListLength(&(pxFlowHandle->xListWaitingPackets));
 
         LOGD(TAG_RINA, "Numbers of packet in the queue to read: %zu", xPacketCount);
 
@@ -539,7 +539,7 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
                           eFLOW_RECEIVE,
                           true);
 
-            xPacketCount = unRsListCurrentListLength(&(pxFlowHandle->xListWaitingPackets));
+            xPacketCount = unRsListLength(&(pxFlowHandle->xListWaitingPackets));
 
             if (xPacketCount != 0)
                 break;
@@ -561,8 +561,8 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
             pthread_mutex_lock(&mux);
             {
                 /* The owner of the list item is the network buffer. */
-                pxNetworkBuffer = (NetworkBufferDescriptor_t *)pRsListGetOwnerOfHeadEntry((&pxFlowHandle->xListWaitingPackets));
-                vRsListRemoveItem(&(pxNetworkBuffer->xBufferListItem));
+                pxNetworkBuffer = (NetworkBufferDescriptor_t *)pxRsListGetHeadOwner((&pxFlowHandle->xListWaitingPackets));
+                vRsListRemove(&(pxNetworkBuffer->xBufferListItem));
             }
             pthread_mutex_unlock(&mux);
 

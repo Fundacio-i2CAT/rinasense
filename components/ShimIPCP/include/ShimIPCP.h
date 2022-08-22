@@ -10,11 +10,12 @@
 #ifndef SHIM_IPCP_H__INCLUDED
 #define SHIM_IPCP_H__INCLUDED
 
+#include "common/rina_ids.h"
+#include "common/rina_gpha.h"
+
 #include "ARP826.h"
 #include "ARP826_defs.h"
-#include "rina_gpha.h"
 #include "du.h"
-#include "rina_ids.h"
 #include "rina_common_port.h"
 
 typedef int32_t portId_t;

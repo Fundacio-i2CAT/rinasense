@@ -1,10 +1,11 @@
+#include <string.h>
+
 #include "portability/port.h"
-#include "rina_name.h"
-#include "rina_gpha.h"
+#include "common/rina_name.h"
+#include "common/rina_gpha.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
-#include <string.h>
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_rina_gpha) {}
 RS_TEST_CASE_TEARDOWN(test_rina_gpha) {}

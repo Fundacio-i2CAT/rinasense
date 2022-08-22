@@ -2,7 +2,7 @@
 #define _mock_MOCK_NETWORKINTERFACE_H
 
 #include "portability/port.h"
-#include "rina_buffers.h"
+#include "common/rina_buffers.h"
 
 /* Mock utilities */
 

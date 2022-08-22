@@ -1,8 +1,8 @@
-#include "bit_array.h"
+#include "common/bit_array.h"
 #include "portability/port.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_bit_array) {}
 RS_TEST_CASE_TEARDOWN(test_bit_array) {}

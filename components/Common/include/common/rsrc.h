@@ -10,7 +10,7 @@
 #define _RSRC_H_
 
 #include <stdint.h>
-#include "iot_doubly_linked_list.h"				// Amazon FreeRTOS library
+#include "common/private/iot_doubly_linked_list.h"				// Amazon FreeRTOS library
 
 /**
  * @brief Heap allocation routines for the target platform.  calloc/malloc/free semantics and calling sequence

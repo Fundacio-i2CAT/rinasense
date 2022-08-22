@@ -1,8 +1,9 @@
 #ifndef ENROLLMENT_API_H_INCLUDED
 #define ENROLLMENT_API_H_INCLUDED
 
+#include "common/rina_ids.h"
+
 #include "IPCP_normal_defs.h"
-#include "rina_ids.h"
 #include "Enrollment.h"
 #include "Ribd.h"
 

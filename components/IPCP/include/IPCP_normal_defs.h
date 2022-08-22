@@ -1,8 +1,9 @@
 #ifndef _COMPONENTS_IPCP_IPCP_NORMAL_H
 #define _COMPONENTS_IPCP_IPCP_NORMAL_H
 
-#include "rina_ids.h"
-#include "rina_name.h"
+#include "common/rina_ids.h"
+#include "common/rina_name.h"
+#include "common/list.h"
 
 typedef enum eNormal_Flow_State
 {

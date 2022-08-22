@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <string.h>
-#include "rina_name.h"
+
+#include "common/rina_name.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_rina_name) {}
 RS_TEST_CASE_TEARDOWN(test_rina_name) {}

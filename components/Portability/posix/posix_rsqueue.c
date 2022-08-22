@@ -1,3 +1,5 @@
+#include <dirent.h> // For NAME_MAX
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 

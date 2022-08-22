@@ -21,7 +21,6 @@
 #include "Rib.h"
 #include "Ribd.h"
 #include "Ribd_api.h"
-#include "portability/rslist.h"
 #include "rina_common_port.h"
 #include "RINA_API_flows.h"
 #include "SerdesMsg.h"
@@ -432,8 +431,7 @@ bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
 #else
     pthread_mutex_lock(&mux);
     {
-        vRsListInitItem(&(pxNetworkBuffer->xBufferListItem));
-        vRsListSetListItemOwner(&(pxNetworkBuffer->xBufferListItem), (void *)pxNetworkBuffer);
+        vRsListInitItem(&(pxNetworkBuffer->xBufferListItem), (void *)pxNetworkBuffer);
         vRsListInsert(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxNetworkBuffer->xBufferListItem));
     }
     pthread_mutex_unlock(&mux);

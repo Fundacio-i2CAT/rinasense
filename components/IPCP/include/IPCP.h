@@ -2,11 +2,11 @@
 #define IPCP_H_
 
 #include "configSensor.h"
+#include "common/rina_name.h"
 
 #include "ARP826.h"
 #include "pci.h"
 #include "rina_common_port.h"
-#include "rina_name.h"
 //#include "Rmt.h"
 
 /*-----------------------------------------------------------*/

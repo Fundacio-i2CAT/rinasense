@@ -9,10 +9,11 @@
 #define FLOW_ALLOCATOR_H_INCLUDED
 
 #include "configSensor.h"
+#include "common/rina_ids.h"
+
 #include "Rib.h"
 #include "IPCP_normal_defs.h"
 #include "RINA_API_flows.h"
-#include "rina_ids.h"
 
 typedef enum
 {

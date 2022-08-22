@@ -1,7 +1,8 @@
-#include <stdio.h>
 #include <time.h>
-#include <unistd.h>
+#include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
@@ -12,7 +13,7 @@
 #include "mock_IPCP.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 const MACAddress_t mac = {
     {1, 2, 3, 4, 5, 6}

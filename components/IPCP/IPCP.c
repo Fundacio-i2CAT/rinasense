@@ -518,7 +518,7 @@ bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t xT
             xReturn = xRsQueueSendToBack(xNetworkEventQueue, pxEvent, sizeof(RINAStackEvent_t), xCalculatedTimeOutUS);
 
             if (!xReturn)
-                LOGE(TAG_IPCPMANAGER, "Failed to add message to IPCP queue (errno: %d)", errno);
+                LOGE(TAG_IPCPMANAGER, "Failed to add message to IPCP queue");
         }
         else
         {

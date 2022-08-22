@@ -8,7 +8,8 @@
 #include <unistd.h>
 
 #include "portability/port.h"
-#include "rina_ids.h"
+#include "common/rina_ids.h"
+#include "common/list.h"
 
 typedef struct xQUEUE_FIFO
 {

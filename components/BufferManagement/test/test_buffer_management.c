@@ -7,7 +7,7 @@
 #include "portability/port.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_buffer_management) {}
 RS_TEST_CASE_TEARDOWN(test_buffer_management) {}

@@ -1,5 +1,5 @@
+#include "common/mac.h"
 #include "rina_buffers.h"
-#include "mac.h"
 
 static NetworkBufferDescriptor_t *lastBufferOutput = NULL;
 
