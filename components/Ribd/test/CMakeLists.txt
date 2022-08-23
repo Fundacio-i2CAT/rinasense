@@ -20,7 +20,7 @@ else()
     rt
     pthread
     Common
-    portability
+    Portability
     NetworkInterface_MQ
   )
 

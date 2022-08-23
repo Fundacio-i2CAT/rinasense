@@ -6,42 +6,42 @@ else()
   add_executable(test_lists "${CMAKE_CURRENT_LIST_DIR}/test_lists.c")
   target_link_libraries(test_lists
     Common
-    portability
+    Portability
     unity
   )
 
   add_executable(test_rina_name "${CMAKE_CURRENT_LIST_DIR}/test_rina_name.c")
   target_link_libraries(test_rina_name
     Common
-    portability
+    Portability
     unity
   )
 
   add_executable(test_rina_gpha "${CMAKE_CURRENT_LIST_DIR}/test_rina_gpha.c")
   target_link_libraries(test_rina_gpha
     Common
-    portability
+    Portability
     unity
   )
 
   add_executable(test_bit_array "${CMAKE_CURRENT_LIST_DIR}/test_bit_array.c")
   target_link_libraries(test_bit_array
     Common
-    portability
+    Portability
     unity
   )
 
   add_executable(test_num_mgr "${CMAKE_CURRENT_LIST_DIR}/test_num_mgr.c")
   target_link_libraries(test_num_mgr
     Common
-    portability
+    Portability
     unity
   )
 
   add_executable(test_ids "${CMAKE_CURRENT_LIST_DIR}/test_ids.c")
   target_link_libraries(test_ids
     Common
-    portability
+    Portability
     unity
   )
 

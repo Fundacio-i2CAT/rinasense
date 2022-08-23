@@ -19,7 +19,7 @@ else()
     BufferManagement
     ShimIPCP
     ARP826
-    portability
+    Portability
     pthread
     Common
     rt
