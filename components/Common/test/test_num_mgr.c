@@ -1,7 +1,7 @@
-#include "num_mgr.h"
+#include "common/num_mgr.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_num_mgr) {}
 RS_TEST_CASE_TEARDOWN(test_num_mgr) {}
@@ -53,9 +53,9 @@ RS_TEST_CASE(ManyBits, "[num_mgr]")
 #ifndef TEST_CASE
 int main()
 {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(Bits8);
     RS_RUN_TEST(ManyBits);
-    return UNITY_END();
+    RS_SUITE_END();
 }
 #endif

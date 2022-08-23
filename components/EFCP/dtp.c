@@ -5,6 +5,8 @@
  *      Author: i2CAT
  */
 
+#include <limits.h>
+
 #include "portability/port.h"
 #include "du.h"
 #include "rina_common_port.h"

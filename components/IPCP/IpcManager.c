@@ -12,15 +12,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "rina_common_port.h"
 #include "configRINA.h"
+#include "common/num_mgr.h"
+
+#include "rina_common_port.h"
 #include "IPCP_normal_defs.h"
 #include "IPCP_normal_api.h"
 #include "efcpStructures.h"
 #include "du.h"
 #include "ShimIPCP.h"
 #include "EFCP.h"
-#include "num_mgr.h"
 #include "RINA_API_flows.h"
 #include "FlowAllocator_api.h"
 

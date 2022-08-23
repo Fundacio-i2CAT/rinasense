@@ -1,4 +1,4 @@
-#include "rina_ids.h"
+#include "common/rina_ids.h"
 #include "du.h"
 
 #ifdef ESP_PLATFORM

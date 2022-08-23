@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -5,7 +6,7 @@
 #include "Ribd.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_rib) {}
 RS_TEST_CASE_TEARDOWN(test_rib) {}
@@ -29,9 +30,9 @@ RS_TEST_CASE(RibFindObject, "[rib]")
 #ifndef TEST_CASE
 int main()
 {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(RibCreateObject);
     RS_RUN_TEST(RibFindObject);
-    exit(UNITY_END());
+    RS_SUITE_END();
 }
 #endif

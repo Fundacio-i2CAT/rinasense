@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <string.h>
-#include "rina_name.h"
+
+#include "common/rina_name.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_rina_name) {}
 RS_TEST_CASE_TEARDOWN(test_rina_name) {}
@@ -92,11 +93,11 @@ RS_TEST_CASE(RinaStringToName, "[rina_name]")
 
 #ifndef TEST_CASE
 int main() {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(StringDup);
     RS_RUN_TEST(RinaNameBreakdown);
     RS_RUN_TEST(RinaNameFromString);
     RS_RUN_TEST(RinaStringToName);
-    return UNITY_END();
+    RS_SUITE_END();
 }
 #endif

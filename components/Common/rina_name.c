@@ -1,12 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "rina_name.h"
 #include "configSensor.h"
-
-#include "portability/rslist.h"
-#include "portability/rsmem.h"
-#include "portability/rslog.h"
+#include "common/rina_name.h"
+#include "portability/port.h"
 
 #define TAG_RINA_NAME "rina_name"
 

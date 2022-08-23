@@ -4,7 +4,6 @@
 #include "port_specifics.h"
 
 #include "rsdefs.h"
-#include "rslist.h"
 #include "rsqueue.h"
 #include "rsmem.h"
 #include "rslog.h"

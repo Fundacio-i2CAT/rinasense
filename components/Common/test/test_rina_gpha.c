@@ -1,10 +1,11 @@
+#include <string.h>
+
 #include "portability/port.h"
-#include "rina_name.h"
-#include "rina_gpha.h"
+#include "common/rina_name.h"
+#include "common/rina_gpha.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
-#include <string.h>
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_rina_gpha) {}
 RS_TEST_CASE_TEARDOWN(test_rina_gpha) {}
@@ -96,11 +97,11 @@ RS_TEST_CASE(GPACompare, "[gha][gpha]") {
 
 #ifndef TEST_CASE
 int main() {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(SimpleGPA);
     RS_RUN_TEST(SimpleGHA);
     RS_RUN_TEST(GPACompare);
     RS_RUN_TEST(GPAConversion);
-    return UNITY_END();
+    RS_SUITE_END();
 }
 #endif

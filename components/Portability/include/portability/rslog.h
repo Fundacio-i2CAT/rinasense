@@ -1,6 +1,9 @@
 #ifndef _PORTABILITY_RS_LOG_H
 #define _PORTABILITY_RS_LOG_H
 
+#include <stdarg.h>
+#include "portability/port.h"
+
 #ifndef LOG_LOCAL_LEVEL
 #define LOG_LOCAL_LEVEL  200 //CONFIG_LOG_MAXIMUM_LEVEL
 #endif
@@ -55,5 +58,10 @@ void vRsLogWritev(RsLogLevel_t, const char*, const char*, va_list args);
         if ( LOG_LOCAL_LEVEL >= level ) LOG_LEVEL(level, tag, format, ##__VA_ARGS__); \
     } while(0)
 
+
+/* */
+void vRsLogInit();
+
+void vRsLogSetLevel(const string_t cTagName, RsLogLevel_t eLogLevel);
 
 #endif // _PORTABILITY_RS_LOG_H

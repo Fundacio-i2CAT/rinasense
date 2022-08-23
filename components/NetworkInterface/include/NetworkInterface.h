@@ -2,7 +2,7 @@
 #define _NETWORK_INTERFACE_H
 
 #include "portability/port.h"
-#include "rina_gpha.h"
+#include "common/rina_gpha.h"
 
 #include "configSensor.h"
 #include "BufferManagement.h"

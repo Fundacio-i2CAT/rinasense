@@ -1,10 +1,11 @@
-#include "IpcManager.h"
+#include "common/num_mgr.h"
 #include "portability/port.h"
+
+#include "IpcManager.h"
 #include "ShimIPCP.h"
-#include "num_mgr.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 ipcManager_t ipcMgr;
 NumMgr_t pidm;

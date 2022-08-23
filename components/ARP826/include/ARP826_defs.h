@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "mac.h"
+#include "common/mac.h"
 #include "configSensor.h"
 
 // Structure Ethernet Header

@@ -12,10 +12,11 @@
 /* Miscellaneous structure and definitions. */
 /*-----------------------------------------------------------*/
 
-#include "ARP826_defs.h"
-#include "mac.h"
-#include "rina_gpha.h"
+#include "common/mac.h"
+#include "common/rina_gpha.h"
 #include "portability/port.h"
+
+#include "ARP826_defs.h"
 #include "IPCP_frames.h"
 
 // DECL_CAST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );

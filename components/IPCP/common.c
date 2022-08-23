@@ -1,4 +1,5 @@
 #include <string.h>
+#include <limits.h> // For INT_MAX
 
 #include "portability/port.h"
 #include "configSensor.h"

@@ -10,7 +10,7 @@
 #include <stdlib.h>				// abort
 #include <stddef.h>				// offsetof
 #include <string.h>				// memset
-#include "rsrc.h"
+#include "common/rsrc.h"
 
 #include "portability/port.h"
 

@@ -1,5 +1,5 @@
-#ifndef _PORT_GLIB_RSDEFS_H
-#define _PORT_GLIB_RSDEFS_H
+#ifndef _PORT_LINUX_RSDEFS_H
+#define _PORT_LINUX_RSDEFS_H
 
 #include <stdint.h>
 
@@ -15,4 +15,4 @@ typedef char* string_t;
 typedef uint8_t* buffer_t;
 #define PORT_HAS_BUFFER_T
 
-#endif // _PORT_GLIB_RSDEFS_H
+#endif // _PORT_LINUX_RSDEFS_H

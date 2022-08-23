@@ -4,7 +4,6 @@
 #include "freertos/FreeRTOS.h"
 
 #include "freertos_rsdefs.h"
-#include "freertos_rslist.h"
 #include "freertos_rsassert.h"
 #include "freertos_rsnet.h"
 

@@ -1,8 +1,8 @@
-#include "bit_array.h"
+#include "common/bit_array.h"
 #include "portability/port.h"
 
 #include "unity.h"
-#include "unity_fixups.h"
+#include "common/unity_fixups.h"
 
 RS_TEST_CASE_SETUP(test_bit_array) {}
 RS_TEST_CASE_TEARDOWN(test_bit_array) {}
@@ -64,9 +64,9 @@ RS_TEST_CASE(BitArrayLarge, "[bitarray]")
 
 #ifndef TEST_CASE
 int main() {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(BitArrayBasics);
     RS_RUN_TEST(BitArrayLarge);
-    return UNITY_END();
+    RS_SUITE_END();
 }
 #endif

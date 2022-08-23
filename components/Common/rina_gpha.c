@@ -1,7 +1,7 @@
 #include <string.h>
 
-#include "mac.h"
-#include "rina_gpha.h"
+#include "common/mac.h"
+#include "common/rina_gpha.h"
 #include "portability/port.h"
 
 /* No used check if this is necessary */

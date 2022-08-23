@@ -2,7 +2,8 @@
 #ifndef IPC_MANAGER_H__INCLUDED
 #define IPC_MANAGER_H__INCLUDED
 
-#include "num_mgr.h"
+#include "common/num_mgr.h"
+
 #include "EFCP.h"
 #include "rina_buffers.h"
 #include "RINA_API_flows.h"

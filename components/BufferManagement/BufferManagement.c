@@ -2,19 +2,16 @@
 /* Standard includes. */
 #include <stdint.h>
 #include <string.h>
+#include <pthread.h>
 
 /* Portability */
 #include "portability/port.h"
-#include "portability/posix/semaphore.h"
-#include "portability/posix/pthread.h"
 
 #include "configSensor.h"
 
 /* RINA includes. */
 #include "ARP826_defs.h"
 #include "BufferManagement.h"
-#include "portability/rslist.h"
-#include "portability/rstime.h"
 #include "rina_buffers.h"
 
 /* The obtained network buffer must be large enough to hold a packet that might
@@ -108,8 +105,8 @@ bool_t xNetworkBuffersInitialise( void )
             {
                 /* Initialise and set the owner of the buffer list items. */
                 xNetworkBufferDescriptors[ x ].pucEthernetBuffer = NULL;
-                vRsListInitItem( &( xNetworkBufferDescriptors[ x ].xBufferListItem ) );
-                vRsListSetListItemOwner( &( xNetworkBufferDescriptors[ x ].xBufferListItem ), &xNetworkBufferDescriptors[ x ] );
+                vRsListInitItem( &( xNetworkBufferDescriptors[ x ].xBufferListItem ), &xNetworkBufferDescriptors[ x ]);
+                //vRsListSetListItemOwner( &( xNetworkBufferDescriptors[ x ].xBufferListItem ), &xNetworkBufferDescriptors[ x ] );
 
                 /* Currently, all buffers are available for use. */
                 vRsListInsert( &xFreeBuffersList, &( xNetworkBufferDescriptors[ x ].xBufferListItem ) );
@@ -225,10 +222,9 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
         /* Protect the structure as it is accessed from tasks and interrupts. */
         pthread_mutex_lock( &mutex );
         {
-            pxReturn = ( NetworkBufferDescriptor_t * ) pRsListGetOwnerOfHeadEntry( &xFreeBuffersList );
-            vRsListRemoveItem( &( pxReturn->xBufferListItem ) );
-
-            uxCount = unRsListCurrentListLength( &xFreeBuffersList );
+            pxReturn = pxRsListGetItemOwner( pxRsListGetFirst( &xFreeBuffersList ) );
+            vRsListRemove( &( pxReturn->xBufferListItem ) );
+            uxCount = unRsListLength( &xFreeBuffersList );
         }
         pthread_mutex_unlock( &mutex );
 
@@ -319,7 +315,7 @@ void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetwo
 
     pthread_mutex_lock( &mutex );
     {
-        xListItemAlreadyInFreeList = vRsListIsContainedWithin( &xFreeBuffersList, &( pxNetworkBuffer->xBufferListItem ));
+        xListItemAlreadyInFreeList = xRsListIsContainedWithin( &xFreeBuffersList, &( pxNetworkBuffer->xBufferListItem ));
 
         if( xListItemAlreadyInFreeList == false )
         {
@@ -358,7 +354,7 @@ void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetwo
  */
 size_t uxGetNumberOfFreeNetworkBuffers( void )
 {
-    return unRsListCurrentListLength( &xFreeBuffersList );
+    return unRsListLength( &xFreeBuffersList );
 }
 /*-----------------------------------------------------------*/
 

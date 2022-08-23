@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(TARGET_TYPE "freertos_idf"
-  CACHE STRING "Type of build: 'linux_glib', 'freertos_idf'")
+  CACHE STRING "Type of build: 'linux', 'freertos_idf'")
 
 file(TO_CMAKE_PATH "$ENV{IDF_PATH}" ENV_IDF_PATH)
 
@@ -22,7 +22,7 @@ if("${TARGET_TYPE}" STREQUAL "" OR "${TARGET_TYPE}" STREQUAL "freertos_idf")
   else()
     message(FATAL_ERROR "The 'freertos_idf' target needs the IDF_PATH environment variable to be defined")
   endif()
-elseif(${TARGET_TYPE} STREQUAL "linux_glib")
+elseif (${TARGET_TYPE} STREQUAL "linux")
   project(RINA_sensor)
 
   message("Configuring: POSIX build")

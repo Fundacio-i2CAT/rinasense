@@ -4,9 +4,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "common/num_mgr.h"
+#include "common/rina_ids.h"
 #include "portability/port.h"
+
 #include "EFCP.h"
-#include "rina_ids.h"
 #include "rmt.h"
 #include "pci.h"
 #include "du.h"
@@ -15,7 +17,6 @@
 #include "connection.h"
 #include "configSensor.h"
 #include "IPCP_instance.h"
-#include "num_mgr.h"
 #include "rina_common_port.h"
 #include "FlowAllocator_api.h"
 #include "configRINA.h"

@@ -1,3 +1,5 @@
+#include <dirent.h> // For NAME_MAX
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -9,10 +11,12 @@
 
 /**
  * There are some specific rules you must follow for sQueueName. See
- * the "mq_overview" manual page for the rules.
+ * the "mq_overview" manual page for the rules. Don't prefix the queue
+ * name with / as this implementation handles this.
  */
 RsQueue_t *pxRsQueueCreate(const char *sQueueName,
-                           size_t uxQueueLength, size_t uxItemSize)
+                           const size_t uxQueueLength,
+                           const size_t uxItemSize)
 {
     RsQueue_t *pQueue;
     mqd_t xQueue;
@@ -73,7 +77,10 @@ void vRsQueueDelete(RsQueue_t *pQueue)
  * FreeRTOS xQueueSendToBack returns immediately if the timeout is set
  * to 0, so this functions tries to imitate this semantic.
  */
-bool_t xRsQueueSendToBack(RsQueue_t *pQueue, const void *pvItemToQueue, useconds_t xTimeOutUS)
+bool_t xRsQueueSendToBack(RsQueue_t *pQueue,
+                          const void *pvItemToQueue,
+                          const size_t unItemSize,
+                          const useconds_t xTimeOutUS)
 {
     struct timespec ts;
     struct mq_attr attr;
@@ -91,9 +98,7 @@ bool_t xRsQueueSendToBack(RsQueue_t *pQueue, const void *pvItemToQueue, useconds
             }
 
             /* Queue not full? mq_send is not supposed to block here. */
-            /* FIXME: DON'T SEND pQueue->uxItemSize BYTES. THIS IS
-               WASTEFUL. */
-            if (mq_send(pQueue->xQueue, pvItemToQueue, pQueue->uxItemSize, 0) != 0) {
+            if (mq_send(pQueue->xQueue, pvItemToQueue, unItemSize, 0) != 0) {
                 LOGE(TAG, "mq_send failed (errno: %d)", errno);
                 return false;
             }
@@ -108,25 +113,25 @@ bool_t xRsQueueSendToBack(RsQueue_t *pQueue, const void *pvItemToQueue, useconds
         if (!rstime_waitusec(&ts, xTimeOutUS))
             return false;
 
-        if (mq_timedsend(pQueue->xQueue, pvItemToQueue, pQueue->uxItemSize, 0, &ts) != 0) {
+        if (mq_timedsend(pQueue->xQueue, pvItemToQueue, unItemSize, 0, &ts) != 0) {
             LOGE(TAG, "mq_timedsend failed (errno: %d)", errno);
             return false;
         }
     }
 
-    LOGD(TAG, "Sent %u byte(s) on %s", pQueue->uxItemSize, pQueue->sQueueName);
+    LOGD(TAG, "Sent %zu byte(s) on %s", pQueue->uxItemSize, pQueue->sQueueName);
 
     return true;
 }
 
-bool_t xRsQueueReceive(RsQueue_t *pQueue, void *pvBuffer, useconds_t xTimeOutUS)
+bool_t xRsQueueReceive(RsQueue_t *pQueue, void *pvBuffer, const size_t unBufferSz, useconds_t xTimeOutUS)
 {
     struct timespec ts;
 
     if (!rstime_waitusec(&ts, xTimeOutUS))
         return false;
 
-    if (mq_timedreceive(pQueue->xQueue, pvBuffer, pQueue->uxItemSize, 0, &ts) < 0)
+    if (mq_timedreceive(pQueue->xQueue, pvBuffer, unBufferSz, 0, &ts) < 0)
         return false;
 
     return true;

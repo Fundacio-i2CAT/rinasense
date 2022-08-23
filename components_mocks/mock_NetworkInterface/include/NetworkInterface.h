@@ -3,7 +3,7 @@
 
 /* PUBLIC API */
 
-#include "mac.h"
+#include "common/mac.h"
 #include "BufferManagement.h"
 
 #ifdef ESP_PLATFORM
