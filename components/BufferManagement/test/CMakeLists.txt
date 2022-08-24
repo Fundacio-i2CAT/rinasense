@@ -5,8 +5,8 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
 else()
   add_executable(test_buffer_management "${CMAKE_CURRENT_LIST_DIR}/test_buffer_management.c")
   target_link_libraries(test_buffer_management
-    BufferManagement
-    Portability
+    RINA
+    NetworkInterface_MQ
     pthread
     unity
     rt

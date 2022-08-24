@@ -5,21 +5,8 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
 else()
   add_executable(test_ipcp "${CMAKE_CURRENT_LIST_DIR}/test_ipcp.c")
   target_link_libraries(test_ipcp
-    IPCP
-    FlowAllocator
-    BufferManagement
-    EFCP
-    ShimIPCP
-    ARP826
-    Enrollment
-    Ribd
-    IPCP
-    CdapProto
-    Rmt
-    pthread
-    Portability
+    RINA
     NetworkInterface_MQ
-    Common
     unity
     rt
   )
