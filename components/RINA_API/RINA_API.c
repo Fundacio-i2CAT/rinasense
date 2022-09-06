@@ -187,12 +187,12 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
         goto err;
     }
 
-    if (pthread_cond_init(&pxFlowAllocateRequest->xEventCond, NULL) == 0) {
+    if (pthread_cond_init(&pxFlowAllocateRequest->xEventCond, NULL) != 0) {
         LOGE(TAG_RINA, "Failed to initialize thread condition signal");
         goto err;
     }
 
-    if (pthread_mutex_init(&pxFlowAllocateRequest->xEventMutex, NULL) == 0) {
+    if (pthread_mutex_init(&pxFlowAllocateRequest->xEventMutex, NULL) != 0) {
         LOGE(TAG_RINA, "Failed to initialize thread condition signal");
         pthread_cond_destroy(&pxFlowAllocateRequest->xEventCond);
         goto err;
@@ -306,13 +306,13 @@ bool_t prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
     }
     /* Check if the flow is already allocated */
     else if (RINA_flowStatus(pxFlowAllocateRequest->xPortId) == 1) {
-        LOGE(TAG_RINA, "There is a flow allocated for that port Id");
+        LOGE(TAG_RINA, "There is a flow allocated for port ID: %d", pxFlowAllocateRequest->xPortId);
         xResult = false;
     }
     xResult = xRINA_bind(pxFlowAllocateRequest);
 
     /* FIXME: Maybe do a prebind? */
-    if (!xResult) {
+    if (xResult) {
         vFlowAllocatorFlowRequest(pxFlowAllocateRequest->xPortId, pxFlowAllocateRequest);
 
         pxFlowAllocateRequest->usTimeout = 1U;

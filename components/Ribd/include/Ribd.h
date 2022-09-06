@@ -9,6 +9,10 @@
 #include "IPCP_normal_defs.h"
 #include "rina_common_port.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum
 {
     M_CONNECT = 0,
@@ -114,5 +118,9 @@ typedef struct xA_DATA_MESSAGE
     int32_t xDestinationAddress;
     serObjectValue_t *pxMsgCdap;
 } aDataMsg_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _RIBD_H_INCLUDED

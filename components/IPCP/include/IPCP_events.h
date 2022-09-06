@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum RINA_EVENTS
 {
     eNoEvent = -1,
@@ -38,5 +42,9 @@ typedef struct xRINA_TASK_COMMANDS
         uint8_t  B;
     } xData;                 /**< The data in the event */
 } RINAStackEvent_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMPONENTS_IPCP_EVENTS_H

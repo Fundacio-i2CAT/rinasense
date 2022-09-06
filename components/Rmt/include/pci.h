@@ -10,6 +10,10 @@
 
 #include "common/rina_ids.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* PDU-Flags field 1 Byte*/
 typedef uint8_t pduFlags_t;
 
@@ -94,5 +98,9 @@ bool_t xPciIsOk(const pci_t * pxPci);
 pduType_t xPciType(const pci_t *pci);
 cepId_t xPciCepSource(const pci_t *pci);
 void vPciPrint(const pci_t *pxPciTmp);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COMPONENTS_RMT_INCLUDE_PCI_H_ */

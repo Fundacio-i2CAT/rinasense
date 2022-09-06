@@ -231,10 +231,11 @@ void vFlowAllocatorFlowRequest(
 
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
     pxNeighbor = pxEnrollmentFindNeighbor(pcNeighbor);
-    if (!pxNeighbor)
-    {
-        LOGE(TAG_FA, "No Neighbor founded");
+    if (!pxNeighbor) {
+        LOGE(TAG_FA, "No neighbor found");
+        return;
     }
+
     pxFlow->xRemoteAddress = pxNeighbor->xNeighborAddress;
 
     pxFlow->xSourcePortId = xAppPortId;

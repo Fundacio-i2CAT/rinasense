@@ -7,6 +7,10 @@
 #include "bit_array.h"
 #include "portability/port.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct NUMMGR_T {
     /* Number of numbers to deal with. */
     size_t numCnt;
@@ -32,5 +36,9 @@ uint32_t ulNumMgrAllocate(NumMgr_t *im);
 bool_t xNumMgrRelease(NumMgr_t *im, uint32_t n);
 
 bool_t xNumMgrIsAllocated(NumMgr_t *im, uint32_t n);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMMON_NUM_MGR

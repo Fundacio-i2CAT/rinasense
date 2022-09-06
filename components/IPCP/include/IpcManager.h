@@ -1,4 +1,3 @@
-
 #ifndef IPC_MANAGER_H__INCLUDED
 #define IPC_MANAGER_H__INCLUDED
 
@@ -7,6 +6,10 @@
 #include "EFCP.h"
 #include "rina_buffers.h"
 #include "RINA_API_flows.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct xINSTANCE_TABLE_ROW
 {
@@ -55,5 +58,9 @@ struct ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId);
 void vIpcManagerRINAPackettHandler(struct ipcpInstanceData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
 
 struct ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -40,7 +40,8 @@
 #include "FreeRTOS_POSIX/utils.h"
 
 /* FreeRTOS timer include. */
-#include "timers.h"
+#include <sys/signal.h>
+#include "freertos/timers.h"
 
 /* Timespec zero check macros. */
 #define TIMESPEC_IS_ZERO( xTimespec )        ( xTimespec.tv_sec == 0 && xTimespec.tv_nsec == 0 ) /**< Check for 0. */
