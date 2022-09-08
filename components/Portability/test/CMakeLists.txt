@@ -5,7 +5,8 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
 else()
   add_executable(test_queues "${CMAKE_CURRENT_LIST_DIR}/test_queues.c")
   target_link_libraries(test_queues
-    portability
+    Portability
+    Common
     unity
     pthread
     rt
@@ -18,7 +19,8 @@ else()
 
   add_executable(test_time "${CMAKE_CURRENT_LIST_DIR}/test_time.c")
   target_link_libraries(test_time
-    portability
+    Portability
+    Common
     unity
   )
 

@@ -1,4 +1,20 @@
-idf_component_register(SRCS "BufferManagement.c"
-                    INCLUDE_DIRS "include"
-                    REQUIRES ShimIPCP NetworkInterface ARP826 Portability FreeRTOS-Plus-POSIX)
+set(requirements
+  ShimIPCP
+  NetworkInterface
+  ARP826
+  Portability
+)
+
+# The FreeRTOS-Plus-POSIX module is only necessary for ESP-IDF
+# on-device builds.
+if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
+  list(APPEND requirements FreeRTOS-Plus-POSIX)
+endif()
+
+idf_component_register(
+  SRCS         "BufferManagement.c"
+  INCLUDE_DIRS "include"
+  REQUIRES     ${requirements}
+)
+
 

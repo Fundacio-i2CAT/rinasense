@@ -290,9 +290,12 @@ BaseType_t xNetworkInterfaceDisconnect(void)
 esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
-	RINAStackEvent_t xRxEvent = {eNetworkRxEvent, NULL};
 	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(250);
     struct timespec ts;
+	RINAStackEvent_t xRxEvent = {
+        .eEventType = eNetworkRxEvent,
+        .xData.PV = NULL
+    };
 
 	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
 	{
@@ -315,7 +318,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 		/* Copy the packet data. */
 		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
-		xRxEvent.pvData = (void *)pxNetworkBuffer;
+		xRxEvent.xData.PV = (void *)pxNetworkBuffer;
 
 		// ESP_LOGE(TAG_RINA, "pucEthernetBuffer and len: %p, %d", pxNetworkBuffer->pucEthernetBuffer, len);
 
@@ -340,7 +343,10 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 void vNetworkNotifyIFDown()
 {
-	RINAStackEvent_t xRxEvent = {eNetworkDownEvent, NULL};
+	RINAStackEvent_t xRxEvent = {
+        .eEventType = eNetworkDownEvent,
+        .xData.PV = NULL
+    };
 
 	if (xInterfaceState != INTERFACE_DOWN)
 	{

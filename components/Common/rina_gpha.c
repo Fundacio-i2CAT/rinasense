@@ -25,9 +25,6 @@ char *xGPAAddressToString(const gpa_t *pxGpa)
 	p = tmp + pxGpa->uxLength;
 	*(p) = '\0';
 
-	LOGE(TAG_ARP, "GPA:%s", pxGpa->pucAddress);
-	LOGE(TAG_ARP, "GPA:%s", tmp);
-
 	return tmp;
 }
 

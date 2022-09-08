@@ -32,7 +32,7 @@ RS_TEST_CASE(IPCPSendEvent, "[ipcp]")
     memcpy(buf->pucEthernetBuffer, txt, sizeof(txt));
 
     ev.eEventType = eNetworkTxEvent;
-    ev.pvData = buf;
+    ev.xData.PV = buf;
 
     /* Send the bogus data */
     TEST_ASSERT(xSendEventStructToIPCPTask(&ev, 100));

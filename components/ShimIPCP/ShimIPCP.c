@@ -262,7 +262,10 @@ bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData,
 								 portId_t xPortId)
 
 {
-	RINAStackEvent_t xEnrollEvent = {eShimFlowAllocatedEvent, NULL};
+	RINAStackEvent_t xEnrollEvent = {
+        .eEventType = eShimFlowAllocatedEvent,
+        .xData.PV = NULL
+    };
 	shimFlow_t *pxFlow;
 	struct ipcpInstance_t *pxShimIpcp;
 
@@ -330,7 +333,7 @@ bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData,
 	if (pxFlow->ePortIdState == eALLOCATED)
 	{
 		LOGI(TAG_SHIM, "Flow with id:%d was allocated", pxFlow->xPortId);
-		xEnrollEvent.pvData = (void *)(uintptr_t)xPortId;
+		xEnrollEvent.xData.UN = xPortId;
 		xSendEventStructToIPCPTask(&xEnrollEvent, 250 * 1000);
 	}
 
@@ -741,7 +744,6 @@ static bool_t prvShimFlowDestroy(struct ipcpInstanceData_t *xData, shimFlow_t *x
 
 bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_t *pxDu, bool_t uxBlocking)
 {
-
 	shimFlow_t *pxFlow;
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
 	EthernetHeader_t *pxEthernetHeader;
@@ -749,7 +751,10 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 	gha_t *pxDestHw;
 	size_t uxHeadLen, uxLength;
 	struct timespec ts;
-	RINAStackEvent_t xTxEvent = {eNetworkTxEvent, NULL};
+	RINAStackEvent_t xTxEvent = {
+        .eEventType = eNetworkTxEvent,
+        .xData.PV = NULL
+    };
 	unsigned char *pucArpPtr;
 
 	LOGI(TAG_SHIM, "SDU write received");
@@ -843,7 +848,7 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 
 	/* ReleaseBuffer, no need anymore that why pdTRUE here */
 
-	xTxEvent.pvData = (void *)pxNetworkBuffer;
+	xTxEvent.xData.PV = (void *)pxNetworkBuffer;
 
 	if (xSendEventStructToIPCPTask(&xTxEvent, 250 * 1000) == false)
 	{
@@ -992,14 +997,17 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 }
 
 /*Check this logic.*/
-bool_t xShimWiFiInit(ipcpInstance_t *pxShimWiFiInstance)
+bool_t xShimWiFiInit(struct ipcpInstance_t *pxShimWiFiInstance)
 {
 	/*xShimWiFiInit is going to init the  WiFi drivers and associate to the AP.
 	 * Update de MacAddress variable depending on the WiFi drivers. Sent this variable
 	 * as event data to be used when the shimWiFi D(F will be created.*/
 
 	LOGI(TAG_SHIM, "Wifi shim initialization");
-	RINAStackEvent_t xEnrollEvent = {eShimEnrolledEvent, NULL};
+	RINAStackEvent_t xEnrollEvent = {
+        .eEventType = eShimEnrolledEvent,
+        .xData.PV = NULL
+    };
 
 	if (!xShimEnrollToDIF(pxShimWiFiInstance->pxData->pxPhyDev)) {
 		LOGE(TAG_SHIM, "Wifi shim instance can't enroll to DIF");
@@ -1007,7 +1015,7 @@ bool_t xShimWiFiInit(ipcpInstance_t *pxShimWiFiInstance)
     }
 	else
 	{
-		xEnrollEvent.pvData = (void *)(pxShimWiFiInstance->pxData->pxPhyDev);
+		xEnrollEvent.xData.PV = (void *)(pxShimWiFiInstance->pxData->pxPhyDev);
 		xSendEventStructToIPCPTask(&xEnrollEvent, 50 * 1000);
         return true;
 	}

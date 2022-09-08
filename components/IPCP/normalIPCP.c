@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "RINA_API_flows.h"
 #include "common/list.h"
 #include "common/rina_ids.h"
 #include "common/rina_name.h"
@@ -13,11 +14,11 @@
 #include "configRINA.h"
 #include "IpcManager.h"
 #include "FlowAllocator.h"
-
 #include "BufferManagement.h"
 #include "Ribd.h"
 #include "Ribd_api.h"
 #include "IPCP_api.h"
+#include "RINA_API_flows.h"
 
 extern struct ipcpInstanceData_t *pxIpcpData;
 
@@ -172,12 +173,12 @@ bool_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
 }*/
 
 bool_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
-                          flowAllocateHandle_t *pxFlowHandle)
+                          flowAllocateHandle_t *pxFlowAllocateHandle)
 {
 
         struct normalFlow_t *pxFlow;
 
-        LOGI(TAG_IPCPNORMAL, "Binding the flow with port id:%d", pxFlowHandle->xPortId);
+        LOGI(TAG_IPCPNORMAL, "Binding the flow with port id:%ud", pxFlowAllocateHandle->xPortId);
 
         if (!pxData)
         {
@@ -192,9 +193,8 @@ bool_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
                 return false;
         }
 
-        pxFlow->xPortId = pxFlowHandle->xPortId;
+        pxFlow->xPortId = pxFlowAllocateHandle->xPortId;
         pxFlow->eState = ePORT_STATE_PENDING;
-        pxFlow->pxFlowHandle = pxFlowHandle;
 
         LOGD(TAG_IPCPNORMAL, "Flow: %p portID: %d portState: %d", pxFlow, pxFlow->xPortId, pxFlow->eState);
         vRsListInitItem(&(pxFlow->xFlowListItem), pxFlow);
@@ -869,6 +869,7 @@ bool_t xNormalConnectionDestroy(cepId_t xSrcCepId)
                 return false;
         }
         */
+
         pxFlow = prvFindFlowCepid(xSrcCepId);
         if (!pxFlow)
         {

@@ -4,23 +4,9 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
     REQUIRES unity Common Ribd)
 else()
   set(RIBD_DEPS
-    # This is odd but there seem to be a circular dependency between
-    # Ribd and Enrollment.
-    Ribd
-    Enrollment
-    Ribd
-
-    CdapProto
-    Rmt
-    BufferManagement
-    IPCP
-    EFCP
-    FlowAllocator
+    RINA
+    NetworkInterface_MQ
     unity
-    rt
-    pthread
-    Common
-    portability
   )
 
   add_executable(test_rib "${CMAKE_CURRENT_LIST_DIR}/test_rib.c")

@@ -135,7 +135,7 @@ bool_t xARPAddressGPAShrink(gpa_t *pxGpa, uint8_t ucFiller)
 	if (pucPosition >= pxGpa->pucAddress + pxGpa->uxLength)
 	{
 		LOGI(TAG_ARP, "GPA doesn't need to be shrinked ...");
-		return false;
+		return true;
 	}
 
 	uxLength = pucPosition - pxGpa->pucAddress;
@@ -353,7 +353,7 @@ bool_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 
 			/* Send a message to the IPCP-task to send this ARP packet. */
 			xSendEvent.eEventType = eNetworkTxEvent;
-			xSendEvent.pvData = pxNetworkBuffer;
+			xSendEvent.xData.PV = (void *)pxNetworkBuffer;
 
 			if (!xSendEventStructToIPCPTask(&xSendEvent, 1000))
 			{
@@ -598,7 +598,7 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 	pxTmpTha = pxCreateGHA(MAC_ADDR_802_3, (MACAddress_t *)ucTha);
 	// vARPPrintCache();
 
-	if (xARPAddressGPAShrink(pxTmpSpa, 0x00))
+	if (!xARPAddressGPAShrink(pxTmpSpa, 0x00))
 	{
 		LOGE(TAG_ARP, "Problems parsing the source GPA");
 		vGPADestroy(pxTmpSpa);
@@ -607,7 +607,7 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 		vGHADestroy(pxTmpTha);
 		return eReturn;
 	}
-	if (xARPAddressGPAShrink(pxTmpTpa, 0x00))
+	if (!xARPAddressGPAShrink(pxTmpTpa, 0x00))
 	{
 		LOGE(TAG_ARP, "Got problems parsing the target GPA");
 		vGPADestroy(pxTmpSpa);
@@ -625,11 +625,19 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 		// handle = pvPortMalloc(sizeof(*handle));
 		// Check Cache by Address
 
-		LOGE(TAG_ARP, "ARP_REQUEST ptype 0x%04X", usOperation);
+		LOGI(TAG_ARP, "ARP_REQUEST for protocol type 0x%04X", usOperation);
 
 		if (eARPLookupGPA(pxTmpSpa) == eARPCacheMiss)
 		{
-			LOGE(TAG_ARP, "I don't have a table for ptype 0x%04X", usPtype);
+#ifndef NDEBUG
+            char *psAddr;
+
+            RsAssert((psAddr = xGPAAddressToString(pxTmpSpa)) != NULL);
+			LOGE(TAG_ARP, "Nothing found for entry %s for protocol type 0x%04X", psAddr, usPtype);
+            vRsMemFree(psAddr);
+#else
+			LOGE(TAG_ARP, "Nothing found for protocol type 0x%04X", usPtype);
+#endif
 			vGPADestroy(pxTmpSpa);
 			vGPADestroy(pxTmpTpa);
 			vGHADestroy(pxTmpSha);
@@ -712,12 +720,21 @@ eARPLookupResult_t eARPLookupGPA(const gpa_t *pxGpaToLookup)
 	num_t x;
 	eARPLookupResult_t eReturn = eARPCacheMiss;
 
-	LOGI(TAG_ARP, "eARPLookupGPA loop start");
-
 	/* Loop through each entry in the ARP cache. */
 	for (x = 0; x < ARP_CACHE_ENTRIES; x++)
 	{
-		LOGI(TAG_ARP, "eARPLookupGPA loop: %d", x);
+        /* Skip empty entries. */
+        if (xARPCache[x].ucAge == 0)
+            continue;
+
+#ifndef NDEBUG
+        string_t pcLoopAddr;
+
+        RsAssert((pcLoopAddr = xGPAAddressToString(xARPCache[x].pxProtocolAddress)) != NULL);
+		LOGD(TAG_ARP, "eARPLookupGPA -> %s", pcLoopAddr);
+        vRsMemFree(pcLoopAddr);
+#endif
+
 		if (xGPACmp(xARPCache[x].pxProtocolAddress, pxGpaToLookup))
 		{
 			/* A matching valid entry was found. */
@@ -879,6 +896,20 @@ void vARPInitCache(void)
 	LOGI(TAG_ARP, "ARP CACHE Initialized");
 }
 
+void prvARPPrintCacheItem(int nIndex)
+{
+    LOGD(TAG_ARP, "Arp Entry %i: %3d - %s - %02x:%02x:%02x:%02x:%02x:%02x",
+         nIndex,
+         xARPCache[nIndex].ucAge,
+         xARPCache[nIndex].pxProtocolAddress->pucAddress,
+         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[0],
+         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[1],
+         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[2],
+         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[3],
+         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[4],
+         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[5]);
+}
+
 void vARPPrintCache(void)
 {
 	num_t x, xCount = 0;
@@ -886,18 +917,7 @@ void vARPPrintCache(void)
 	for (x = 0; x < ARP_CACHE_ENTRIES; x++)
 	{
 		if ((xARPCache[x].pxProtocolAddress->pucAddress != 0UL) && (xARPCache[x].ucValid != 0))
-		{
-			LOGI(TAG_ARP, "Arp Entry %i: %3d - %s - %02x:%02x:%02x:%02x:%02x:%02x\n",
-				 x,
-				 xARPCache[x].ucAge,
-				 xARPCache[x].pxProtocolAddress->pucAddress,
-				 xARPCache[x].pxMACAddress->xAddress.ucBytes[0],
-				 xARPCache[x].pxMACAddress->xAddress.ucBytes[1],
-				 xARPCache[x].pxMACAddress->xAddress.ucBytes[2],
-				 xARPCache[x].pxMACAddress->xAddress.ucBytes[3],
-				 xARPCache[x].pxMACAddress->xAddress.ucBytes[4],
-				 xARPCache[x].pxMACAddress->xAddress.ucBytes[5]);
-		}
+            prvARPPrintCacheItem(x);
 		xCount++;
 	}
 	LOGI(TAG_ARP, "Arp has %d entries\n", xCount);
@@ -933,7 +953,11 @@ void vARPAddCacheEntry(struct rinarpHandle_t *pxHandle, uint8_t ucAge)
 			xARPCache[x].pxMACAddress = pxHandle->pxHa;
 			xARPCache[x].ucAge = ucAge;
 			xARPCache[x].ucValid = 1;
-			LOGD(TAG_ARP, "ARP Entry successful");
+
+#ifndef NDEBUG
+            prvARPPrintCacheItem(x);
+			LOGD(TAG_ARP, "ARP Entry added successfully");
+#endif
 
 			break;
 		}

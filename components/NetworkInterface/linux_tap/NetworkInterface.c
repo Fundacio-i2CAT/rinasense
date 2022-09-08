@@ -505,7 +505,10 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
 bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
-	RINAStackEvent_t xRxEvent = {eNetworkRxEvent, NULL};
+	RINAStackEvent_t xRxEvent = {
+        .eEventType = eNetworkRxEvent,
+        .xData.PV = NULL
+    };
 
 	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
 		return true;
@@ -518,7 +521,7 @@ bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 		/* Copy the packet data. */
 		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
-		xRxEvent.pvData = (void *)pxNetworkBuffer;
+		xRxEvent.xData.PV = (void *)pxNetworkBuffer;
 
 		if (!xSendEventStructToIPCPTask(&xRxEvent, 250 * 1000)) {
 			LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
