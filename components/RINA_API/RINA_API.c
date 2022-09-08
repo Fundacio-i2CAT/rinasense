@@ -19,6 +19,7 @@
 
 #include "BufferManagement.h"
 #include "RINA_API_flows.h"
+#include "common/list.h"
 #include "configSensor.h"
 #include "rina_buffers.h"
 #include "rina_common_port.h"
@@ -459,7 +460,7 @@ bool_t RINA_close(portId_t xAppPortId)
 
     RINAStackEvent_t xDeallocateEvent;
     xDeallocateEvent.eEventType = eFlowDeallocateEvent;
-    xDeallocateEvent.pvData = xAppPortId;
+    xDeallocateEvent.pvData = (void *)(long)xAppPortId;
 
     if (!is_port_id_ok(xAppPortId))
         xResult = false;

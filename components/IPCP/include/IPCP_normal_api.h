@@ -29,7 +29,7 @@ bool_t xNormalFlowAllocationRequest(struct ipcpInstance_t *pxInstanceFrom,
                                     portId_t xShimPortId);
 
 bool_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
-                          portId_t xPortId);
+                          flowAllocateHandle_t *pxFlowHandle);
 
 bool_t xNormalMgmtDuWrite(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu);
 

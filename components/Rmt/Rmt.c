@@ -165,7 +165,7 @@ bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress);
 bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 {
 	rmtAddress_t *pxAddr;
-	RsListItem_t *pxListItem, *pxNext;
+	RsListItem_t *pxListItem;
 
 	pxAddr = pvRsMemAlloc(sizeof(*pxAddr));
 
@@ -388,7 +388,6 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 {
 
 	bool_t ret;
-	ssize_t bytes = pxDu->pxNetworkBuffer->xDataLength;
 
 	LOGI(TAG_RMT, "Gonna send SDU to port-id %d", pxN1Port->xPortId);
 	ret = pxN1Port->pxN1Ipcp->pxOps->duWrite(pxN1Port->pxN1Ipcp->pxData, pxN1Port->xPortId, pxDu, false);
@@ -529,8 +528,6 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 bool_t xRmtSend(struct rmt_t *pxRmtInstance,
 				struct du_t *pxDu)
 {
-	int i;
-
 	if (!pxRmtInstance || !pxDu || !xPciIsOk(pxDu->pxPci))
 	{
 		LOGE(TAG_RMT, "Bogus input parameters passed");
@@ -607,14 +604,20 @@ struct rmt_t *pxRmtCreate(struct efcpContainer_t *pxEfcpc)
 		rmt_destroy(tmp);
 		return NULL;
 	}*/
-	pxRmtTmp->pxN1Port = pxPortN1;
+
+    /* FIXME: This assignment makes no sense and the compile complains
+       about it. */
+	/* pxRmtTmp->pxN1Port = pxPortN1; */
+
 	// tmp->n1_ports = n1pmap_create(&tmp->robj);
+#if 0
 	if (!pxRmtTmp->pxN1Port)
 	{
 		LOGI(TAG_RMT, "Failed to create N-1 ports map");
 		// rmt_destroy(tmp);
 		return NULL;
 	}
+#endif
 
 	/*if (pff_cache_init(&tmp->cache)) {
 		LOG_ERR("Failed to init pff cache");

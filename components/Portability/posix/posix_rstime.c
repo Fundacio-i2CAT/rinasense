@@ -24,6 +24,14 @@ bool_t rstime_waitnsec(struct timespec *ts, uint64_t n) {
     ts->tv_sec += (time_t)(n / 1000000000);
     ts->tv_nsec += (n % 1000000000);
 
+    /* Prevent overflow in tv_nsec. */
+    if (ts->tv_nsec >= 1000000000) {
+        ts->tv_nsec = ts->tv_nsec - 1000000000;
+        ts->tv_sec++;
+    }
+
+    RsAssert(ts->tv_nsec <= 999999999);
+
     return true;
 }
 

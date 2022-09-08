@@ -53,9 +53,9 @@ void vRstrNameDestroy(name_t *pxName)
 
         vRstrNameFini(pxName);
 
-        vRsMemFree(pxName);
+        LOGI(TAG_RINA_NAME, "Name at %pK destroyed", pxName);
 
-        LOGI(TAG_RINA_NAME, "Name at %pK destroyed successfully", pxName);
+        vRsMemFree(pxName);
 }
 
 void vRstrNameFree(name_t *xName)
@@ -103,7 +103,7 @@ char *pcRstrDup(const char *s)
                 return NULL;
 
         len = strlen(s) + 1;
-        LOGE(TAG_RINA_NAME, "Len RstrDup:%d", len);
+        LOGE(TAG_RINA_NAME, "Len RstrDup: %zu", len);
         buf = pvRsMemAlloc(len);
         memset(buf,0,len);
         if (buf)
@@ -327,10 +327,10 @@ name_t *pxRstrNameDup(const name_t *pxSrc)
 
 string_t pcNameToString(const name_t *n)
 {
-    char *       tmp;
-    size_t       size;
-    const char * none     = "";
-    size_t       none_len = strlen(none);
+    char *         tmp;
+    size_t         size;
+    const string_t none = "";
+    size_t         none_len = strlen(none);
 
     if (!n)
         return NULL;
@@ -368,7 +368,7 @@ string_t pcNameToString(const name_t *n)
                  (n->pcEntityName      ? n->pcEntityName      : none),
                  DELIMITER,
                  (n->pcEntityInstance  ? n->pcEntityInstance  : none)) !=
-        size - 1) {
+        (int)(size - 1)) {
         vRsMemFree(tmp);
         return NULL;
     }

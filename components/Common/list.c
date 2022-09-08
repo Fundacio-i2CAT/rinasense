@@ -5,7 +5,6 @@
 bool_t xRsListIsContainedWithin(RsList_t *const pxList, RsListItem_t *const pxItem)
 {
     RsListItem_t *pItem;
-    void *pvOwner;
 
     pItem = pxRsListGetFirst(pxList);
 

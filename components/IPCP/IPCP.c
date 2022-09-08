@@ -319,7 +319,7 @@ static void *prvIPCPTask(void *pvParameters)
             vRINA_WeakUpUser(pxFlowAllocateRequest);
 #endif
 
-            vRINA_WakeUpFlowRequest(&pxFlowAllocateRequest, eFLOW_BOUND);
+            vRINA_WakeUpFlowRequest(pxFlowAllocateRequest, eFLOW_BOUND);
 
             break;
 
@@ -889,6 +889,7 @@ static void prvIPCPTimerReload(IPCPTimer_t *pxTimer, useconds_t xTimeUS)
     pxTimer->ulReloadTimeUS = xTimeUS;
     prvIPCPTimerStart(pxTimer, xTimeUS);
 }
+
 /*-----------------------------------------------------------*/
 /**
  * @brief Returns whether the IP task is ready.

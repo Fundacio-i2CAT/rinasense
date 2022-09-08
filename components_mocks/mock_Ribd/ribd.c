@@ -8,4 +8,5 @@ bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData,
                                       portId_t xN1flowPortId,
                                       struct du_t *pxDu)
 {
+    return true;
 }

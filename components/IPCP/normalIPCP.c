@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "common/list.h"
+#include "common/rina_ids.h"
 #include "common/rina_name.h"
 #include "portability/port.h"
 
@@ -87,6 +88,8 @@ static struct ipcpInstance_t *prvNormalIPCPFindInstance(struct ipcpFactoryData_t
 
                 pxListItem = pxRsListGetNext(pxListItem);
         }
+
+        return NULL;
 }
 
 static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
@@ -215,13 +218,13 @@ cepId_t xNormalConnectionCreateRequest(struct efcpContainer_t *pxEfcpc,
 
         xCepId = xEfcpConnectionCreate(pxEfcpc, xSource, xDest,
                                        xAppPortId, xQosId,
-                                       cep_id_bad(), cep_id_bad(),
+                                       CEP_ID_WRONG, CEP_ID_WRONG,
                                        pxDtpCfg, pxDtcpCfg);
 
         if (!is_cep_id_ok(xCepId))
         {
                 LOGE(TAG_IPCPNORMAL, "Failed EFCP connection creation");
-                return cep_id_bad();
+                return CEP_ID_WRONG;
         }
 
         /*        pxCepEntry = pvPortMalloc(sizeof(*pxCepEntry)); // error
@@ -308,7 +311,7 @@ bool_t xNormalTest(struct ipcpInstance_t *pxNormalInstance, struct ipcpInstance_
         xBufferSize = strlen(ucStringTest);
         pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, 1000); // sizeof length DataUser packet.
 
-        LOGI(TAG_IPCPNORMAL, "BufferSize DU:%zu", xBufferSize);
+        LOGI(TAG_IPCPNORMAL, "BufferSize DU: %zu", xBufferSize);
 
         /*Copy the string to the Buffer Network*/
         memcpy(pxNetworkBuffer->pucEthernetBuffer, ucStringTest, xBufferSize);
@@ -468,7 +471,7 @@ bool_t xNormalMgmtDuWrite(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *px
         }
 
         // pxDu->pxCfg = pxData->pxEfcpc->pxConfig;
-        sbytes = xDuLen(pxDu);
+        /* SET BUT NOT USED: sbytes = xDuLen(pxDu); */
 
         if (!xDuEncap(pxDu, PDU_TYPE_MGMT))
         {
@@ -817,7 +820,6 @@ static struct normalFlow_t *prvFindFlowCepid(cepId_t xCepId)
         // shimFlow_t *pxFlowNext;
 
         RsListItem_t *pxListItem;
-        RsListItem_t const *pxListEnd;
 
         if (unRsListLength(&(pxIpcpData->xFlowsList)) == 0)
         {
@@ -858,6 +860,7 @@ bool_t xNormalConnectionDestroy(cepId_t xSrcCepId)
         if (xEfcpConnectionDestroy(pxIpcpData->pxEfcpc, xSrcCepId))
                 LOGE(TAG_EFCP, "Could not destroy EFCP instance: %d", xSrcCepId);
 
+        /* FIXME: The condition below is always TRUE.
         // CRITICAL
         if (!(&pxIpcpData->xFlowsList))
         {
@@ -865,6 +868,7 @@ bool_t xNormalConnectionDestroy(cepId_t xSrcCepId)
                 LOGE(TAG_EFCP, "Could not destroy EFCP instance: %d", xSrcCepId);
                 return false;
         }
+        */
         pxFlow = prvFindFlowCepid(xSrcCepId);
         if (!pxFlow)
         {

@@ -18,6 +18,13 @@ if("${TARGET_TYPE}" STREQUAL "" OR "${TARGET_TYPE}" STREQUAL "freertos_idf")
 
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
     add_compile_definitions(configUSE_POSIX_ERRNO=1)
+    add_compile_definitions(
+      -Wno-unused-but-set-variable
+      -Wno-unused-function
+      -Wno-unused-variable
+      -Wno-unused-parameter
+    )
+
     project(RINA_sensor)
   else()
     message(FATAL_ERROR "The 'freertos_idf' target needs the IDF_PATH environment variable to be defined")
@@ -30,6 +37,28 @@ elseif (${TARGET_TYPE} STREQUAL "linux")
   include(CTest)
 
   add_compile_definitions(configUSE_POSIX_ERRNO=1)
+
+  add_compile_options(
+    -Wall -Werror -Wextra
+
+    # Disable some warnings while development is active. It drowns the
+    # other more important warnings.
+    -Wno-unused-but-set-variable
+    -Wno-unused-function
+    -Wno-unused-variable
+    -Wno-unused-parameter
+
+    # Debugging information
+    -ggdb3
+
+    # Disables optimisation
+    -O0
+
+    # Automatically add 'stdbool.h' as an include file to all
+    # files. It is a bit weird to add it here so maybe I should
+    # consider including it in the Portability component, or in Common
+    -include stdbool.h
+  )
 
   set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -114,6 +143,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux")
     ${Portability_INCLUDES}
     ${IPCP_INCLUDES}
     ${Rmt_INCLUDES}
+    ${RINA_API_INCLUDES}
   )
 
   file(GLOB mock_FlowAllocator_SOURCES
@@ -237,6 +267,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux")
     ${ShimIPCP_INCLUDES}
     ${EFCP_INCLUDES}
     ${Portability_INCLUDES}
+    ${RINA_API_INCLUDES}
   )
   target_link_libraries(NetworkInterface PUBLIC
     Common

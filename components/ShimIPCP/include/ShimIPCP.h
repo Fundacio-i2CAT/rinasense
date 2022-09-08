@@ -18,8 +18,6 @@
 #include "du.h"
 #include "rina_common_port.h"
 
-typedef int32_t portId_t;
-
 /* Flow states */
 typedef enum xFLOW_STATES
 

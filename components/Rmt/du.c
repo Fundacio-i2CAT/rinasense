@@ -38,7 +38,6 @@ bool_t xDuDecap(struct du_t *pxDu)
 	NetworkBufferDescriptor_t *pxNewBuffer;
 	uint8_t *pucData;
 	size_t uxBufferSize;
-	struct timespec ts;
 
 	/* Extract PCI from buffer*/
 	pxPciTmp = vCastPointerTo_pci_t(pxDu->pxNetworkBuffer->pucRinaBuffer);
@@ -119,8 +118,7 @@ bool_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 	NetworkBufferDescriptor_t *pxNewBuffer;
 	uint8_t *pucDataPtr;
 	size_t xBufferSize;
-	pci_t *pxPciTmp;
-	struct timespec ts;
+	pci_t * pxPciTmp;
 
 	uxPciLen = (size_t)(14); /* PCI defined static for this initial stage = 14Bytes*/
 
