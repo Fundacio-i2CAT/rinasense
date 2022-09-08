@@ -5,7 +5,7 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
 else()
   add_executable(test_arp826 "${CMAKE_CURRENT_LIST_DIR}/test_arp826.c")
   target_link_libraries(test_arp826 PUBLIC
-    ARP826
+    RINA
     NetworkInterface_MQ
     unity
   )
