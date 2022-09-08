@@ -245,21 +245,22 @@ elseif (${TARGET_TYPE} STREQUAL "linux")
   include("${BufferManagement_TEST_DIR}/CMakeLists.txt")
 
   #
-  # Component: NetworkInterface
+  # Component: NetworkInterface (various)
   #
-  # FIXME: The 'mq' NetworkInterface is for testing only. We need to
-  # figure out how to support multiple type of NetworkInterface.
   set(NetworkInterface_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/NetworkInterface")
-  file(GLOB NetworkInterface_SOURCES
-   "${NetworkInterface_DIR}/mq/*.c"
+  file(GLOB NetworkInterface_MQ_SOURCES
+    "${NetworkInterface_DIR}/mq/*.c"
   )
-  add_library(NetworkInterface STATIC ${NetworkInterface_SOURCES})
-  target_include_directories(NetworkInterface PUBLIC
+  file(GLOB NetworkInterface_TAP_SOURCES
+    "${NetworkInterface_DIR}/linux_tap/*.c"
+  )
+  add_library(NetworkInterface_MQ STATIC ${NetworkInterface_MQ_SOURCES})
+  add_library(NetworkInterface_TAP STATIC ${NetworkInterface_TAP_SOURCES})
+  set(NetworkInterface_Common_INCLUDES
     ${Common_INCLUDES}
     ${configRINA_INCLUDES}
     ${BufferManagement_INCLUDES}
     ${NetworkInterface_INCLUDES}
-    ${NetworkInterface_MQ_INCLUDES}
     ${ARP826_INCLUDES}
     ${IPCP_INCLUDES}
     ${configSensor_INCLUDES}
@@ -269,11 +270,23 @@ elseif (${TARGET_TYPE} STREQUAL "linux")
     ${Portability_INCLUDES}
     ${RINA_API_INCLUDES}
   )
-  target_link_libraries(NetworkInterface PUBLIC
+  target_link_libraries(NetworkInterface_MQ PUBLIC
     Common
+  )
+  target_link_libraries(NetworkInterface_TAP PUBLIC
+    Common
+  )
+
+  target_include_directories(NetworkInterface_MQ PUBLIC
+    ${NetworkInterface_Common_INCLUDES}
+    ${NetworkInterface_MQ_INCLUDES}
+  )
+  target_include_directories(NetworkInterface_TAP PUBLIC
+    ${NetworkInterface_Common_INCLUDES}
   )
   include("${NetworkInterface_DIR}/test/CMakeLists.txt")
 
+  #
   # Component: ARP826
   #
   set(ARP826_DIR "${CMAKE_CURRENT_SOURCE_DIR}/components/ARP826")
@@ -291,7 +304,6 @@ elseif (${TARGET_TYPE} STREQUAL "linux")
     ${ShimIPCP_INCLUDES}
   )
   target_link_libraries(ARP826 PUBLIC
-    NetworkInterface
     Common
     BufferManagement
     IPCP
@@ -376,7 +388,6 @@ elseif (${TARGET_TYPE} STREQUAL "linux")
     BufferManagement
     EFCP
     IPCP
-    NetworkInterface
     Rmt
   )
   include("${ShimIPCP_TESTS_DIR}/CMakeLists.txt")
@@ -409,7 +420,6 @@ elseif (${TARGET_TYPE} STREQUAL "linux")
   )
   target_link_libraries(IPCP PUBLIC
     ARP826
-    NetworkInterface
     ShimIPCP
     BufferManagement
     Rmt
@@ -547,6 +557,7 @@ elseif (${TARGET_TYPE} STREQUAL "linux")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb3 -O0 -include stdbool.h")
 
   add_subdirectory(unity)
+  add_subdirectory(test_linux)
 
 else()
   message("Unknown target ${TARGET_TYPE}")

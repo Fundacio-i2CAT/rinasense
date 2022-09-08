@@ -18,7 +18,7 @@ else()
     Rmt
     pthread
     portability
-    NetworkInterface
+    NetworkInterface_MQ
     Common
     unity
     rt

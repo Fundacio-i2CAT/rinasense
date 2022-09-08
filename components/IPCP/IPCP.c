@@ -1,4 +1,5 @@
 #include "IPCP_events.h"
+#include "linux_rsnet.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -219,7 +220,10 @@ static void *prvIPCPTask(void *pvParameters)
         LOGE(TAG_IPCPNORMAL, "It was not possible to create Shim ");
 
     // Init shim use API?
-    vShimWiFiInit(pxShimInstance);
+    if (!xShimWiFiInit(pxShimInstance)) {
+        LOGE(TAG_IPCPMANAGER, "Failed to initialize WiFi shim");
+        return NULL;
+    }
 
     LOGI(TAG_IPCPMANAGER, "ENTER: IPC Manager Thread");
 
@@ -590,7 +594,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
         /* Interpret the received Ethernet packet. */
         switch (usFrameType)
         {
-        case ETH_P_ARP:
+        case ETH_P_RINA_ARP:
 
             /* The Ethernet frame contains an ARP packet. */
             LOGI(TAG_IPCPMANAGER, "ARP Packet Received");
@@ -716,8 +720,12 @@ eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEth
     usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
 
     // Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
-    if (usFrameType == ETH_P_ARP || usFrameType == ETH_P_RINA)
+    if (usFrameType == ETH_P_RINA_ARP || usFrameType == ETH_P_RINA) {
         eReturn = eProcessBuffer;
+        LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: ACCEPTED", usFrameType);
+    }
+    else
+        LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: REJECTED", usFrameType);
 
     return eReturn;
 }

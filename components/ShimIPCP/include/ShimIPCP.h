@@ -118,7 +118,7 @@ void vShimWrite(void);
  * */
 void vShimRead(void);
 
-void vShimWiFiInit(struct ipcpInstance_t *pxShimWiFiInstance);
+bool_t xShimWiFiInit(ipcpInstance_t *pxShimWiFiInstance);
 
 struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId);
 

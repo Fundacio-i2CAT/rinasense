@@ -10,7 +10,7 @@ else()
   )
   target_link_libraries(test_networkinterface_io
     mock_IPCP
-    NetworkInterface
+    NetworkInterface_MQ
     Common
     BufferManagement
     portability

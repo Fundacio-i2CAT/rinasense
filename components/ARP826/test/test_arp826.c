@@ -42,7 +42,7 @@ const MACAddress_t mac2 = {
 RS_TEST_CASE_SETUP(test_arp826)
 {
     /* Initialize the test packet. */
-    p1.xEthernetHeader.usFrameType = RsHtoNS(ETH_P_ARP);
+    p1.xEthernetHeader.usFrameType = RsHtoNS(ETH_P_RINA_ARP);
     p1.xARPHeader.usHType = RsHtoNS(0x0001);
     p1.xARPHeader.usPType = RsHtoNS(ETH_P_RINA);
 

@@ -15,6 +15,10 @@
 #error Port undefined: string_t
 #endif
 
+#ifndef PORT_HAS_STRINGBUF_T
+#error Port undefined: stringbuf_t
+#endif
+
 #ifndef PORT_HAS_BUFFER_T
 #error Port undefined: buffer_t
 #endif
