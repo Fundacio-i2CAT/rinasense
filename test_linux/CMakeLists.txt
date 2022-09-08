@@ -1,4 +1,4 @@
-if (${TARGET_TYPE} STREQUAL "linux")
+if ("${TARGET_TYPE}" STREQUAL "linux")
   set(NETWORK_INTERFACE_MODULE "linux_tap")
 
   add_executable(test_linux
