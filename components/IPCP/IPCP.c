@@ -1,4 +1,3 @@
-#include "IPCP_events.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,6 +17,7 @@
 
 #include "IPCP.h"
 #include "IPCP_api.h"
+#include "IPCP_events.h"
 #include "ARP826.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
@@ -29,8 +29,6 @@
 #include "Enrollment.h"
 #include "Enrollment_api.h"
 #include "FlowAllocator.h"
-#include "portability/rsqueue.h"
-#include "portability/rstime.h"
 #include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
@@ -181,7 +179,7 @@ static void *prvIPCPTask(void *pvParameters)
 {
     RINAStackEvent_t xReceivedEvent;
     struct timespec xNextIPCPSleep;
-    flowAllocateHandle_t *pxFlowAllocateRequest;
+    flowAllocateHandle_t *pxFlowAllocateHandle;
     useconds_t xSleepTimeUS;
 
     /* Just to prevent compiler warnings about unused parameters. */
@@ -219,7 +217,10 @@ static void *prvIPCPTask(void *pvParameters)
         LOGE(TAG_IPCPNORMAL, "It was not possible to create Shim ");
 
     // Init shim use API?
-    vShimWiFiInit(pxShimInstance);
+    if (!xShimWiFiInit(pxShimInstance)) {
+        LOGE(TAG_IPCPMANAGER, "Failed to initialize WiFi shim");
+        return NULL;
+    }
 
     LOGI(TAG_IPCPMANAGER, "ENTER: IPC Manager Thread");
 
@@ -259,14 +260,14 @@ static void *prvIPCPTask(void *pvParameters)
             /* The network hardware driver has received a new packet.  A
              * pointer to the received buffer is located in the pvData member
              * of the received event structure. */
-            prvHandleEthernetPacket((NetworkBufferDescriptor_t *)xReceivedEvent.pvData);
+            prvHandleEthernetPacket((NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV);
             break;
 
         case eNetworkTxEvent:
         {
             NetworkBufferDescriptor_t *pxDescriptor;
 
-            pxDescriptor = (NetworkBufferDescriptor_t *)xReceivedEvent.pvData;
+            pxDescriptor = (NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV;
 
             /* Send a network packet. The ownership will  be transferred to
              * the driver, which will release it after delivery. */
@@ -310,16 +311,16 @@ static void *prvIPCPTask(void *pvParameters)
 
         case eFlowBindEvent:
 
-            pxFlowAllocateRequest = ((flowAllocateHandle_t *)xReceivedEvent.pvData);
+            pxFlowAllocateHandle = (flowAllocateHandle_t *)xReceivedEvent.xData.PV;
 
-            (void)xNormalFlowPrebind(pxIpcpData, pxFlowAllocateRequest);
+            (void)xNormalFlowPrebind(pxIpcpData, pxFlowAllocateHandle);
 
 #if 0
             pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
             vRINA_WeakUpUser(pxFlowAllocateRequest);
 #endif
 
-            vRINA_WakeUpFlowRequest(pxFlowAllocateRequest, eFLOW_BOUND);
+            vRINA_WakeUpFlowRequest(pxFlowAllocateHandle, eFLOW_BOUND);
 
             break;
 
@@ -330,7 +331,7 @@ static void *prvIPCPTask(void *pvParameters)
         case eStackTxEvent:
         {
             // call Efcp to write SDU.
-            NetworkBufferDescriptor_t *pxNetBuffer = (NetworkBufferDescriptor_t *)xReceivedEvent.pvData;
+            NetworkBufferDescriptor_t *pxNetBuffer = (NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV;
 
             (void)xNormalDuWrite(pxIpcpData, pxNetBuffer->ulBoundPort, pxNetBuffer);
         }
@@ -476,7 +477,7 @@ bool_t xSendEventToIPCPTask(eRINAEvent_t eEvent)
     RINAStackEvent_t xEventMessage;
 
     xEventMessage.eEventType = eEvent;
-    xEventMessage.pvData = (void *)NULL;
+    xEventMessage.xData.PV = (void *)NULL;
 
     return xSendEventStructToIPCPTask(&xEventMessage, 0);
 }
@@ -590,7 +591,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
         /* Interpret the received Ethernet packet. */
         switch (usFrameType)
         {
-        case ETH_P_ARP:
+        case ETH_P_RINA_ARP:
 
             /* The Ethernet frame contains an ARP packet. */
             LOGI(TAG_IPCPMANAGER, "ARP Packet Received");
@@ -716,8 +717,12 @@ eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEth
     usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
 
     // Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
-    if (usFrameType == ETH_P_ARP || usFrameType == ETH_P_RINA)
+    if (usFrameType == ETH_P_RINA_ARP || usFrameType == ETH_P_RINA) {
         eReturn = eProcessBuffer;
+        LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: ACCEPTED", usFrameType);
+    }
+    else
+        LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: REJECTED", usFrameType);
 
     return eReturn;
 }
@@ -903,7 +908,10 @@ bool_t xIPCPIsNetworkTaskReady(void)
 
 void RINA_NetworkDown(void)
 {
-    static const RINAStackEvent_t xNetworkDownEvent = {eNetworkDownEvent, NULL};
+    static const RINAStackEvent_t xNetworkDownEvent = {
+        .eEventType = eNetworkDownEvent,
+        .xData = { .PV = NULL }
+    };
 
     LOGI(TAG_IPCPMANAGER, "RINA_NetworkDown");
 

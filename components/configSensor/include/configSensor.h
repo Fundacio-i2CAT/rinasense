@@ -20,8 +20,8 @@
 #define DECL_CAST_PTR_FUNC_FOR_TYPE(TYPE) TYPE *vCastPointerTo_##TYPE(void *pvArgument)
 #define DECL_CAST_CONST_PTR_FUNC_FOR_TYPE(TYPE) const TYPE *vCastConstPointerTo_##TYPE(const void *pvArgument)
 
-#define ETH_P_RINA 0xD1F0
-#define ETH_P_ARP 0x4305
+	#define ETH_P_RINA      				0xD1F0
+	#define ETH_P_RINA_ARP						0x4305
 
 /********* Define BLE Parameters ****************/
 

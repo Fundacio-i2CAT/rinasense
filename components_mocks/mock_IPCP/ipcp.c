@@ -48,7 +48,7 @@ bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
              pxEvent->eEventType == eNetworkTxEvent);
 
     sentEvent.eEventType = pxEvent->eEventType;
-    sentEvent.pvData = pxEvent->pvData;
+    sentEvent.xData.PV = pxEvent->xData.PV;
 
     LOGD(TAG_MOCK_IPCP, "Sending event: %d", pxEvent->eEventType);
 

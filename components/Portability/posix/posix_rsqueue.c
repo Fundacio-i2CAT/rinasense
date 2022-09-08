@@ -131,8 +131,12 @@ bool_t xRsQueueReceive(RsQueue_t *pQueue, void *pvBuffer, const size_t unBufferS
     if (!rstime_waitusec(&ts, xTimeOutUS))
         return false;
 
-    if (mq_timedreceive(pQueue->xQueue, pvBuffer, unBufferSz, 0, &ts) < 0)
+    if (mq_timedreceive(pQueue->xQueue, pvBuffer, unBufferSz, 0, &ts) < 0) {
+        if (errno != ETIMEDOUT)
+            LOGE(TAG, "mq_timedreceive error: %d", errno);
+
         return false;
+    }
 
     return true;
 }
