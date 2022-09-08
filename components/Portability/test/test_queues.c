@@ -50,7 +50,7 @@ RS_TEST_CASE(AddRead, "[queues]")
 RS_TEST_CASE(SizeErrors, "[queues]")
 {
     RsQueue_t *q;
-    uint32_t i1 = 1, i2 = 2;
+    uint32_t i1 = 1;
     uint32_t j1;
 
     RS_TEST_CASE_BEGIN(test_queues);

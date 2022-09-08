@@ -438,10 +438,10 @@ bool_t xDtpDestroy(dtp_t *pxInstance)
                 pxInstance->pxDtcp = NULL; /* Useful */
         }
 
+        LOGI(TAG_DTP, "DTP %pK destroyed successfully", pxInstance);
+
         // robject_del(&instance->robj);
         vRsMemFree(pxInstance);
-
-        LOGI(TAG_DTP, "DTP %pK destroyed successfully", pxInstance);
 
         return true;
 }

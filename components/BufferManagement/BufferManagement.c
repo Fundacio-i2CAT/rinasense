@@ -36,11 +36,6 @@
 STATIC_ASSERT(ipconfigETHERNET_MINIMUM_PACKET_BYTES <= baMINIMAL_BUFFER_SIZE);
 #endif
 
-
-#define BUFFER_PADDING 0U
-
-int count = 0;
-
 /* A list of free (available) NetworkBufferDescriptor_t structures. */
 static RsList_t xFreeBuffersList;
 
@@ -204,7 +199,7 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
 
     if (xTimeOutUS > 0) {
         if (!rstime_waitusec(&ts, xTimeOutUS)) {
-            LOGE(TAG_NETBUFFER, "Error scheduling buffer waiting time");
+            LOGD(TAG_NETBUFFER, "Error scheduling buffer waiting time");
             return NULL;
         }
 
@@ -260,6 +255,7 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
                 /* The attempt to allocate storage for the buffer payload failed,
                  * so the network buffer structure cannot be used and must be
                  * released. */
+                LOGD(TAG_NETBUFFER, "Failed to attach buffer to descriptor");
                 vReleaseNetworkBufferAndDescriptor(pxReturn);
                 pxReturn = NULL;
             }
@@ -292,9 +288,9 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
     }
 
     if (pxReturn != NULL)
-        LOGI(TAG_NETBUFFER, "Count: %u", (unsigned int)uxCount);
+        LOGD(TAG_NETBUFFER, "Free descriptor Count: %u", (unsigned int)uxCount);
     else
-        LOGE(TAG_NETBUFFER, "Failed to return descriptor");
+        LOGD(TAG_NETBUFFER, "pxGetNetworkBufferWithDescriptor returned NULL");
 
     return pxReturn;
 }
@@ -302,7 +298,7 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
 
 void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 {
-    bool_t xListItemAlreadyInFreeList;
+    bool_t xAlreadyInFreeList;
 
     /* Ensure the buffer is returned to the list of free buffers before the
      * counting semaphore is 'given' to say a buffer is available.  Release the
@@ -315,17 +311,10 @@ void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetwo
 
     pthread_mutex_lock( &mutex );
     {
-        xListItemAlreadyInFreeList = xRsListIsContainedWithin( &xFreeBuffersList, &( pxNetworkBuffer->xBufferListItem ));
+        xAlreadyInFreeList = xRsListIsContainedWithin( &xFreeBuffersList, &( pxNetworkBuffer->xBufferListItem ));
 
-        if( xListItemAlreadyInFreeList == false )
-        {
+        if( !xAlreadyInFreeList )
             vRsListInsertEnd( &xFreeBuffersList, &( pxNetworkBuffer->xBufferListItem ) );
-
-#ifndef NDEBUG
-            /* Zero the buffer to facilitate debugging. */
-            memset(pxNetworkBuffer->pucDataBuffer, 0, pxNetworkBuffer->xDataLength);
-#endif
-        }
     }
     pthread_mutex_unlock( &mutex );
 
@@ -333,19 +322,8 @@ void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetwo
      * Update the network state machine, unless the program fails to release its 'xNetworkBufferSemaphore'.
      * The program should only try to release its semaphore if 'xListItemAlreadyInFreeList' is false.
      */
-    if( xListItemAlreadyInFreeList == false )
-    {
-        if( sem_post( &xNetworkBufferSemaphore ) == 0 )
-        {
-        }
-    }
-    else
-    {
-        /* No action. */
-    }
-    count = count - 1;
-    // ESP_LOGI(TAG_NETBUFFER, "Releasing Buffer....!!!");
-    // ESP_LOGI(TAG_NETBUFFER, "Buffer actived:%d", count);
+    if( !xAlreadyInFreeList && sem_post( &xNetworkBufferSemaphore ) == 0 )
+        LOGD(TAG_NETBUFFER, "Successfully released buffer");
 }
 /*-----------------------------------------------------------*/
 

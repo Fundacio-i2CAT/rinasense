@@ -1,5 +1,6 @@
 #include "common/rina_ids.h"
 #include "du.h"
+#include "efcpStructures.h"
 
 #ifdef ESP_PLATFORM
 bool_t mock_EFCP_xEfcpEnqueue(struct efcp_t * pxEfcp, portId_t xPort, struct du_t * pxDu)

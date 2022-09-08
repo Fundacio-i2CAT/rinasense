@@ -5,6 +5,7 @@
 #include "common/rina_ids.h"
 
 #include "rina_common_port.h"
+#include "RINA_API_flows.h"
 
 /* Forward definition of EFCP structures. */
 struct cwq_t;
@@ -108,8 +109,7 @@ struct ipcpInstanceOps_t
     );
 
     bool_t (*flowPrebind)(struct ipcpInstanceData_t *pxData,
-                              // struct ipcpInstance_t *   	pxUserIpcp,
-                              portId_t xPortId);
+                          flowAllocateHandle_t *pxFlowHandle);
 
     bool_t (*flowBindingIpcp)(struct ipcpInstanceData_t *pxUserData,
                                   portId_t xPortId,

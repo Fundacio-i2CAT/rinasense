@@ -134,7 +134,7 @@ void xMqNetworkInterfaceOutputDiscard() {
 
 bool_t xMqNetworkInterfaceWriteInput(string_t data, size_t sz)
 {
-    RsAssert(sz >= mqInitAttr.mq_msgsize);
+    RsAssert((int)sz >= mqInitAttr.mq_msgsize);
 
     if (mq_send(mqIn, data, sz, 0) < 0)
         return false;
@@ -274,12 +274,12 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
 {
     if (mq_send(mqOut, (const char *)pxNetworkBuffer->pucEthernetBuffer,
                 pxNetworkBuffer->xDataLength, 0) != 0) {
-        LOGE(TAG_WIFI, "Error writing %u bytes to network interface (errno: %d)",
+        LOGE(TAG_WIFI, "Error writing %zu bytes to network interface (errno: %d)",
              pxNetworkBuffer->xDataLength, errno);
         return false;
     }
 
-    LOGI(TAG_WIFI, "Wrote %u bytes to network interface", pxNetworkBuffer->xDataLength);
+    LOGI(TAG_WIFI, "Wrote %zu bytes to network interface", pxNetworkBuffer->xDataLength);
 
     return true;
 }
@@ -287,9 +287,10 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
 bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
-	RINAStackEvent_t xRxEvent = {eNetworkRxEvent, NULL};
+	RINAStackEvent_t xRxEvent;
 
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, 0);
+    xRxEvent.eEventType = eNetworkRxEvent;
 
 	if (pxNetworkBuffer != NULL)
 	{

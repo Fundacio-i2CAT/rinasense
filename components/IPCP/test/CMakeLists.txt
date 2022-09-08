@@ -23,4 +23,9 @@ else()
     unity
     rt
   )
+
+  add_test(
+    NAME "test_ipcp"
+    COMMAND "./test_ipcp"
+  )
 endif()

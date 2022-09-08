@@ -8,12 +8,12 @@
 void mock_FlowAllocator_vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc,
                                                   portId_t xPortId,
                                                   flowAllocateHandle_t *pxFlowRequest,
-                                                  struct ipcpNormalData_t *pxIpcpData)
+                                                  struct ipcpInstanceData_t *pxIpcpData)
 #else
 void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc,
                                portId_t xPortId,
                                flowAllocateHandle_t *pxFlowRequest,
-                               struct ipcpNormalData_t *pxIpcpData)
+                               struct ipcpInstanceData_t *pxIpcpData)
 #endif
 {
 }

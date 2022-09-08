@@ -13,11 +13,15 @@ struct item {
     RsListItem_t item;
 };
 
-struct item i1 = { 1 }, i2 = { 3 }, i3 = { 10 };
+struct item i1, i2, i3;
 
 /* This ain't a test! */
 void addBogusItems(RsList_t *lst)
 {
+    i1.n = 1;
+    i2.n = 3;
+    i3.n = 100;
+
     vRsListInit(lst);
     vRsListInitItem(&(i1.item), &i1);
     vRsListInitItem(&(i2.item), &i2);
@@ -30,7 +34,6 @@ RS_TEST_CASE(ListBasics, "[list]")
 {
     RsList_t lst;
     RsListItem_t *pLstItem = NULL;
-    struct item *pItem;
 
     RS_TEST_CASE_BEGIN(test_lists);
 
@@ -101,7 +104,7 @@ RS_TEST_CASE(ListIteration, "[list]")
 {
     RsList_t lst;
     struct item *pos;
-    RsListItem_t *pEnd, *pItem;
+    RsListItem_t *pItem;
     int n = 0;
 
     RS_TEST_CASE_BEGIN(test_lists);

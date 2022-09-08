@@ -1,6 +1,7 @@
 #ifndef _COMPONENTS_RINA_API_FLOWS_H
 #define _COMPONENTS_RINA_API_FLOWS_H
 
+#include "common/list.h"
 #include "common/rina_name.h"
 #include "common/rina_ids.h"
 #include "common/list.h"
