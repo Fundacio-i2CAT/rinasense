@@ -290,12 +290,11 @@ BaseType_t xNetworkInterfaceDisconnect(void)
 esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
-	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(250);
-    struct timespec ts;
+	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(0);
+	struct timespec ts;
 	RINAStackEvent_t xRxEvent = {
-        .eEventType = eNetworkRxEvent,
-        .xData.PV = NULL
-    };
+		.eEventType = eNetworkRxEvent,
+		.xData.PV = NULL};
 
 	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
 	{
@@ -304,10 +303,10 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 		return ESP_OK;
 	}
 
-    if (!rstime_waitmsec(&ts, 250))
-        return ESP_FAIL;
+	if (!rstime_waitmsec(&ts, 250))
+		return ESP_FAIL;
 
-    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, &ts);
+	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, &ts);
 	// ESP_LOGE(TAG_WIFI,"xNetworkInterfaceInput Taking buffer to copy wifidriver buffer");
 
 	if (pxNetworkBuffer != NULL)
@@ -344,9 +343,8 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 void vNetworkNotifyIFDown()
 {
 	RINAStackEvent_t xRxEvent = {
-        .eEventType = eNetworkDownEvent,
-        .xData.PV = NULL
-    };
+		.eEventType = eNetworkDownEvent,
+		.xData.PV = NULL};
 
 	if (xInterfaceState != INTERFACE_DOWN)
 	{

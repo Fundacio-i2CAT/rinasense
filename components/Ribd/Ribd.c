@@ -164,9 +164,9 @@ messageCdap_t *prvRibMessageCdapInit(void)
 
     /* Init to Default Values*/
 
-    pxMessage->version = 0x01;
-    pxMessage->eOpCode = -1; // No code
-    pxMessage->invokeID = 1; // by default
+    pxMessage->version = 100;  // 0x01
+    pxMessage->eOpCode = -1;   // No code
+    pxMessage->invokeID = 100; // by default
     pxMessage->objInst = -1;
     pxMessage->pcObjClass = NULL;
     pxMessage->pcObjName = NULL;
@@ -203,9 +203,13 @@ messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
     pxMessageCdap->pxAuthPolicy = pxAuthPolicy;
 
     pxMessageCdap->eOpCode = (opCode_t)message.opCode;
-    pxMessageCdap->version = message.version;
-    pxMessageCdap->invokeID = message.invokeID;
-    pxMessageCdap->result = message.result;
+
+    if (message.has_version)
+        pxMessageCdap->version = message.version;
+    if (message.has_invokeID)
+        pxMessageCdap->invokeID = message.invokeID;
+    if (message.has_result)
+        pxMessageCdap->result = message.result;
 
     if (message.has_destAEInst)
     {
@@ -286,16 +290,6 @@ messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
     }
 
     return pxMessageCdap;
-}
-
-bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
-{
-    const char *str = (const char *)(*arg);
-
-    if (!pb_encode_tag_for_field(stream, field))
-        return false;
-
-    return pb_encode_string(stream, (uint8_t *)str, strlen(str));
 }
 
 rina_messages_CDAPMessage prvRibdSerToRinaMessage(messageCdap_t *pxMessageCdap)
@@ -415,7 +409,7 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
     LOGI(TAG_RIB, "Encoding an CDAP message...");
     LOGI(TAG_RIB, "Encoding a %s message", opcodeNamesTable[pxMessageCdap->eOpCode]);
     bool_t status;
-    uint8_t *pucBuffer[128];
+    uint8_t *pucBuffer[256];
     size_t xMessageLength;
 
     /*Create a stream that will write to the buffer*/
@@ -427,7 +421,8 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
     message.version = pxMessageCdap->version;
     message.has_version = true;
 
-    message.opCode = (rina_messages_opCode_t)pxMessageCdap->eOpCode;
+    message.opCode = pxMessageCdap->eOpCode;
+    // message.opCode = (rina_messages_opCode_t)pxMessageCdap->eOpCode;
 
     message.invokeID = pxMessageCdap->invokeID;
     message.has_invokeID = true;
@@ -494,8 +489,8 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
         strcpy(message.authPolicy.name, pxMessageCdap->pxAuthPolicy->pcName);
         message.has_authPolicy = true;
         message.authPolicy.versions_count = 1;
-        strncpy(message.authPolicy.versions[0], pxMessageCdap->pxAuthPolicy->pcVersion,
-                sizeof(message.authPolicy.versions[0]));
+        strncpy(message.authPolicy.versions, pxMessageCdap->pxAuthPolicy->pcVersion,
+                sizeof(message.authPolicy.versions));
 
         message.authPolicy.has_name = true;
     }
@@ -748,7 +743,7 @@ bool_t xRibdConnectToIpcp(struct ipcpInstanceData_t *pxIpcpData, name_t *pxSourc
     messageCdap_t *pxMessageEncode = prvRibMessageCdapInit();
 
     /*Fill the Message to be encoded in the connection*/
-    pxMessageEncode->eOpCode = (opCode_t)rina_messages_opCode_t_M_CONNECT;
+    pxMessageEncode->eOpCode = rina_messages_opCode_t_M_CONNECT;
     pxMessageEncode->pxDestinationInfo->pcEntityName = strdup(pxDestInfo->pcEntityName);
     pxMessageEncode->pxDestinationInfo->pcProcessInstance = strdup(pxDestInfo->pcProcessInstance);
     pxMessageEncode->pxDestinationInfo->pcProcessName = strdup(pxDestInfo->pcProcessName);
@@ -776,8 +771,8 @@ bool_t xRibdConnectToIpcp(struct ipcpInstanceData_t *pxIpcpData, name_t *pxSourc
     }
 
     /*Testing*/
-    /* pxMessageDecode = prvRibdDecodeCDAP(pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength);
-     vRibdPrintCdapMessage( pxMessageDecode );*/
+    /*pxMessageDecode = prvRibdDecodeCDAP(pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength);
+    vRibdPrintCdapMessage(pxMessageDecode);*/
 
     vRibdSentCdapMsg(pxNetworkBuffer, xN1flowPortId);
 
@@ -789,22 +784,22 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
     LOGE(TAG_RIB, "DECODE");
     LOGE(TAG_RIB, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
     LOGE(TAG_RIB, "Invoke Id: %d ", pxDecodeCdap->invokeID);
-    LOGE(TAG_RIB, "Version: %jd", pxDecodeCdap->version);
-    if (pxDecodeCdap->pxAuthPolicy->pcName != NULL)
+    LOGE(TAG_RIB, "Version: %lld", pxDecodeCdap->version);
+    /*if (pxDecodeCdap->pxAuthPolicy->pcName != NULL)
     {
-        LOGE(TAG_RIB, "AuthPolicy Name: %s", pxDecodeCdap->pxAuthPolicy->pcName);
-        LOGE(TAG_RIB, "AuthPolicy Version: %s", pxDecodeCdap->pxAuthPolicy->pcVersion);
+        LOGD(TAG_RIB, "AuthPolicy Name: %s", pxDecodeCdap->pxAuthPolicy->pcName);
+        LOGD(TAG_RIB, "AuthPolicy Version: %s", pxDecodeCdap->pxAuthPolicy->pcVersion);
     }
 
-    LOGD(TAG_RIB, "Source AEI: %s", pxDecodeCdap->pxSourceInfo->pcEntityInstance);
-    LOGD(TAG_RIB, "Source AEN: %s", pxDecodeCdap->pxSourceInfo->pcEntityName);
-    LOGD(TAG_RIB, "Source API: %s", pxDecodeCdap->pxSourceInfo->pcProcessInstance);
-    LOGD(TAG_RIB, "Source APN: %s", pxDecodeCdap->pxSourceInfo->pcProcessName);
-    LOGD(TAG_RIB, "Dest AEI: %s", pxDecodeCdap->pxDestinationInfo->pcEntityInstance);
-    LOGD(TAG_RIB, "Dest AEN: %s", pxDecodeCdap->pxDestinationInfo->pcEntityName);
-    LOGD(TAG_RIB, "Dest API: %s", pxDecodeCdap->pxDestinationInfo->pcProcessInstance);
-    LOGD(TAG_RIB, "Dest APN: %s", pxDecodeCdap->pxDestinationInfo->pcProcessName);
-    LOGD(TAG_RIB, "Result: %d", pxDecodeCdap->result);
+    LOGE(TAG_RIB, "Source AEI: %s", pxDecodeCdap->pxSourceInfo->pcEntityInstance);
+    LOGE(TAG_RIB, "Source AEN: %s", pxDecodeCdap->pxSourceInfo->pcEntityName);
+    LOGE(TAG_RIB, "Source API: %s", pxDecodeCdap->pxSourceInfo->pcProcessInstance);
+    LOGE(TAG_RIB, "Source APN: %s", pxDecodeCdap->pxSourceInfo->pcProcessName);
+    LOGE(TAG_RIB, "Dest AEI: %s", pxDecodeCdap->pxDestinationInfo->pcEntityInstance);
+    LOGE(TAG_RIB, "Dest AEN: %s", pxDecodeCdap->pxDestinationInfo->pcEntityName);
+    LOGE(TAG_RIB, "Dest API: %s", pxDecodeCdap->pxDestinationInfo->pcProcessInstance);
+    LOGE(TAG_RIB, "Dest APN: %s", pxDecodeCdap->pxDestinationInfo->pcProcessName);
+    LOGE(TAG_RIB, "Result: %d", pxDecodeCdap->result);
 
     // configASSERT(pxDecodeCdap->xObjName == NULL);
 
@@ -819,7 +814,7 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
     if (!pxDecodeCdap->pcObjClass)
     {
         LOGE(TAG_RIB, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
-    }
+    }*/
 }
 
 bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData, portId_t xN1flowPortId, struct du_t *pxDu)

@@ -83,7 +83,7 @@ typedef struct xMESSAGE_CDAP
     name_t *pxSourceInfo;
 
     /*Version*/
-    intmax_t version;
+    int64_t version;
 
     /*Authentication Policy*/
     authPolicy_t *pxAuthPolicy;

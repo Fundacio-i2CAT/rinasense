@@ -37,7 +37,7 @@ void app_main(void)
 	char buffer[500];
 
 	gpio_set_pull_mode(GPIO_NUM_4, GPIO_PULLUP_ONLY);
-	vTaskDelay(1000);
+	vTaskDelay(2000);
 
 	ESP_LOGI(TAG_APP, "----------- Requesting a Flow ----- ");
 
