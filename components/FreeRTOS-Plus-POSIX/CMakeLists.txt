@@ -3,12 +3,12 @@ set(src
   FreeRTOS-Plus-POSIX/source/FreeRTOS_POSIX_mqueue.c
   FreeRTOS-Plus-POSIX/source/FreeRTOS_POSIX_sched.c
   FreeRTOS-Plus-POSIX/source/FreeRTOS_POSIX_semaphore.c
-  FreeRTOS-Plus-POSIX/source/FreeRTOS_POSIX_unistd.c
   FreeRTOS-Plus-POSIX/source/FreeRTOS_POSIX_utils.c)
 
 if("${TARGET_TYPE}" STREQUAL "linux")
   list(APPEND src
     FreeRTOS-Plus-POSIX/source/FreeRTOS_POSIX_timer.c
+    FreeRTOS-Plus-POSIX/source/FreeRTOS_POSIX_unistd.c
   )
 endif()
 
