@@ -39,15 +39,14 @@ Arduino applications that can use it as well as use more standard
 Arduino libraries. This is why we could make this port with very
 little changes to the source code.
 
-# On a more 
+This also means that this port currently working *only* on ESP32
+boards. The reliance on POSIX features for portability to Linux and
+the ESP32 network interface code will make it more difficult to build
+a generic Arduino port. 
 
-This port currently working *only* on ESP32 boards. The reliance on
-POSIX features for portability to Linux and the ESP32 network
-interface code will make it more difficult to build a generic Arduino
-port. Anything that is specific to Arduino should obviously remain in
-the *Portability* component. Right now, this is kept at a minimum and
-only the logging routines in the component code calls the Arduino
-runtime.
+Anything that is specific to Arduino should obviously remain in the
+*Portability* component. Right now, this is kept at a minimum and only
+the logging routines in the component code calls the Arduino runtime.
 
 ## Short term goals
 
