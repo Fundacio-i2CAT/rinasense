@@ -674,7 +674,7 @@ ssize_t mq_timedreceive(mqd_t mqdes,
     /* Verify that msg_len is large enough. */
     if (xStatus == 0)
     {
-        printf("Verifying msg_len\n");
+
         if (msg_len < (size_t)pxMessageQueue->xAttr.mq_msgsize)
         {
             /* msg_len too small. */
@@ -683,7 +683,6 @@ ssize_t mq_timedreceive(mqd_t mqdes,
         }
     }
 
-    printf("Time Calculation\n");
     if (xStatus == 0)
     {
         /* Convert abstime to a tick timeout. */
@@ -711,7 +710,6 @@ ssize_t mq_timedreceive(mqd_t mqdes,
                           xTimeoutTicks) == pdFALSE)
         {
             /* If queue receive fails, set the appropriate errno. */
-            printf("Receive data from the FreeRTOS queue\n");
             if (pxMessageQueue->xAttr.mq_flags & O_NONBLOCK)
             {
                 /* Set errno to EAGAIN for nonblocking mq. */

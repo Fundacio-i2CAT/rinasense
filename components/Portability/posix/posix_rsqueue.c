@@ -141,7 +141,6 @@ bool_t xRsQueueReceive(RsQueue_t *pQueue, void *pvBuffer, const size_t unBufferS
 
     if (!rstime_waitusec(&ts, xTimeOutUS))
         return false;
-    printf("Timeout: %lld.%.9ld\n", (long long)ts.tv_sec, ts.tv_nsec);
 
     if (mq_receive(pQueue->xQueue, pvBuffer, unBufferSz, 0) < 0)
     {
