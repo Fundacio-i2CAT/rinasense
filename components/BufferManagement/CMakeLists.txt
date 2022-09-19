@@ -3,6 +3,7 @@ set(requirements
   NetworkInterface
   ARP826
   Portability
+  Common
 )
 
 # The FreeRTOS-Plus-POSIX module is only necessary for ESP-IDF
