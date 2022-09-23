@@ -93,7 +93,7 @@ typedef struct xRSLIST_T {
         NULL
 
 #define pxRsListGetHeadOwner(plist) \
-    (*plist).xHead.pvOwner
+    ((*plist).nLength == 0 ? NULL : _first(plist)->pvOwner)
 
 bool_t xRsListIsContainedWithin(RsList_t * const, RsListItem_t * const);
 

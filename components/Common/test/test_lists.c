@@ -126,6 +126,22 @@ RS_TEST_CASE(ListIteration, "[list]")
     RS_TEST_CASE_END(test_lists);
 }
 
+RS_TEST_CASE(ListGetHeadOwner, "[list]")
+{
+    RsList_t lst;
+
+    RS_TEST_CASE_BEGIN(test_lists);
+
+    addBogusItems(&lst);
+
+    TEST_ASSERT(pxRsListGetHeadOwner(&lst));
+    TEST_ASSERT(pxRsListGetHeadOwner(&lst) == &i1);
+    vRsListRemove(&i1.item);
+    TEST_ASSERT(pxRsListGetHeadOwner(&lst) == &i2);
+
+    RS_TEST_CASE_END(test_lists);
+}
+
 RS_TEST_CASE(ListIsContainedWithin, "[list]")
 {
     RsList_t lst;
@@ -147,6 +163,7 @@ int main() {
     RS_RUN_TEST(ListBasics);
     RS_RUN_TEST(ListInsertEnd);
     RS_RUN_TEST(ListIteration);
+    RS_RUN_TEST(ListGetHeadOwner);
     RS_RUN_TEST(ListIsContainedWithin);
     return UNITY_END();
 }
