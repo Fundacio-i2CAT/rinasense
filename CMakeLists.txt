@@ -21,7 +21,6 @@ if("${TARGET_TYPE}" STREQUAL "" OR "${TARGET_TYPE}" STREQUAL "freertos_idf")
     message("Configuring: ESP-IDF build")
 
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-    add_compile_definitions(configUSE_POSIX_ERRNO=1)
     project(RINA_sensor)
   else()
     message(FATAL_ERROR "The 'freertos_idf' target needs the IDF_PATH environment variable to be defined")
@@ -131,8 +130,6 @@ else()
 
     include(CTest)
     include(GNUInstallDirs)
-
-    add_compile_definitions(configUSE_POSIX_ERRNO=1)
 
     # Add all components objects in the Linux shared library.
     foreach(component IN LISTS shared_library_components)
