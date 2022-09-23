@@ -107,7 +107,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
  *  Mac address variable in the ShimIPCP.h
  *  Return a Boolean pdTrue or pdFalse
  * */
-BaseType_t xNetworkInterfaceInitialise(const MACAddress_t *pxPhyDev)
+BaseType_t xNetworkInterfaceInitialise(MACAddress_t *pxPhyDev)
 {
 	ESP_LOGI(TAG_WIFI, "Initializing the network interface");
 	uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES];
