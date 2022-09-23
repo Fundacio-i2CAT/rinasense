@@ -1,4 +1,4 @@
-set(local_INCLUDES
+set(Portability_INCLUDES
   ${CMAKE_SOURCE_DIR}/components/Portability/include
   ${CMAKE_SOURCE_DIR}/components/Portability/posix/include
   ${CMAKE_SOURCE_DIR}/components/Portability/freertos_idf/include
@@ -11,6 +11,6 @@ set(Portability_SOURCES
 
 rs_component(Portability
   SRCS     ${Portability_SOURCES}
-  INCLUDES ${local_INCLUDES}
+  INCLUDES ${Portability_INCLUDES}
   REQUIRES FreeRTOS-Plus-POSIX
 )

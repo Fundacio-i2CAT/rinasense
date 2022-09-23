@@ -10,5 +10,6 @@
 #include "rsassert.h"
 #include "rsposix.h"
 #include "rstime.h"
+#include "rsutils.h"
 
 #endif // _PORT_PORT_H
