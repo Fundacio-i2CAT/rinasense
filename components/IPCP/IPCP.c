@@ -49,8 +49,9 @@ static bool_t xIPCPTaskInitialised = false;
  * down (connected, not connected) respectively. */
 static bool_t xNetworkUp = false;
 
-static portId_t xN1PortId;
-static portId_t xAppPortId;
+static portId_t xN1PortId = PORT_ID_WRONG;
+
+static portId_t xAppPortId = PORT_ID_WRONG;
 
 /** @brief Used to ensure network down events cannot be missed when they cannot be
  * posted to the network event queue because the network event queue is already
