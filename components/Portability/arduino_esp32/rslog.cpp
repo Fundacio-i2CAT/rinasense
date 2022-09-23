@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "portability/rslog.h"
 
@@ -25,7 +26,7 @@ void vRsLogWrite(RsLogLevel_t level, const char* tag, const char* format, ...)
 
 void vRsLogWritev(RsLogLevel_t level, const char* tag, const char* format, va_list args)
 {
-    char buf[1024] = {0};
+    char buf[512] = {0};
     int n;
 
     vsnprintf(buf, sizeof(buf), format, args);
