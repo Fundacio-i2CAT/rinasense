@@ -278,7 +278,7 @@ void vFlowAllocatorFlowRequest(
 
     pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
 
-    char flowObj[24];
+    char flowObj[CHAR_MAX];
     sprintf(flowObj, "/fa/flows/key=%d-%d", pxFlow->xSourceAddress, pxFlow->xSourcePortId);
 
     if (!pxRibCreateObject(flowObj, -1, "Flow", "Flow", FLOW))
