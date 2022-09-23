@@ -550,6 +550,9 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
 
     LOGD(TAG_WIFI, "Wrote %zu bytes to the network", pxNetworkBuffer->xDataLength);
 
+    if (xReleaseAfterSend)
+        vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+
     return true;
 }
 
