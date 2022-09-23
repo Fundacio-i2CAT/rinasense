@@ -513,25 +513,9 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
                 /* Check to see if the flow is non blocking on the first
                  * iteration.  */
                 xRemainingTime = pxFlowHandle->xReceiveBlockTime;
-#if __LONG_WIDTH__ == 32
-                LOGD(TAG_RINA, "xRemainingTime: %lu", xRemainingTime);
-#elif __LONG_WIDTH__ == 64
-                LOGD(TAG_RINA, "xRemainingTime: %u", xRemainingTime);
-#else
-#error Not sure how to handle this size of __LONG_WIDTH__
-#endif
 
-                if (xRemainingTime == 0) {
-                    /* Check for the interrupt flag. */
-#if __LONG_WIDTH__ == 32
-                    LOGD(TAG_RINA, "xRemainingTime: %lu", xRemainingTime);
-#elif __LONG_WIDTH__ == 64
-                    LOGD(TAG_RINA, "xRemainingTime: %u", xRemainingTime);
-#else
-#error Not sure how to handle this size of __LONG_WIDTH__
-#endif
+                if (xRemainingTime == 0)
                     break;
-                }
 
                 /* To ensure this part only executes once. */
                 xTimed = true;
@@ -558,13 +542,6 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
                 LOGE(TAG_RINA, "Error checking write timeout expiration");
                 return 0;
             }
-#if __LONG_WIDTH__ == 32
-            LOGD(TAG_RINA, "xRemainingTime: %lu", xRemainingTime);
-#elif __LONG_WIDTH__ == 64
-            LOGD(TAG_RINA, "xRemainingTime: %u", xRemainingTime);
-#else
-#error Not sure how to handle this size of __LONG_WIDTH__
-#endif
         }
 
         if (xPacketCount != 0) {
