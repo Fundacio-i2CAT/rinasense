@@ -5,20 +5,31 @@ BOARDS*.
 
 From within your Arduino IDE, install the ESP32 board package available here:
 
+https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+The documentation for this is available here:
+
+https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/installing.html
+
 ## Building
 
-    $ git clone
+To build this project from Arduino from a fresh clone, you need to do
+the following steps:
+
+    $ git clone [RinaSense repository URL]
     $ git submodule init
     $ git submodule update
     $ mkdir build && cd build
     $ cmake  ../CMakeLists.txt -DTARGET_TYPE=arduino_esp32 -DARDUINO_INSTALL_PATH=~/Programs/arduino-1.8.19 -DARDUINO_BOARD=esp32.firebeetle32
     $ make
 
-## Uploading to the board
+Out of the 3 variables set on the command line, only 2 are
+required. _TARGET\_TYPE_ is used in the CMake files to determine which
+kind of output of the project. _ARDUINO\_INSTALL_PATH_ is the
+directory where your Arduino IDE files are installed. See below for
+the meaning of the _ARDUINO\_BOARD_ variable.
 
-    $ sudo make upload SERIAL_PORT=/dev/ttyUSB0
-
-## About ARDUINO\_BOARD
+### About ARDUINO\_BOARD
 
 The _esp32.firebeetle32_ board ID only applies to the ESP32 FireBeetle
 board that is used to develop this project. If you have a different
@@ -31,26 +42,37 @@ boards supported by the board package. You can uncomment the line
 corresponding to your board in that file and run CMake again the same
 way to properly setup your sources for building.
 
+## Uploading to the board
+
+This generally requires _root_ access because ordinary users don't
+tend to have access to serial ports.
+
+    $ sudo make upload SERIAL_PORT=/dev/ttyUSB0
+
 # Arduino
 
-The Arduino runtime on ESP32 is layered on top of the ESP runtime as
-this project was originally developed. This runtime is exposed to the
-Arduino applications that can use it as well as use more standard
-Arduino libraries. This is why we could make this port with very
-little changes to the source code.
+The Arduino runtime on ESP32 is layered on top of the ESP
+runtime. This project was originally developed the same way but was
+changed to be more portable. This runtime is exposed to the Arduino
+applications so that it can use it as well as use more standard, or
+easier to use, Arduino libraries. This is why we could make this port
+with very little changes to the source code.
 
-This also means that this port currently working *only* on ESP32
-boards. The reliance on POSIX features for portability to Linux and
-the ESP32 network interface code will make it more difficult to build
-a generic Arduino port. 
+Unfortunately, this also means that this port currently working *only*
+on ESP32 boards. The usage of the ESP32 wifi library and the reliance
+on POSIX features for portability to Linux and the ESP32 network
+interface code will make it more difficult to build a generic Arduino
+port. The underlying ESP runtime provides some POSIX features, such as
+pthread, that are not present on ordinary Arduino board runtime.
 
-Anything that is specific to Arduino should obviously remain in the
-*Portability* component. Right now, this is kept at a minimum and only
-the logging routines in the component code calls the Arduino runtime.
+RinaSense aims to be portable to more platforms than Arduino. This
+means that anything that is specific to Arduino should be coded within
+the *Portability* component. Right now, only the logging routines code
+calls into the Arduino runtime.
 
 ## Short term goals
 
-Right now the code can be built and uploade from the command
+Right now the code can be built and uploaded from the command
 line. Eventually, we want the runtime packaged as a library that can
 be used in the Arduino environment. Seeing the library is currently
 building, it should only be a matter of properly packaging the build
@@ -60,8 +82,7 @@ https://arduino.github.io/arduino-cli/0.27/library-specification/
 
 ## Long term goals
 
-This port is currently strictly for ESP32 devices supported by the
-Arduino IDE. For this code to run on a plain Arduino board that
+For this code to run on a plain Arduino board that
 doesn't, we would need to figure out how to support POSIX
 threads. This is currently provided by the ESP32 runtime but also
 supported by FreeRTOS+POSIX, which replicates the POSIX thread API
