@@ -749,19 +749,22 @@ bool_t xRibdConnectToIpcp(struct ipcpInstanceData_t *pxIpcpData, name_t *pxSourc
 
     /*Fill the Message to be encoded in the connection*/
     pxMessageEncode->eOpCode = (opCode_t)rina_messages_opCode_t_M_CONNECT;
-    pxMessageEncode->pxDestinationInfo->pcEntityName = strdup(pxDestInfo->pcEntityName);
+
     pxMessageEncode->pxDestinationInfo->pcProcessInstance = strdup(pxDestInfo->pcProcessInstance);
     pxMessageEncode->pxDestinationInfo->pcProcessName = strdup(pxDestInfo->pcProcessName);
+    pxMessageEncode->pxDestinationInfo->pcEntityName = strdup(pxDestInfo->pcEntityName);
+    pxMessageEncode->pxDestinationInfo->pcEntityInstance = strdup(pxDestInfo->pcEntityInstance);
 
-    pxMessageEncode->pxSourceInfo->pcEntityName = strdup(pxSource->pcEntityName);
     pxMessageEncode->pxSourceInfo->pcProcessInstance = strdup(pxSource->pcProcessInstance);
     pxMessageEncode->pxSourceInfo->pcProcessName = strdup(pxSource->pcProcessName);
+    pxMessageEncode->pxSourceInfo->pcEntityName = strdup(pxSource->pcEntityName);
+    pxMessageEncode->pxSourceInfo->pcEntityInstance = strdup(pxSource->pcEntityInstance);
 
     pxMessageEncode->pxAuthPolicy->pcName = strdup(pxAuth->pcName);
     pxMessageEncode->pxAuthPolicy->pcVersion = strdup(pxAuth->pcVersion);
 
     // printf("ENCODE\n");
-    // vRibdPrintCdapMessage(pxMessageEncode);
+    //vRibdPrintCdapMessage(pxMessageEncode);
 
     /*Fill the appConnection structure*/
     pxAppConnectionTmp = prvRibCreateConnection(pxSource, pxDestInfo);
@@ -1180,9 +1183,11 @@ struct ribCallbackOps_t *pxRibdCreateCdapCallback(opCode_t xOpCode, int invoke_i
     case M_CREATE:
         /*FLow Allocator*/
         pxCallback->create_response = xFlowAllocatorHandleCreateR;
-
         break;
-        // TODO: M_DELETE call to xFlowAllocatorDeallocate
+
+    case M_DELETE:
+        pxCallback->delete_response = xFlowAllocatorHandleDeleteR;
+        break;
 
     default:
 

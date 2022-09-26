@@ -16,7 +16,7 @@
 /*Table of Objects*/
 struct ribObjectRow_t xRibObjectTable[RIB_TABLE_SIZE];
 
-static void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
+void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
 {
     num_t x = 0;
 

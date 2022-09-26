@@ -7,6 +7,7 @@
 #include "du.h"
 #include "pci.h"
 #include "IPCP_instance.h"
+#include "IPCP_normal_api.h"
 #include "IPCP_normal_defs.h"
 #include "EFCP.h"
 #include "configRINA.h"
@@ -23,7 +24,7 @@ pci_t *vCastPointerTo_pci_t(void *pvArgument);
 /* @brief Called when a SDU arrived into the RMT from the EFCP Container*/
 static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt, rmtN1Port_t *pxN1Port, struct du_t *pxDu);
 
-static bool_t xRmtProcessMgmtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu);
+static bool_t xRmtProcessMgmtPdu(struct ipcpInstanceData_t *pxData, portId_t xPortId, struct du_t *pxDu);
 
 /* @brief Create an N-1 Port in the RMT Component*/
 static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, struct ipcpInstance_t *pxN1Ipcp);
@@ -90,7 +91,7 @@ bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, struct ipcpInst
 
 	if (!pxRmtInstance->pxN1Port)
 	{
-		LOGE(TAG_RMT, "This RMT has already an N-1 Port binded ");
+		LOGE(TAG_RMT, "This RMT has already an N-1 Port bound ");
 		return false;
 	}
 
@@ -189,27 +190,12 @@ bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 	return false;
 }
 
-static bool_t xRmtProcessMgmtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
+static bool_t xRmtProcessMgmtPdu(struct ipcpInstanceData_t *pxData, portId_t xPortId, struct du_t *pxDu)
 {
-
-	if (!pxRmt->pxParent)
-	{
-		LOGE(TAG_RMT, "No IPCP Parent register");
+    if (!xNormalMgmtDuPost(pxData, xPortId, pxDu))  {
+		LOGE(TAG_RMT, "Failed posting management PDU to normal IPCP");
 		return false;
-	}
-	// ESP_LOGE(TAG_RMT,"No mgmtDuPost into %p");
-
-	if (!pxRmt->pxParent->pxOps->mgmtDuPost)
-	{
-		LOGE(TAG_RMT, "No mgmtDuPost into Instance");
-		return false;
-	}
-
-	if (!pxRmt->pxParent->pxOps->mgmtDuPost(pxRmt->pxParent->pxData, xPortId, pxDu))
-	{
-		LOGE(TAG_RMT, "Failed");
-		return false;
-	}
+    }
 	return true;
 }
 
@@ -342,7 +328,7 @@ bool_t xRmtReceive(struct ipcpInstanceData_t *pxData, struct du_t *pxDu, portId_
 		{
 		case PDU_TYPE_MGMT:
 			LOGE(TAG_RMT, "Mgmt PDU!!!");
-			return xRmtProcessMgmtPdu(pxData->pxRmt, xFrom, pxDu);
+			return xRmtProcessMgmtPdu(pxData, xFrom, pxDu);
 
 		case PDU_TYPE_CACK:
 		case PDU_TYPE_SACK:
@@ -372,7 +358,7 @@ bool_t xRmtReceive(struct ipcpInstanceData_t *pxData, struct du_t *pxDu, portId_
 	else
 	{
 		if (!xDstAddr)
-			return xRmtProcessMgmtPdu(pxData->pxRmt, xFrom, pxDu);
+			return xRmtProcessMgmtPdu(pxData, xFrom, pxDu);
 		else
 		{
 			LOGI(TAG_RMT, "PDU is not for me");
@@ -543,7 +529,7 @@ bool_t xRmtSend(struct rmt_t *pxRmtInstance,
 				pci_source(&du->pci), pci_destination(&du->pci),
 				pci_type(&du->pci));
 
-		du_destroy(du); 
+		du_destroy(du);
 		return -1;
 	}
 
@@ -569,8 +555,9 @@ bool_t xRmtSend(struct rmt_t *pxRmtInstance,
 	}
 #endif
 
-	if (xRmtSendPortId(pxRmtInstance, pxRmtInstance->pxN1Port->xPortId, pxDu))
-		LOGE(TAG_RMT, "Failed to send a PDU to port-id %d", pxRmtInstance->pxN1Port->xPortId);
+	if (!xRmtSendPortId(pxRmtInstance, /*pxRmtInstance->pxN1Port->xPortId*/xPortIdTable[0].pxPortN1->xPortId, pxDu))
+		LOGE(TAG_RMT, "Failed to send a PDU to port-id %d", xPortIdTable[0].pxPortN1->xPortId);
+
 	return true;
 }
 
@@ -582,7 +569,9 @@ pci_t *vCastPointerTo_pci_t(void *pvArgument)
 struct rmt_t *pxRmtCreate(struct efcpContainer_t *pxEfcpc)
 {
 	struct rmt_t *pxRmtTmp;
-	rmtN1Port_t *pxPortN1[2];
+	rmtN1Port_t *pxPortN1;
+
+    pxPortN1 = pvRsMemAlloc(sizeof(*pxPortN1));
 
 	if (!pxEfcpc)
 	{
@@ -596,7 +585,6 @@ struct rmt_t *pxRmtCreate(struct efcpContainer_t *pxEfcpc)
 
 	vRsListInit(&pxRmtTmp->xAddresses);
 
-	// pxRmtTmp->pxParent = pxInstance;
 	pxRmtTmp->pxEfcpc = pxEfcpc;
 
 	/*tmp->pff = pff_create(&tmp->robj, tmp->parent);
@@ -607,10 +595,10 @@ struct rmt_t *pxRmtCreate(struct efcpContainer_t *pxEfcpc)
 
     /* FIXME: This assignment makes no sense and the compile complains
        about it. */
-	/* pxRmtTmp->pxN1Port = pxPortN1; */
+	pxRmtTmp->pxN1Port = pxPortN1;
 
-	// tmp->n1_ports = n1pmap_create(&tmp->robj);
 #if 0
+	// tmp->n1_ports = n1pmap_create(&tmp->robj);
 	if (!pxRmtTmp->pxN1Port)
 	{
 		LOGI(TAG_RMT, "Failed to create N-1 ports map");

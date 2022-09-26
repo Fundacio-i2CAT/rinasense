@@ -303,7 +303,7 @@ bool_t xDtpWrite(struct dtp_t *pxDtpInstance, struct du_t *pxDu)
                 return 0;
         }
 #endif
-        if (xDtpPduSend(pxDtpInstance,
+        if (!xDtpPduSend(pxDtpInstance,
                         pxDtpInstance->pxRmt,
                         pxDu))
                 return false;
@@ -375,13 +375,12 @@ bool_t xDtpReceive(struct dtp_t *pxDtpInstance, struct du_t *pxDu)
                         return true;
                 }
 
-                LOGE(TAG_DTP, "Expecting DRF but not present, dropping PDU %d...",
-                     xSeqNum);
-
+                /* LOGE(TAG_DTP, "Expecting DRF but not present, dropping PDU %d...", */
+                /*      xSeqNum); */
+                xDtpPduPost(pxDtpInstance, pxDu);
                 // stats_inc(drop, instance->sv);
                 // spin_unlock_bh(&instance->sv_lock);
 
-                xDuDestroy(pxDu);
                 return true;
         }
 

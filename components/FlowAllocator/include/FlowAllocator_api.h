@@ -16,6 +16,8 @@ void vFlowAllocatorDeallocate(portId_t xAppPortId);
 
 bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id);
 
+bool_t xFlowAllocatorHandleDeleteR(struct ribObject_t *pxRibObject, int invoke_id);
+
 flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId);
 
 bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu);

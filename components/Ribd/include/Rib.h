@@ -46,6 +46,8 @@ struct ribCallbackOps_t
     bool_t (*stop_response)(string_t pcRemoteAPName);
 
     bool_t (*create_response)(serObjectValue_t *pxSerObjectValue, int result);
+
+    bool_t (*delete_response)(struct ribObject_t *pxRibObject, int invoke_id);
 };
 
 struct ribObjOps_t
@@ -81,6 +83,8 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName);
 
 struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
                                       string_t ucDisplayableValue, string_t ucObjClass, eObjectType_t eObjType);
+
+void vRibAddObjectEntry(struct ribObject_t *pxRibObject);
 
 #ifdef __cplusplus
 }

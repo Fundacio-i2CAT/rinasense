@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -355,6 +356,18 @@ bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
     pthread_mutex_unlock(&pxFAI->pxFlowAllocatorHandle->xEventMutex);
 
     return true;
+}
+
+bool_t xFlowAllocatorHandleDeleteR(struct ribObject_t *pxRibObject, int invoke_id)
+{
+    LOGE(TAG_FA, "HANDLE DELETE");
+
+    // Delete connection
+    // delete EFCP instance
+    // change portId to NO ALLOCATED,
+    // Send message to User with close,
+
+    return false;
 }
 
 bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id)

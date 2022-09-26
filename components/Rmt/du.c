@@ -140,7 +140,7 @@ bool_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 		   pxDu->pxNetworkBuffer->xDataLength);
 
 	// ESP_LOGE(TAG_DTP, "Releasing Buffer after encap PDU");
-	// vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
+	vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
 
 	pxNewBuffer->xDataLength = xBufferSize;
 
