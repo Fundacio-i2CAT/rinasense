@@ -288,7 +288,7 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
     }
 
     if (pxReturn != NULL)
-        LOGD(TAG_NETBUFFER, "Free descriptor Count: %u", (unsigned int)uxCount);
+        LOGD(TAG_NETBUFFER, "Alloc: free descriptor Count: %u", (unsigned int)uxCount);
     else
         LOGD(TAG_NETBUFFER, "pxGetNetworkBufferWithDescriptor returned NULL");
 
@@ -324,6 +324,8 @@ void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetwo
      */
     if( !xAlreadyInFreeList && sem_post( &xNetworkBufferSemaphore ) == 0 )
         LOGD(TAG_NETBUFFER, "Successfully released buffer");
+
+    LOGD(TAG_NETBUFFER, "Release: free descriptor Count: %zu", unRsListLength( &xFreeBuffersList ));
 }
 /*-----------------------------------------------------------*/
 

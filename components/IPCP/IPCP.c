@@ -1,3 +1,4 @@
+#include "common/rina_ids.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -249,6 +250,8 @@ static void *prvIPCPTask(void *pvParameters)
         {
             struct timespec ts = {INITIALISATION_RETRY_DELAY_SEC, 0};
 
+            LOGD(TAG_IPCPMANAGER, "Event: eNetworkDownEvent");
+
             /* Attempt to establish a connection. */
             nanosleep(&ts, NULL);
             LOGI(TAG_IPCPMANAGER, "eNetworkDownEvent");
@@ -261,12 +264,15 @@ static void *prvIPCPTask(void *pvParameters)
             /* The network hardware driver has received a new packet.  A
              * pointer to the received buffer is located in the pvData member
              * of the received event structure. */
+            LOGD(TAG_IPCPMANAGER, "Event: eNetworkRxEvent");
             prvHandleEthernetPacket((NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV);
             break;
 
         case eNetworkTxEvent:
         {
             NetworkBufferDescriptor_t *pxDescriptor;
+
+            LOGD(TAG_IPCPMANAGER, "Event: eNetworkTxEvent");
 
             pxDescriptor = (NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV;
 
@@ -277,12 +283,12 @@ static void *prvIPCPTask(void *pvParameters)
         break;
 
         case eShimEnrolledEvent:
+            LOGD(TAG_IPCPMANAGER, "Event: eShimEnrolledEvent");
+
             /* Registering into the shim */
             if (!xNormalRegistering(pxShimInstance, pxIpcpData->pxDifName, pxIpcpData->pxName))
-            {
                 LOGE(TAG_IPCPMANAGER, "IPCP not registered into the shim");
-            } // should be void, the normal should control if there is an error.
-            // xN1PortId = xPidmAllocate(pxIpcManager->pxIpcpIdm);
+
             xN1PortId = xIPCPAllocatePortId(); // check this
 
             (void)vIcpManagerEnrollmentFlowRequest(pxShimInstance, xN1PortId, pxIpcpData->pxName);
@@ -290,6 +296,9 @@ static void *prvIPCPTask(void *pvParameters)
             break;
 
         case eShimFlowAllocatedEvent:
+            LOGD(TAG_IPCPMANAGER, "Event: eShimFlowAllocatedEvent");
+
+            RsAssert(xN1PortId != PORT_ID_WRONG);
 
             /*Call to the method to init the enrollment*/
 
@@ -297,20 +306,19 @@ static void *prvIPCPTask(void *pvParameters)
             (void)xEnrollmentInit(pxIpcpData, xN1PortId);
 
             break;
+
         case eFATimerEvent:
-            LOGI(TAG_IPCPMANAGER, "Setting FA timer to expired");
+            LOGD(TAG_IPCPMANAGER, "Event: eFATimerEvent");
             vIpcpSetFATimerExpiredState(true);
-
             break;
+
         case eFlowDeallocateEvent:
-
-            LOGI(TAG_IPCPMANAGER, "---------- Flow Deallocation -------");
+            LOGD(TAG_IPCPMANAGER, "Event: eFlowDeallocateEvent");
             //(void)vFlowAllocatorDeallocate((portId_t *)xReceivedEvent.pvData);
-
             break;
-
 
         case eFlowBindEvent:
+            LOGD(TAG_IPCPMANAGER, "Event: eFlowBindEvent");
 
             pxFlowAllocateHandle = (flowAllocateHandle_t *)xReceivedEvent.xData.PV;
 
@@ -326,11 +334,13 @@ static void *prvIPCPTask(void *pvParameters)
             break;
 
         case eSendMgmtEvent:
-
+            LOGD(TAG_IPCPMANAGER, "Event: eSendMgmtEvent");
             break;
 
         case eStackTxEvent:
         {
+            LOGD(TAG_IPCPMANAGER, "Event: eStackTxEvent");
+
             // call Efcp to write SDU.
             NetworkBufferDescriptor_t *pxNetBuffer = (NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV;
 
@@ -605,7 +615,8 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             }
             else
             {
-                /*If ARP packet is not correct estructured then release buffer*/
+                /* Drop invalid ARP packets */
+                LOGW(TAG_IPCPMANAGER, "Discarding invalid ARP packet");
                 eReturned = eReleaseBuffer;
             }
 
@@ -673,9 +684,7 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
     case eReleaseBuffer:
         // ESP_LOGI(TAG_SHIM, "Releasing Buffer: ProcessEthernet");
         if (pxNetworkBuffer != NULL)
-        {
             vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-        }
 
         break;
     case eProcessBuffer:

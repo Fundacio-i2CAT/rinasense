@@ -401,7 +401,7 @@ bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
         return false;
     }
 
-    LOGE(TAG_FA, "Posting DU to port-id %d ", xAppPortId);
+    LOGD(TAG_FA, "Posting DU to port-id %d ", xAppPortId);
 
     pxNetworkBuffer = pxDu->pxNetworkBuffer;
 

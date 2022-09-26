@@ -567,6 +567,7 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 	}
 
 	usOperation = pxARPHeader->usOperation;
+    LOGD(TAG_ARP, "ARP Header usOperation: 0x%x", pxARPHeader->usOperation);
 
 	if (usOperation != ARP_REPLY && usOperation != ARP_REQUEST)
 	{
@@ -625,7 +626,7 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 		// handle = pvPortMalloc(sizeof(*handle));
 		// Check Cache by Address
 
-		LOGI(TAG_ARP, "ARP_REQUEST for protocol type 0x%04X", usOperation);
+		LOGD(TAG_ARP, "Handling ARP_REQUEST (0x%x)", usOperation);
 
 		if (eARPLookupGPA(pxTmpSpa) == eARPCacheMiss)
 		{
@@ -657,13 +658,14 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 		// ESP_LOGE(TAG_ARP,"TArget:%s", pxTmpSha);
 
 		// Generate a reply payload in the same buffer.
-		pxARPHeader->usOperation = (uint16_t)ARP_REPLY;
+		pxARPHeader->usOperation = ARP_REPLY;
 
 		eReturn = eReturnEthernetFrame;
 
 		break;
 
 	case ARP_REPLY:
+		LOGD(TAG_ARP, "Handling ARP_REPLY (0x%x)", usOperation);
 
 		pxHandle = pvRsMemAlloc(sizeof(*pxHandle));
 
@@ -679,10 +681,6 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 
 		eReturn = eProcessBuffer;
 
-		break;
-
-	default:
-		// Invalid.
 		break;
 	}
 

@@ -359,7 +359,7 @@ bool_t xDtpReceive(struct dtp_t *pxDtpInstance, struct du_t *pxDu)
         if (pxDtpInstance->pxDtpStateVector->xDrfRequired)
         {
 
-                LOGE(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
+                LOGD(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
 
                 if (pxDu->pxPci->xFlags & PDU_FLAGS_DATA_RUN)
                 {

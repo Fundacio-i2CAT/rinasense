@@ -412,8 +412,7 @@ rina_messages_CDAPMessage prvRibdSerToRinaMessage(messageCdap_t *pxMessageCdap)
 
 NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
 {
-    LOGI(TAG_RIB, "Encoding an CDAP message...");
-    LOGI(TAG_RIB, "Encoding a %s message", opcodeNamesTable[pxMessageCdap->eOpCode]);
+    LOGI(TAG_RIB, "Encoding a %s CDAP message", opcodeNamesTable[pxMessageCdap->eOpCode]);
     bool_t status;
     uint8_t *pucBuffer[128];
     size_t xMessageLength;
@@ -534,7 +533,7 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
 
     if (!status)
     {
-        LOGE(TAG_RINA, "Encoding failed: %s", PB_GET_ERROR(&stream));
+        LOGE(TAG_RIB, "Encoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
 
@@ -570,10 +569,11 @@ messageCdap_t *prvRibdDecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength)
 
     if (!status)
     {
-        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
+        LOGE(TAG_RIB, "Decoding failed: %s", PB_GET_ERROR(&stream));
         return NULL;
     }
-    LOGI(TAG_RIB, "CDAP Message Decode sucessfully");
+
+    LOGD(TAG_RIB, "CDAP Message Decode sucessfully");
     return prvRibdFillDecodeMessage(message);
 }
 

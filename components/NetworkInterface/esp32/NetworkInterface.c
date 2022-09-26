@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "portability/port.h"
-
 /* FreeRTOS includes. */
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -70,10 +68,12 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 {
 	esp_err_t ret;
 
+    LOGD(TAG_WIFI, "ENTERING: wifi event handler");
+
 	if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
 	{
 		ret = esp_wifi_connect();
-		LOGD(TAG_WIFI, "ret:%d", ret);
+		LOGI(TAG_WIFI, "ret:%d", ret);
 		/*if (ret==0)
 		{
 			xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
@@ -85,9 +85,9 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 		if (s_retry_num < ESP_MAXIMUM_RETRY)
 		{
 			ret = esp_wifi_connect();
-			LOGD(TAG_WIFI, "ret:%d", ret);
+			LOGI(TAG_WIFI, "ret:%d", ret);
 			s_retry_num++;
-			LOGD(TAG_WIFI, "retry to connect to the AP");
+			LOGI(TAG_WIFI, "retry to connect to the AP");
 		}
 		else
 		{
@@ -100,6 +100,8 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 		s_retry_num = 0;
 		xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
 	}
+
+    LOGD(TAG_WIFI, "EXITING: wifi event handler");
 }
 
 /* Initialize the Network Interface
@@ -131,6 +133,8 @@ BaseType_t xNetworkInterfaceConnect(void)
 
 	LOGI(TAG_WIFI, "Creating group");
 	s_wifi_event_group = xEventGroupCreate();
+    RsAssert(s_wifi_event_group);
+
 	/*MAC address initialized to pdFALSE*/
 	static BaseType_t xMACAdrInitialized = pdFALSE;
 	uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES];
@@ -174,7 +178,7 @@ BaseType_t xNetworkInterfaceConnect(void)
 	LOGI(TAG_WIFI, "esp_wifi_starting as station");
 	ESP_ERROR_CHECK(esp_wifi_start());
 
-	LOGI(TAG_WIFI, "wifi_init_sta finished.");
+	LOGI(TAG_WIFI, "wifi_init_sta finished, waiting for events...");
 
 	/* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
 	 * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
@@ -183,7 +187,8 @@ BaseType_t xNetworkInterfaceConnect(void)
 										   pdFALSE,
 										   pdFALSE,
 										   portMAX_DELAY);
-    LOGD(TAG_WIFI, "xEventGroupWaitBits returned...");
+
+    LOGD(TAG_WIFI, "xEventGroupWaitBits returned!");
 
 	/* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
 	 * happened. */
@@ -326,7 +331,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 		if (xSendEventStructToIPCPTask(&xRxEvent, xDescriptorWaitTime) == pdFAIL)
 		{
-		    LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
+			LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
 			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 			return ESP_FAIL;
 		}

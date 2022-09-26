@@ -62,6 +62,8 @@ struct rinarpHandle_t
 /* ARP related definitions. */
 #define ARP_PROTOCOL_TYPE                ( 0x0008U )
 #define ARP_HARDWARE_TYPE_ETHERNET       ( 0x0001U )
+
+/* Those are already in network order! */
 #define ARP_REQUEST                      ( 0x0100U )
 #define ARP_REPLY                        ( 0x0200U )
 
