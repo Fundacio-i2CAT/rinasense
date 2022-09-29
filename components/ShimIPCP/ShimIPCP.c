@@ -93,7 +93,7 @@ EthernetHeader_t *vCastConstPointerTo_EthernetHeader_t(const void *pvArgument)
  * */
 bool_t xShimEnrollToDIF(MACAddress_t *pxPhyDev)
 {
-	LOGI(TAG_SHIM, "Enrolling to DIF");
+	LOGI(TAG_SHIM, "Enrolling to shim DIF");
 
 	/* Initialization of WiFi interface */
 
@@ -105,15 +105,15 @@ bool_t xShimEnrollToDIF(MACAddress_t *pxPhyDev)
 		/* Connect to remote point (WiFi AP) */
 		if (xNetworkInterfaceConnect())
 		{
-			LOGI(TAG_SHIM, "Enrolled To DIF %s", SHIM_DIF_NAME);
+			LOGI(TAG_SHIM, "Enrolled to shim DIF %s", SHIM_DIF_NAME);
 			return true;
 		}
 
-		LOGE(TAG_SHIM, "Failed to enroll to DIF %s", SHIM_DIF_NAME);
+		LOGE(TAG_SHIM, "Failed to enroll to shim DIF %s", SHIM_DIF_NAME);
 		return false;
 	}
 
-	LOGE(TAG_SHIM, "Failed to enroll to DIF %s", SHIM_DIF_NAME);
+	LOGE(TAG_SHIM, "Failed to enroll to shim DIF %s", SHIM_DIF_NAME);
 
 	return false;
 }
