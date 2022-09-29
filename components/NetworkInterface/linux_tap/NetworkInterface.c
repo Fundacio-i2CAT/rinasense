@@ -14,8 +14,10 @@
 #include <string.h>
 #include <signal.h>
 
+#include "common/mac.h"
 #include "configSensor.h"
 #include "configRINA.h"
+#include "linux_rsdefs.h"
 #include "portability/port.h"
 #include "common/rina_gpha.h"
 
@@ -66,6 +68,9 @@ static pthread_mutex_t xIffDataMutex;
 /* Current flags of the interface we use, you need to hold the
  * "xIffDataMutex" to consult this variable. */
 static int nCurrentIffFlags;
+
+/* MAC address */
+const MACAddress_t *pxMacAddr;
 
 bool_t prvLinuxGetMac(string_t sTapName, MACAddress_t *pxMac)
 {
@@ -467,6 +472,7 @@ bool_t xNetworkInterfaceInitialise(MACAddress_t *pxPhyDev)
 
     /* Generate a random ethernet address for the outgoing packets. */
     prvGenRandomEth(pxPhyDev->ucBytes);
+    pxMacAddr = pxPhyDev;
 
     /* Start the thread to monitor the interface. This has to be
      * always running. */
@@ -561,6 +567,7 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
 bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
+    EthernetHeader_t *pxEthernetHeader;
 	RINAStackEvent_t xRxEvent = {
         .eEventType = eNetworkRxEvent,
         .xData.PV = NULL
@@ -574,6 +581,32 @@ bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 	if (pxNetworkBuffer != NULL) {
 		/* Set the packet size, in case a larger buffer was returned. */
 		pxNetworkBuffer->xEthernetDataLength = len;
+
+        /* We need to look into the frame data. */
+        pxEthernetHeader = (EthernetHeader_t *)buffer;
+
+        /* If it's a broadcasted packet, replace the target address in
+         * the frame by ours. The rest of the code should not have to
+         * deal with this. */
+        if (nIsBroadcastMac(&pxEthernetHeader->xDestinationAddress)) {
+            LOGD(TAG_WIFI, "Handling broadcasted ethernet packet.");
+            memcpy(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t));
+
+        } else {
+            /* Make sure this is actually meant from us. */
+            if (memcmp(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t)) != 0) {
+#ifndef NDEBUG
+                {
+                    stringbuf_t ucMac[MAC2STR_MIN_BUFSZ];
+                    mac2str(&pxEthernetHeader->xDestinationAddress, ucMac, MAC2STR_MIN_BUFSZ);
+                    LOGW(TAG_WIFI, "Dropping packet with destination %s, not for us", ucMac);
+                }
+#else
+                LOGW(TAG_WIFI, "Dropping ethernet packet not destined for us")
+#endif
+                return false;
+            }
+        }
 
 		/* Copy the packet data. */
 		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
