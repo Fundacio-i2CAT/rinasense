@@ -5,6 +5,10 @@
 #include "rmt.h"
 #include "IPCP_normal_defs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool_t xNormalFlowBinding(struct ipcpInstanceData_t *pxUserData,
                           portId_t xPid,
                           struct ipcpInstance_t *pxN1Ipcp);
@@ -54,5 +58,9 @@ bool_t xNormalConnectionUpdate(portId_t xAppPortId, cepId_t xSrcCepId, cepId_t x
 bool_t xNormalConnectionModify(cepId_t xCepId,
                                address_t xSrc,
                                address_t xDst);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

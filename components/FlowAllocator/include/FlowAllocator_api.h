@@ -3,6 +3,10 @@
 
 #include "FlowAllocator.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void vFlowAllocatorFlowRequest(portId_t xAppPortId,
                                flowAllocateHandle_t *pxFlowRequest);
 
@@ -15,5 +19,9 @@ bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id
 flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId);
 
 bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // FLOW_ALLOCATOR_H_INCLUDED

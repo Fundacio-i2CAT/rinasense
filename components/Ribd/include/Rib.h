@@ -12,6 +12,10 @@
 #include "portability/port.h"
 #include "common/rina_ids.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define RIB_TABLE_SIZE (10)
 
 struct ribObject_t;
@@ -77,5 +81,9 @@ struct ribObject_t *pxRibFindObject(string_t ucRibObjectName);
 
 struct ribObject_t *pxRibCreateObject(string_t ucObjName, long ulObjInst,
                                       string_t ucDisplayableValue, string_t ucObjClass, eObjectType_t eObjType);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* RIB_H_ */

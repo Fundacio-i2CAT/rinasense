@@ -9,6 +9,8 @@
 #include <errno.h>
 #include <poll.h>
 #include <stdio.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 
@@ -64,6 +66,45 @@ static pthread_mutex_t xIffDataMutex;
 /* Current flags of the interface we use, you need to hold the
  * "xIffDataMutex" to consult this variable. */
 static int nCurrentIffFlags;
+
+bool_t prvLinuxGetMac(string_t sTapName, MACAddress_t *pxMac)
+{
+    int fd = -1;
+    string_t sIfaceMacFmt = "/sys/class/net/%s/address";
+    stringbuf_t sIfaceMacPath[PATH_MAX];
+    stringbuf_t sMac[18];
+    string_t psMac;
+    int n;
+
+    snprintf(sIfaceMacPath, PATH_MAX, sIfaceMacFmt, sTapName);
+
+    if ((fd = open(sIfaceMacPath, O_RDONLY)) < 0) {
+        LOGE(TAG_WIFI, "Unable to open MAC address file: %s", sIfaceMacPath);
+        return false;
+    }
+
+    if (read(fd, sMac, sizeof(sMac)) < 0) {
+        LOGE(TAG_WIFI, "Read error reading MAC address!");
+        goto err;
+    } else {
+        sMac[17] = '\0';
+        n = sscanf(sMac, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+                   &(pxMac->ucBytes[0]), &(pxMac->ucBytes[1]),
+                   &(pxMac->ucBytes[2]), &(pxMac->ucBytes[3]),
+                   &(pxMac->ucBytes[4]), &(pxMac->ucBytes[5]));
+        if (n < 6)
+            goto err;
+    }
+
+    close(fd);
+    return true;
+
+    err:
+    if (fd > 0)
+        close(fd);
+
+    return false;
+}
 
 bool_t prvLinuxTapOpen(string_t sTapName, int *pnFD)
 {
@@ -393,7 +434,16 @@ bool_t prvLinuxTapStartMonitorThread()
 
 /* Public interface */
 
-bool_t xNetworkInterfaceInitialise(const MACAddress_t *pxPhyDev)
+static inline void prvGenRandomEth(uint8_t *pAddr)
+{
+    for(int i = 0; i < 6; i++)
+        pAddr[i] = (uint8_t)(rand() % CHAR_MAX);
+
+    pAddr[0] &= 0xfe;	/* clear multicast bit */
+    pAddr[0] |= 0x02;	/* set local assignment bit (IEEE802) */
+}
+
+bool_t xNetworkInterfaceInitialise(MACAddress_t *pxPhyDev)
 {
 #if LINUX_TAP_CREATE == true
     /* If we're in create mode, return an error if the TAP device
@@ -414,6 +464,9 @@ bool_t xNetworkInterfaceInitialise(const MACAddress_t *pxPhyDev)
     /* Capture the flags on the device before starting the monitoring
      * thread. */
     prvLinuxTapGetFlags(LINUX_TAP_DEVICE, NULL, &nCurrentIffFlags);
+
+    /* Generate a random ethernet address for the outgoing packets. */
+    prvGenRandomEth(pxPhyDev->ucBytes);
 
     /* Start the thread to monitor the interface. This has to be
      * always running. */

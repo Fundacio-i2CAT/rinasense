@@ -6,6 +6,10 @@
 #include "portability/port.h"
 #include "private/iot_doubly_linked_list.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct xRSLIST_T;
 
 typedef struct xRSLISTITEMT {
@@ -92,6 +96,10 @@ typedef struct xRSLIST_T {
     (*plist).xHead.pvOwner
 
 bool_t xRsListIsContainedWithin(RsList_t * const, RsListItem_t * const);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMMON_RS_LIST_H
 

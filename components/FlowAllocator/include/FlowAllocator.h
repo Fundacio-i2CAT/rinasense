@@ -15,6 +15,10 @@
 #include "IPCP_normal_defs.h"
 #include "RINA_API_flows.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum
 {
     eFA_EMPTY,
@@ -122,5 +126,9 @@ typedef struct xREQUEST_HANDLER_ROW
     bool_t xValid;
 
 } FlowRequestRow_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

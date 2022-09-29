@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "portability/port.h"
+
 /* FreeRTOS includes. */
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -24,7 +26,6 @@
 #include "IPCP_events.h"
 
 /* ESP includes.*/
-#include "esp_log.h"
 #include "esp_wifi.h"
 #if ESP_IDF_VERSION_MAJOR > 4
 #include "esp_mac.h"
@@ -72,7 +73,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 	if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
 	{
 		ret = esp_wifi_connect();
-		ESP_LOGI(TAG_WIFI, "ret:%d", ret);
+		LOGD(TAG_WIFI, "ret:%d", ret);
 		/*if (ret==0)
 		{
 			xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
@@ -84,15 +85,15 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 		if (s_retry_num < ESP_MAXIMUM_RETRY)
 		{
 			ret = esp_wifi_connect();
-			ESP_LOGI(TAG_WIFI, "ret:%d", ret);
+			LOGD(TAG_WIFI, "ret:%d", ret);
 			s_retry_num++;
-			ESP_LOGI(TAG_WIFI, "retry to connect to the AP");
+			LOGD(TAG_WIFI, "retry to connect to the AP");
 		}
 		else
 		{
 			xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
 		}
-		ESP_LOGI(TAG_WIFI, "connect to the AP fail");
+		LOGI(TAG_WIFI, "connect to the AP fail");
 	}
 	else
 	{
@@ -107,9 +108,9 @@ static void event_handler(void *arg, esp_event_base_t event_base,
  *  Mac address variable in the ShimIPCP.h
  *  Return a Boolean pdTrue or pdFalse
  * */
-BaseType_t xNetworkInterfaceInitialise(const MACAddress_t *pxPhyDev)
+BaseType_t xNetworkInterfaceInitialise(MACAddress_t *pxPhyDev)
 {
-	ESP_LOGI(TAG_WIFI, "Initializing the network interface");
+	LOGI(TAG_WIFI, "Initializing the network interface");
 	uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES];
 
 	esp_efuse_mac_get_default(ucMACAddress);
@@ -119,7 +120,7 @@ BaseType_t xNetworkInterfaceInitialise(const MACAddress_t *pxPhyDev)
 
 BaseType_t xNetworkInterfaceConnect(void)
 {
-	ESP_LOGI(TAG_WIFI, "%s", __func__);
+	LOGI(TAG_WIFI, "%s", __func__);
 
 	if (event_loop_inited == pdTRUE)
 	{
@@ -128,7 +129,7 @@ BaseType_t xNetworkInterfaceConnect(void)
 		s_retry_num = 0;
 	}
 
-	ESP_LOGI(TAG_WIFI, "Creating group");
+	LOGI(TAG_WIFI, "Creating group");
 	s_wifi_event_group = xEventGroupCreate();
 	/*MAC address initialized to pdFALSE*/
 	static BaseType_t xMACAdrInitialized = pdFALSE;
@@ -136,7 +137,7 @@ BaseType_t xNetworkInterfaceConnect(void)
 
 	if (event_loop_inited == pdFALSE)
 	{
-		ESP_LOGI(TAG_SHIM, "Creating event Loop");
+		LOGI(TAG_SHIM, "Creating event Loop");
 
 		ESP_ERROR_CHECK(esp_event_loop_create_default()); // EventTask init
 		// esp_netif_create_default_wifi_sta();// Binding STA with TCP/IP
@@ -144,12 +145,12 @@ BaseType_t xNetworkInterfaceConnect(void)
 	}
 
 	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT(); // @suppress("Type cannot be resolved")
-	ESP_LOGI(TAG_SHIM, "Init Network Interface with Config file");
+	LOGI(TAG_SHIM, "Init Network Interface with Config file");
 	ESP_ERROR_CHECK(esp_wifi_init(&cfg)); // WiFi driver Task with default config
 
 	esp_event_handler_instance_t instance_any_id;
 
-	ESP_LOGI(TAG_SHIM, "Registering event handler");
+	LOGI(TAG_SHIM, "Registering event handler");
 	ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
 														ESP_EVENT_ANY_ID,
 														&event_handler,
@@ -167,13 +168,13 @@ BaseType_t xNetworkInterfaceConnect(void)
 		},
 	};
 
-	ESP_LOGI(TAG_SHIM, "Setting mode and starting wifi");
+	LOGI(TAG_SHIM, "Setting mode and starting wifi");
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-	ESP_LOGI(TAG_WIFI, "esp_wifi_starting as station");
+	LOGI(TAG_WIFI, "esp_wifi_starting as station");
 	ESP_ERROR_CHECK(esp_wifi_start());
 
-	ESP_LOGI(TAG_WIFI, "wifi_init_sta finished.");
+	LOGI(TAG_WIFI, "wifi_init_sta finished.");
 
 	/* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
 	 * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
@@ -182,6 +183,7 @@ BaseType_t xNetworkInterfaceConnect(void)
 										   pdFALSE,
 										   pdFALSE,
 										   portMAX_DELAY);
+    LOGD(TAG_WIFI, "xEventGroupWaitBits returned...");
 
 	/* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
 	 * happened. */
@@ -190,21 +192,21 @@ BaseType_t xNetworkInterfaceConnect(void)
 	if (bits & WIFI_CONNECTED_BIT)
 	{
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
-		ESP_LOGI(TAG_WIFI, "OK");
-		ESP_LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s",
-				 ESP_WIFI_SSID, ESP_WIFI_PASS);
+		LOGI(TAG_WIFI, "OK");
+		LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s",
+             ESP_WIFI_SSID, ESP_WIFI_PASS);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		xInterfaceState = INTERFACE_UP;
 	}
 	else if (bits & WIFI_FAIL_BIT)
 	{
-		ESP_LOGI(TAG_WIFI, "Failed to connect to SSID:%s, password:%s",
-				 ESP_WIFI_SSID, ESP_WIFI_PASS);
+		LOGI(TAG_WIFI, "Failed to connect to SSID:%s, password:%s",
+             ESP_WIFI_SSID, ESP_WIFI_PASS);
 		xInterfaceState = INTERFACE_DOWN;
 	}
 	else
 	{
-		ESP_LOGE(TAG_WIFI, "UNEXPECTED EVENT");
+		LOGE(TAG_WIFI, "UNEXPECTED EVENT");
 	}
 
 	/* The event will not be processed after unregister */
@@ -230,7 +232,7 @@ BaseType_t xNetworkInterfaceConnect(void)
 	}
 	else
 	{
-		ESP_LOGI(TAG_WIFI, "Interface Down");
+		LOGI(TAG_WIFI, "Interface Down");
 		return pdFALSE;
 	}
 }
@@ -240,7 +242,7 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuf
 {
 	if ((pxNetworkBuffer == NULL) || (pxNetworkBuffer->pucEthernetBuffer == NULL) || (pxNetworkBuffer->xDataLength == 0))
 	{
-		ESP_LOGE(TAG_WIFI, "Invalid parameters");
+		LOGE(TAG_WIFI, "Invalid parameters");
 		return pdFALSE;
 	}
 
@@ -248,7 +250,7 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuf
 
 	if (xInterfaceState == INTERFACE_DOWN)
 	{
-		ESP_LOGI(TAG_WIFI, "Interface down");
+		LOGI(TAG_WIFI, "Interface down");
 		ret = ESP_FAIL;
 	}
 	else
@@ -258,11 +260,11 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuf
 
 		if (ret != ESP_OK)
 		{
-			ESP_LOGE(TAG_WIFI, "Failed to tx buffer %p, len %d, err %d", pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength, ret);
+			LOGE(TAG_WIFI, "Failed to tx buffer %p, len %d, err %d", pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength, ret);
 		}
 		else
 		{
-			ESP_LOGI(TAG_WIFI, "Packet Sended"); //
+			LOGI(TAG_WIFI, "Packet Sended"); //
 		}
 	}
 
@@ -282,7 +284,7 @@ BaseType_t xNetworkInterfaceDisconnect(void)
 
 	ret = esp_wifi_disconnect();
 
-	ESP_LOGI(TAG_WIFI, "Interface was disconnected");
+	LOGI(TAG_WIFI, "Interface was disconnected");
 
 	return ret == ESP_OK ? pdTRUE : pdFALSE;
 }
@@ -323,7 +325,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 		if (xSendEventStructToIPCPTask(&xRxEvent, xDescriptorWaitTime) == pdFAIL)
 		{
-			ESP_LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
+		    LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
 			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 			return ESP_FAIL;
 		}
@@ -334,7 +336,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 	else
 	{
-		ESP_LOGE(TAG_WIFI, "Failed to get buffer descriptor");
+		LOGE(TAG_WIFI, "Failed to get buffer descriptor");
 		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 		return ESP_FAIL;
 	}
