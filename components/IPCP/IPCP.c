@@ -1,3 +1,4 @@
+#include "common/mac.h"
 #include "common/rina_ids.h"
 #include <pthread.h>
 #include <stdio.h>
@@ -33,12 +34,6 @@
 #include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
-
-MACAddress_t xlocalMACAddress = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
-
-/** @brief For convenience, a MAC address of all 0xffs is defined const for quick
- * reference. */
-const MACAddress_t xBroadcastMACAddress = {{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
 
 /** @brief The queue used to pass events into the IPCP-task for processing. */
 RsQueue_t *xNetworkEventQueue = NULL;
@@ -270,15 +265,15 @@ static void *prvIPCPTask(void *pvParameters)
 
         case eNetworkTxEvent:
         {
-            NetworkBufferDescriptor_t *pxDescriptor;
+            NetworkBufferDescriptor_t *pxNetworkBuffer;
 
             LOGD(TAG_IPCPMANAGER, "Event: eNetworkTxEvent");
 
-            pxDescriptor = (NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV;
+            pxNetworkBuffer = (NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV;
 
             /* Send a network packet. The ownership will  be transferred to
              * the driver, which will release it after delivery. */
-            xNetworkInterfaceOutput(pxDescriptor, true);
+            xNetworkInterfaceOutput(pxNetworkBuffer, true);
         }
         break;
 
@@ -411,8 +406,7 @@ bool_t RINA_IPCPInit()
 
     /* Attempt to create the queue used to communicate with the IPCP task. */
     xNetworkEventQueue = pxRsQueueCreate("IPCPQueue",
-                                         // EVENT_QUEUE_LENGTH,
-                                         10,
+                                         EVENT_QUEUE_LENGTH,
                                          sizeof(RINAStackEvent_t));
     RsAssert(xNetworkEventQueue != NULL);
 
@@ -582,6 +576,35 @@ void prvHandleEthernetPacket(NetworkBufferDescriptor_t *pxBuffer)
 #endif /* USE_LINKED_RX_MESSAGES */
 }
 
+/*
+ * Return an ethernet frame to its source. This always free the
+ * buffer.
+ */
+void prvReturnEthernetFrame(NetworkBufferDescriptor_t *const pxNetworkBuffer)
+{
+    EthernetHeader_t *pxEthernetHeader;
+    MACAddress_t xTmpMac;
+    MACAddress_t *pxDstMac, *pxSrcMac;
+	RINAStackEvent_t xTxEvent = {
+        .eEventType = eNetworkTxEvent,
+        .xData.PV = NULL
+    };
+
+    /* Switch source and address. */
+    pxEthernetHeader = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
+
+    pxDstMac = &pxEthernetHeader->xDestinationAddress;
+    pxSrcMac = &pxEthernetHeader->xSourceAddress;
+
+    memcpy(&xTmpMac, pxDstMac, sizeof(MACAddress_t));
+    memcpy(pxDstMac, pxSrcMac, sizeof(MACAddress_t));
+    memcpy(pxSrcMac, &xTmpMac, sizeof(MACAddress_t));
+
+    /* Send the packet back */
+    xTxEvent.xData.PV = (void *)pxNetworkBuffer;
+    xSendEventStructToIPCPTask(&xTxEvent, 0);
+}
+
 /*-----------------------------------------------------------*/
 
 void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
@@ -608,13 +631,8 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             LOGI(TAG_IPCPMANAGER, "ARP Packet Received");
 
             if (pxNetworkBuffer->xEthernetDataLength >= sizeof(ARPPacket_t))
-            {
-                /*Process the Packet ARP in case of REPLY -> eProcessBuffer, REQUEST -> eReturnEthernet to
-                 * send to the destination a REPLY (It requires more processing tasks) */
-                eReturned = eARPProcessPacket(CAST_PTR_TO_TYPE_PTR(ARPPacket_t, pxNetworkBuffer->pucEthernetBuffer));
-            }
-            else
-            {
+                eReturned = eARPProcessPacket(pxNetworkBuffer);
+            else {
                 /* Drop invalid ARP packets */
                 LOGW(TAG_IPCPMANAGER, "Discarding invalid ARP packet");
                 eReturned = eReleaseBuffer;
@@ -623,7 +641,6 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             break;
 
         case ETH_P_RINA:
-
             LOGI(TAG_IPCPMANAGER, "RINA Packet Received");
 
             uint8_t *ptr;
@@ -658,31 +675,23 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
             break;
         }
     }
-    //}
 
     /* Perform any actions that resulted from processing the Ethernet frame. */
     switch (eReturned)
     {
     case eReturnEthernetFrame:
-
-        /* The Ethernet frame will have been updated (maybe it was
-         * an ARP request) and should be sent back to
-         * its source. */
-        // vReturnEthernetFrame( pxNetworkBuffer, pdTRUE );
-
-        /* parameter pdTRUE: the buffer must be released once
-         * the frame has been transmitted */
+        /* The Ethernet frame will have been updated (maybe it was an
+         * ARP request) and should be sent back to its source. */
+        prvReturnEthernetFrame(pxNetworkBuffer);
         break;
 
     case eFrameConsumed:
-
         /* The frame is in use somewhere, don't release the buffer
          * yet. */
         LOGI(TAG_SHIM, "Frame Consumed");
         break;
 
     case eReleaseBuffer:
-        // ESP_LOGI(TAG_SHIM, "Releasing Buffer: ProcessEthernet");
         if (pxNetworkBuffer != NULL)
             vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 
@@ -715,14 +724,14 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
     }
 }
 
-eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer)
+eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetFrame)
 {
     eFrameProcessingResult_t eReturn = eReleaseBuffer;
     const EthernetHeader_t *pxEthernetHeader;
     uint16_t usFrameType;
 
     /* Map the buffer onto Ethernet Header struct for easy access to fields. */
-    pxEthernetHeader = (EthernetHeader_t *)pucEthernetBuffer;
+    pxEthernetHeader = (EthernetHeader_t *)pucEthernetFrame;
 
     usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
 

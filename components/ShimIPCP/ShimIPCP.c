@@ -825,7 +825,10 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 		return false;
 	}
 
-	pxEthernetHeader = CAST_CONST_PTR_TO_CONST_TYPE_PTR(EthernetHeader_t, pxNetworkBuffer->pucEthernetBuffer);
+	//pxEthernetHeader =
+	//CAST_CONST_PTR_TO_CONST_TYPE_PTR(EthernetHeader_t,
+	//pxNetworkBuffer->pucEthernetBuffer);
+    pxEthernetHeader = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
 
 	pxEthernetHeader->usFrameType = RsHtoNS(ETH_P_RINA);
 

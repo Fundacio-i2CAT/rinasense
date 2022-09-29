@@ -18,6 +18,7 @@
 
 #include "ARP826_defs.h"
 #include "IPCP_frames.h"
+#include "rina_buffers.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,7 +78,7 @@ struct rinarpHandle_t
 eARPLookupResult_t eARPGetCacheEntry(gpa_t *pulIPAddress,
 									 gha_t *const pxMACAddress);
 
-eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame);
+eFrameProcessingResult_t eARPProcessPacket(NetworkBufferDescriptor_t *const pxARPEthernetPacket);
 
 /*************** RINA ***************************/
 // UpdateMACAddress
@@ -92,7 +93,7 @@ bool_t vARPSendRequest(gpa_t * tpa, gpa_t * spa, gha_t * sha);
 // Remove all ARP entry in the ARP cache.
 void vARPRemoveAll(void);
 
-eARPLookupResult_t eARPLookupGPA(const gpa_t *gpaToLookup);
+eARPLookupResult_t eARPLookupGPA(const gpa_t *pxGpaToLookup, const gha_t **pxGhaResult);
 
 void vARPRefreshCacheEntry(gpa_t *ulIPCPAddress, gha_t *pxMACAddress);
 void vARPRemoveCacheEntry(const gpa_t *ulIPCPAddress, const gha_t *pxMACAddress);
