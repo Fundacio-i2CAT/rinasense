@@ -57,7 +57,7 @@ typedef struct xSHIM_WIFI_FLOW
 	RsListItem_t		xFlowItem;
 } shimFlow_t;
 
-bool_t xShimEnrollToDIF( const MACAddress_t * pxPhyDev );
+bool_t xShimEnrollToDIF( MACAddress_t * pxPhyDev );
 
 /*-------------------------------------------*/
 /* FlowAllocateRequest (naming-info). Naming-info about the destination.

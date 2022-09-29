@@ -169,7 +169,7 @@ static void event_handler(union sigval sv)
 
 /* Public interface */
 
-bool_t xNetworkInterfaceInitialise(const MACAddress_t *pxPhyDev)
+bool_t xNetworkInterfaceInitialise(MACAddress_t *pxPhyDev)
 {
     /* Save the MAC address to use as queue names. */
     mac2str(pxPhyDev, sMac, sizeof(sMac));

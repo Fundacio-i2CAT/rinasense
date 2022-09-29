@@ -16,7 +16,7 @@ extern "C" {
     //#include "ShimIPCP.h"
 
     /* INTERNAL API FUNCTIONS. */
-    bool_t xNetworkInterfaceInitialise(const MACAddress_t *phyDev);
+    bool_t xNetworkInterfaceInitialise(MACAddress_t *phyDev);
     bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
                                    bool_t xReleaseAfterSend);
 
