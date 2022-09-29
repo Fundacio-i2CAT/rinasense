@@ -4,6 +4,10 @@
 #include "portability/port.h"
 #include "common/list.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct xNETWORK_BUFFER
 {
         RsListItem_t xBufferListItem; /**< Used to reference the buffer form the free buffer list or a socket. */
@@ -19,5 +23,9 @@ typedef struct xNETWORK_BUFFER
         uint32_t ulBoundPort;                                                          /**< The N-1 port to transmite. */
 
 } NetworkBufferDescriptor_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMPONENTS_IPCP_INCLUDE_COMMON_RINA_BUFFERS_H_

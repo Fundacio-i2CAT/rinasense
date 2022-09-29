@@ -11,6 +11,10 @@
 #include "ARP826.h"
 #include "RINA_API_flows.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct appRegistration_t
 {
     string_t pcNameDIF;
@@ -74,5 +78,9 @@ bool_t RINA_flow_close(portId_t xPortId);
 //void vRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse);
 
 void vRINA_WakeUpFlowRequest(flowAllocateHandle_t *pxFlowAllocateResponse, int nNewBits);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* RINA_API_H_ */

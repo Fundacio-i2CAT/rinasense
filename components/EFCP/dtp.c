@@ -50,9 +50,9 @@ dtpSv_t *pxDtpStateVectorInit(void)
         return pxDtpSv;
 }
 
-bool_t xDtpPduSend(dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu);
+bool_t xDtpPduSend(struct dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu);
 
-bool_t xDtpPduSend(dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu)
+bool_t xDtpPduSend(struct dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu)
 {
         struct efcpContainer_t *pxEfcpContainer;
         cepId_t destCepId;
@@ -94,7 +94,7 @@ bool_t xDtpPduSend(dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu)
         return 0;
 }
 
-bool_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
+bool_t xDtpWrite(struct dtp_t *pxDtpInstance, struct du_t *pxDu)
 {
         LOGI(TAG_DTP, "xDtpWrite");
         dtcp_t *pxDtcp;
@@ -313,7 +313,7 @@ bool_t xDtpWrite(dtp_t *pxDtpInstance, struct du_t *pxDu)
         return true;
 }
 
-static inline bool_t xDtpPduPost(dtp_t *pxDtpInstance, struct du_t *pxDu)
+static inline bool_t xDtpPduPost(struct dtp_t *pxDtpInstance, struct du_t *pxDu)
 {
         struct efcp_t *pxEfcp;
 
@@ -329,7 +329,7 @@ static inline bool_t xDtpPduPost(dtp_t *pxDtpInstance, struct du_t *pxDu)
         return true;
 }
 
-bool_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
+bool_t xDtpReceive(struct dtp_t *pxDtpInstance, struct du_t *pxDu)
 {
         // struct dtp_ps *  ps;
         dtcp_t *pxDtcp;
@@ -421,7 +421,7 @@ bool_t xDtpReceive(dtp_t *pxDtpInstance, struct du_t *pxDu)
         return true;
 }
 
-bool_t xDtpDestroy(dtp_t *pxInstance)
+bool_t xDtpDestroy(struct dtp_t *pxInstance)
 {
         dtcp_t *pxDtcp = NULL;
         // struct cwq * cwq = NULL;
@@ -446,11 +446,11 @@ bool_t xDtpDestroy(dtp_t *pxInstance)
         return true;
 }
 
-dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
-                   struct rmt_t *pxRmt,
-                   dtpConfig_t *pxDtpCfg)
+struct dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
+                          struct rmt_t *pxRmt,
+                          dtpConfig_t *pxDtpCfg)
 {
-        dtp_t *pxDtp;
+        struct dtp_t *pxDtp;
         string_t *psName;
         dtpSv_t *pxDtpSv;
 

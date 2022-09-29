@@ -7,7 +7,19 @@
 #include "rina_common_port.h"
 #include "RINA_API_flows.h"
 
-/* Forward definition of EFCP structures. */
+#include "efcpStructures.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+ * Forward definition of EFCP structures
+ *
+ * For some reasons I can't explain, this has to be excluded when a
+ * C++ compiler is used (ie: for Arduino programs).
+ */
+#ifndef __cplusplus
 struct cwq_t;
 struct rtxqueue_t;
 struct rtxq_t;
@@ -16,8 +28,8 @@ struct rttq_t;
 struct dtpSv_t;
 struct dtcpConfig_t;
 struct efcpContainer_t;
-
 struct ipcpInstanceData_t;
+#endif
 
 typedef enum TYPE_IPCP_INSTANCE
 {
@@ -193,5 +205,9 @@ struct ipcpInstanceOps_t
      */
     size_t (*maxSduSize)(struct ipcpInstanceData_t *pxData);
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMPONENTS_IPCP_IPCP_INSTANCE_H

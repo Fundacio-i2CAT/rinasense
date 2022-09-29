@@ -4,6 +4,10 @@
 #include <stdarg.h>
 #include "portability/port.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef LOG_LOCAL_LEVEL
 #define LOG_LOCAL_LEVEL  200 //CONFIG_LOG_MAXIMUM_LEVEL
 #endif
@@ -63,5 +67,10 @@ void vRsLogWritev(RsLogLevel_t, const char*, const char*, va_list args);
 void vRsLogInit();
 
 void vRsLogSetLevel(const string_t cTagName, RsLogLevel_t eLogLevel);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif // _PORTABILITY_RS_LOG_H

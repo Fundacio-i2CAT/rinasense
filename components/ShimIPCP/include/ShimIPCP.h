@@ -18,6 +18,10 @@
 #include "du.h"
 #include "rina_common_port.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Flow states */
 typedef enum xFLOW_STATES
 
@@ -125,5 +129,9 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId);
 bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_t *pxDu, bool_t uxBlocking);
 
 EthernetHeader_t *vCastConstPointerTo_EthernetHeader_t(const void *pvArgument);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SHIM_IPCP_H__*/
