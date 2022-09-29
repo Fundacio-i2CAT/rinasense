@@ -291,6 +291,9 @@ void vFlowAllocatorFlowRequest(
         LOGE(TAG_FA, "It was a problem to send the request");
         // return pdFALSE;
     }
+
+    if (pxObjVal != NULL)
+        vRsMemFree(pxObjVal);
 }
 
 bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
