@@ -7,6 +7,10 @@
 
 #include "portability/port.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _BITARRAY {
     uint32_t nbbits;
 } bitarray_t;
@@ -23,7 +27,7 @@ static inline bitarray_t *pxBitArrayAlloc(uint32_t nbbits)
     bitarray_t *p;
     size_t nbUnits = nbbits / BITS_PER_UNIT + 1;
     size_t sz = sizeof(bitarray_t) + nbUnits * sizeof(UNIT);
-    p = pvRsMemAlloc(sz);
+    p = (bitarray_t *)pvRsMemAlloc(sz);
     if (p) {
         memset(p, 0, sz);
         p->nbbits = nbbits;
@@ -58,5 +62,9 @@ static inline bool_t xBitArrayGetBit(bitarray_t *ba, uint32_t n)
     else
         return false;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMMON_BIT_ARRAY_H

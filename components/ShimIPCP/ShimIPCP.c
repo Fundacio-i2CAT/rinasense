@@ -91,7 +91,7 @@ EthernetHeader_t *vCastConstPointerTo_EthernetHeader_t(const void *pvArgument)
  *
  * @return: pdTrue or pdFalse
  * */
-bool_t xShimEnrollToDIF(const MACAddress_t *pxPhyDev)
+bool_t xShimEnrollToDIF(MACAddress_t *pxPhyDev)
 {
 	LOGI(TAG_SHIM, "Enrolling to DIF");
 

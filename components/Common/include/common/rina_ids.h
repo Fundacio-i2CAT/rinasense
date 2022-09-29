@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include "portability/port.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint32_t portId_t;
 
 typedef uint32_t seqNum_t;
@@ -55,5 +59,9 @@ static inline bool_t is_qos_id_ok(qosId_t id)
 typedef unsigned int uint_t; 
 typedef unsigned int timeout_t;
 typedef uint16_t ipcpInstanceId_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMMON_RINA_IDS_H

@@ -11,6 +11,10 @@
 #include "Rib.h"
 #include "IPCP_normal_defs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*-----------------------------------------------------------*/
 /* Miscellaneous structure and definitions. */
 /*-----------------------------------------------------------*/
@@ -75,5 +79,9 @@ typedef struct xNEIGHBOR_ROW
     bool_t xValid;
 
 } neighborsTableRow_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ENROLLMENT_H_ */

@@ -19,6 +19,10 @@
 #include "ARP826_defs.h"
 #include "IPCP_frames.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // DECL_CAST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
 // DECL_CAST_CONST_PTR_FUNC_FOR_TYPE( EthernetHeader_t );
 
@@ -105,5 +109,8 @@ bool_t xARPResolveGPA(gpa_t * tpa, gpa_t * spa, gha_t * sha);
 
 gha_t *pxARPLookupGHA(const gpa_t *pxGpaToLookup);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ARP_H_ */

@@ -7,6 +7,10 @@
 #include "mac.h"
 #include "configSensor.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //Structure Generic Protocol Address
 typedef struct xGENERIC_PROTOCOL_ADDRESS
 {
@@ -45,5 +49,9 @@ bool_t xGPACmp(const gpa_t *gpa1, const gpa_t *gpa2);
 gpa_t *pxNameToGPA(const name_t *xLocalInfo);
 
 char* xGPAAddressToString(const gpa_t * pxGpa);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMMON_RINA_GPA_H

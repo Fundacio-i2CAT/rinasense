@@ -8,16 +8,22 @@
 #ifndef COMPONENTS_EFCP_INCLUDE_EFCPSTRUCTURES_H_
 #define COMPONENTS_EFCP_INCLUDE_EFCPSTRUCTURES_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 
 #include "common/rina_ids.h"
 #include "common/num_mgr.h"
 
+#include "IPCP_instance.h"
 #include "rina_common_port.h"
 #include "du.h"
 #include "rmt.h"
 #include "delim.h"
-#include "IPCP_instance.h"
+
+struct dtp_t;
 
 /* Retransmission Queue RTXQ used to buffer those PDUs
  * that may require retransmission */
@@ -258,7 +264,7 @@ typedef struct xDTCP
 
 } dtcp_t;
 
-typedef struct xDTP
+struct dtp_t
 {
 
         dtcp_t *pxDtcp;
@@ -289,7 +295,7 @@ typedef struct xDTP
                 struct timer_list rendezvous;
         } timers;*/
 
-} dtp_t;
+};
 
 struct connection_t
 {
@@ -335,10 +341,14 @@ struct efcp_t
 
         struct connection_t *pxConnection;
         struct ipcpInstance_t *pxUserIpcp; // IPCP NORMAL
-        dtp_t *pxDtp;               // implement in EFCP Component
+        struct dtp_t *pxDtp;               // implement in EFCP Component
         delim_t *pxDelim;           // delimiting module
         struct efcpContainer_t *pxEfcpContainer;
         eEfcpState_t xState;
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COMPONENTS_EFCP_INCLUDE_EFCPSTRUCTURES_H_ */

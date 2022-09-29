@@ -12,16 +12,40 @@ else()
   rs_include_component(NetworkInterface
     DIR       "${CMAKE_SOURCE_DIR}/components/NetworkInterface")
 
-  rs_component(NetworkInterface_TAP
-    SRCS     "${CMAKE_SOURCE_DIR}/components/NetworkInterface/linux_tap/*.c"
-    INCLUDES "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
-    REQUIRES Common configRINA BufferManagement ARP826 IPCP configSensor Rmt ShimIPCP
-             EFCP Portability RINA_API)
+  if("$ENV{TARGET_TYPE}" STREQUAL "linux" OR "${TARGET_TYPE}" STREQUAL "linux")
+    rs_component(NetworkInterface_TAP
+      SRCS
+      "${CMAKE_SOURCE_DIR}/components/NetworkInterface/linux_tap/*.c"
 
-  rs_component(NetworkInterface_MQ
-    SRCS     "${CMAKE_SOURCE_DIR}/components/NetworkInterface/mq/*.c"
-    INCLUDES "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
-             "${CMAKE_SOURCE_DIR}/components/NetworkInterface/mq/include"
-    REQUIRES Common configRINA BufferManagement ARP826 IPCP configSensor Rmt ShimIPCP
-             EFCP Portability RINA_API)
+      INCLUDES
+      "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
+
+      REQUIRES
+      Common configRINA BufferManagement ARP826 IPCP configSensor Rmt ShimIPCP
+      EFCP Portability RINA_API)
+
+    rs_component(NetworkInterface_MQ
+      SRCS
+      "${CMAKE_SOURCE_DIR}/components/NetworkInterface/mq/*.c"
+
+      INCLUDES
+      "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
+      "${CMAKE_SOURCE_DIR}/components/NetworkInterface/mq/include"
+
+      REQUIRES
+      Common configRINA BufferManagement ARP826 IPCP configSensor Rmt
+      ShimIPCP EFCP Portability RINA_API)
+
+  elseif("${TARGET_TYPE}" STREQUAL "arduino_esp32")
+    rs_component(NetworkInterface_Arduino_ESP32
+      SRCS
+      "${CMAKE_SOURCE_DIR}/components/NetworkInterface/esp32/*.c"
+
+      INCLUDES
+      "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
+
+      REQUIRES
+      Common configRINA BufferManagement ARP826 IPCP configSensor Rmt
+      ShimIPCP EFCP Portability RINA_API)
+  endif()
 endif()

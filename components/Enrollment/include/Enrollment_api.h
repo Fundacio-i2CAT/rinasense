@@ -7,6 +7,10 @@
 #include "Enrollment.h"
 #include "Ribd.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void xEnrollmentInit(struct ipcpInstanceData_t *pxIpcpData, portId_t xPortId);
 
 bool_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
@@ -25,5 +29,9 @@ bool_t xEnrollmentHandleOperationalStart(struct ribObject_t *pxOperRibObj, serOb
 
 address_t xEnrollmentGetNeighborAddress(string_t pcRemoteApName);
 neighborInfo_t *pxEnrollmentFindNeighbor(string_t pcRemoteApName);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // ENROLLMENT_API_H_INCLUDED

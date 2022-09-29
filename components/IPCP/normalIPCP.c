@@ -113,15 +113,12 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
 
                 if (pxFlow && pxFlow->xPortId == xPortId)
                 {
-
-                        // ESP_LOGI(TAG_IPCPNORMAL, "Flow founded %p, portID: %d, portState:%d", pxFlow, pxFlow->xPortId, pxFlow->eState);
                         return pxFlow;
                 }
 
                 pxListItem = pxRsListGetNext(pxListItem);
         }
 
-        LOGD(TAG_IPCPNORMAL, "Flow not founded");
         return NULL;
 }
 
@@ -141,7 +138,7 @@ bool_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
         if (!pxFlow || pxFlow->eState != ePORT_STATE_ALLOCATED)
         {
 
-                LOGE(TAG_IPCPNORMAL, "Write: There is no flow bound to this port_id: %d",
+                LOGE(TAG_IPCPNORMAL, "Write: There is no flow bound to this port ID: %u",
                      xAppPortId);
                 xDuDestroy(pxDu);
                 return false;
@@ -178,7 +175,7 @@ bool_t xNormalFlowPrebind(struct ipcpInstanceData_t *pxData,
 
         struct normalFlow_t *pxFlow;
 
-        LOGI(TAG_IPCPNORMAL, "Binding the flow with port id:%ud", pxFlowAllocateHandle->xPortId);
+        LOGI(TAG_IPCPNORMAL, "Binding the flow with port ID: %u", pxFlowAllocateHandle->xPortId);
 
         if (!pxData)
         {

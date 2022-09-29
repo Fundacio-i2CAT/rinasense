@@ -7,12 +7,16 @@
 #include "configSensor.h"
 #include "BufferManagement.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
     //#include "ShimIPCP.h"
 
     /* INTERNAL API FUNCTIONS. */
-    bool_t xNetworkInterfaceInitialise(const MACAddress_t *phyDev);
+    bool_t xNetworkInterfaceInitialise(MACAddress_t *phyDev);
     bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
                                    bool_t xReleaseAfterSend);
 
@@ -25,5 +29,9 @@
 
     /* The following function is defined only when BufferAllocation_1.c is linked in the project. */
     bool_t xGetPhyLinkStatus(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _NETWORK_INTERFACE_H */

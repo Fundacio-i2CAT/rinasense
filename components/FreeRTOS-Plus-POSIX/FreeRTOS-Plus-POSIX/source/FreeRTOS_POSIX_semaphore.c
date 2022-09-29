@@ -31,6 +31,9 @@
 /* C standard library includes. */
 #include <stddef.h>
 #include <time.h>
+#ifndef errno
+#include <errno.h>
+#endif
 
 /* FreeRTOS+POSIX includes. */
 #include "FreeRTOS_POSIX.h"
@@ -38,7 +41,7 @@
 #include "FreeRTOS_POSIX/semaphore.h"
 #include "FreeRTOS_POSIX/utils.h"
 
-#include "atomic.h"
+#include "freertos/atomic.h"
 
 /*-----------------------------------------------------------*/
 

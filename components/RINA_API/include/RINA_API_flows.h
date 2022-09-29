@@ -6,6 +6,10 @@
 #include "common/rina_ids.h"
 #include "common/list.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct xFLOW_ALLOCATE_HANDLE
 {
     /*uint32_t xSrcPort;
@@ -40,5 +44,9 @@ typedef struct xFLOW_ALLOCATE_HANDLE
     pthread_mutex_t xEventMutex;
 
 } flowAllocateHandle_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMPONENTS_RINA_API_FLOWS_H

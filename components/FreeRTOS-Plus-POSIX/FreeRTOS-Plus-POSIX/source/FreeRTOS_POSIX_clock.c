@@ -32,6 +32,9 @@
 #include <stddef.h>
 #include <string.h>
 #include <time.h>
+#ifndef errno
+#include <errno.h>
+#endif
 
 /* FreeRTOS+POSIX includes. */
 #include "FreeRTOS_POSIX.h"

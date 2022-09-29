@@ -6,6 +6,12 @@
 
 #define SEC_TO_NS(sec) ((sec)*1000000000)
 
+#ifdef CLOCK_MONOTONIC
+#define TIMEOUT_CLOCK CLOCK_MONOTONIC
+#else
+#define TIMEOUT_CLOCK CLOCK_REALTIME
+#endif
+
 bool_t rstime_waitsec(struct timespec *ts, uint32_t n)
 {
     if (clock_gettime(CLOCK_REALTIME, ts) < 0)
@@ -37,7 +43,7 @@ bool_t rstime_waitnsec(struct timespec *ts, uint64_t n) {
 
 bool_t xRsTimeSetTimeOut(struct RsTimeOut *pTimeOut)
 {
-    if (clock_gettime(CLOCK_MONOTONIC, &(pTimeOut->xTimespec)))
+    if (clock_gettime(TIMEOUT_CLOCK, &(pTimeOut->xTimespec)))
         return false;
 
     return true;
@@ -54,7 +60,7 @@ bool_t xRsTimeCheckTimeOut(struct RsTimeOut *pTimeOut,
      * kind of result back */
     RsAssert(pxTimeLeft);
 
-    if (clock_gettime(CLOCK_MONOTONIC, &xCheckTimespec) < 0)
+    if (clock_gettime(TIMEOUT_CLOCK, &xCheckTimespec) < 0)
         return false;
 
     /* unTimeThen -- Time at the first call of xRsSetTimeOut or
