@@ -8,7 +8,7 @@
 
 void vRsLogInit()
 {
-    /* No operations needed here. */
+    Serial.begin(115200);
 }
 
 void vRsLogSetLevel(const string_t pcTagName, RsLogLevel_t eLogLevel)

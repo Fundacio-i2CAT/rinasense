@@ -16,8 +16,8 @@
 #define SIZE_SDU_QUEUE (200)
 
 /************ SHIM DIF CONFIGURATION **************/
-#define ESP_WIFI_SSID "irati"	  //"WS02"
-#define ESP_WIFI_PASS "irati2017" //"Esdla2025"
+#define ESP_WIFI_SSID "Overside"	  //"WS02"
+#define ESP_WIFI_PASS "theoneelectronic" //"Esdla2025"
 
 /*********** NORMAL CONFIGURATION ****************/
 
