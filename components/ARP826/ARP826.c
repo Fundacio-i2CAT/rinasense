@@ -26,9 +26,9 @@ static void prvARPGeneratePacket(NetworkBufferDescriptor_t *const pxNetworkBuffe
 								 const gha_t *pxSha, const gpa_t *pxSpa, const gpa_t *pxTpa, uint16_t usPtype);
 
 /**
- * Return a pointer to a specific item in the ARP header.
+ * Return a pointer to a specific item in the ARP packet data.
  */
-buffer_t pxARPHeaderGetPtr(eARPPacketPtrType_t ePtrType, ARPHeader_t *const pxBase)
+static buffer_t pxARPHeaderGetPtr(eARPPacketPtrType_t ePtrType, ARPHeader_t *const pxBase)
 {
     size_t n = sizeof(ARPHeader_t);
     void *p = (void *)pxBase + n;
@@ -49,7 +49,7 @@ buffer_t pxARPHeaderGetPtr(eARPPacketPtrType_t ePtrType, ARPHeader_t *const pxBa
     return p;
 }
 
-void prvARPFreeRequestData(ARPPacketData_t *pxARPData)
+static void prvARPFreeRequestData(ARPPacketData_t *pxARPData)
 {
     if (pxARPData->pxSpa)
         vGPADestroy(pxARPData->pxSpa);
@@ -61,7 +61,7 @@ void prvARPFreeRequestData(ARPPacketData_t *pxARPData)
         vGHADestroy(pxARPData->pxTha);
 }
 
-bool_t prvARPExtractRequestData(ARPPacket_t *const pxBase, ARPPacketData_t *pxARPData)
+static bool_t prvARPExtractRequestData(ARPPacket_t *const pxBase, ARPPacketData_t *pxARPData)
 {
     size_t nPlen;
 
@@ -108,19 +108,6 @@ bool_t prvARPExtractRequestData(ARPPacket_t *const pxBase, ARPPacketData_t *pxAR
     return false;
 }
 
-/*-----------------------------------------------------------*/
-
-/**
- * @brief Process the ARP packets.
- *
- * @param[in] pxARPFrame: The ARP Frame (the ARP packet).
- *
- * @return An enum which says whether to return the frame or to release it.
- * The eFrameProcessingResult_t is defined in the Shim_IPCP.h
- *
- */
-/*-----------------------------------------------------------*/
-
 bool_t xARPInit(ARP_t *pxARP)
 {
     memset(pxARP, 0, sizeof(ARP_t));
@@ -134,16 +121,6 @@ bool_t xARPInit(ARP_t *pxARP)
     return true;
 }
 
-/*-----------------------------------------------------------*/
-
-/**
- * @brief Add/update the ARP cache entry MAC-address to IPCP-address mapping.
- *
- * @param[in] pxMACAddress: Pointer to the MAC address whose mapping is being
- *                          updated.
- * @param[in] ulIPCPAddress: 32-bit representation of the IPCP-address whose mapping
- *                         is being updated.
- */
 bool_t vARPSendRequest(ARP_t *pxArp, const gpa_t *pxTpa, const gpa_t *pxSpa, const gha_t *pxSha)
 {
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
@@ -295,8 +272,6 @@ bool_t prvPrepareARPReply(NetworkBufferDescriptor_t *const pxNetBuf,
     memcpy(pxARPPacketData->ucSpa, pxARPPacketData->pxTpa->pucAddress, pxARPPacketData->pxTpa->uxLength);
 
     /* Insert the target ethernet packet address as source hardware address */
-    //memcpy(pxARPPacketData->ucSha,
-    //&pxARPPacketData->pxTha->xAddress, MAC_ADDRESS_LENGTH_BYTES);
     memcpy(pxARPPacketData->ucSha, &pxLookupResult->xAddress, MAC_ADDRESS_LENGTH_BYTES);
 
     /* Insert the request source protocol address as target protocol address */
@@ -395,48 +370,6 @@ eFrameProcessingResult_t eARPProcessPacket(ARP_t *pxARP, NetworkBufferDescriptor
 
 	return eReturn;
 }
-
-
-/*-----------------------------------------------------------*/
-
-/*-----------------------------------------------------------*/
-
-/**
- * @brief Generate an ARP request packet by copying various constant details to
- *        the buffer.
- *
- * @param[in,out] pxNetworkBuffer: Pointer to the buffer which has to be filled with
- *                             the ARP request packet details.
- */
-/*-----------------------------------------------------------*/
-
-/**
- * @brief Create and send an ARP request packet.
- *
- * @param[in] ulIPCPAddress: A 32-bit representation of the IP-address whose
- *                         physical (MAC) address is required.
- */
-
-/*-----------------------------------------------------------*/
-/**
- * @brief A call to this function will update the default configuration MAC Address
- * after the WIFI driver is initialized.
- */
-void vARPUpdateMACAddress(const uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES], const MACAddress_t *pxPhyDev)
-{
-
-	(void)memcpy((void *)pxPhyDev->ucBytes, ucMACAddress, (size_t)MAC_ADDRESS_LENGTH_BYTES);
-	LOGI(TAG_ARP, "MAC Address updated");
-}
-
-/*-----------------------------------------------------------*/
-/**
- * @brief Decide whether this packet should be processed or not based on the IPCP address in the packet.
- *
- * @param[in] pucEthernetBuffer: The ethernet packet under consideration.
- *
- * @return Enum saying whether to release or to process the packet.
- */
 
 bool_t xARPResolveGPA(ARP_t *pxARP, const gpa_t *pxTpa, const gpa_t *pxSpa, const gha_t *pxSha)
 {
