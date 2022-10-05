@@ -35,11 +35,11 @@ typedef enum xFLOW_STATES
 
 typedef struct xSHIM_WIFI_FLOW
 {
-	/* Harward Destination Address (MAC)*/
-	gha_t *pxDestHa;
+	/* Hardware destination Address (MAC)*/
+	const gha_t *pxDestHa;
 
 	/* Protocol Destination Address (Address RINA)*/
-	gpa_t *pxDestPa;
+	const gpa_t *pxDestPa;
 
 	/* Port Id of???*/
 	portId_t xPortId;
@@ -57,7 +57,7 @@ typedef struct xSHIM_WIFI_FLOW
 	RsListItem_t		xFlowItem;
 } shimFlow_t;
 
-bool_t xShimEnrollToDIF( MACAddress_t * pxPhyDev );
+bool_t xShimEnrollToDIF(struct ipcpInstanceData_t *pxData);
 
 /*-------------------------------------------*/
 /* FlowAllocateRequest (naming-info). Naming-info about the destination.
@@ -129,6 +129,8 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId);
 bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_t *pxDu, bool_t uxBlocking);
 
 EthernetHeader_t *vCastConstPointerTo_EthernetHeader_t(const void *pvArgument);
+
+void vShimHandleEthernetPacket(void *pxShimData, NetworkBufferDescriptor_t *pxNetworkBuffer);
 
 #ifdef __cplusplus
 }

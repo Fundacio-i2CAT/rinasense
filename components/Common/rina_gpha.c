@@ -103,6 +103,96 @@ gpa_t *pxCreateGPA(const buffer_t pucAddress, size_t uxLength)
 	return pxGPA;
 }
 
+bool_t xGPAShrink(gpa_t *pxGpa, uint8_t ucFiller)
+{
+    buffer_t pucNewAddress;
+    buffer_t pucPosition;
+    size_t uxLength;
+
+    if (!xIsGPAOK(pxGpa))
+        return false;
+
+    /* Look for the filler character in the address */
+    pucPosition = memchr(pxGpa->pucAddress, ucFiller, pxGpa->uxLength);
+
+    /* Check if there is any needs to shrink */
+    if (pucPosition == NULL || pucPosition >= pxGpa->pucAddress + pxGpa->uxLength)
+        return true;
+
+    uxLength = pucPosition - pxGpa->pucAddress;
+
+    pucNewAddress = pvRsMemAlloc(uxLength);
+    if (!pucNewAddress)
+        return false;
+
+    memcpy(pucNewAddress, pxGpa->pucAddress, uxLength);
+
+    vRsMemFree(pxGpa->pucAddress);
+    pxGpa->pucAddress = pucNewAddress;
+    pxGpa->uxLength = uxLength;
+
+    return true;
+}
+
+bool_t xGPAGrow(gpa_t *pxGpa, size_t uxLength, uint8_t ucFiller)
+{
+    buffer_t new_address;
+
+    if (!xIsGPAOK(pxGpa))
+        return false;
+
+    if (uxLength == 0 || uxLength < pxGpa->uxLength)
+               return false;
+
+    if (pxGpa->uxLength == uxLength)
+        return true;
+
+    RsAssert(uxLength > pxGpa->uxLength);
+
+    new_address = pvRsMemAlloc(uxLength);
+    if (!new_address)
+        return false;
+
+    memcpy(new_address, pxGpa->pucAddress, pxGpa->uxLength);
+    memset(new_address + pxGpa->uxLength, ucFiller, uxLength - pxGpa->uxLength);
+    vRsMemFree(pxGpa->pucAddress);
+    pxGpa->pucAddress = new_address;
+    pxGpa->uxLength = uxLength;
+
+    return true;
+}
+
+gpa_t *pxDupGPA(const gpa_t *pxSourcePa, bool_t nDoShrink, uint8_t ucFiller)
+{
+    gpa_t *pxTargetPa = NULL;
+    buffer_t c;
+
+    RsAssert(pxSourcePa);
+
+    if (!xIsGPAOK(pxSourcePa))
+        return NULL;
+
+    if (!(pxTargetPa = pvRsMemAlloc(sizeof(gpa_t))))
+        return NULL;
+
+    if (nDoShrink) {
+        pxTargetPa->uxLength = pxSourcePa->uxLength;
+        for (c = pxSourcePa->pucAddress + pxSourcePa->uxLength; *(--c) == ucFiller;)
+            pxTargetPa->uxLength--;
+    } else
+        pxTargetPa->uxLength = pxSourcePa->uxLength;
+
+    pxTargetPa->pucAddress = pvRsMemAlloc(pxSourcePa->uxLength);
+    if (!pxTargetPa->pucAddress) {
+        vRsMemFree(pxTargetPa);
+        return NULL;
+    }
+
+    memcpy(pxTargetPa->pucAddress, pxSourcePa->pucAddress, pxTargetPa->uxLength);
+
+    return pxTargetPa;
+}
+
 gha_t *pxCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress) // Changes to uint8_t
 {
 	gha_t *pxGha;
@@ -121,6 +211,27 @@ gha_t *pxCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress) // Changes t
 	memcpy(pxGha->xAddress.ucBytes, pxAddress->ucBytes, sizeof(pxGha->xAddress));
 
 	return pxGha;
+}
+
+/* Return a duplicate of the source hardware address object */
+gha_t *pxDupGHA(const gha_t *pxSourceHa)
+{
+    gha_t *pxTargetHa;
+
+    RsAssert(pxSourceHa);
+
+    if (!xIsGHAOK(pxSourceHa))
+        return NULL;
+
+    RsAssert(pxSourceHa->xType == MAC_ADDR_802_3);
+
+    if ((pxTargetHa = pvRsMemAlloc(sizeof(gha_t))) == NULL)
+        return NULL;
+
+    memcpy(&pxTargetHa->xAddress, &pxSourceHa->xAddress, sizeof(MACAddress_t));
+    pxTargetHa->xType = pxSourceHa->xType;
+
+    return pxTargetHa;
 }
 
 bool_t xIsGPAOK(const gpa_t *pxGpa)
@@ -161,19 +272,40 @@ bool_t xIsGHAOK(const gha_t *pxGha)
     return true;
 }
 
-bool_t xGPACmp(const gpa_t *gpa1, const gpa_t *gpa2) {
-    return xIsGPAOK(gpa1)
-        && xIsGPAOK(gpa2)
-        && gpa1->uxLength == gpa2->uxLength
-        && memcmp(gpa1->pucAddress, gpa2->pucAddress, gpa1->uxLength) == 0;
+bool_t xGHACmp(const gha_t *pxHa1, const gha_t *pxHa2)
+{
+    return memcmp(pxHa1->xAddress.ucBytes, pxHa2->xAddress.ucBytes, sizeof(MACAddress_t)) == 0;
+}
+
+/* This returns the actual 'useful' length of the PA, which is without
+ * filler character. */
+static size_t prvGetActualAddressLength(const gpa_t *pxPa)
+{
+    for (size_t n = 0; n < pxPa->uxLength; n++)
+        if (!(*(pxPa->pucAddress + n)))
+            return n;
+    return pxPa->uxLength;
+}
+
+bool_t xGPACmp(const gpa_t *gpa1, const gpa_t *gpa2)
+{
+    size_t n1, n2;
+
+    if (!(xIsGPAOK(gpa1) && xIsGPAOK(gpa2)))
+        return false;
+
+    n1 = prvGetActualAddressLength(gpa1);
+    n2 = prvGetActualAddressLength(gpa2);
+
+    if (n1 != n2) return false;
+
+    return memcmp(gpa1->pucAddress, gpa2->pucAddress, n1) == 0;
 }
 
 void vGPADestroy(gpa_t *pxGpa)
 {
 	if (!xIsGPAOK(pxGpa))
-	{
 		return;
-	}
 
 	vRsMemFree(pxGpa->pucAddress);
 
@@ -190,14 +322,13 @@ void vGPADestroy(gpa_t *pxGpa)
 void vGHADestroy(gha_t *pxGha)
 {
 	if (!xIsGHAOK(pxGha))
-	{
 		return;
-	}
 
+#ifndef NDEBUG_
     /* Invalid the GHA so as to not accidentally reuse one that was
      * freed. */
-    /* FIXME: Make part of debug builds only. */
     memset(pxGha, 0, sizeof(gha_t));
+#endif
 
 	vRsMemFree(pxGha);
 

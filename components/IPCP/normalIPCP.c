@@ -615,7 +615,8 @@ bool_t xNormalFlowAllocationRequest(ipcpInstance_t *pxInstanceFrom, ipcpInstance
         destinationInfo->pcProcessInstance = REMOTE_ADDRESS_AP_INSTANCE;
         destinationInfo->pcEntityInstance = "";
 
-        if (pxInstanceTo->pxOps->flowAllocateRequest == NULL)
+        if (pxInstanceTo->pxOps->
+            flowAllocateRequest == NULL)
         {
                 LOGI(TAG_IPCPNORMAL, "There is not Flow Allocate Request API");
         }

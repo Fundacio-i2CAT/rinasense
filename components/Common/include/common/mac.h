@@ -25,7 +25,7 @@ typedef enum {
 
 void mac2str(const MACAddress_t *, string_t, const size_t);
 
-bool_t nIsBroadcastMac(const MACAddress_t *pxMac);
+bool_t xIsBroadcastMac(const MACAddress_t *pxMac);
 
 #ifdef __cplusplus
 }

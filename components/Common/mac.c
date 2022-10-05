@@ -13,7 +13,7 @@ void mac2str(const MACAddress_t *pxMac, string_t psMac, const size_t p) {
              m[0], m[1], m[2], m[3], m[4], m[5]);
 }
 
-bool_t nIsBroadcastMac(const MACAddress_t *pxMac)
+bool_t xIsBroadcastMac(const MACAddress_t *pxMac)
 {
     const MACAddress_t xBroadcastMac = {
         .ucBytes = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }

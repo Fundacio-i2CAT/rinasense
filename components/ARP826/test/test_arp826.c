@@ -39,6 +39,8 @@ const MACAddress_t mac2 = {
     {2, 3, 4, 5, 6, 7}
 };
 
+ARP_t xARP;
+
 RS_TEST_CASE_SETUP(test_arp826)
 {
     /* Initialize the test packet. */
@@ -46,43 +48,11 @@ RS_TEST_CASE_SETUP(test_arp826)
     p1.xARPHeader.usHType = RsHtoNS(0x0001);
     p1.xARPHeader.usPType = RsHtoNS(ETH_P_RINA);
 
-    vARPInitCache();
+    xARPInit(&xARP);
     xNetworkBuffersInitialise();
 }
 
 RS_TEST_CASE_TEARDOWN(test_arp826) {}
-
-RS_TEST_CASE(ARPCache, "[arp]")
-{
-    gpa_t *gpa1, *gpa2;
-    gha_t *gha1, *gha2;
-    string_t addr1 = "1|2|3|4";
-    string_t addr2 = "2|3|4|5";
-    struct rinarpHandle_t *rh;
-    eARPLookupResult_t r;
-
-    RS_TEST_CASE_BEGIN(test_arp826);
-
-    /* Make sure we can lookup a GPA in the cache. */
-    TEST_ASSERT((gpa1 = pxCreateGPA((buffer_t)addr1, strlen(addr1))) != NULL);
-    TEST_ASSERT((gha1 = pxCreateGHA(MAC_ADDR_802_3, &mac1)) != NULL);
-    vARPPrintCache();
-    TEST_ASSERT((rh = pxARPAdd(gpa1, gha1)) != NULL);
-    vARPPrintCache();
-    TEST_ASSERT((r = eARPLookupGPA(gpa1)) == eARPCacheHit);
-    //RsAssert((gha2 = pxARPLookupGHA(gpa1)) != NULL);
-    //RsAssert(gha2 != gha1);
-
-    /* Make sure a unknown GPA will return a cache miss. */
-    TEST_ASSERT((gpa2 = pxCreateGPA((buffer_t)addr2, strlen(addr2))) != NULL);
-    TEST_ASSERT((r = eARPLookupGPA(gpa2)) == eARPCacheMiss);
-
-    /* Make sure we can remove an entry from the cache. */
-    vARPRemoveCacheEntry(gpa1, gha1);
-    TEST_ASSERT_EQUAL_INT(eARPCacheMiss, eARPLookupGPA(gpa1));
-
-    RS_TEST_CASE_END(test_arp826);
-}
 
 RS_TEST_CASE(ARPSendRequest, "[arp]")
 {
@@ -107,7 +77,7 @@ RS_TEST_CASE(ARPSendRequest, "[arp]")
     xMqNetworkInterfaceOutputDiscard();
 
     /* See if the ARP module send the packet through the stack */
-    TEST_ASSERT(vARPSendRequest(gpaTrg, gpaSrc, ghaSrc));
+    TEST_ASSERT(vARPSendRequest(&xARP, gpaTrg, gpaSrc, ghaSrc));
 
     /* Allow the request to make its way in the stack. */
     sleep(1);
@@ -124,7 +94,7 @@ RS_TEST_CASE(ARPSendRequest, "[arp]")
 
     xMqNetworkInterfaceOutputDiscard();
 
-    TEST_ASSERT(vARPSendRequest(gpaTrg, gpaSrc, ghaSrc));
+    TEST_ASSERT(vARPSendRequest(&xARP, gpaTrg, gpaSrc, ghaSrc));
 
     /* Same, let the request travel. */
     sleep(1);
@@ -142,16 +112,13 @@ RS_TEST_CASE(ARPSendRequest, "[arp]")
 
 #ifndef TEST_CASE
 int main() {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
 
     RINA_IPCPInit();
     sleep(1);
 
-    RS_RUN_TEST(ARPCache);
     RS_RUN_TEST(ARPSendRequest);
 
-    //xNetworkInterfaceDisconnect();
-
-    return UNITY_END();
+    RS_SUITE_END();
 }
 #endif

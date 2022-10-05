@@ -1,5 +1,3 @@
-#include "common/mac.h"
-#include "common/rina_ids.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,13 +8,11 @@
 #include "freertos/FreeRTOS.h"
 #endif
 
-#include "portability/port.h"
-
+#include "common/rina_ids.h"
 #include "ARP826_defs.h"
 #include "configSensor.h"
 #include "configRINA.h"
 #include "portability/port.h"
-
 #include "IPCP.h"
 #include "IPCP_api.h"
 #include "IPCP_events.h"
@@ -64,6 +60,8 @@ static pthread_t xIPCPThread;
 /* This saves the FreeRTOS current task handle. */
 static TaskHandle_t xIPCPTaskHandle;
 #endif
+
+ARP_t xARP;
 
 /* List of Factories */
 // static factories_t *pxFactories;
@@ -145,17 +143,6 @@ static void prvProcessNetworkDownEvent(void);
 bool_t xCreateIPCPModules(void);
 
 void prvIPCPSetAttributes(void);
-
-/*
- * Called when new data is available from the network interface.
- */
-static void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer);
-
-/*
- * The network card driver has received a packet.  In the case that it is part
- * of a linked packet chain, walk through it to handle every message.
- */
-static void prvHandleEthernetPacket(NetworkBufferDescriptor_t *pxBuffer);
 
 /*----------------------------------------------------*/
 
@@ -254,14 +241,6 @@ static void *prvIPCPTask(void *pvParameters)
             prvProcessNetworkDownEvent();
             break;
         }
-
-        case eNetworkRxEvent:
-            /* The network hardware driver has received a new packet.  A
-             * pointer to the received buffer is located in the pvData member
-             * of the received event structure. */
-            LOGD(TAG_IPCPMANAGER, "Event: eNetworkRxEvent");
-            prvHandleEthernetPacket((NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV);
-            break;
 
         case eNetworkTxEvent:
         {
@@ -383,6 +362,12 @@ bool_t RINA_IPCPInit()
     /* This function should only be called once. */
     RsAssert(xIPCPIsNetworkTaskReady() == false);
     RsAssert(xNetworkEventQueue == NULL);
+
+    // Temporary
+    if (!xARPInit(&xARP)) {
+        LOGE(TAG_IPCPMANAGER, "Failed to initialize ARP component");
+        return false;
+    }
 
 #if 0
 
@@ -537,192 +522,8 @@ bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t xT
     return xReturn;
 }
 
-void prvHandleEthernetPacket(NetworkBufferDescriptor_t *pxBuffer)
-{
-
-#if (USE_LINKED_RX_MESSAGES == 0)
-    {
-        /* When ipconfigUSE_LINKED_RX_MESSAGES is not set to 0 then only one
-         * buffer will be sent at a time.  This is the default way for +TCP to pass
-         * messages from the MAC to the TCP/IP stack. */
-        LOGI(TAG_IPCPMANAGER, "Packet to network stack %p, len %zu", pxBuffer, pxBuffer->xDataLength);
-        prvProcessEthernetPacket(pxBuffer);
-    }
-#else  /* configUSE_LINKED_RX_MESSAGES */
-    {
-        LOGI(TAG_IPCPMANAGER, "Packet to network stack 2 %p, len %d", pxBuffer, pxBuffer->xDataLength);
-        NetworkBufferDescriptor_t *pxNextBuffer;
-
-        /* An optimisation that is useful when there is high network traffic.
-         * Instead of passing received packets into the IP task one at a time the
-         * network interface can chain received packets together and pass them into
-         * the IP task in one go.  The packets are chained using the pxNextBuffer
-         * member.  The loop below walks through the chain processing each packet
-         * in the chain in turn. */
-        do
-        {
-            /* Store a pointer to the buffer after pxBuffer for use later on. */
-            pxNextBuffer = pxBuffer->pxNextBuffer;
-
-            /* Make it NULL to avoid using it later on. */
-            pxBuffer->pxNextBuffer = NULL;
-
-            prvProcessEthernetPacket(pxBuffer);
-            pxBuffer = pxNextBuffer;
-
-            /* While there is another packet in the chain. */
-        } while (pxBuffer != NULL);
-    }
-#endif /* USE_LINKED_RX_MESSAGES */
-}
-
-/*
- * Return an ethernet frame to its source. This always free the
- * buffer.
- */
-void prvReturnEthernetFrame(NetworkBufferDescriptor_t *const pxNetworkBuffer)
-{
-    EthernetHeader_t *pxEthernetHeader;
-    MACAddress_t xTmpMac;
-    MACAddress_t *pxDstMac, *pxSrcMac;
-	RINAStackEvent_t xTxEvent = {
-        .eEventType = eNetworkTxEvent,
-        .xData.PV = NULL
-    };
-
-    /* Switch source and address. */
-    pxEthernetHeader = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
-
-    pxDstMac = &pxEthernetHeader->xDestinationAddress;
-    pxSrcMac = &pxEthernetHeader->xSourceAddress;
-
-    memcpy(&xTmpMac, pxDstMac, sizeof(MACAddress_t));
-    memcpy(pxDstMac, pxSrcMac, sizeof(MACAddress_t));
-    memcpy(pxSrcMac, &xTmpMac, sizeof(MACAddress_t));
-
-    /* Send the packet back */
-    xTxEvent.xData.PV = (void *)pxNetworkBuffer;
-    xSendEventStructToIPCPTask(&xTxEvent, 0);
-}
-
 /*-----------------------------------------------------------*/
 
-void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
-{
-    const EthernetHeader_t *pxEthernetHeader;
-    eFrameProcessingResult_t eReturned = eFrameConsumed;
-    uint16_t usFrameType;
-
-    RsAssert(pxNetworkBuffer != NULL);
-
-    /* Interpret the Ethernet frame. */
-    if (pxNetworkBuffer->xEthernetDataLength >= sizeof(EthernetHeader_t))
-    {
-        /* Map the buffer onto the Ethernet Header struct for easy access to the fields. */
-        pxEthernetHeader = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
-        usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
-
-        /* Interpret the received Ethernet packet. */
-        switch (usFrameType)
-        {
-        case ETH_P_RINA_ARP:
-
-            /* The Ethernet frame contains an ARP packet. */
-            LOGI(TAG_IPCPMANAGER, "ARP Packet Received");
-
-            if (pxNetworkBuffer->xEthernetDataLength >= sizeof(ARPPacket_t))
-                eReturned = eARPProcessPacket(pxNetworkBuffer);
-            else {
-                /* Drop invalid ARP packets */
-                LOGW(TAG_IPCPMANAGER, "Discarding invalid ARP packet");
-                eReturned = eReleaseBuffer;
-            }
-
-            break;
-
-        case ETH_P_RINA:
-            LOGI(TAG_IPCPMANAGER, "RINA Packet Received");
-
-            uint8_t *ptr;
-            size_t uxRinaLength;
-            // NetworkBufferDescriptor_t *pxBuffer;
-
-            // removing Ethernet Header
-            uxRinaLength = pxNetworkBuffer->xEthernetDataLength - (size_t)14;
-
-            // ESP_LOGE(TAG_ARP, "Taking Buffer to copy the RINA PDU: ETH_P_RINA");
-            // pxBuffer = pxGetNetworkBufferWithDescriptor(xlength, (TickType_t)0U);
-
-            // Copy into the newBuffer but just the RINA PDU, and not the Ethernet Header
-            ptr = (uint8_t *)pxNetworkBuffer->pucEthernetBuffer + 14;
-
-            pxNetworkBuffer->xRinaDataLength = uxRinaLength;
-            pxNetworkBuffer->pucRinaBuffer = ptr;
-
-            // Release the buffer with the Ethernet header, it is not needed any more
-            // ESP_LOGE(TAG_ARP, "Releasing Buffer to copy the RINA PDU: ETH_P_RINA");
-            // vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-
-            // must be void function
-            vIpcManagerRINAPackettHandler(pxIpcpData, pxNetworkBuffer); // must change
-
-            break;
-
-        default:
-            LOGE(TAG_WIFI, "No Case Ethernet Type, Drop Frame");
-            eReturned = eReleaseBuffer;
-
-            break;
-        }
-    }
-
-    /* Perform any actions that resulted from processing the Ethernet frame. */
-    switch (eReturned)
-    {
-    case eReturnEthernetFrame:
-        /* The Ethernet frame will have been updated (maybe it was an
-         * ARP request) and should be sent back to its source. */
-        prvReturnEthernetFrame(pxNetworkBuffer);
-        break;
-
-    case eFrameConsumed:
-        /* The frame is in use somewhere, don't release the buffer
-         * yet. */
-        LOGI(TAG_SHIM, "Frame Consumed");
-        break;
-
-    case eReleaseBuffer:
-        if (pxNetworkBuffer != NULL)
-            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-
-        break;
-    case eProcessBuffer:
-        /*ARP process buffer, call to ShimAllocateResponse*/
-
-        /* Finding an instance of eShimiFi and call the floww allocate Response using this instance*/
-
-        if (!pxShimInstance->pxOps->flowAllocateResponse(pxShimInstance->pxData, 1))
-        {
-            LOGE(TAG_IPCPMANAGER, "Error during the Allocation Request at Shim");
-            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-        }
-        else
-        {
-            LOGI(TAG_IPCPMANAGER, "Buffer Processed");
-            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-        }
-
-        break;
-    default:
-
-        /* The frame is not being used anywhere, and the
-         * NetworkBufferDescriptor_t structure containing the frame should
-         * just be released back to the list of free buffers. */
-        // ESP_LOGI(TAG_SHIM, "Default: Releasing Buffer");
-        vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-        break;
-    }
-}
 
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetFrame)
 {

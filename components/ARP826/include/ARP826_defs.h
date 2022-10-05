@@ -11,6 +11,15 @@
 extern "C" {
 #endif
 
+/* ARP component data. */
+typedef struct xARP {
+    struct ARPCache *pxCache;
+
+    /* Keep track of all the registered applications to be able to
+       unregister them. */
+    //RsList_t xRegisteredAppHandles;
+} ARP_t;
+
 typedef enum {
     SHA = 0,
     SPA,
@@ -52,7 +61,7 @@ typedef struct __attribute__((packed))
 } ARPPacket_t;
 
 /*
- * All the data of an ARP packet including pointers to ARP addresses stored in the packet.
+ * All the data of an ARP packet including pointers to ARJeP addresses stored in the packet.
  */
 typedef struct {
     ARPPacket_t *pxARPPacket;

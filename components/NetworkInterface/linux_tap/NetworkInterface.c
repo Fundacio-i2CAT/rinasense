@@ -26,7 +26,7 @@
 #include "IPCP_events.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
-
+#include "ShimIPCP.h"
 
 struct ReadThreadParams {
     int nTapFD;
@@ -71,6 +71,10 @@ static int nCurrentIffFlags;
 
 /* MAC address */
 const MACAddress_t *pxMacAddr;
+
+/* TEMPORARY: blind pointer to the IPCP instance data so we can pass
+ * it to the shim when we receive packets. */
+void *pxInstanceData;
 
 bool_t prvLinuxGetMac(string_t sTapName, MACAddress_t *pxMac)
 {
@@ -448,8 +452,10 @@ static inline void prvGenRandomEth(uint8_t *pAddr)
     pAddr[0] |= 0x02;	/* set local assignment bit (IEEE802) */
 }
 
-bool_t xNetworkInterfaceInitialise(MACAddress_t *pxPhyDev)
+bool_t xNetworkInterfaceInitialise(void *pxInstData, MACAddress_t *pxPhyDev)
 {
+    pxInstanceData = pxInstData;
+
 #if LINUX_TAP_CREATE == true
     /* If we're in create mode, return an error if the TAP device
      * we're asked to create already exists. */
@@ -588,7 +594,7 @@ bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
         /* If it's a broadcasted packet, replace the target address in
          * the frame by ours. The rest of the code should not have to
          * deal with this. */
-        if (nIsBroadcastMac(&pxEthernetHeader->xDestinationAddress)) {
+        if (xIsBroadcastMac(&pxEthernetHeader->xDestinationAddress)) {
             LOGD(TAG_WIFI, "Handling broadcasted ethernet packet.");
             memcpy(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t));
 
@@ -610,13 +616,7 @@ bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 		/* Copy the packet data. */
 		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
-		xRxEvent.xData.PV = (void *)pxNetworkBuffer;
-
-		if (!xSendEventStructToIPCPTask(&xRxEvent, 250 * 1000)) {
-			LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
-			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-			return false;
-		}
+        vShimHandleEthernetPacket(pxInstanceData, pxNetworkBuffer);
 
 		return true;
 	}

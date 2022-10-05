@@ -31,6 +31,14 @@ gpa_t *pxCreateGPA(const buffer_t pucAddress, size_t xLength);
 /* @brief Create a generic hardware address based on the MAC address*/
 gha_t *pxCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress);
 
+gpa_t *pxDupGPA(const gpa_t *pxSourcePa, bool_t nDoShrink, uint8_t ucFiller);
+
+gha_t *pxDupGHA(const gha_t *pxSourceHa);
+
+bool_t xGPAShrink(gpa_t *pxGpa, uint8_t ucFiller);
+
+bool_t xGPAGrow(gpa_t *pxGpa, size_t uxLength, uint8_t ucFiller);
+
 /* @brief Check if a generic protocol Address was created correctly*/
 bool_t xIsGPAOK(const gpa_t *pxGpa);
 
@@ -45,6 +53,8 @@ void vGHADestroy(gha_t *pxGha);
 
 /* Compares two GPA structures, return true if equal, false if not. */
 bool_t xGPACmp(const gpa_t *gpa1, const gpa_t *gpa2);
+
+bool_t xGHACmp(const gha_t *pxHa1, const gha_t *pxHa2);
 
 gpa_t *pxNameToGPA(const name_t *xLocalInfo);
 
