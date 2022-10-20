@@ -7,6 +7,16 @@
 extern "C" {
 #endif
 
+/**
+ * Set all the component of a name from static string. Pay attention
+ * not to free a name that is set that way.
+ */
+#define NAME_SET(nm, pe, pi, en, ei)             \
+    (*nm).pcProcessName = pe;                    \
+    (*nm).pcProcessInstance = pi;                \
+    (*nm).pcEntityName = en;                     \
+    (*nm).pcEntityInstance = ei;
+
 typedef struct xName_info
 {
 	string_t pcProcessName;  		/*> Process Name*/
@@ -44,6 +54,8 @@ bool_t xRINAStringDup(const char *pcSrc, char *pcDst);
 name_t *xRINAstringToName(const string_t pxInput);
 
 string_t pcNameToString(const name_t *n);
+
+void pcNameToStrBuf(const name_t *pxName, stringbuf_t *pcBuf, size_t unBufSz);
 
 #ifdef __cplusplus
 }

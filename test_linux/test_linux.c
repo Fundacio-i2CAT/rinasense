@@ -24,7 +24,9 @@ int main(void)
 	char *data;
 
 	RINA_IPCPInit();
+    pause();
 
+#if 0
 	assert((buffer = malloc(xLenBuffer)) != NULL);
     assert((xFlowSpec = malloc(sizeof(*xFlowSpec))) != NULL);
 
@@ -65,4 +67,5 @@ int main(void)
 			i = i + 1;
 		}
 	}
+#endif
 }

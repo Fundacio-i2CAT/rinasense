@@ -376,3 +376,20 @@ string_t pcNameToString(const name_t *n)
     return tmp;
 }
 
+/**
+ * Convert the name to a string inside a static buffer.
+ */
+void pcNameToStrBuf(const name_t *pxName, stringbuf_t *pcBuf, size_t unBufSz)
+{
+    const string_t none = "";
+
+    snprintf(pcBuf, unBufSz,
+             "%s%s%s%s%s%s%s",
+             (pxName->pcProcessName     ? pxName->pcProcessName     : none),
+             DELIMITER,
+             (pxName->pcProcessInstance ? pxName->pcProcessInstance : none),
+             DELIMITER,
+             (pxName->pcEntityName      ? pxName->pcEntityName      : none),
+             DELIMITER,
+             (pxName->pcEntityInstance  ? pxName->pcEntityInstance  : none));
+}

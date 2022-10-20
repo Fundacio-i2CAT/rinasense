@@ -79,6 +79,8 @@ bool_t RINA_flow_close(portId_t xPortId);
 
 void vRINA_WakeUpFlowRequest(flowAllocateHandle_t *pxFlowAllocateResponse, int nNewBits);
 
+void RINA_Init(void);
+
 #ifdef __cplusplus
 }
 #endif

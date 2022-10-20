@@ -11,9 +11,9 @@
 #include "configSensor.h"
 #include "common/rina_ids.h"
 
-#include "Rib.h"
-#include "IPCP_normal_defs.h"
 #include "RINA_API_flows.h"
+
+#include "efcpStructures.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,10 +53,25 @@ typedef struct xFLOW_ALLOCATOR_INSTANCE
 
 } flowAllocatorInstance_t;
 
+struct FlowRequestRow
+{
+    flowAllocatorInstance_t *pxFAI;
+
+    bool_t xValid;
+
+};
+
 typedef struct xFLOW_ALLOCATOR
 {
     /* List of FAI*/
     RsList_t xFlowAllocatorInstances;
+
+    /* Reference to the normal IPCP owning this flow allocator. */
+    struct ipcpInstance_t *pxNormalIpcp;
+
+    struct FlowRequestRow xFlowRequestTable[FLOWS_REQUEST];
+
+    pthread_mutex_t xMux;
 
 } flowAllocator_t;
 
@@ -120,12 +135,8 @@ typedef struct xFLOW_MESSAGE
 
 } flow_t;
 
-typedef struct xREQUEST_HANDLER_ROW
-{
-    flowAllocatorInstance_t *pxFAI;
-    bool_t xValid;
-
-} FlowRequestRow_t;
+#define IPCP_DATA_FROM_FLOW_ALLOCATOR(x) \
+    container_of(x, struct ipcpInstanceData_t, xFA)
 
 #ifdef __cplusplus
 }

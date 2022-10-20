@@ -2,6 +2,7 @@
 
 #include "common/mac.h"
 #include "common/rina_gpha.h"
+#include "linux_rsmem.h"
 #include "portability/port.h"
 
 /* No used check if this is necessary */
@@ -35,17 +36,15 @@ gpa_t *pxNameToGPA(const name_t *pcName)
 
 	pcTmp = pcNameToString(pcName);
 
-	if (!pcTmp)
-	{
-		LOGI(TAG_SHIM, "Name to String not correct");
+	if (!pcTmp) {
+		LOGI(TAG_SHIM, "Failed to convert name to string");
 		return NULL;
 	}
 
 	// Convert the IPCPAddress Concatenated to bits
 	pxGpa = pxCreateGPA((buffer_t)pcTmp, strlen(pcTmp)); //considering the null terminated
 
-	if (!pxGpa)
-	{
+	if (!pxGpa)	{
 		LOGI(TAG_SHIM, "GPA was not created correct");
 		vRsMemFree(pcTmp);
 		return NULL;
@@ -75,8 +74,7 @@ gpa_t *pxCreateGPA(const buffer_t pucAddress, size_t uxLength)
 {
 	gpa_t *pxGPA;
 
-	if (!pucAddress || uxLength == 0)
-	{
+	if (!pucAddress || uxLength == 0) {
 		LOGI(TAG_SHIM, "Bad input parameters, cannot create GPA");
 		return NULL;
 	}
@@ -86,19 +84,22 @@ gpa_t *pxCreateGPA(const buffer_t pucAddress, size_t uxLength)
 	if (!pxGPA)
 		return NULL;
 
-	pxGPA->uxLength = uxLength; //strlen of the address without '\0'
-	pxGPA->pucAddress = pucCreateAddress(uxLength + 1); //Create an address an include the '\0'
+	pxGPA->uxLength = uxLength;
+	pxGPA->pucAddress = pucCreateAddress(uxLength + 1);
 
-	if (!pxGPA->pucAddress)
-	{
+	if (!pxGPA->pucAddress)	{
 		vRsMemFree(pxGPA);
 		return NULL;
 	}
 
 	memcpy(pxGPA->pucAddress, pucAddress, pxGPA->uxLength);
 
-	LOGI(TAG_SHIM, "CREATE GPA address: %s", pxGPA->pucAddress);
-	LOGI(TAG_SHIM, "CREATE GPA size: %zu", pxGPA->uxLength);
+    if (xIsGPAOK(pxGPA))
+        LOGD(TAG_SHIM, "CREATE GPA address: %s, size: %zu", pxGPA->pucAddress, pxGPA->uxLength);
+    else {
+        vRsMemFree(pxGPA);
+        return NULL;
+    }
 
 	return pxGPA;
 }
@@ -274,6 +275,9 @@ bool_t xIsGHAOK(const gha_t *pxGha)
 
 bool_t xGHACmp(const gha_t *pxHa1, const gha_t *pxHa2)
 {
+    if (!pxHa1 || !pxHa2)
+        return false;
+    
     return memcmp(pxHa1->xAddress.ucBytes, pxHa2->xAddress.ucBytes, sizeof(MACAddress_t)) == 0;
 }
 

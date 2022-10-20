@@ -25,5 +25,3 @@ bool_t xRsQueueReceive(RsQueue_t *pxQueue,
                        const useconds_t xTimeOutUS);
 
 #endif // _COMMON_PORTABILITY_RSQUEUE_H
-
-

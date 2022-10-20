@@ -9,24 +9,23 @@
 #endif
 
 #include "common/rina_ids.h"
+#include "portability/port.h"
+
+#include "ARP826.h"
 #include "ARP826_defs.h"
+#include "BufferManagement.h"
 #include "configSensor.h"
 #include "configRINA.h"
-#include "portability/port.h"
+#include "IpcManager.h"
 #include "IPCP.h"
 #include "IPCP_api.h"
 #include "IPCP_events.h"
-#include "ARP826.h"
-#include "BufferManagement.h"
 #include "NetworkInterface.h"
 #include "RINA_API_flows.h"
 #include "ShimIPCP.h"
-#include "IPCP_normal_defs.h"
-#include "IPCP_normal_api.h"
 #include "IpcManager.h"
 #include "Enrollment.h"
 #include "Enrollment_api.h"
-#include "FlowAllocator.h"
 #include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
@@ -40,10 +39,6 @@ static bool_t xIPCPTaskInitialised = false;
 /** @brief Simple set to pdTRUE or pdFALSE depending on whether the network is up or
  * down (connected, not connected) respectively. */
 static bool_t xNetworkUp = false;
-
-static portId_t xN1PortId = PORT_ID_WRONG;
-
-static portId_t xAppPortId = PORT_ID_WRONG;
 
 /** @brief Used to ensure network down events cannot be missed when they cannot be
  * posted to the network event queue because the network event queue is already
@@ -61,15 +56,7 @@ static pthread_t xIPCPThread;
 static TaskHandle_t xIPCPTaskHandle;
 #endif
 
-ARP_t xARP;
-
-/* List of Factories */
-// static factories_t *pxFactories;
-ipcManager_t *pxIpcManager;
-
 /*********************************************************/
-
-struct ipcpInstanceData_t *pxIpcpData;
 
 /* RIBD module */
 
@@ -78,7 +65,7 @@ struct ipcpInstanceData_t *pxIpcpData;
 /* Flow Allocator */
 
 /**************************************/
-struct ipcpInstance_t *pxShimInstance;
+struct ipcpInstance_t *pxNormalInstance;
 
 /** @brief ARP timer, to check its table entries. */
 static IPCPTimer_t xARPTimer;
@@ -86,8 +73,6 @@ static IPCPTimer_t xARPTimer;
 static IPCPTimer_t xFATimer;
 
 void RINA_NetworkDown(void);
-
-bool_t vIpcpInit(void);
 
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer);
 
@@ -169,20 +154,12 @@ static void *prvIPCPTask(void *pvParameters)
     /* Just to prevent compiler warnings about unused parameters. */
     (void)pvParameters;
 
-    if (!vIpcpInit())
-    {
-        LOGE(TAG_IPCPMANAGER, "IPC Managed Thread initialization failed");
-        return NULL;
-    }
-
 #ifdef ESP_PLATFORM
     /* FIXME: Protect with mutex. */
     xIPCPTaskHandle = xTaskGetCurrentTaskHandle();
 #endif
 
-    pxIpcManager = pvRsMemAlloc(sizeof(*pxIpcManager));
-
-    if (!xIpcManagerInit(pxIpcManager))
+    if (!xIpcManagerInit(&xIpcManager))
         LOGE(TAG_IPCPMANAGER, "Error to initializing IPC Manager");
 
     /* Initialization is complete and events can now be processed. */
@@ -196,12 +173,12 @@ static void *prvIPCPTask(void *pvParameters)
     // RINA_NetworkDown();
 
     /* Create Shim */
-    pxShimInstance = pxIpcManagerCreateShim(pxIpcManager); // list of Instances, shimWifi Should request a xIpcpId. Use API?
-    if (!pxShimInstance)
+    pxNormalInstance = pxIpcManagerCreateShim(); // list of Instances, shimWifi Should request a xIpcpId. Use API?
+    if (!pxNormalInstance)
         LOGE(TAG_IPCPNORMAL, "It was not possible to create Shim ");
 
     // Init shim use API?
-    if (!xShimWiFiInit(pxShimInstance)) {
+    if (!xShimWiFiInit(pxNormalInstance)) {
         LOGE(TAG_IPCPMANAGER, "Failed to initialize WiFi shim");
         return NULL;
     }
@@ -232,6 +209,9 @@ static void *prvIPCPTask(void *pvParameters)
         {
             struct timespec ts = {INITIALISATION_RETRY_DELAY_SEC, 0};
 
+            /* FIXME: THIS IS ENTIRELY BROKEN AND UNTESTED AND IN NEED
+             * OF SOME OR MANY LOVING. */
+
             LOGD(TAG_IPCPMANAGER, "Event: eNetworkDownEvent");
 
             /* Attempt to establish a connection. */
@@ -242,45 +222,83 @@ static void *prvIPCPTask(void *pvParameters)
             break;
         }
 
-        case eNetworkTxEvent:
-        {
+        case eNetworkRxEvent: {
+            struct ipcpInstance_t *pxInstance;
+            struct du_t xDu;
+
+            LOGD(TAG_IPCPMANAGER, "Event: eNetworkRxEvent");
+
+            /* NOTE: This event receives the notification that
+             * something has been received on a flow. This is strictly
+             * for RINA packets. Other types of packet needs to be
+             * handled entirely by their respective shims. */
+
+            RsAssert((pxInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
+
+            xDu.pxNetworkBuffer = xReceivedEvent.xData.PV;
+
+            CALL_IPCP(pxInstance, duEnqueue, xReceivedEvent.xData2.UN, &xDu);
+
+            break;
+        }
+
+        case eNetworkTxEvent: {
             NetworkBufferDescriptor_t *pxNetworkBuffer;
 
             LOGD(TAG_IPCPMANAGER, "Event: eNetworkTxEvent");
+
+            /* FIXME: THIS NEEDS TO BE SENT TO THE RMT TASK, NOT
+             * DIRECTLY THROUGH THE NETWORK INTERFACE */
 
             pxNetworkBuffer = (NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV;
 
             /* Send a network packet. The ownership will  be transferred to
              * the driver, which will release it after delivery. */
             xNetworkInterfaceOutput(pxNetworkBuffer, true);
-        }
-        break;
 
-        case eShimEnrolledEvent:
+            break;
+        }
+
+        case eShimEnrolledEvent: {
+            struct ipcpInstance_t *pxShimInstance, *pxNormalInstance;
+            bool_t xStatus;
+            const name_t *ipcpName, *difName;
+
             LOGD(TAG_IPCPMANAGER, "Event: eShimEnrolledEvent");
 
-            /* Registering into the shim */
-            if (!xNormalRegistering(pxShimInstance, pxIpcpData->pxDifName, pxIpcpData->pxName))
+            pxShimInstance = (struct ipcpInstance_t *)xReceivedEvent.xData.PV;
+            RsAssert((pxNormalInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
+
+            GET_IPCP_NAME(pxNormalInstance, ipcpName);
+            GET_DIF_NAME(pxNormalInstance, difName);
+
+            CALL_IPCP_CHECK(xStatus, pxShimInstance, applicationRegister, ipcpName, difName) {
                 LOGE(TAG_IPCPMANAGER, "IPCP not registered into the shim");
-
-            xN1PortId = xIPCPAllocatePortId(); // check this
-
-            (void)vIcpManagerEnrollmentFlowRequest(pxShimInstance, xN1PortId, pxIpcpData->pxName);
+            }
 
             break;
+        }
+        case eShimFlowAllocatedEvent: {
+            struct ipcpInstance_t *pxInstance, *pxShimInst;
+            portId_t unPort;
 
-        case eShimFlowAllocatedEvent:
             LOGD(TAG_IPCPMANAGER, "Event: eShimFlowAllocatedEvent");
 
-            RsAssert(xN1PortId != PORT_ID_WRONG);
+            RsAssert((pxInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
 
-            /*Call to the method to init the enrollment*/
+            unPort = xReceivedEvent.xData.UN;
+            pxShimInst = xReceivedEvent.xData2.PV;
 
-            (void)xNormalFlowBinding(pxIpcpData, xN1PortId, pxShimInstance);
-            (void)xEnrollmentInit(pxIpcpData, xN1PortId);
+            CALL_IPCP(pxInstance, flowBindingIpcp, unPort, pxShimInst);
+
+            //if (!xNormalFlowBinding(pxInstance->pxData, unPort, pxNormalIinstance))
+            //    LOGW(TAG_IPCPMANAGER, "Failed to bind port %u on normal IPC", unPort);
+
+            if (!xEnrollmentInit(pxInstance->pxData, unPort))
+                LOGW(TAG_IPCPMANAGER, "Failed initialize enrollment module on port %u", unPort);
 
             break;
-
+        }
         case eFATimerEvent:
             LOGD(TAG_IPCPMANAGER, "Event: eFATimerEvent");
             vIpcpSetFATimerExpiredState(true);
@@ -291,12 +309,18 @@ static void *prvIPCPTask(void *pvParameters)
             //(void)vFlowAllocatorDeallocate((portId_t *)xReceivedEvent.pvData);
             break;
 
-        case eFlowBindEvent:
+        case eFlowBindEvent: {
+            struct ipcpInstance_t *pxInstance;
+
             LOGD(TAG_IPCPMANAGER, "Event: eFlowBindEvent");
+
+            RsAssert((pxInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
 
             pxFlowAllocateHandle = (flowAllocateHandle_t *)xReceivedEvent.xData.PV;
 
-            (void)xNormalFlowPrebind(pxIpcpData, pxFlowAllocateHandle);
+            //(void)xNormalFlowPrebind(pxNormalIpcpData,
+            //pxFlowAllocateHandle);
+            CALL_IPCP(pxInstance, flowPrebind, pxFlowAllocateHandle);
 
 #if 0
             pxFlowAllocateRequest->xEventBits |= (EventBits_t)eFLOW_BOUND;
@@ -306,19 +330,27 @@ static void *prvIPCPTask(void *pvParameters)
             vRINA_WakeUpFlowRequest(pxFlowAllocateHandle, eFLOW_BOUND);
 
             break;
-
+        }
         case eSendMgmtEvent:
             LOGD(TAG_IPCPMANAGER, "Event: eSendMgmtEvent");
             break;
 
-        case eStackTxEvent:
-        {
+        case eStackTxEvent: {
+            struct ipcpInstance_t *pxInstance;
+            struct du_t *pxDu;
+
             LOGD(TAG_IPCPMANAGER, "Event: eStackTxEvent");
 
-            // call Efcp to write SDU.
-            NetworkBufferDescriptor_t *pxNetBuffer = (NetworkBufferDescriptor_t *)xReceivedEvent.xData.PV;
+            /* FIXME: WHAT ARRIVES HERE IS NOT A CORRECT SDU */
 
-            (void)xNormalDuWrite(pxIpcpData, pxNetBuffer->ulBoundPort, pxNetBuffer);
+            RsAssert((pxInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
+
+            // call Efcp to write SDU.
+            pxDu = (struct du_t *)xReceivedEvent.xData.PV;
+
+            CALL_IPCP(pxInstance, duWrite, pxDu->pxNetworkBuffer->ulBoundPort, pxDu, false);
+
+            //(void)xNormalDuWrite(pxNormalIpcpData, pxNetBuffer->ulBoundPort, pxNetBuffer);
         }
         break;
 
@@ -363,43 +395,15 @@ bool_t RINA_IPCPInit()
     RsAssert(xIPCPIsNetworkTaskReady() == false);
     RsAssert(xNetworkEventQueue == NULL);
 
-    // Temporary
-    if (!xARPInit(&xARP)) {
-        LOGE(TAG_IPCPMANAGER, "Failed to initialize ARP component");
-        return false;
-    }
-
-#if 0
-
-    /* ESP32 is 32-bits platform, so this is not executed*/
-    if (sizeof(uintptr_t) == 8)
-    {
-        /* This is a 64-bit platform, make sure there is enough space in
-         * pucEthernetBuffer to store a pointer. */
-
-        RsAssert(BUFFER_PADDING >= 14);
-
-        /* But it must have this strange alignment: */
-        RsAssert((((BUFFER_PADDING) + 2) % 4) == 0);
-    }
-
-#endif
-
-    /* Check if MTU is big enough. */
-
-    /* Check structure packing is correct. */
-
     /* Attempt to create the queue used to communicate with the IPCP task. */
     xNetworkEventQueue = pxRsQueueCreate("IPCPQueue",
                                          EVENT_QUEUE_LENGTH,
                                          sizeof(RINAStackEvent_t));
     RsAssert(xNetworkEventQueue != NULL);
 
-    if (xNetworkEventQueue != NULL)
-    {
+    if (xNetworkEventQueue != NULL) {
 
-        if (xNetworkBuffersInitialise())
-        {
+        if (xNetworkBuffersInitialise()) {
             pthread_attr_t attr;
 
             if (pthread_attr_init(&attr) != 0)
@@ -407,8 +411,7 @@ bool_t RINA_IPCPInit()
 
             pthread_attr_setstacksize(&attr, IPCP_TASK_STACK_SIZE);
 
-            if (pthread_create(&xIPCPThread, &attr, prvIPCPTask, NULL) != 0)
-            {
+            if (pthread_create(&xIPCPThread, &attr, prvIPCPTask, NULL) != 0) {
                 LOGE(TAG_IPCPMANAGER, "RINAInit: failed to start IPC process");
                 xReturn = false;
             }
@@ -525,6 +528,8 @@ bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t xT
 /*-----------------------------------------------------------*/
 
 
+/* FIXME: THIS NEEDS TO BE MOVED OUT OF IPCP.c, POSSIBLY IN
+ * THE IPCMANAGER THEN IN THE RESPECTIVE SHIMS. */
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetFrame)
 {
     eFrameProcessingResult_t eReturn = eReleaseBuffer;
@@ -742,101 +747,4 @@ void RINA_NetworkDown(void)
     else
         /* Message was sent so it is not pending. */
         xNetworkDownEventPending = false;
-}
-
-bool_t vIpcpInit(void)
-{
-    name_t *pxDifName, *pxIPCPName;
-
-    /*** IPCP Modules ***/
-    /* RMT module */
-    struct rmt_t *pxRmt;
-
-    /* EFCP Container */
-    struct efcpContainer_t *pxEfcpContainer;
-
-    /*Initialize IPC Manager*/
-
-    pxIpcpData = pvRsMemAlloc(sizeof(*pxIpcpData));
-    pxIPCPName = pvRsMemAlloc(sizeof(*pxIPCPName));
-    pxDifName = pvRsMemAlloc(sizeof(*pxDifName));
-
-    if (pxIpcpData == NULL || pxIPCPName == NULL || pxDifName == NULL)
-        goto fail;
-
-    pxIPCPName->pcEntityInstance = NORMAL_ENTITY_INSTANCE;
-    pxIPCPName->pcEntityName = NORMAL_ENTITY_NAME;
-    pxIPCPName->pcProcessInstance = NORMAL_PROCESS_INSTANCE;
-    pxIPCPName->pcProcessName = NORMAL_PROCESS_NAME;
-
-    pxDifName->pcProcessName = NORMAL_DIF_NAME;
-    pxDifName->pcProcessInstance = "";
-    pxDifName->pcEntityInstance = "";
-    pxDifName->pcEntityName = "";
-
-    /* Create EFPC Container */
-    pxEfcpContainer = pxEfcpContainerCreate();
-    if (!pxEfcpContainer)
-    {
-        LOGE(TAG_IPCPMANAGER, "Failed creation of EFCP container");
-        goto fail;
-    }
-
-    /* Create RMT*/
-    pxRmt = pxRmtCreate(pxEfcpContainer);
-    if (!pxRmt)
-    {
-        LOGE(TAG_IPCPMANAGER, "Failed creation of RMT instance");
-        goto fail;
-    }
-
-    pxEfcpContainer->pxRmt = pxRmt;
-
-    pxIpcpData->pxDifName = pxDifName;
-    pxIpcpData->pxName = pxIPCPName;
-    pxIpcpData->pxEfcpc = pxEfcpContainer;
-    pxIpcpData->pxRmt = pxRmt;
-    pxIpcpData->xAddress = LOCAL_ADDRESS;
-
-    // pxIpcpData->pxFa = pxFlowAllocatorInit();
-
-    // pxIpcpData->pxIpcManager = pxIpcManager;
-    /*Initialialise flows list*/
-    vRsListInit(&(pxIpcpData->xFlowsList));
-
-    return true;
-
-fail:
-    /* FIXME: is this cleanup necessary since failing here this means
-     * nothing will work. */
-
-    if (pxIpcpData != NULL)
-        vRsMemFree(pxIpcpData);
-    if (pxIPCPName != NULL)
-        vRsMemFree(pxIPCPName);
-    if (pxDifName != NULL)
-        vRsMemFree(pxDifName);
-
-    return false;
-}
-
-struct rmt_t *pxIPCPGetRmt(void);
-struct rmt_t *pxIPCPGetRmt(void)
-{
-    return pxIpcpData->pxRmt;
-}
-
-struct efcpContainer_t *pxIPCPGetEfcpc(void)
-{
-    return pxIpcpData->pxEfcpc;
-}
-
-struct ipcpInstanceData_t *pxIpcpGetData(void)
-{
-    return pxIpcpData;
-}
-
-portId_t xIPCPAllocatePortId(void)
-{
-    return ulNumMgrAllocate(pxIpcManager->pxPidm);
 }

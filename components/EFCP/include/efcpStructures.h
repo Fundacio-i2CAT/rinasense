@@ -16,9 +16,10 @@ extern "C" {
 
 #include "common/rina_ids.h"
 #include "common/num_mgr.h"
+#include "common/macros.h"
 
-#include "IPCP_instance.h"
 #include "rina_common_port.h"
+#include "FlowAllocator.h"
 #include "du.h"
 #include "rmt.h"
 #include "delim.h"
@@ -325,27 +326,29 @@ typedef struct xEFCP_IMAP_ROW
 
 struct efcpContainer_t
 {
-        // struct rset *        rset;
-        efcpImapRow_t *pxEfcpImap;
-        NumMgr_t *pxCidm;
-        // cepIdm_t                *pxCidm;
-        efcpConfig_t *pxConfig;
-        struct rmt_t *pxRmt;
-        // struct kfa *         kfa;
-        // spinlock_t           lock;
-        // wait_queue_head_t    del_wq;
+    // struct rset *        rset;
+    efcpImapRow_t *pxEfcpImap;
+    NumMgr_t *pxCidm;
+    // cepIdm_t                *pxCidm;
+    efcpConfig_t *pxConfig;
+    struct rmt_t *pxRmt;
+    // struct kfa *         kfa;
+    // spinlock_t           lock;
+    // wait_queue_head_t    del_wq;
 };
 
 struct efcp_t
 {
-
-        struct connection_t *pxConnection;
-        struct ipcpInstance_t *pxUserIpcp; // IPCP NORMAL
-        struct dtp_t *pxDtp;               // implement in EFCP Component
-        delim_t *pxDelim;           // delimiting module
-        struct efcpContainer_t *pxEfcpContainer;
-        eEfcpState_t xState;
+    struct connection_t *pxConnection;
+    struct ipcpInstance_t *pxUserIpcp; // IPCP NORMAL
+    struct dtp_t *pxDtp;               // implement in EFCP Component
+    delim_t *pxDelim;           // delimiting module
+    struct efcpContainer_t *pxEfcpContainer;
+    eEfcpState_t xState;
 };
+
+#define IPCP_DATA_FROM_EFCP_CONTAINER(x) \
+    container_of(x, struct ipcpInstanceData_t, xEfcpContainer)
 
 #ifdef __cplusplus
 }

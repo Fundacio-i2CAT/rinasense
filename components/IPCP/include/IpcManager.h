@@ -3,9 +3,10 @@
 
 #include "common/num_mgr.h"
 
+#include "configSensor.h"
+#include "IPCP_instance.h"
 #include "EFCP.h"
 #include "rina_buffers.h"
-#include "RINA_API_flows.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,34 +17,25 @@ typedef struct xINSTANCE_TABLE_ROW
 	/*The Ipcp Instance to register*/
 	struct ipcpInstance_t *pxIpcpInstance;
 
-	/*Type of the Ipcp Instance to register*/
-	ipcpInstanceType_t pxIpcpType;
-
-	/*The Ipcp Id to registered*/
-	ipcProcessId_t xIpcpId;
-
 	/*Is the Ipcp Instace active?*/
 	bool_t xActive;
 
-} InstanceTableRow_t;
+} ipcpTableRow_t;
 
 typedef struct xIPC_MANAGER
 {
-	/*List of the Ipcp factories registered*/
-	// factories_t *pxFactories;
+    /* Table to store instances created */
+    ipcpTableRow_t xIpcpTable[INSTANCES_IPCP_ENTRIES];
 
-	RsList_t xShimInstancesList;
-
-	// flowAllocator_t * pxFlowAllocator;
-	// InstanceTableRow_t * pxInstanceTable[ INSTANCES_IPCP_ENTRIES ];
-
-	/*port Id manager*/
+	/* port Id manager */
 	NumMgr_t *pxPidm;
 
-	/*IPCProcess Id manager*/
+	/* IPCProcess Id manager */
 	NumMgr_t *pxIpcpIdm;
 
 } ipcManager_t;
+
+extern ipcManager_t xIpcManager;
 
 bool_t xIpcManagerInit(ipcManager_t *pxIpcManager);
 
@@ -51,13 +43,25 @@ void vIcpManagerEnrollmentFlowRequest(struct ipcpInstance_t *pxShimInstance, por
 
 void vIpcpManagerAppFlowAllocateRequestHandle(flowAllocateHandle_t *pxFlowAllocateRequest);
 
-// BaseType_t xIpcManagerWriteMgmtHandler(ipcpFactoryType_t xType, void *pxData);
+/* Port management */
 
-struct ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId);
+portId_t unIpcManagerReservePort(ipcManager_t *pxIpcManager);
+
+void vIpcManagerReleasePort(ipcManager_t *pxIpcManager, portId_t unPortId);
+
+/* IPC list registration */
+
+void vIpcManagerAdd(ipcManager_t *pxIpcManager, struct ipcpInstance_t *pxIpcp);
+
+/* Search */
+
+struct ipcpInstance_t *pxIpcManagerFindById(ipcManager_t *pxIpcManager, ipcpInstanceId_t xIpcpId);
+
+struct ipcpInstance_t *pxIpcManagerFindByType(ipcManager_t *pxIpcManager, ipcpInstanceType_t xType);
 
 void vIpcManagerRINAPackettHandler(struct ipcpInstanceData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
 
-struct ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager);
+struct ipcpInstance_t *pxIpcManagerCreateShim();
 
 #ifdef __cplusplus
 }

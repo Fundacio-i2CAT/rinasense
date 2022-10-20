@@ -5,6 +5,7 @@
 #include "configRINA.h"
 #include "configSensor.h"
 
+#include "du.h"
 #include "portability/port.h"
 
 #include "BufferManagement.h"
@@ -14,8 +15,6 @@
 #include "FlowAllocator_api.h"
 #include "IPCP_api.h"
 #include "IPCP_events.h"
-#include "IPCP_normal_defs.h"
-#include "IPCP_normal_api.h"
 #include "portability/rsmem.h"
 #include "rina_common_port.h"
 #include "pb_encode.h"
@@ -628,23 +627,26 @@ appConnection_t *prvRibCreateConnection(name_t *pxSource, name_t *pxDestInfo)
     return pxAppConnectionTmp;
 }
 
-void vRibdSentCdapMsg(NetworkBufferDescriptor_t *pxNetworkBuffer, portId_t xN1FlowPortId)
+void vRibdSentCdapMsg(struct ipcpInstanceData_t *pxData,
+                      NetworkBufferDescriptor_t *pxNetworkBuffer,
+                      portId_t xN1FlowPortId)
 {
-
-    LOGI(TAG_RIB, "Sending the CDAP Message to the RMT");
     struct du_t *pxMessagePDU;
     struct rmt_t *pxRmt;
 
-    pxRmt = pxIPCPGetRmt();
+    LOGI(TAG_RIB, "Sending the CDAP Message to the RMT");
+
+    pxRmt = &pxData->xRmt;
+
     /* Fill the DU with PDU type (layer management)*/
-    pxMessagePDU = pvRsMemAlloc(sizeof(*pxMessagePDU));
+    pxMessagePDU = pvRsMemAlloc(sizeof(struct du_t));
     pxMessagePDU->pxNetworkBuffer = pxNetworkBuffer;
     pxMessagePDU->pxNetworkBuffer->ulBoundPort = xN1FlowPortId;
 
-    if (!xNormalMgmtDuWrite(pxRmt, xN1FlowPortId, pxMessagePDU))
-    {
-        LOGE(TAG_RIB, "Error to send the CDAP message");
-    }
+    /* if (!xNormalMgmtDuWrite(pxRmt, xN1FlowPortId, pxMessagePDU)) { */
+    /*     LOGE(TAG_RIB, "Error to send the CDAP message"); */
+    /*     xDuDestroy(pxMessagePDU); */
+    /* } */
 }
 
 messageCdap_t *prvRibdFillEnrollMsg(string_t pcObjClass, string_t pcObjName, long objInst, opCode_t eOpCode,
@@ -782,7 +784,7 @@ bool_t xRibdConnectToIpcp(struct ipcpInstanceData_t *pxIpcpData, name_t *pxSourc
     /* pxMessageDecode = prvRibdDecodeCDAP(pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength);
      vRibdPrintCdapMessage( pxMessageDecode );*/
 
-    vRibdSentCdapMsg(pxNetworkBuffer, xN1flowPortId);
+    vRibdSentCdapMsg(pxIpcpData, pxNetworkBuffer, xN1flowPortId);
 
     return true;
 }
@@ -853,7 +855,7 @@ bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData, portId_
     return true;
 }
 
-void prvRibdHandledAData(serObjectValue_t *pxObjValue)
+void prvRibdHandledAData(struct ipcpInstanceData_t *pxData, serObjectValue_t *pxObjValue)
 {
     messageCdap_t *pxDecodeCdap;
     struct ribObject_t *pxRibObject;
@@ -878,7 +880,7 @@ void prvRibdHandledAData(serObjectValue_t *pxObjValue)
     case M_CREATE_R:
         // looking for a pending request
         pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
-        if (!pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result))
+        if (!pxCallback->create_response(&pxData->xFA, pxDecodeCdap->pxObjValue, pxDecodeCdap->result))
         {
             LOGE(TAG_RIB, "It was not possible to handle the a_data message properly");
         }
@@ -909,9 +911,10 @@ void vPrintAppConnection(appConnection_t *pxAppConnection)
     LOGI(TAG_RIB, "Connection Status:%d", pxAppConnection->xStatus);
 }
 
-bool_t vRibHandleMessage(struct ipcpInstanceData_t *pxData, messageCdap_t *pxDecodeCdap, portId_t xN1FlowPortId)
+bool_t vRibHandleMessage(struct ipcpInstanceData_t *pxData,
+                         messageCdap_t *pxDecodeCdap,
+                         portId_t xN1FlowPortId)
 {
-
     bool_t ret = true;
     appConnection_t *pxAppConnectionTmp;
     struct ribObject_t *pxRibObject;
@@ -1043,7 +1046,7 @@ bool_t vRibHandleMessage(struct ipcpInstanceData_t *pxData, messageCdap_t *pxDec
     case M_CREATE_R:
         pxCallback = pxRibdFindPendingResponseHandler(pxDecodeCdap->invokeID);
         LOGI(TAG_RIB, "Result:%d", pxDecodeCdap->result);
-        pxCallback->create_response(pxDecodeCdap->pxObjValue, pxDecodeCdap->result);
+        pxCallback->create_response(&pxData->xFA, pxDecodeCdap->pxObjValue, pxDecodeCdap->result);
 
         break;
     // for testing purposes
@@ -1061,7 +1064,7 @@ bool_t vRibHandleMessage(struct ipcpInstanceData_t *pxData, messageCdap_t *pxDec
 
             if (pxADataMsg->xDestinationAddress == LOCAL_ADDRESS)
             {
-                (void)prvRibdHandledAData(pxADataMsg->pxMsgCdap);
+                (void)prvRibdHandledAData(pxData, pxADataMsg->pxMsgCdap);
             }
         }
 
@@ -1079,7 +1082,8 @@ bool_t vRibHandleMessage(struct ipcpInstanceData_t *pxData, messageCdap_t *pxDec
     return ret;
 }
 
-bool_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objInst,
+bool_t xRibdSendResponse(struct ipcpInstanceData_t *pxData,
+                         string_t pcObjClass, string_t pcObjName, long objInst,
                          int result, string_t pcResultReason,
                          opCode_t eOpCode, int invokeId, portId_t xN1Port,
                          serObjectValue_t *pxObjVal)
@@ -1113,12 +1117,13 @@ bool_t xRibdSendResponse(string_t pcObjClass, string_t pcObjName, long objInst,
     }
 
     /*Sent to the IPCP task*/
-    vRibdSentCdapMsg(pxNetworkBuffer, xN1Port);
+    vRibdSentCdapMsg(pxData, pxNetworkBuffer, xN1Port);
 
     return true;
 }
 
-bool_t xRibdSendRequest(string_t pcObjClass, string_t pcObjName, long objInst,
+bool_t xRibdSendRequest(struct ipcpInstanceData_t *pxData,
+                        string_t pcObjClass, string_t pcObjName, long objInst,
                         opCode_t eOpCode, portId_t xN1flowPortId, serObjectValue_t *pxObjVal)
 {
     messageCdap_t *pxMsgCdap = NULL;
@@ -1161,7 +1166,7 @@ bool_t xRibdSendRequest(string_t pcObjClass, string_t pcObjName, long objInst,
     }
 
     /*Sent to the IPCP task*/
-    vRibdSentCdapMsg(pxNetworkBuffer, xN1flowPortId);
+    vRibdSentCdapMsg(pxData, pxNetworkBuffer, xN1flowPortId);
 
     return true;
 }

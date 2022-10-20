@@ -12,11 +12,13 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "common/num_mgr.h"
 #include "portability/port.h"
 #include "common/list.h"
 #include "common/rina_ids.h"
 #include "common/rina_name.h"
 
+#include "IpcManager.h"
 #include "BufferManagement.h"
 #include "RINA_API_flows.h"
 #include "common/list.h"
@@ -26,11 +28,15 @@
 #include "RINA_API.h"
 #include "IPCP.h"
 #include "IPCP_api.h"
-#include "IPCP_events.h"
 #include "IPCP_normal_api.h"
+#include "IPCP_normal_defs.h"
+#include "IPCP_events.h"
 #include "FlowAllocator_api.h"
 
 static pthread_mutex_t mux = PTHREAD_MUTEX_INITIALIZER;
+
+/* This is the normal IPCP instance the RINA_API will address. */
+static struct ipcpInstance_t *pxIpcp;
 
 void prvWaitForBit(pthread_cond_t *pxCond,
                    pthread_mutex_t *pxCondMutex,
@@ -167,13 +173,14 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
                                                       string_t pcRemoteApp,
                                                       struct rinaFlowSpec_t *xFlowSpec)
 {
-    LOGI(TAG_RINA, "Creating a new flow request");
     portId_t xPortId; /* PortId to return to the user*/
     name_t *pxDIFName = NULL;
     name_t *pxLocalName = NULL;
     name_t *pxRemoteName = NULL;
     struct flowSpec_t *pxFlowSpecTmp = NULL;
     flowAllocateHandle_t *pxFlowAllocateRequest = NULL;
+
+    LOGI(TAG_RINA, "Creating a new flow request");
 
     pxFlowSpecTmp = pvRsMemAlloc(sizeof(*pxFlowSpecTmp));
     if (!pxFlowSpecTmp) {
@@ -228,7 +235,8 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
     }
 
     /*xPortId set to zero until the TASK fill properly.*/
-    xPortId = xIPCPAllocatePortId();
+    //xPortId = xIPCPAllocatePortId();
+    xPortId = unIpcManagerReservePort(&xIpcManager);
     LOGI(TAG_RINA, "Port Id: %d Allocated", xPortId);
 
     /*Struct Data to sent attached into the event*/
@@ -289,10 +297,15 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
 
 bool_t RINA_flowStatus(portId_t xAppPortId)
 {
-    return xNormalIsFlowAllocated(xAppPortId);
+    struct ipcpInstance_t *pxIpcp;
+    bool_t xStatus;
+
+    RsAssert((pxIpcp = pxIpcManagerFindByType(&xIpcManager, eNormal)));
+
+    return xNormalIsFlowAllocated(pxIpcp, xAppPortId);
 }
 
-bool_t prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
+bool_t prvConnect(flowAllocator_t *pxFA, flowAllocateHandle_t *pxFlowAllocateRequest)
 {
     bool_t xResult = 0;
     RINAStackEvent_t xStackFlowAllocateEvent = {
@@ -313,7 +326,7 @@ bool_t prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
 
     /* FIXME: Maybe do a prebind? */
     if (xResult) {
-        vFlowAllocatorFlowRequest(pxFlowAllocateRequest->xPortId, pxFlowAllocateRequest);
+        vFlowAllocatorFlowRequest(pxFA, pxFlowAllocateRequest->xPortId, pxFlowAllocateRequest);
 
         pxFlowAllocateRequest->usTimeout = 1U;
 
@@ -326,11 +339,17 @@ bool_t prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
     return xResult;
 }
 
-portId_t RINA_flow_alloc(string_t pcNameDIF,
-                         string_t pcLocalApp,
-                         string_t pcRemoteApp,
-                         struct rinaFlowSpec_t *xFlowSpec,
-                         uint8_t Flags);
+/**
+ * Initialize the RINA API globals
+ */
+void RINA_Init()
+{
+    RINA_IPCPInit();
+
+    /* FIXME: This picks the first normal IPCP instance found in the
+       list. */
+    RsAssert((pxIpcp = pxIpcManagerFindByType(&xIpcManager, eNormal)));
+}
 
 portId_t RINA_flow_alloc(string_t pcNameDIF,
                          string_t pcLocalApp,
@@ -349,7 +368,7 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
 
     LOGI(TAG_RINA, "Connecting to IPCP Task");
 
-    xResult = prvConnect(pxFlowAllocateRequest);
+    xResult = prvConnect(&pxIpcp->pxData->xFA, pxFlowAllocateRequest);
 
     if (xResult == 0) {
         for (;;) {
@@ -502,7 +521,7 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
         return 0;
     } else {
         // find the flow handle associated to the xPortId.
-        pxFlowHandle = pxFAFindFlowHandle(xPortId);
+        pxFlowHandle = pxFAFindFlowHandle(&pxIpcp->pxData->xFA, xPortId);
         xPacketCount = unRsListLength(&(pxFlowHandle->xListWaitingPackets));
 
         LOGD(TAG_RINA, "Numbers of packet in the queue to read: %zu", xPacketCount);

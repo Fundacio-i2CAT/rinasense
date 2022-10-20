@@ -21,7 +21,7 @@
 
 /*********** NORMAL CONFIGURATION ****************/
 
-#define NORMAL_PROCESS_NAME "ue1.mobile"
+#define NORMAL_PROCESS_NAME "ue1.mobile.DIF"
 #define NORMAL_PROCESS_INSTANCE "1"
 #define NORMAL_ENTITY_NAME ""
 #define NORMAL_ENTITY_INSTANCE ""
@@ -32,11 +32,11 @@
 /**** Known IPCProcess Address *****/
 #define LOCAL_ADDRESS (1)
 #define LOCAL_ADDRESS_AP_INSTANCE "1"
-#define LOCAL_ADDRESS_AP_NAME "ue1.mobile"
+#define LOCAL_ADDRESS_AP_NAME "ue1.mobile.DIF"
 
 #define REMOTE_ADDRESS (3)
 #define REMOTE_ADDRESS_AP_INSTANCE "1"
-#define REMOTE_ADDRESS_AP_NAME "ar1.mobile" // ar1.mobile
+#define REMOTE_ADDRESS_AP_NAME "rs1.mobile.DIF" // ar1.mobile
 
 /**** QoS CUBES ****/
 #define QoS_CUBE_NAME "unreliable"

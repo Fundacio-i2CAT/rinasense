@@ -10,9 +10,6 @@
 
 #define portINLINE inline
 
-#define CAST_PTR_TO_TYPE_PTR(TYPE, pointer) (vCastPointerTo_##TYPE((void *)(pointer)))
-#define CAST_CONST_PTR_TO_CONST_TYPE_PTR(TYPE, pointer) (vCastConstPointerTo_##TYPE((const void *)(pointer)))
-
 /*-----------------------------------------------------------*/
 /* Utility macros for declaring cast utility functions in    */
 /* order to centralize typecasting for static analysis.      */

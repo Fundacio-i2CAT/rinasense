@@ -51,6 +51,14 @@ else()
     unity
   )
 
+  add_executable(test_simple_queue "${CMAKE_CURRENT_LIST_DIR}/test_simple_queue.c")
+  target_link_libraries(test_simple_queue
+    RINA
+    NetworkInterface_MQ
+    Portability
+    unity
+  )
+
   add_test(
     NAME "test_ids"
     COMMAND "./test_ids"
@@ -74,5 +82,10 @@ else()
   add_test(
     NAME test_bit_array
     COMMAND "./test_bit_array"
+  )
+
+  add_test(
+    NAME test_simple_queue
+    COMMAND "./test_simple_queue"
   )
 endif()

@@ -64,7 +64,6 @@ typedef struct xPCI {
 
 typedef struct __attribute__((packed))
 {
-
 	uint8_t ucVersion; /**< Version  0 + 1 = 1 */
 
 	address_t xDestination; /**< Destination Address  1 + 1 = 2 */

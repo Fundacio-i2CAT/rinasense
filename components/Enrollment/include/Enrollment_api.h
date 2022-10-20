@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-void xEnrollmentInit(struct ipcpInstanceData_t *pxIpcpData, portId_t xPortId);
+bool_t xEnrollmentInit(struct ipcpInstanceData_t *pxIpcpData, portId_t xPortId);
 
 bool_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
                            string_t pcLocalApName, int invokeId, portId_t xN1Port);

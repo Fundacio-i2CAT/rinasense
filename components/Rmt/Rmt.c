@@ -1,14 +1,15 @@
 #include <stdio.h>
 
+#include "IpcManager.h"
+#include "efcpStructures.h"
 #include "portability/port.h"
 #include "common/rina_ids.h"
 
 #include "rmt.h"
 #include "du.h"
 #include "pci.h"
+#include "IPCP.h"
 #include "IPCP_instance.h"
-#include "IPCP_normal_api.h"
-#include "IPCP_normal_defs.h"
 #include "EFCP.h"
 #include "configRINA.h"
 
@@ -16,15 +17,64 @@
  *  */
 static portTableEntry_t xPortIdTable[2];
 
-pci_t *vCastPointerTo_pci_t(void *pvArgument);
+bool_t xRmtInit(struct rmt_t *pxRmt)
+{
+	rmtN1Port_t *pxPortN1;
+
+    RsAssert(pxRmt);
+
+    if (!(pxPortN1 = pvRsMemAlloc(sizeof(*pxPortN1)))) {
+        LOGE(TAG_RMT, "Failed to allocate memory for port");
+        return false;
+    }
+
+	vRsListInit(&pxRmt->xAddresses);
+
+	/*tmp->pff = pff_create(&tmp->robj, tmp->parent);
+	if (!tmp->pff) {
+		rmt_destroy(tmp);
+		return NULL;
+	}*/
+
+    /* FIXME: This assignment makes no sense and the compile complains
+       about it. */
+	pxRmt->pxN1Port = pxPortN1;
+
+#if 0
+	// tmp->n1_ports = n1pmap_create(&tmp->robj);
+	if (!pxRmtTmp->pxN1Port)
+	{
+		LOGI(TAG_RMT, "Failed to create N-1 ports map");
+		// rmt_destroy(tmp);
+		return NULL;
+	}
+#endif
+
+	/*if (pff_cache_init(&tmp->cache)) {
+		LOG_ERR("Failed to init pff cache");
+		rmt_destroy(tmp);
+		return NULL;
+	}
+
+	tasklet_init(&tmp->egress_tasklet,
+			 send_worker,
+			 (unsigned long) tmp);*/
+
+	LOGI(TAG_RMT, "Rmt initialized successfully");
+
+    return true;
+}
+
+void vRmtFini(struct rmt_t *pxRmt)
+{
+    RsAssert(pxRmt);
+}
 
 /* @brief Called when a SDU arrived into the RMT from the Shim DIF */
 // bool_t xRmtReceive(struct ipcpInstance_t *pxRmt, struct du_t *pxDu, portId_t xFrom);
 
 /* @brief Called when a SDU arrived into the RMT from the EFCP Container*/
 static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt, rmtN1Port_t *pxN1Port, struct du_t *pxDu);
-
-static bool_t xRmtProcessMgmtPdu(struct ipcpInstanceData_t *pxData, portId_t xPortId, struct du_t *pxDu);
 
 /* @brief Create an N-1 Port in the RMT Component*/
 static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, struct ipcpInstance_t *pxN1Ipcp);
@@ -37,7 +87,7 @@ static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, struct ipcpInstance_t *pxN1I
 
 	RsAssert(is_port_id_ok(xId));
 
-	pxTmp = pvRsMemAlloc(sizeof(*pxTmp));
+	pxTmp = pvRsMemAlloc(sizeof(rmtN1Port_t));
 	if (!pxTmp)
 		return NULL;
 
@@ -128,61 +178,48 @@ bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, struct ipcpInst
 	return true;
 }
 
-/* @brief Add an Address into the RMT list. This list is useful when the
- * packet arrived and need to know whether it is for us or not. */
-
+/**
+ * Add an Address into the RMT list. This list is useful when the
+ * packet arrived and need to know whether it is for us or not.
+ */
 bool_t xRmtAddressAdd(struct rmt_t *pxInstance, address_t xAddress)
 {
 	rmtAddress_t *pxRmtAddr;
 
-	if (!pxInstance)
-	{
-		LOGE(TAG_RMT, "Bogus instance passed");
-		return false;
-	}
+    RsAssert(pxInstance);
 
 	pxRmtAddr = pvRsMemAlloc(sizeof(*pxRmtAddr));
-	if (!pxRmtAddr)
+	if (!pxRmtAddr) {
+        LOGE(TAG_RMT, "Failed to allocate memory for RMT address");
 		return false;
+    }
 
 	pxRmtAddr->xAddress = xAddress;
 
-	LOGE(TAG_RMT, "Adding and Address into the RMT list:%d", pxRmtAddr->xAddress);
+	LOGI(TAG_RMT, "Adding and Address into the RMT list:%d", pxRmtAddr->xAddress);
 
-	// vListInitialiseItem(&(pxRmtAddr->xAddressListItem));
-	// listSET_LIST_ITEM_OWNER(&(pxRmtAddr->xAddressListItem), pxRmtAddr);
-	// vListInsert(&pxInstance->xAddresses,
-	//&(pxRmtAddr->xAddressListItem));
     vRsListInitItem(&(pxRmtAddr->xAddressListItem), pxRmtAddr);
     vRsListInsert(&pxInstance->xAddresses, &(pxRmtAddr->xAddressListItem));
 
 	return true;
 }
 
-/* @brief Check if the Address defined in the PDU is stored in
- * the address list in the RMT.*/
-bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress);
-
+/**
+ * Check if the Address defined in the PDU is stored in the
+ * address list in the RMT.
+ */
 bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 {
 	rmtAddress_t *pxAddr;
 	RsListItem_t *pxListItem;
 
-	pxAddr = pvRsMemAlloc(sizeof(*pxAddr));
-
-	/* Find a way to iterate in the list and compare the addesss*/
     pxListItem = pxRsListGetFirst(&pxRmt->xAddresses);
 
-	while (pxListItem != NULL)
-	{
+	while (pxListItem != NULL) {
         pxAddr = (rmtAddress_t *)pxRsListGetItemOwner(pxListItem);
 
 		if (pxAddr->xAddress == xAddress)
-		{
-			LOGI(TAG_RMT, "Address to me founded!");
-			vRsMemFree(pxAddr);
 			return true;
-		}
 
         pxListItem = pxRsListGetNext(pxListItem);
 	}
@@ -190,16 +227,20 @@ bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 	return false;
 }
 
-static bool_t xRmtProcessMgmtPdu(struct ipcpInstanceData_t *pxData, portId_t xPortId, struct du_t *pxDu)
+static bool_t xRmtProcessMgmtPdu(portId_t xPortId, struct du_t *pxDu)
 {
-    if (!xNormalMgmtDuPost(pxData, xPortId, pxDu))  {
-		LOGE(TAG_RMT, "Failed posting management PDU to normal IPCP");
-		return false;
-    }
-	return true;
-}
+    struct ipcpInstance_t *pxNormalInstance;
+    bool_t xStatus;
 
-static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu);
+    RsAssert((pxNormalInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
+
+    CALL_IPCP_CHECK(xStatus, pxNormalInstance, mgmtDuPost, xPortId, pxDu) {
+        LOGE(TAG_RMT, "Failed posting management PDU to normal IPCP");
+        return false;
+    }
+
+    return true;
+}
 
 static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
 {
@@ -209,71 +250,55 @@ static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_
 
 	xDstAddrTmp = pxDu->pxPci->xDestination;
 
-	if (!is_address_ok(xDstAddrTmp))
-	{
-		LOGE(TAG_RMT, "PDU has wrong destination address");
-		xDuDestroy(pxDu);
+	if (!is_address_ok(xDstAddrTmp)) {
+		LOGE(TAG_RMT, "PDU has invalid destination address");
 		return false;
 	}
 
 	xPduTypeTmp = pxDu->pxPci->xType;
 
-	if (xPduTypeTmp == PDU_TYPE_MGMT)
-	{
-		LOGE(TAG_RMT, "MGMT should not be here");
-		xDuDestroy(pxDu);
+	if (xPduTypeTmp == PDU_TYPE_MGMT) {
+		LOGE(TAG_RMT, "Management PDU took the wrong code path");
 		return false;
 	}
 
 	xCepTmp = pxDu->pxPci->connectionId_t.xDestination;
 
-	if (!is_cep_id_ok(xCepTmp))
-	{
-		LOGE(TAG_RMT, "Wrong CEP-id in PDU");
-		xDuDestroy(pxDu);
+	if (!is_cep_id_ok(xCepTmp))	{
+		LOGE(TAG_RMT, "Invalid CEP-id in PDU");
 		return false;
 	}
 
-	if (!xEfcpContainerReceive(pxRmt->pxEfcpc, xCepTmp, pxDu))
-	{
+	if (!xEfcpContainerReceive(pxRmt->pxEfcpc, xCepTmp, pxDu)) {
 		LOGE(TAG_RMT, "EFCP container problems");
 		return false;
 	}
 
-	LOGI(TAG_RMT, "process_dt_pdu internally finished");
-
 	return true;
 }
 
-bool_t xRmtReceive(struct ipcpInstanceData_t *pxData, struct du_t *pxDu, portId_t xFrom)
+bool_t xRmtReceive(struct rmt_t *pxRmt,
+                   struct efcpContainer_t *pxEfcp,
+                   struct du_t *pxDu,
+                   portId_t xFrom)
 {
-	LOGI(TAG_RMT, "RMT has received a RINA packet from the port %d", xFrom);
-
 	pduType_t xPduType;
 	address_t xDstAddr;
 	qosId_t xQosId;
 	rmtN1Port_t *pxN1Port;
 	size_t uxBytes;
 
-	if (!pxData->pxRmt)
-	{
-		LOGE(TAG_RMT, "No RMT passed");
-		xDuDestroy(pxDu);
-		return false;
-	}
-	if (!is_port_id_ok(xFrom))
-	{
-		LOGE(TAG_RMT, "Wrong port-id %d", xFrom);
-		xDuDestroy(pxDu);
-		return false;
-	}
+	LOGI(TAG_RMT, "RMT has received a RINA packet from the port %d", xFrom);
+
+    RsAssert(pxRmt);
+    RsAssert(is_port_id_ok(xFrom));
 
 	uxBytes = pxDu->pxNetworkBuffer->xRinaDataLength;
-	pxDu->pxCfg = pxData->pxEfcpc->pxConfig;
+	pxDu->pxCfg = pxEfcp->pxConfig;
 
 	pxN1Port = xPortIdTable[0].pxPortN1;
-	if (!pxN1Port)
-	{
+
+	if (!pxN1Port) {
 		LOGE(TAG_RMT, "Could not retrieve N-1 port for the received PDU...");
 		xDuDestroy(pxDu);
 		return false;
@@ -320,15 +345,11 @@ bool_t xRmtReceive(struct ipcpInstanceData_t *pxData, struct du_t *pxDu, portId_
 	}
 
 	/* pdu is for me */
-	// if (xRmtPduIsAddressedToMe(pxData->pxRmt, xDstAddr))
-	if (xDstAddr == LOCAL_ADDRESS)
-	{
+	if (xRmtPduIsAddressedToMe(pxRmt, xDstAddr)) {
 		/* pdu is for me */
-		switch (xPduType)
-		{
+		switch (xPduType) {
 		case PDU_TYPE_MGMT:
-			LOGE(TAG_RMT, "Mgmt PDU!!!");
-			return xRmtProcessMgmtPdu(pxData, xFrom, pxDu);
+			return xRmtProcessMgmtPdu(xFrom, pxDu);
 
 		case PDU_TYPE_CACK:
 		case PDU_TYPE_SACK:
@@ -338,14 +359,18 @@ bool_t xRmtReceive(struct ipcpInstanceData_t *pxData, struct du_t *pxDu, portId_
 		case PDU_TYPE_ACK_AND_FC:
 		case PDU_TYPE_RENDEZVOUS:
 		case PDU_TYPE_DT:
-			LOGD(TAG_RMT, "DT PDU!!!");
 			/*
 			 * (FUTURE)
 			 *
-			 * enqueue PDU in pdus_dt[dest-addr, qos-id]
-			 * don't process it now ...
-			 */
-			return xRmtProcessDtPdu(pxData->pxRmt, xFrom, pxDu);
+             * enqueue PDU in pdus_dt[dest-addr, qos-id]
+             * don't process it now ...
+             */
+            if (!xRmtProcessDtPdu(pxRmt, xFrom, pxDu)) {
+                LOGE(TAG_RMT, "PDU processing failed");
+                xDuDestroy(pxDu);
+                return false;
+            }
+            else return true;
 
 		default:
 			LOGE(TAG_RMT, "Unknown PDU type %d", xPduType);
@@ -353,12 +378,11 @@ bool_t xRmtReceive(struct ipcpInstanceData_t *pxData, struct du_t *pxDu, portId_
 			return false;
 		}
 	}
-	/* pdu is not for me. Then release buffer and destroy anything.
-	 * A forwarding to next hop will be consider in other version. */
-	else
-	{
+	/* pdu is not for me. Then release buffer and destroy anything.  A
+	 * forwarding to next hop will be consider in other version. */
+	else {
 		if (!xDstAddr)
-			return xRmtProcessMgmtPdu(pxData, xFrom, pxDu);
+			return xRmtProcessMgmtPdu(xFrom, pxDu);
 		else
 		{
 			LOGI(TAG_RMT, "PDU is not for me");
@@ -372,17 +396,11 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 								rmtN1Port_t *pxN1Port,
 								struct du_t *pxDu)
 {
-
-	bool_t ret;
+	bool_t xStatus = true;
 
 	LOGI(TAG_RMT, "Gonna send SDU to port-id %d", pxN1Port->xPortId);
-	ret = pxN1Port->pxN1Ipcp->pxOps->duWrite(pxN1Port->pxN1Ipcp->pxData, pxN1Port->xPortId, pxDu, false);
-	LOGI(TAG_RMT, "xRmtN1PortWriteDu ret:%d", ret);
 
-	if (!ret)
-		return false;
-
-	if (ret == false)
+	CALL_IPCP_CHECK(xStatus, pxN1Port->pxN1Ipcp, duWrite, pxN1Port->xPortId, pxDu, false)
 	{
 		// n1_port_lock(n1_port);
 		if (pxN1Port->pxPendingDu)
@@ -559,64 +577,4 @@ bool_t xRmtSend(struct rmt_t *pxRmtInstance,
 		LOGE(TAG_RMT, "Failed to send a PDU to port-id %d", xPortIdTable[0].pxPortN1->xPortId);
 
 	return true;
-}
-
-pci_t *vCastPointerTo_pci_t(void *pvArgument)
-{
-	return (void *)(pvArgument);
-}
-
-struct rmt_t *pxRmtCreate(struct efcpContainer_t *pxEfcpc)
-{
-	struct rmt_t *pxRmtTmp;
-	rmtN1Port_t *pxPortN1;
-
-    pxPortN1 = pvRsMemAlloc(sizeof(*pxPortN1));
-
-	if (!pxEfcpc)
-	{
-		LOGE(TAG_RMT, "Bogus input parameters");
-		return NULL;
-	}
-
-	pxRmtTmp = pvRsMemAlloc(sizeof(*pxRmtTmp));
-	if (!pxRmtTmp)
-		return NULL;
-
-	vRsListInit(&pxRmtTmp->xAddresses);
-
-	pxRmtTmp->pxEfcpc = pxEfcpc;
-
-	/*tmp->pff = pff_create(&tmp->robj, tmp->parent);
-	if (!tmp->pff) {
-		rmt_destroy(tmp);
-		return NULL;
-	}*/
-
-    /* FIXME: This assignment makes no sense and the compile complains
-       about it. */
-	pxRmtTmp->pxN1Port = pxPortN1;
-
-#if 0
-	// tmp->n1_ports = n1pmap_create(&tmp->robj);
-	if (!pxRmtTmp->pxN1Port)
-	{
-		LOGI(TAG_RMT, "Failed to create N-1 ports map");
-		// rmt_destroy(tmp);
-		return NULL;
-	}
-#endif
-
-	/*if (pff_cache_init(&tmp->cache)) {
-		LOG_ERR("Failed to init pff cache");
-		rmt_destroy(tmp);
-		return NULL;
-	}
-
-	tasklet_init(&tmp->egress_tasklet,
-			 send_worker,
-			 (unsigned long) tmp);*/
-
-	LOGI(TAG_RMT, "Instance %pK initialized successfully", pxRmtTmp);
-	return pxRmtTmp;
 }

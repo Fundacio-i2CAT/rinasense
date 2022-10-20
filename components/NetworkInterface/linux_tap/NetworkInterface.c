@@ -441,8 +441,6 @@ bool_t prvLinuxTapStartMonitorThread()
     return bStatus;
 }
 
-/* Public interface */
-
 static inline void prvGenRandomEth(uint8_t *pAddr)
 {
     for(int i = 0; i < 6; i++)
@@ -451,6 +449,8 @@ static inline void prvGenRandomEth(uint8_t *pAddr)
     pAddr[0] &= 0xfe;	/* clear multicast bit */
     pAddr[0] |= 0x02;	/* set local assignment bit (IEEE802) */
 }
+
+/* Public interface */
 
 bool_t xNetworkInterfaceInitialise(void *pxInstData, MACAddress_t *pxPhyDev)
 {

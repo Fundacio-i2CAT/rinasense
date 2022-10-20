@@ -9,7 +9,6 @@
 #include "efcpStructures.h"
 #include "IPCP_frames.h"
 #include "IPCP_events.h"
-#include "common/rina_ids.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,11 +30,6 @@ bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer);
 
 bool_t RINA_IPCPInit(void);
-
-struct rmt_t *pxIPCPGetRmt(void);
-struct efcpContainer_t *pxIPCPGetEfcpc(void);
-
-portId_t xIPCPAllocatePortId(void);
 
 #ifdef __cplusplus
 }

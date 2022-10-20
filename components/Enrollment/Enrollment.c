@@ -166,7 +166,7 @@ neighborInfo_t *pxEnrollmentCreateNeighInfo(string_t pcApName, portId_t xN1Port)
 }
 
 /*EnrollmentInit should create neighbor and enrollment object into the RIB*/
-void xEnrollmentInit(struct ipcpInstanceData_t *pxIpcpData, portId_t xN1PortId)
+bool_t xEnrollmentInit(struct ipcpInstanceData_t *pxIpcpData, portId_t xN1PortId)
 {
         LOGI(TAG_ENROLLMENT, "-------- Init Enrollment Task --------");
         name_t *pxSource;
@@ -177,8 +177,16 @@ void xEnrollmentInit(struct ipcpInstanceData_t *pxIpcpData, portId_t xN1PortId)
         // test = pvPortMalloc(sizeof(*test));
 
         pxSource = pvRsMemAlloc(sizeof(*pxSource));
+        if (!pxSource)
+            goto err;
+
         pxDestInfo = pvRsMemAlloc(sizeof(*pxDestInfo));
+        if (!pxDestInfo)
+            goto err;
+
         pxAuth = pvRsMemAlloc(sizeof(*pxAuth));
+        if (!pxAuth)
+            goto err;
 
         pxSource->pcEntityInstance = NORMAL_ENTITY_INSTANCE;
         pxSource->pcEntityName = MANAGEMENT_AE;
@@ -205,6 +213,18 @@ void xEnrollmentInit(struct ipcpInstanceData_t *pxIpcpData, portId_t xN1PortId)
         pxRibCreateObject("/difm/ops", 1, "OperationalStatus", "OperationalStatus", OPERATIONAL);
 
         (void)xRibdConnectToIpcp(pxIpcpData, pxSource, pxDestInfo, xN1PortId, pxAuth);
+
+        return true;
+
+    err:
+        if (pxSource)
+            vRsMemFree(pxSource);
+        if (pxDestInfo)
+            vRsMemFree(pxDestInfo);
+        if (pxAuth)
+            vRsMemFree(pxAuth);
+
+        return false;
 }
 
 bool_t xEnrollmentEnroller(struct ribObject_t *pxEnrRibObj,
@@ -317,7 +337,7 @@ bool_t xEnrollmentHandleConnectR(struct ipcpInstanceData_t *pxData, string_t pcR
 
         pxNeighbor->eEnrollmentState = eENROLLMENT_IN_PROGRESS;
 
-        pxRmt = pxIPCPGetRmt();
+        pxRmt = &pxData->xRmt;
 
         // Send M_START to the enroller if not enrolled
         enrollmentMessage_t *pxEnrollmentMsg = pvRsMemAlloc(sizeof(*pxEnrollmentMsg));

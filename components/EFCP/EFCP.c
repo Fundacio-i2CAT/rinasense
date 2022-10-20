@@ -6,7 +6,10 @@
 
 #include "common/num_mgr.h"
 #include "common/rina_ids.h"
+#include "common/macros.h"
 #include "portability/port.h"
+
+#include "configSensor.h"
 
 #include "EFCP.h"
 #include "rmt.h"
@@ -15,8 +18,8 @@
 #include "efcpStructures.h"
 #include "dtp.h"
 #include "connection.h"
-#include "configSensor.h"
 #include "IPCP_instance.h"
+#include "IPCP_normal_defs.h"
 #include "rina_common_port.h"
 #include "FlowAllocator_api.h"
 #include "configRINA.h"
@@ -37,8 +40,6 @@ bool_t xEfcpReceive(struct efcp_t *pxEfcp, struct du_t *pxDu);
 static bool_t xEfcpWrite(struct efcp_t *pxEfcp, struct du_t *pxDu);
 
 /* ----- Container ----- */
-/* Create an EFCP container */
-struct efcpContainer_t *pxEfcpContainerCreate(void);
 
 /* Destroy an EFCP Container */
 bool_t xEfcpContainerDestroy(struct efcpContainer_t *pxContainer);
@@ -55,7 +56,7 @@ bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCep
  * Array of imap Rows. The type fcpImapRow_t has been set at efcpStructures.h */
 static efcpImapRow_t xEfcpImapTable[EFCP_IMAP_ENTRIES];
 
-bool_t xEfcpImapCreate(void);
+bool_t xEfcpImapCreate();
 
 bool_t xEfcpImapDestroy(void);
 
@@ -66,6 +67,67 @@ bool_t xEfcpImapAdd(cepId_t xCepId, struct efcp_t *pxEfcp);
 bool_t xEfcpImapRemove(cepId_t xCepId);
 
 bool_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, struct du_t *pxDu);
+
+/* Reviewed code starts here */
+
+bool_t xEfcpContainerInit(struct efcpContainer_t *pxEfcpContainer)
+{
+    pxEfcpContainer->pxCidm = pxNumMgrCreate(MAX_CEP_ID);
+
+    if (!xEfcpImapCreate() || pxEfcpContainer->pxCidm == NULL) {
+        LOGE(TAG_EFCP, "Failed to init EFCP container instances");
+        vEfcpContainerFini(pxEfcpContainer);
+        return false;
+    }
+
+    LOGI(TAG_EFCP, "EFCP container instance %p created", pxEfcpContainer);
+
+    return true;
+}
+
+void vEfcpContainerFini(struct efcpContainer_t *pxEfcpContainer)
+{
+}
+
+static struct efcp_t *pxEfcpCreate(void)
+{
+    struct efcp_t *pxEfcpInstance;
+
+    if (!(pxEfcpInstance = pvRsMemAlloc(sizeof(*pxEfcpInstance)))) {
+        LOGE(TAG_EFCP, "Failed to allocate memory for EFCP instance");
+        return NULL;
+    }
+
+    pxEfcpInstance->xState = eEfcpAllocated;
+    pxEfcpInstance->pxDelim = NULL;
+
+    LOGI(TAG_EFCP, "EFCP Instance %pK initialized successfully", pxEfcpInstance);
+
+    return pxEfcpInstance;
+}
+
+bool_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, struct du_t *pxDu)
+{
+    struct ipcpInstanceData_t *pxIpcpData;
+
+    if (!pxEfcp) {
+        LOGE(TAG_EFCP, "Flow is being deallocated, dropping SDU");
+        return false;
+    }
+
+    pxIpcpData = IPCP_DATA_FROM_EFCP_CONTAINER(pxEfcp->pxEfcpContainer);
+
+    /* FIXME: Packet reassembly code removed. See IRATI kernel code
+     * for this. */
+
+    if (!xFlowAllocatorDuPost(&pxIpcpData->xFA, xPort, pxDu)) {
+        LOGE(TAG_EFCP, "Upper ipcp could not enqueue sdu to port: %d", xPort);
+        return false;
+    }
+
+    return true;
+}
+
 
 /* --------- CODE ----------*/
 
@@ -81,24 +143,6 @@ static bool_t is_candidate_connection_ok(const struct connection_t *pxConnection
         return true;
 }
 
-static struct efcp_t *pxEfcpCreate(void)
-{
-        struct efcp_t *pxEfcpInstance;
-
-        pxEfcpInstance = pvRsMemAlloc(sizeof(*pxEfcpInstance));
-
-        if (!pxEfcpInstance)
-                return NULL;
-
-        pxEfcpInstance->xState = eEfcpAllocated;
-
-        pxEfcpInstance->pxDelim = NULL;
-
-        LOGI(TAG_EFCP, "EFCP Instance %pK initialized successfully", pxEfcpInstance);
-
-        return pxEfcpInstance;
-}
-
 static bool_t xEfcpDestroy(struct efcp_t *pxInstance)
 {
         if (!pxInstance)
@@ -110,7 +154,7 @@ static bool_t xEfcpDestroy(struct efcp_t *pxInstance)
         if (pxInstance->pxUserIpcp)
         {
                 pxInstance->pxUserIpcp->pxOps->flowUnbindingIpcp(
-                    pxInstance->pxUserIpcp->pxData,
+                    pxInstance->pxUserIpcp,
                     pxInstance->pxConnection->xPortId);
         }
 
@@ -230,32 +274,6 @@ static bool_t xEfcpWrite(struct efcp_t *pxEfcp, struct du_t *pxDu)
         return true;
 }
 
-struct efcpContainer_t *pxEfcpContainerCreate(void)
-{
-        struct efcpContainer_t *pxEfcpContainer;
-
-        pxEfcpContainer = pvRsMemAlloc(sizeof(*pxEfcpContainer));
-
-        if (!pxEfcpContainer)
-        {
-                LOGE(TAG_EFCP, "Failed to allocate memory for EFCP container object");
-                return NULL;
-        }
-
-        pxEfcpContainer->pxCidm = pxNumMgrCreate(MAX_CEP_ID);
-
-        if (!xEfcpImapCreate() || pxEfcpContainer->pxCidm == NULL)
-        {
-                LOGE(TAG_EFCP, "Failed to init EFCP container instances");
-                xEfcpContainerDestroy(pxEfcpContainer);
-                return NULL;
-        }
-
-        LOGI(TAG_EFCP, "EFCP container instance %p created", pxEfcpContainer);
-
-        return pxEfcpContainer;
-}
-
 bool_t xEfcpContainerDestroy(struct efcpContainer_t *pxEfcpContainer)
 {
         if (!pxEfcpContainer)
@@ -370,56 +388,6 @@ bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCep
         ret = xEfcpWrite(pxEfcp, pxDu);
 
         return ret;
-}
-
-bool_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, struct du_t *pxDu)
-{
-        // struct delim_ps * delim_ps = NULL;
-        // struct du_list_item * next_du = NULL;
-
-        if (!pxEfcp)
-        {
-                LOGE(TAG_EFCP, "Flow is being deallocated, dropping SDU");
-                xDuDestroy(pxDu);
-                return false;
-        }
-
-        /* Reassembly goes here */
-#if 0
-        if (pxEfcp->pxDelim) {
-		delim_ps = container_of(rcu_dereference(efcp->delim->base.ps),
-						        struct delim_ps,
-						        base);
-
-		if (delim_ps->delim_process_udf(delim_ps, pxDu,
-						pxEfcp->pxDelim->rx_dus)) {
-			LOGE( TAG_EFCP,"Error processing EFCP UDF by delimiting");
-			du_list_clear(efcp->delim->rx_dus, true);
-			return false;
-		}
-
-	        list_for_each_entry(next_du, &(efcp->delim->rx_dus->dus),
-	        		    next) {
-	                if (efcp->user_ipcp->ops->du_enqueue(efcp->user_ipcp->data,
-	                                                     port,
-	                                                     next_du->du)) {
-	                        LOGE( TAG_EFCP,"Upper ipcp could not enqueue sdu to port: %d", port);
-	                        return false;
-	                }
-	        }
-
-	        du_list_clear(efcp->delim->rx_dus, false);
-
-		return true;
-        }
-#endif
-        if (!xFlowAllocatorDuPost(xPort, pxDu))
-        {
-                LOGE(TAG_EFCP, "Upper ipcp could not enqueue sdu to port: %d", xPort);
-                return false;
-        }
-
-        return true;
 }
 
 bool_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,

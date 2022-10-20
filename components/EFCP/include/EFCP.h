@@ -15,10 +15,19 @@
 extern "C" {
 #endif
 
+bool_t xEfcpContainerInit(struct efcpContainer_t *pxEfcpContainer);
+
+void vEfcpContainerFini(struct efcpContainer_t *pxEfcpContainer);
+
 bool_t xEfcpEnqueue(struct efcp_t * pxEfcp, portId_t xPort, struct du_t * pxDu);
+
 bool_t xEfcpContainerReceive( struct efcpContainer_t * pxContainer, cepId_t xCepId, struct du_t * pxDu);
+
 bool_t xEfcpReceive(struct efcp_t * pxEfcp,  struct du_t *  pxDu);
-struct efcpContainer_t * pxEfcpContainerCreate(void);
+
+struct efcpContainer_t * pxEfcpContainerCreate(struct ipcpInstance_t *pxIpcp,
+                                               flowAllocator_t *pxFA);
+
 bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, struct du_t *pxDu);
 
 bool_t xEfcpConnectionDestroy(struct efcpContainer_t * pxContainer, cepId_t xId);

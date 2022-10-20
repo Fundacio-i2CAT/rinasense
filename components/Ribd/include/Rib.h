@@ -8,9 +8,10 @@
 #ifndef RIB_H_INCLUDED
 #define RIB_H_INCLUDED
 
-#include "configSensor.h"
 #include "portability/port.h"
 #include "common/rina_ids.h"
+
+#include "configSensor.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +20,8 @@ extern "C" {
 #define RIB_TABLE_SIZE (10)
 
 struct ribObject_t;
+
+#include "FlowAllocator.h"
 
 typedef enum
 {
@@ -45,9 +48,9 @@ struct ribCallbackOps_t
 
     bool_t (*stop_response)(string_t pcRemoteAPName);
 
-    bool_t (*create_response)(serObjectValue_t *pxSerObjectValue, int result);
+    bool_t (*create_response)(flowAllocator_t *pxFA, serObjectValue_t *pxSerObjectValue, int result);
 
-    bool_t (*delete_response)(struct ribObject_t *pxRibObject, int invoke_id);
+    bool_t (*delete_response)(flowAllocator_t *pxFA, struct ribObject_t *pxRibObject, int invoke_id);
 };
 
 struct ribObjOps_t

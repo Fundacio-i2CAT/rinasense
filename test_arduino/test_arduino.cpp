@@ -9,10 +9,15 @@
 
 #include "RINA_API.h"
 #include "IPCP_api.h"
+#include "nvs_flash.h"
 
 void setup()
 {
-	RINA_IPCPInit();
+    nvs_flash_init();
+    vRsLogInit();
+    esp_log_level_set("*", ESP_LOG_VERBOSE);
+    RINA_IPCPInit();
+    sleep(10);
 }
 
 void loop() {}
