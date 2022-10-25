@@ -6,6 +6,10 @@
 #include "common/mac.h"
 #include "configSensor.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Structure Ethernet Header
 typedef struct __attribute__((packed))
 {
@@ -34,5 +38,9 @@ typedef struct __attribute__((packed))
 	EthernetHeader_t xEthernetHeader; /**< The ethernet header of an ARP Packet  0 + 14 = 14 */
 	ARPHeader_t xARPHeader;			  /**< The ARP header of an ARP Packet       14 + 28 = 42 */
 } ARPPacket_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _ARP_DEFS_H_INCLUDED

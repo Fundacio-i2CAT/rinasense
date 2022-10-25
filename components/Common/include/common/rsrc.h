@@ -12,6 +12,10 @@
 #include <stdint.h>
 #include "common/private/iot_doubly_linked_list.h"				// Amazon FreeRTOS library
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Heap allocation routines for the target platform.  calloc/malloc/free semantics and calling sequence
  */
@@ -146,5 +150,9 @@ void vRsrcPrintResInHexHelper (rsrcPoolP_t, void *);
  */
 enum rsrcClearOnAllocSetting_t {rsrcNOCLEAR, rsrcCLEAR_ON_ALLOC, rsrcCLEAR_ON_BOTH};
 extern enum rsrcClearOnAllocSetting_t eRsrcClearResOnAlloc;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _RSRC_H_

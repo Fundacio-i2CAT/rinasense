@@ -5,6 +5,10 @@
 #include "common/rina_name.h"
 #include "common/list.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum eNormal_Flow_State
 {
     ePORT_STATE_NULL = 1,
@@ -43,5 +47,9 @@ struct ipcpInstanceData_t
 
     // ipcManager_t *pxIpcManager;
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _

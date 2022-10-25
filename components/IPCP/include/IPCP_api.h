@@ -11,6 +11,10 @@
 #include "IPCP_events.h"
 #include "common/rina_ids.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Send the event eEvent to the IPCP task event queue, using a block time of
  * zero.  Return pdPASS if the message was sent successfully, otherwise return
@@ -32,5 +36,9 @@ struct rmt_t *pxIPCPGetRmt(void);
 struct efcpContainer_t *pxIPCPGetEfcpc(void);
 
 portId_t xIPCPAllocatePortId(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMPONENTS_IPCP_API_H

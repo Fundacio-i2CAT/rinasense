@@ -5,6 +5,10 @@
 #include "efcpStructures.h"
 #include "IPCP_instance.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define TAG_RMT "[RMT]"
 
 /* rmt_enqueue_policy return values */
@@ -106,5 +110,9 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 
 bool_t xRmtReceive(struct ipcpInstanceData_t *pxRmt, struct du_t *pxDu, portId_t xFrom);
 bool_t xRmtAddressAdd(struct rmt_t *pxInstance, address_t xAddress);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COMPONENTS_RMT_INCLUDE_DU_H_ */

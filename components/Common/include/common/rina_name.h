@@ -3,6 +3,10 @@
 
 #include "portability/port.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct xName_info
 {
 	string_t pcProcessName;  		/*> Process Name*/
@@ -41,6 +45,8 @@ name_t *xRINAstringToName(const string_t pxInput);
 
 string_t pcNameToString(const name_t *n);
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif // COMMON_RINA_NAME_H

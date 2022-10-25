@@ -15,6 +15,14 @@
 
 // typedef uint16_t ipcProcessId_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint16_t ipcpInstanceId_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

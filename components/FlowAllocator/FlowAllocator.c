@@ -231,10 +231,11 @@ void vFlowAllocatorFlowRequest(
 
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
     pxNeighbor = pxEnrollmentFindNeighbor(pcNeighbor);
-    if (!pxNeighbor)
-    {
-        LOGE(TAG_FA, "No Neighbor founded");
+    if (!pxNeighbor) {
+        LOGE(TAG_FA, "No neighbor found");
+        return;
     }
+
     pxFlow->xRemoteAddress = pxNeighbor->xNeighborAddress;
 
     pxFlow->xSourcePortId = xAppPortId;
@@ -290,6 +291,9 @@ void vFlowAllocatorFlowRequest(
         LOGE(TAG_FA, "It was a problem to send the request");
         // return pdFALSE;
     }
+
+    if (pxObjVal != NULL)
+        vRsMemFree(pxObjVal);
 }
 
 bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)

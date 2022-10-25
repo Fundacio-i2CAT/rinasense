@@ -11,6 +11,10 @@
 #include "du.h"
 #include "efcpStructures.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool_t xEfcpEnqueue(struct efcp_t * pxEfcp, portId_t xPort, struct du_t * pxDu);
 bool_t xEfcpContainerReceive( struct efcpContainer_t * pxContainer, cepId_t xCepId, struct du_t * pxDu);
 bool_t xEfcpReceive(struct efcp_t * pxEfcp,  struct du_t *  pxDu);
@@ -37,5 +41,9 @@ bool_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,
                              cepId_t xCepId,
                              address_t xSrc,
                              address_t xDst);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* EFCP_H__*/

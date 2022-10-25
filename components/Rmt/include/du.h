@@ -13,6 +13,10 @@
 #include "pci.h"
 #include "rina_common_port.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct du_t
 {
 
@@ -30,5 +34,9 @@ ssize_t xDuDataLen(const  struct du_t * pxDu);
 bool_t xDuEncap(struct du_t * pxDu, pduType_t xType);
 
 bool_t xDuIsOk(const struct du_t * pxDu);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COMPONENTS_RMT_INCLUDE_DU_H_ */

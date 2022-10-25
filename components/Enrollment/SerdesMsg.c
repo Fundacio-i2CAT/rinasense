@@ -6,7 +6,7 @@
 #include <limits.h>
 
 /* RINA includes. */
-#include "portability/rsmem.h"
+#include "portability/port.h"
 #include "rina_common_port.h"
 #include "configSensor.h"
 #include "configRINA.h"
@@ -308,23 +308,11 @@ serObjectValue_t *pxSerdesMsgNeighborEncode(neighborMessage_t *pxMessage)
 
 serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
 {
-
-#ifdef ESP_PLATFORM
-    heap_caps_check_integrity(MALLOC_CAP_DEFAULT, true);
-#endif
-
     bool_t status;
     rina_messages_Flow message = rina_messages_Flow_init_zero;
+    serObjectValue_t *pxSerValue;
 
-    // Allocate space on the stack to store the message data.
-    uint8_t *pucBuffer[1500];
-    int maxLength = MTU;
-
-    if (!pxMsg)
-    {
-        LOGE(TAG_RIB, "No flow message to be sended");
-        return NULL;
-    }
+    RsAssert(pxMsg);
 
     // Fill required attributes
     strcpy(message.sourceNamingInfo.applicationProcessName, pxMsg->pxSourceInfo->pcProcessName);
@@ -368,8 +356,16 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
     message.dtpConfig.dtcpPresent = pxMsg->pxDtpConfig->xDtcpPresent;
     message.dtpConfig.has_dtcpPresent = true;
 
+    if (!(pxSerValue = pvRsMemAlloc(sizeof(rina_messages_Flow) + sizeof(serObjectValue_t)))) {
+        LOGE(TAG_ENROLLMENT, "Out of memory for flow data encoding");
+        return NULL;
+    }
+
+    pxSerValue->pvSerBuffer = pxSerValue + sizeof(serObjectValue_t);
+
     // Create a stream that writes to our buffer.
-    pb_ostream_t stream = pb_ostream_from_buffer((pb_byte_t *)pucBuffer, sizeof(pucBuffer));
+    pb_ostream_t stream = pb_ostream_from_buffer((pb_byte_t *)pxSerValue->pvSerBuffer,
+                                                 sizeof(rina_messages_Flow));
 
     // Now we are ready to encode the message.
     status = pb_encode(&stream, rina_messages_Flow_fields, &message);
@@ -381,8 +377,6 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
         return NULL;
     }
 
-    serObjectValue_t *pxSerValue = pvRsMemAlloc(sizeof(*pxSerValue));
-    pxSerValue->pvSerBuffer = pucBuffer;
     pxSerValue->xSerLength = stream.bytes_written;
 
     return pxSerValue;

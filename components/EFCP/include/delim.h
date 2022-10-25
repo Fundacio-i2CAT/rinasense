@@ -11,6 +11,10 @@
 #include "portability/port.h"
 #include "efcpStructures.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct xDELIM
 {
 	/* The delimiting module instance */
@@ -23,5 +27,9 @@ typedef struct xDELIM
 	uint32_t max_fragment_size;
 
 } delim_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* COMPONENTS_EFCP_INCLUDE_DELIM_H_ */

@@ -6,6 +6,10 @@
 #include "configSensor.h"
 #include "portability/port.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAC2STR_MIN_BUFSZ 18
 
 //Structure MAC ADDRESS
@@ -20,5 +24,9 @@ typedef enum {
 } eGHAType_t;
 
 void mac2str(const MACAddress_t *, string_t, const size_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMMON_MAC_H

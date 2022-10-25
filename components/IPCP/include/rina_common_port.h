@@ -11,6 +11,10 @@
 #include "common/rina_ids.h"
 #include "common/list.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct xQUEUE_FIFO
 {
     RsQueue_t *xQueue;
@@ -233,6 +237,10 @@ enum eFLOW_EVENT
         eFLOW_CLOSED = 0x0020,
         eSELECT_ALL = 0x000F,
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _COMPONENTS_IPCP_INCLUDE_COMMON_PORT_H#
 
