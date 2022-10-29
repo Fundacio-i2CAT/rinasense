@@ -31,6 +31,9 @@
     bool_t xNetworkBuffersInitialise( void );
     NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedSizeBytes,
                                                                   useconds_t xTimeOutUS);
+    NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptorFor (const char *name,
+                                                             size_t xRequestedSizeBytes,
+                                                             useconds_t xTimeOutUS );                                                             
 
 /* The definition of the below function is only available if BufferAllocation_2.c has been linked into the source. */
     NetworkBufferDescriptor_t * pxNetworkBufferGetFromISR( size_t xRequestedSizeBytes );
@@ -39,6 +42,7 @@
 /* The definition of the below function is only available if BufferAllocation_2.c has been linked into the source. */
     bool_t vNetworkBufferReleaseFromISR( NetworkBufferDescriptor_t * const pxNetworkBuffer );
     uint8_t * pucGetNetworkBuffer( size_t * pxRequestedSizeBytes );
+    uint8_t * pucGetNetworkBufferFor (const char *name, size_t * pxRequestedSizeBytes); // preferred
     void vReleaseNetworkBuffer( uint8_t * pucEthernetBuffer );
 
 /* Get the current number of free network buffers. */
@@ -55,6 +59,9 @@
  * In case BufferAllocation_2.c is used, the new space must be allocated. */
     NetworkBufferDescriptor_t * pxResizeNetworkBufferWithDescriptor( NetworkBufferDescriptor_t * pxNetworkBuffer,
                                                                      size_t xNewSizeBytes );
+    NetworkBufferDescriptor_t * pxResizeNetworkBufferWithDescriptorFor (const char *name,
+                                                                NetworkBufferDescriptor_t *pxNetworkBuffer,
+                                                                size_t xNewSizeBytes);
 
     #if ipconfigTCP_IP_SANITY
 
