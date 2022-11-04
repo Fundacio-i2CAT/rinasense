@@ -5,7 +5,7 @@
 
 #include "common/rina_name.h"
 
-#define DELIMITER '|'
+#include "configSensor.h"
 
 void prvNameCopyAssignParts(rname_t *pxDst,
                             string_t pxData,
@@ -34,18 +34,18 @@ bool_t prvBreakdownNameString(rname_t *pxDst, string_t pxStr)
 
     for (c = pxStr; *c != DELIMITER && *c != 0; c++);
     if (*c == 0) return false; /* Bad string */
-    if (*c == '|') *c = 0;
+    if (*c == DELIMITER) *c = 0;
 
     pxDst->pcProcessInstance = c + 1;
 
     for (c++; *c != DELIMITER && *c != 0; c++);
     if (*c == 0) return false; /* Bad string */
-    if (*c == '|') *c = 0;
+    if (*c == DELIMITER) *c = 0;
 
     pxDst->pcEntityName = c + 1;
 
     for (c++; *c != DELIMITER && *c != 0; c++);
-    if (*c == '|') *c = 0;
+    if (*c == DELIMITER) *c = 0;
 
     pxDst->pcEntityInstance = c + 1;
 
@@ -230,7 +230,7 @@ void vNameToStringBuf(const rname_t *pxDst, string_t pcBuf, size_t unSzBuf)
         px += unSzCopy + 1;
 
         if (i < 3)
-            *(px - 1) = '|';
+            *(px - 1) = DELIMITER;
 
         unSzMax -= unSzCopy;
 
@@ -274,7 +274,7 @@ string_t pcNameToString(const rname_t *pxDst)
         memcpy(pcDest, pxDst->pcProcessName, unDestLn);
 
         for (c = pcDest; c < pcDest + unDestLn; c++)
-            if (*c == 0) *c = '|';
+            if (*c == 0) *c = DELIMITER;
     }
 
     return pcDest;
