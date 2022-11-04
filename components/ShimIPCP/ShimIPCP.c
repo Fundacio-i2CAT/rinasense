@@ -63,8 +63,8 @@ struct ipcpInstanceData_t
     gha_t *pxHa;
 
 	/* The IPC Process using the shim-WiFi */
-	rname_t *pxAppName;
-	rname_t *pxDafName;
+	rname_t xAppName;
+	rname_t xDafName;
 
     /* ARP registration names corresponding to the name_t above. */
     gpa_t *pxAppPa;
@@ -595,12 +595,10 @@ bool_t xShimApplicationRegister(struct ipcpInstance_t *pxSelf,
 
     pxData = pxSelf->pxData;
 
-    xNameAssignDup(pxSelf->pxData->pxAppName, pxAppName);
-
-	if (!pxData->pxAppName)	{
-		LOGI(TAG_SHIM, "Failed to create application name for shim");
-		goto err;
-	}
+    if (!xNameAssignDup(&pxSelf->pxData->xAppName, pxAppName)) {
+		LOGE(TAG_SHIM, "Failed to create application name for shim");
+        goto err;
+    }
 
 	if (!(pxData->pxAppPa = pxNameToGPA(pxAppName))) {
         LOGE(TAG_SHIM, "Failed to create protocol address object for shim application name");
@@ -613,12 +611,10 @@ bool_t xShimApplicationRegister(struct ipcpInstance_t *pxSelf,
     }
 
 	//pxData->pxDafName = pxRstrNameDup(pxDafName);
-    xNameAssignDup(pxData->pxDafName, pxDafName);
-
-	if (!pxData->pxDafName) {
+    if (!xNameAssignDup(&pxSelf->pxData->xDafName, pxDafName)) {
 		LOGE(TAG_SHIM, "Failed to create DAF name for shim");
 		goto err;
-	}
+    }
 
 	pxData->pxHa = pxCreateGHA(MAC_ADDR_802_3, &pxData->xPhyDev);
 
@@ -649,10 +645,8 @@ bool_t xShimApplicationRegister(struct ipcpInstance_t *pxSelf,
         LOGW(TAG_SHIM, "Failed to remove DAF mapping");
 
     err:
-    if (pxSelf->pxData->pxAppName)
-        vNameFree(pxData->pxAppName);
-    if (pxData->pxDafName)
-        vNameFree(pxData->pxAppName);
+    vNameFree(&pxData->xAppName);
+    vNameFree(&pxData->xAppName);
 
     if (pxData->pxAppPa)
         vGPADestroy(pxData->pxAppPa);
@@ -695,10 +689,8 @@ bool_t xShimApplicationUnregister(struct ipcpInstance_t *pxSelf, const rname_t *
 
     }
 
-	vNameFree(pxData->pxAppName);
-	pxData->pxAppName = NULL;
-	vNameFree(pxData->pxDafName);
-	pxData->pxDafName = NULL;
+	vNameFree(&pxData->xAppName);
+	vNameFree(&pxData->xDafName);
 
 	LOGI(TAG_SHIM, "Application unregister");
 
