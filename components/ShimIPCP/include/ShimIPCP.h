@@ -46,7 +46,7 @@ typedef struct xSHIM_WIFI_FLOW
 	const gpa_t *pxDestPa;
 
 	/* Port Id of???*/
-	portId_t xPortId;
+	portId_t unPort;
 
 	/* State of the PortId */
 	ePortidState_t ePortIdState;
@@ -71,7 +71,7 @@ bool_t xShimSDURead(struct ipcpInstanceData_t *pxData,
                     portId_t xId,
                     struct du_t *pxDu);
 
-void vShimHandleEthernetPacket(void *pxShimData,
+void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf,
                                NetworkBufferDescriptor_t *pxNetworkBuffer);
 
 #ifdef __cplusplus

@@ -14,7 +14,10 @@ typedef enum RINA_EVENTS
     /* 0: The network interface has been lost and/or needs [re]connecting. */
     eNetworkDownEvent,
 
-    /* 1: The network interface has queued a received Ethernet frame. */
+    /* 1: The network interface has queued a received Ethernet frame.
+     * Data: Port ID
+     * Data2: DU
+     */
     eNetworkRxEvent,
 
     /* 2: Let the Shim-task send a network packet. */
@@ -45,6 +48,9 @@ typedef union xRINA_Event_Data
     int32_t  N;
     char     C;
     uint8_t  B;
+
+    struct du_t *DU;
+
 } RINAEventData_u;
 
 /**

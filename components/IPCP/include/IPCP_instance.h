@@ -33,8 +33,8 @@ struct ipcpInstanceData_t;
 
 typedef enum TYPE_IPCP_INSTANCE
 {
-    eShimWiFi = 0,
-    eNormal
+    eShimWiFi = 1,
+    eNormal = 2
 
 } ipcpInstanceType_t;
 
@@ -56,9 +56,21 @@ struct ipcpInstance_t
 /* Operations available in an IPCP*/
 struct ipcpInstanceOps_t
 {
+    /* Lifecycle functions. */
+
+    bool_t (*start)(struct ipcpInstance_t *pxIpcp);
+
+    bool_t (*stop)(struct ipcpInstance_t *pxIpcp);
+
+    bool_t (*enable)(struct ipcpInstance_t *pxIpcp);
+
+    bool_t (*disable)(struct ipcpInstance_t *pxIpcp);
+
+    /* Protocol functions */
+
     bool_t (*flowAllocateRequest)(struct ipcpInstance_t *pxIpcp,
-                                  name_t *pxSource,
-                                  name_t *pxDest,
+                                  rname_t *pxSource,
+                                  rname_t *pxDest,
                                   // struct flowSpec_t *    		pxFlowSpec,
                                   portId_t xId);
     bool_t (*flowAllocateResponse)(struct ipcpInstance_t *pxIpcp,
@@ -68,14 +80,14 @@ struct ipcpInstanceOps_t
                              portId_t xId);
 
     bool_t (*applicationRegister)(struct ipcpInstance_t *pxIpcp,
-                                  const name_t *pxSource,
-                                  const name_t *pxDafName);
+                                  const rname_t *pxSource,
+                                  const rname_t *pxDafName);
 
     bool_t (*applicationUnregister)(struct ipcpInstance_t *pxIpcp,
-                                    const name_t *pxSource);
+                                    const rname_t *pxSource);
 
     bool_t (*assignToDif)(struct ipcpInstance_t *pxIpcp,
-                          const name_t *pxDifName,
+                          rname_t *pxDifName,
                           const string_t *type
                           /*dif_config * config*/);
 
@@ -95,7 +107,7 @@ struct ipcpInstanceOps_t
                                 address_t xDest,
                                 qosId_t xQosId,
                                 dtpConfig_t *dtp_config,
-                                struct dtcpConfig_t *dtcp_config);
+                                dtcpConfig_t *dtcp_config);
 
     bool_t (*connectionUpdate)(struct ipcpInstance_t *pxIpcp,
                                portId_t xPortId,
@@ -172,8 +184,8 @@ struct ipcpInstanceOps_t
                       uint32_t                    scope,
                       const string_t *            filter);*/
 
-    const name_t *(*ipcpName)(struct ipcpInstance_t *pxIpcp);
-    const name_t *(*difName)(struct ipcpInstance_t *pxIpcp);
+    const rname_t *(*ipcpName)(struct ipcpInstance_t *pxIpcp);
+    const rname_t *(*difName)(struct ipcpInstance_t *pxIpcp);
     /*ipc_process_id_t (* ipcp_id)(ipcpInstanceData_t * pxData);
 
     int (* set_policy_set_param)(struct ipcp_instance_data * data,

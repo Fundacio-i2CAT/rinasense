@@ -7,55 +7,46 @@
 extern "C" {
 #endif
 
-/**
- * Set all the component of a name from static string. Pay attention
- * not to free a name that is set that way.
- */
-#define NAME_SET(nm, pe, pi, en, ei)             \
-    (*nm).pcProcessName = pe;                    \
-    (*nm).pcProcessInstance = pi;                \
-    (*nm).pcEntityName = en;                     \
-    (*nm).pcEntityInstance = ei;
-
 typedef struct xName_info
 {
-	string_t pcProcessName;  		/*> Process Name*/
-	string_t pcProcessInstance;		/*> Process Instance*/
-	string_t pcEntityName;			/*> Entity Name*/
-	string_t pcEntityInstance;		/*> Entity Instance*/
-} name_t;
+    size_t unPostLn;
 
-name_t *xRINANameInitFrom(name_t *pxDst,
-                          const string_t process_name,
-                          const string_t process_instance,
-                          const string_t entity_name,
-                          const string_t entity_instance);
+    string_t pcProcessName;
+    string_t pcProcessInstance;
+    string_t pcEntityName;
+    string_t pcEntityInstance;
+} rname_t;
 
-void vRstrNameFini(name_t *n);
+rname_t *pxNameNewFromString(const string_t pcNmStr);
 
-void vRstrNameFree(name_t *xName);
+rname_t *pxNameNewFromParts(string_t pcProcessName,
+                            string_t pcProcessInstance,
+                            string_t pcEntityName,
+                            string_t pcEntityInstance);
 
-name_t *pxRStrNameCreate(void);
+void vNameFree(rname_t *pxNm);
 
-name_t *pxRstrNameDup(const name_t *pxSrc);
+void vNameAssignFromPartsStatic(rname_t *pxDst,
+                                string_t pcProcessName,
+                                string_t pcProcessInstance,
+                                string_t pcEntityName,
+                                string_t pcEntityInstance);
 
-void vRstrNameDestroy(name_t *pxName);
+bool_t xNameAssignFromPartsDup(rname_t *pxDst,
+                               string_t pcProcessName,
+                               string_t pcProcessInstance,
+                               string_t pcEntityName,
+                               string_t pcEntityInstance);
 
-bool_t xRstringDup(const string_t pxSrc, string_t *pxDst);
+bool_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr);
 
-name_t *xRinaNameCreate(void);
+void vNameAssignStatic(rname_t *pxDst, const rname_t *pxSrc);
 
-bool_t xRinaNameFromString(const string_t pcString, name_t * xName);
+bool_t xNameAssignDup(rname_t *pxDst, const rname_t *pxSrc);
 
-void xRinaNameFree(name_t *xName);
+string_t pcNameToString(const rname_t *pxDst);
 
-bool_t xRINAStringDup(const char *pcSrc, char *pcDst);
-
-name_t *xRINAstringToName(const string_t pxInput);
-
-string_t pcNameToString(const name_t *n);
-
-void pcNameToStrBuf(const name_t *pxName, stringbuf_t *pcBuf, size_t unBufSz);
+void vNameToStringBuf(const rname_t *pxDst, string_t pcBuf, size_t unSzBuf);
 
 #ifdef __cplusplus
 }

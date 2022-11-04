@@ -23,7 +23,7 @@ int main(void)
 	size_t xLenBuffer = 1024;
 	char *data;
 
-	RINA_IPCPInit();
+    RINA_Init();
     pause();
 
 #if 0

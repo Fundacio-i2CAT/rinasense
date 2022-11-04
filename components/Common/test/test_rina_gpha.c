@@ -36,12 +36,12 @@ RS_TEST_CASE(GPAConversion, "[gpa][gpha]")
 {
     string_t nm1 = "e1|e2|e3|e4", nm2;
     gpa_t *gpa1;
-    name_t n1;
+    rname_t *n1;
 
     RS_TEST_CASE_BEGIN(test_rina_gpha);
 
-    TEST_ASSERT(xRinaNameFromString(nm1, &n1) == true);
-    TEST_ASSERT((gpa1 = pxNameToGPA(&n1)) != NULL);
+    TEST_ASSERT(n1 = pxNameNewFromString(nm1));
+    TEST_ASSERT((gpa1 = pxNameToGPA(n1)) != NULL);
     TEST_ASSERT(xIsGPAOK(gpa1) == true);
     TEST_ASSERT((nm2 = xGPAAddressToString(gpa1)) != NULL);
 

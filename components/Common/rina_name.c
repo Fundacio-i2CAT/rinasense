@@ -1,395 +1,282 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "configSensor.h"
-#include "common/rina_name.h"
+#include "linux_rsmem.h"
 #include "portability/port.h"
 
-#define TAG_RINA_NAME "rina_name"
+#include "common/rina_name.h"
 
-name_t *pxRStrNameCreate(void)
+#define DELIMITER '|'
+
+void prvNameCopyAssignParts(rname_t *pxDst,
+                            string_t pxData,
+                            string_t pcProcessName,
+                            string_t pcProcessInstance,
+                            string_t pcEntityName,
+                            string_t pcEntityInstance)
 {
-        name_t *pxTmp;
+    string_t px = pxData;
 
-        pxTmp = pvRsMemAlloc(sizeof(name_t));
-        if (!pxTmp)
-                return NULL;
-        memset(pxTmp, 0, sizeof(name_t));
-
-        return pxTmp;
+    pxDst->pcProcessName = px;
+    while ((*px++ = *pcProcessName++));
+    pxDst->pcProcessInstance = px;
+    while ((*px++ = *pcProcessInstance++));
+    pxDst->pcEntityName = px;
+    while ((*px++ = *pcEntityName++));
+    pxDst->pcEntityInstance = px;
+    while ((*px++ = *pcEntityInstance++));
 }
 
-void vRstrNameFini(name_t *n)
+bool_t prvBreakdownNameString(rname_t *pxDst, string_t pxStr)
 {
-        RsAssert(n);
+    char *c;
 
-        if (n->pcProcessName)
-        {
-                vRsMemFree(n->pcProcessName);
-                n->pcProcessName = NULL;
-        }
-        if (n->pcProcessInstance)
-        {
-                vRsMemFree(n->pcProcessInstance);
-                n->pcProcessInstance = NULL;
-        }
-        if (n->pcEntityName)
-        {
-                vRsMemFree(n->pcEntityName);
-                n->pcEntityName = NULL;
-        }
-        if (n->pcEntityInstance)
-        {
-                vRsMemFree(n->pcEntityInstance);
-                n->pcEntityInstance = NULL;
-        }
+    pxDst->pcProcessName = pxStr;
 
-        LOGI(TAG_RINA_NAME, "Name at %pK finalized successfully", n);
+    for (c = pxStr; *c != DELIMITER && *c != 0; c++);
+    if (*c == 0) return false; /* Bad string */
+    if (*c == '|') *c = 0;
+
+    pxDst->pcProcessInstance = c + 1;
+
+    for (c++; *c != DELIMITER && *c != 0; c++);
+    if (*c == 0) return false; /* Bad string */
+    if (*c == '|') *c = 0;
+
+    pxDst->pcEntityName = c + 1;
+
+    for (c++; *c != DELIMITER && *c != 0; c++);
+    if (*c == '|') *c = 0;
+
+    pxDst->pcEntityInstance = c + 1;
+
+    return true;
 }
 
-void vRstrNameDestroy(name_t *pxName)
+/* *** */
+
+rname_t *pxNameNewFromString(const string_t pcNmStr)
 {
-        RsAssert(pxName);
+    size_t len;
+    rname_t *pxDst;
+    string_t pxData;
 
-        vRstrNameFini(pxName);
+    len = strlen(pcNmStr);
 
-        LOGI(TAG_RINA_NAME, "Name at %pK destroyed", pxName);
-
-        vRsMemFree(pxName);
-}
-
-void vRstrNameFree(name_t *xName)
-{
-        if (!xName)
-        {
-                return;
-        }
-
-        if (xName->pcProcessName)
-        {
-                vRsMemFree(xName->pcProcessName);
-                xName->pcProcessName = NULL;
-        }
-
-        if (xName->pcProcessInstance)
-        {
-                vRsMemFree(xName->pcProcessInstance);
-                xName->pcProcessInstance = NULL;
-        }
-
-        if (xName->pcEntityName)
-        {
-                vRsMemFree(xName->pcEntityName);
-                xName->pcEntityName = NULL;
-        }
-
-        if (xName->pcEntityInstance)
-        {
-                vRsMemFree(xName->pcEntityInstance);
-                xName->pcEntityInstance = NULL;
-        }
-
-        vRsMemFree(xName);
-}
-
-//BaseType_t xRinaNameFromString(const char * pcString, name_t *xName);
-
-char *pcRstrDup(const char *s)
-{
-        size_t len;
-        char *buf;
-
-        if (!s)
-                return NULL;
-
-        len = strlen(s) + 1;
-        LOGE(TAG_RINA_NAME, "Len RstrDup: %zu", len);
-        buf = pvRsMemAlloc(len);
-        memset(buf,0,len);
-        if (buf)
-                memcpy(buf, s, len);
-
-        return buf;
-}
-
-bool_t xRstringDup(const string_t pxSrc, string_t *pxDst)
-{
-#ifdef __FREERTOS__
-        LOGE(TAG_RINA, "Free Heap Size: %d", xPortGetFreeHeapSize());
-        LOGE(TAG_RINA, "Minimum Ever Heap Size: %d", xPortGetMinimumEverFreeHeapSize());
-        heap_caps_check_integrity_all(true);
-#endif
-        if (!pxDst)
-        {
-                LOGE(TAG_RINA_NAME, "Destination string is NULL, cannot copy");
-                return false;
-        }
-
-        if (pxSrc)
-        {
-                *pxDst = pcRstrDup(pxSrc);
-                if (!*pxDst)
-                {
-                        LOGE(TAG_RINA_NAME, "Cannot duplicate source string "
-                                           "in kernel-space");
-                        return false;
-                }
-        }
-        else
-        {
-                LOGE(TAG_RINA_NAME, "Duplicating a NULL source string ...");
-                *pxDst = NULL;
-        }
-
-        return true;
-}
-
-
-bool_t xRstrNameCpy(const name_t *pxSrc, name_t *pxDst)
-{
-        if (!pxSrc || !pxDst)
-                return false;
-
-        LOGI(TAG_RINA_NAME, "Copying name %pK into %pK", pxSrc, pxDst);
-
-        vRstrNameFini(pxDst);
-
-        // ASSERT(name_is_initialized(pxDst));
-
-        /* We rely on short-boolean evaluation ... :-) */
-        if (xRstringDup(pxSrc->pcProcessName, &pxDst->pcProcessName)
-            || xRstringDup(pxSrc->pcProcessInstance, &pxDst->pcProcessInstance)
-            || xRstringDup(pxSrc->pcEntityName, &pxDst->pcEntityName)
-            || xRstringDup(pxSrc->pcEntityInstance, &pxDst->pcEntityInstance))
-        {
-                vRstrNameFini(pxDst);
-                return false;
-        }
-
-        LOGI(TAG_RINA_NAME, "Name %pK copied successfully into %pK", pxSrc, pxDst);
-
-        return true;
-}
-
-name_t *xRINANameInitFrom(name_t *pxDst,
-                          const string_t process_name,
-                          const string_t process_instance,
-                          const string_t entity_name,
-                          const string_t entity_instance)
-{
-        if (!pxDst)
-                return NULL;
-
-        /* Clean up the destination, leftovers might be there ... */
-        vRstrNameFini(pxDst);
-        // name_fini(pxDst);
-
-        // ASSERT(name_is_initialized(pxDst));
-
-        /* Boolean shortcuits ... */
-        if (!xRstringDup(process_name, &pxDst->pcProcessName) ||
-            !xRstringDup(process_instance, &pxDst->pcProcessInstance) ||
-            !xRstringDup(entity_name, &pxDst->pcEntityName) ||
-            !xRstringDup(entity_instance, &pxDst->pcEntityInstance))
-        {
-                vRstrNameFini(pxDst);
-                return NULL;
-        }
-
-        return pxDst;
-}
-
-name_t *xRINAstringToName(const string_t pxInput)
-{
-        name_t *pxName;
-
-        char * tmp1 = NULL;
-        char * tmp_pn = NULL;
-        char * tmp_pi = NULL;
-        char * tmp_en = NULL;
-        char * tmp_ei = NULL;
-
-        LOGE(TAG_RINA_NAME, "pxInput: %s", pxInput);
-
-        if (pxInput)
-        {
-                char * tmp2;
-
-                xRstringDup(pxInput, &tmp1);
-                if (!tmp1)
-                {
-                        return NULL;
-                }
-                tmp2 = tmp1;
-
-                tmp_pn = strsep(&tmp2, DELIMITER);
-                tmp_pi = strsep(&tmp2, DELIMITER);
-                tmp_en = strsep(&tmp2, DELIMITER);
-                tmp_ei = strsep(&tmp2, DELIMITER);
-        }
-
-        LOGE(TAG_RINA_NAME, "tmp_pn: %s", tmp_pn);
-        pxName = pxRStrNameCreate();
-        if (!pxName)
-        {
-                if (tmp1)
-                        vRsMemFree(tmp1);
-                return NULL;
-        }
-
-        if (!xRINANameInitFrom(pxName, tmp_pn, tmp_pi, tmp_en, tmp_ei))
-        {
-                vRstrNameFini(pxName);
-                if (tmp1)
-                        vRsMemFree(tmp1);
-                return NULL;
-        }
-
-        if (tmp1)
-                vRsMemFree(tmp1);
-
-        return pxName;
-}
-
-bool_t xRinaNameFromString(const string_t pcString, name_t *pxName)
-{
-        LOGE(TAG_RINA, "Calling: %s", __func__);
-
-        char *apn, *api, *aen, *aei;
-        char *strc = pcRstrDup(pcString);
-        char *strc_orig = strc;
-        char **strp = &strc;
-
-        memset(pxName, 0, sizeof(*pxName));
-
-        if (!strc)
-                return false;
-
-        apn = strsep(strp, "|");
-        api = strsep(strp, "|");
-        aen = strsep(strp, "|");
-        aei = strsep(strp, "|");
-
-        if (!apn)
-        {
-                vRsMemFree(strc_orig);
-                return false;
-        }
-
-        pxName->pcProcessName = (apn && strlen(apn)) ? pcRstrDup(apn) : pcRstrDup("");
-        pxName->pcProcessInstance = (api && strlen(api)) ? pcRstrDup(api) : pcRstrDup("");
-        pxName->pcEntityName = (aen && strlen(aen)) ? pcRstrDup(aen) : pcRstrDup("");
-        pxName->pcEntityInstance = (aei && strlen(aei)) ? pcRstrDup(aei) : pcRstrDup("");
-
-        LOGE(TAG_FA, "RinaNameFromString - pcProcessName: %s", pxName->pcProcessName);
-        LOGE(TAG_FA, "RinaNameFromString - pcProcessInstance: %s", pxName->pcProcessInstance);
-        LOGE(TAG_FA, "RinaNameFromString - pcEntityName: %s", pxName->pcEntityName);
-        LOGE(TAG_FA, "RinaNameFromString - pcEntityInstance: %s", pxName->pcEntityInstance);
-
-        if ((apn && strlen(apn) && !pxName->pcProcessName) ||
-            (api && strlen(api) && !pxName->pcProcessInstance) ||
-            (aen && strlen(aen) && !pxName->pcEntityName) ||
-            (aei && strlen(aei) && !pxName->pcEntityInstance))
-        {
-                vRstrNameFini(pxName);
-                return false;
-        }
-
-        vRsMemFree(strc_orig);
-
-        return true;
-}
-
-/**
- * @brief Duplicate a Rina Name structure
- *
- * @param pxSrc Pointer to the Rina Name structure
- * @return Pointer to the Rina Name duplicated.
- */
-name_t *pxRstrNameDup(const name_t *pxSrc)
-{
-        name_t *pxTmp;
-
-        if (!pxSrc)
-                return NULL;
-
-        pxTmp = pxRStrNameCreate();
-        if (!pxTmp)
-                return NULL;
-        if (xRstrNameCpy(pxSrc, pxTmp))
-        {
-                vRstrNameDestroy(pxTmp);
-                return NULL;
-        }
-
-        return pxTmp;
-}
-
-string_t pcNameToString(const name_t *n)
-{
-    char *         tmp;
-    size_t         size;
-    const string_t none = "";
-    size_t         none_len = strlen(none);
-
-    if (!n)
+    if (!(pxDst = pvRsMemAlloc(sizeof(rname_t) + len + 1)))
         return NULL;
 
-    size  = 0;
+    pxDst->unPostLn = len;
+    pxData = (void *)pxDst + sizeof(rname_t);
+    strcpy(pxData, pcNmStr);
 
-    size += (n->pcProcessName                 ?
-             strlen(n->pcProcessName)     : none_len);
-    size += strlen(DELIMITER);
-
-    size += (n->pcProcessInstance             ?
-             strlen(n->pcProcessInstance) : none_len);
-    size += strlen(DELIMITER);
-
-    size += (n->pcEntityName                  ?
-             strlen(n->pcEntityName)      : none_len);
-    size += strlen(DELIMITER);
-
-    size += (n->pcEntityInstance              ?
-             strlen(n->pcEntityInstance)  : none_len);
-    size += strlen(DELIMITER);
-
-    tmp = pvRsMemAlloc(size);
-    memset(tmp, 0, sizeof(*tmp));
-
-    if (!tmp)
-        return NULL;
-
-    if (snprintf(tmp, size,
-                 "%s%s%s%s%s%s%s",
-                 (n->pcProcessName     ? n->pcProcessName     : none),
-                 DELIMITER,
-                 (n->pcProcessInstance ? n->pcProcessInstance : none),
-                 DELIMITER,
-                 (n->pcEntityName      ? n->pcEntityName      : none),
-                 DELIMITER,
-                 (n->pcEntityInstance  ? n->pcEntityInstance  : none)) !=
-        (int)(size - 1)) {
-        vRsMemFree(tmp);
+    if (!prvBreakdownNameString(pxDst, pxData)) {
+        vRsMemFree(pxDst);
         return NULL;
     }
+    else return pxDst;
+}
 
-    return tmp;
+rname_t *pxNameNewFromParts(string_t pcProcessName,
+                            string_t pcProcessInstance,
+                            string_t pcEntityName,
+                            string_t pcEntityInstance)
+{
+	size_t len;
+	string_t pxData;
+    rname_t *pxDst;
+
+    len = strlen(pcProcessName)
+        + strlen(pcProcessInstance)
+        + strlen(pcEntityName)
+        + strlen(pcEntityInstance);
+
+    if (!(pxDst = pvRsMemAlloc(sizeof(rname_t) + len + 4)))
+        return false;
+
+    pxDst->unPostLn = len;
+
+    /* Copy the name components in memory after the struct */
+    pxData = (void *)pxDst + sizeof(rname_t);
+
+    prvNameCopyAssignParts(pxDst, pxData,
+                           pcProcessName, pcProcessInstance,
+                           pcEntityName, pcEntityInstance);
+
+    return pxDst;
+}
+
+void vNameFree(rname_t *pxNm)
+{
+    /* If there is no memory reserved after the struct, free the first
+       component. This will take care of the rest. Otherwise, free the
+       whole struct. */
+
+    if (!pxNm->unPostLn)
+        vRsMemFree(pxNm->pcProcessName);
+    else
+        vRsMemFree(pxNm);
+}
+
+void vNameAssignFromPartsStatic(rname_t *pxDst,
+                                string_t pcProcessName,
+                                string_t pcProcessInstance,
+                                string_t pcEntityName,
+                                string_t pcEntityInstance)
+{
+    pxDst->pcProcessName = pcProcessName;
+    pxDst->pcProcessInstance = pcProcessInstance;
+    pxDst->pcEntityName = pcEntityName;
+    pxDst->pcEntityInstance = pcEntityInstance;
+
+    /* No memory reserved after the struct */
+    pxDst->unPostLn = 0;
+}
+
+bool_t xNameAssignFromPartsDup(rname_t *pxDst,
+                               string_t pcProcessName,
+                               string_t pcProcessInstance,
+                               string_t pcEntityName,
+                               string_t pcEntityInstance)
+{
+    size_t len;
+    string_t newq;
+
+    /* 1 char for the '0' */
+    len = (pcProcessName     ? strlen(pcProcessName)     : 1)
+        + (pcProcessInstance ? strlen(pcProcessInstance) : 1)
+        + (pcEntityName      ? strlen(pcEntityName)      : 1)
+        + (pcEntityInstance  ? strlen(pcEntityInstance)  : 1);
+
+    if (!(newq = pvRsMemAlloc(len + 4 + 1)))
+        return false;
+
+    prvNameCopyAssignParts(pxDst, newq,
+                           (pcProcessName     ? pcProcessName     : ""),
+                           (pcProcessInstance ? pcProcessInstance : ""),
+                           (pcEntityName      ? pcEntityName      : ""),
+                           (pcEntityInstance  ? pcEntityInstance  : ""));
+
+    /* No memory reserved after the struct */
+    pxDst->unPostLn = 0;
+
+    return true;
+}
+
+bool_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr)
+{
+    string_t pxNewStr;
+    size_t unStrSz;
+    char *c;
+
+    /* Copy the string */
+    unStrSz = strlen(pxNmStr);
+    pxNewStr = pvRsMemAlloc(unStrSz + 1);
+    strcpy(pxNewStr, pxNmStr);
+
+    pxDst->unPostLn = 0;
+
+    if (!prvBreakdownNameString(pxDst, pxNewStr)) {
+        /* Error? Entirely wipe the name_t object to make sure it's
+         * not usable. */
+
+        bzero(pxDst, sizeof(rname_t));
+        vRsMemFree(pxNewStr);
+        return false;
+    }
+    else return true;
 }
 
 /**
- * Convert the name to a string inside a static buffer.
+ * Make pxDst the same as pxSrc, copying only components pointers
  */
-void pcNameToStrBuf(const name_t *pxName, stringbuf_t *pcBuf, size_t unBufSz)
+void vNameAssignStatic(rname_t *pxDst, const rname_t *pxSrc)
 {
-    const string_t none = "";
+    vNameAssignFromPartsStatic(pxDst,
+                               pxSrc->pcProcessName, pxSrc->pcProcessInstance,
+                               pxSrc->pcEntityName, pxSrc->pcProcessInstance);
+}
 
-    snprintf(pcBuf, unBufSz,
-             "%s%s%s%s%s%s%s",
-             (pxName->pcProcessName     ? pxName->pcProcessName     : none),
-             DELIMITER,
-             (pxName->pcProcessInstance ? pxName->pcProcessInstance : none),
-             DELIMITER,
-             (pxName->pcEntityName      ? pxName->pcEntityName      : none),
-             DELIMITER,
-             (pxName->pcEntityInstance  ? pxName->pcEntityInstance  : none));
+/**
+ * Make pxDst the same as pxSrc, copying pxSrc content.
+ */
+bool_t xNameAssignDup(rname_t *pxDst, const rname_t *pxSrc)
+{
+    return xNameAssignFromPartsDup(pxDst,
+                                   pxSrc->pcProcessName, pxSrc->pcProcessInstance,
+                                   pxSrc->pcEntityName, pxSrc->pcProcessInstance);
+}
+
+void vNameToStringBuf(const rname_t *pxDst, string_t pcBuf, size_t unSzBuf)
+{
+    char *strings[] = {
+        pxDst->pcProcessName,
+        pxDst->pcProcessInstance,
+        pxDst->pcEntityName,
+        pxDst->pcEntityInstance
+    };
+    size_t unSzCopy, unSzSrc, unSzMax;
+    char *px;
+
+    unSzMax = unSzBuf - 1;
+    px = pcBuf;
+
+    for (int i = 0; i < 4; i++) {
+        if ((unSzSrc = strlen(strings[i])) < unSzMax)
+            unSzCopy = unSzSrc;
+        else
+            unSzCopy = unSzMax;
+
+        strncpy(px, strings[i], unSzCopy);
+        px += unSzCopy + 1;
+
+        if (i < 3)
+            *(px - 1) = '|';
+
+        unSzMax -= unSzCopy;
+
+        if (unSzMax == 0) {
+            pcBuf[unSzBuf - 1] = 0;
+            break;
+        }
+    }
+}
+
+string_t pcNameToString(const rname_t *pxDst)
+{
+    string_t pcDest, c;
+    size_t unDestLn;
+
+    /* If there is nothing allocated after the structure in memory,
+       calculate the length of each string components. */
+    if (!pxDst->unPostLn) {
+        unDestLn = 0;
+
+        unDestLn = strlen(pxDst->pcProcessName);
+        unDestLn += strlen(pxDst->pcProcessInstance);
+        unDestLn += strlen(pxDst->pcEntityName);
+        unDestLn += strlen(pxDst->pcEntityInstance);
+        unDestLn += 4; /* Null bytes */
+
+        if (!(pcDest = pvRsMemAlloc(unDestLn)))
+            return NULL;
+
+        vNameToStringBuf(pxDst, pcDest, unDestLn);
+    }
+    /* If there are some bytes after the structure, we already have
+       the length we need and the strings are supposed to be all one
+       after each other after the structure. */
+    else {
+        unDestLn = pxDst->unPostLn;
+
+        if (!(pcDest = pvRsMemAlloc(unDestLn)))
+            return NULL;
+
+        memcpy(pcDest, pxDst->pcProcessName, unDestLn);
+
+        for (c = pcDest; c < pcDest + unDestLn; c++)
+            if (*c == 0) *c = '|';
+    }
+
+    return pcDest;
 }

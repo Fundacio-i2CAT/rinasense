@@ -35,13 +35,22 @@ typedef struct xIPC_MANAGER
 
 } ipcManager_t;
 
+#define DECLARE_IPC_MANAGER_LIFECYCLE_FUNCTION(x) \
+    bool_t xIpcManagerRun##x();
+
 extern ipcManager_t xIpcManager;
 
 bool_t xIpcManagerInit(ipcManager_t *pxIpcManager);
 
-void vIcpManagerEnrollmentFlowRequest(struct ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName);
+void vIcpManagerEnrollmentFlowRequest(struct ipcpInstance_t *pxShimInstance, portId_t xN1PortId, rname_t *pxIPCPName);
 
 void vIpcpManagerAppFlowAllocateRequestHandle(flowAllocateHandle_t *pxFlowAllocateRequest);
+
+/* IPC ID Management */
+
+ipcProcessId_t unIpcManagerReserveIpcpId(ipcManager_t *pxIpcManager);
+
+void vIpcManagerReleaseIpcpId(ipcManager_t *pxIpcManager, ipcProcessId_t unIpcpId);
 
 /* Port management */
 
@@ -53,6 +62,16 @@ void vIpcManagerReleasePort(ipcManager_t *pxIpcManager, portId_t unPortId);
 
 void vIpcManagerAdd(ipcManager_t *pxIpcManager, struct ipcpInstance_t *pxIpcp);
 
+/* Lifecycle functions */
+
+DECLARE_IPC_MANAGER_LIFECYCLE_FUNCTION(Start);
+
+DECLARE_IPC_MANAGER_LIFECYCLE_FUNCTION(Stop);
+
+DECLARE_IPC_MANAGER_LIFECYCLE_FUNCTION(Enable);
+
+DECLARE_IPC_MANAGER_LIFECYCLE_FUNCTION(Disable);
+
 /* Search */
 
 struct ipcpInstance_t *pxIpcManagerFindById(ipcManager_t *pxIpcManager, ipcpInstanceId_t xIpcpId);
@@ -60,8 +79,6 @@ struct ipcpInstance_t *pxIpcManagerFindById(ipcManager_t *pxIpcManager, ipcpInst
 struct ipcpInstance_t *pxIpcManagerFindByType(ipcManager_t *pxIpcManager, ipcpInstanceType_t xType);
 
 void vIpcManagerRINAPackettHandler(struct ipcpInstanceData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
-
-struct ipcpInstance_t *pxIpcManagerCreateShim();
 
 #ifdef __cplusplus
 }

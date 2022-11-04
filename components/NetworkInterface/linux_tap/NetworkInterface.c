@@ -27,6 +27,7 @@
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
 #include "ShimIPCP.h"
+#include "rina_common_port.h"
 
 struct ReadThreadParams {
     int nTapFD;
@@ -74,7 +75,7 @@ const MACAddress_t *pxMacAddr;
 
 /* TEMPORARY: blind pointer to the IPCP instance data so we can pass
  * it to the shim when we receive packets. */
-void *pxInstanceData;
+struct ipcpInstance_t *pxSelf;
 
 bool_t prvLinuxGetMac(string_t sTapName, MACAddress_t *pxMac)
 {
@@ -251,7 +252,7 @@ void *prvLinuxTapReadThread(void *pvParams)
             /* Hang ups are not normal here. */
             if (count < 0 || count == 0) break;
 
-            /* Otherwise, this is an actual packet and send it up the
+            /* Otherwise, this is an actual packet anId send it up the
                stack. */
             else xNetworkInterfaceInput(buffer, count, NULL);
         }
@@ -452,9 +453,9 @@ static inline void prvGenRandomEth(uint8_t *pAddr)
 
 /* Public interface */
 
-bool_t xNetworkInterfaceInitialise(void *pxInstData, MACAddress_t *pxPhyDev)
+bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev)
 {
-    pxInstanceData = pxInstData;
+    pxSelf = pxS;
 
 #if LINUX_TAP_CREATE == true
     /* If we're in create mode, return an error if the TAP device
@@ -616,7 +617,7 @@ bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 		/* Copy the packet data. */
 		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
-        vShimHandleEthernetPacket(pxInstanceData, pxNetworkBuffer);
+        vShimHandleEthernetPacket(pxSelf, pxNetworkBuffer);
 
 		return true;
 	}

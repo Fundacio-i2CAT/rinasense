@@ -13,9 +13,16 @@ extern "C" {
 
 /* NEW AND REVIEWED DECLARATIONS START HERE. */
 
+struct ipcpInstance_t *pxNormalCreate(ipcProcessId_t unIpcpId);
+
 bool_t xNormalDuEnqueue(struct ipcpInstance_t *pxIpcp,
                         portId_t xN1PortId,
                         struct du_t *pxDu);
+
+const rname_t *xNormalGetIpcpName(struct ipcpInstance_t *pxSelf);
+
+const rname_t *xNormalGetDifName(struct ipcpInstance_t *pxSelf);
+
 
 /* OLD DECLARATIONS START HERE. */
 
@@ -30,14 +37,14 @@ cepId_t xNormalConnectionCreateRequest(struct ipcpInstance_t *pxIpcp,
                                        address_t xDest,
                                        qosId_t xQosId,
                                        dtpConfig_t *pxDtpCfg,
-                                       struct dtcpConfig_t *pxDtcpCfg);
+                                       dtcpConfig_t *pxDtcpCfg);
 
 bool_t xNormalTest(struct ipcpInstance_t *pxIpcp,
                    struct ipcpInstance_t *pxN1Ipcp);
 
 bool_t xNormalRegistering(struct ipcpInstance_t *pxShimInstance,
-                          name_t *pxDifName,
-                          name_t *pxName);
+                          rname_t *pxDifName,
+                          rname_t *pxName);
 
 bool_t xNormalFlowAllocationRequest(struct ipcpInstance_t *pxIpcpFrom,
                                     struct ipcpInstance_t *pxIpcpTo,
@@ -46,7 +53,7 @@ bool_t xNormalFlowAllocationRequest(struct ipcpInstance_t *pxIpcpFrom,
 bool_t xNormalFlowPrebind(struct ipcpInstance_t *pxIpcp,
                           flowAllocateHandle_t *pxFlowHandle);
 
-bool_t xNormalMgmtDuWrite(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu);
+bool_t xNormalMgmtDuWrite(struct ipcpInstance_t *pxIpcp, portId_t xPortId, struct du_t *pxDu);
 
 bool_t xNormalMgmtDuPost(struct ipcpInstance_t *pxIpcp, portId_t xPortId, struct du_t *pxDu);
 

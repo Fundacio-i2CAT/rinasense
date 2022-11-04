@@ -3,6 +3,7 @@
 
 #include "portability/port.h"
 #include "common/rina_gpha.h"
+#include "rina_common_port.h"
 
 #include "configSensor.h"
 #include "BufferManagement.h"
@@ -11,12 +12,13 @@
 extern "C" {
 #endif
 
+
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
     //#include "ShimIPCP.h"
 
     /* INTERNAL API FUNCTIONS. */
-bool_t xNetworkInterfaceInitialise(void *pxInstData, MACAddress_t *phyDev);
+bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxSelf, MACAddress_t *phyDev);
     bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
                                    bool_t xReleaseAfterSend);
 

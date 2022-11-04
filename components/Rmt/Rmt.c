@@ -1,6 +1,8 @@
 #include <stdio.h>
 
+#include "IPCP_normal_api.h"
 #include "IpcManager.h"
+#include "common/list.h"
 #include "efcpStructures.h"
 #include "portability/port.h"
 #include "common/rina_ids.h"
@@ -13,9 +15,24 @@
 #include "EFCP.h"
 #include "configRINA.h"
 
-/** @brief RMT Array PortId Created.
- *  */
-static portTableEntry_t xPortIdTable[2];
+rmtN1Port_t *prvRmtPortFind(struct rmt_t *pxRmt, portId_t unPortId)
+{
+    rmtN1Port_t *pxPort;
+    RsListItem_t *pxListItem;
+
+    pxListItem = pxRsListGetFirst(&pxRmt->xPorts);
+
+    while (pxListItem != NULL) {
+        pxPort = (rmtN1Port_t *)pxRsListGetItemOwner(pxListItem);
+
+        if (pxPort && pxPort->unPort == unPortId)
+            return pxPort;
+
+        pxListItem = pxRsListGetNext(pxListItem);
+    }
+
+    return NULL;
+}
 
 bool_t xRmtInit(struct rmt_t *pxRmt)
 {
@@ -23,22 +40,13 @@ bool_t xRmtInit(struct rmt_t *pxRmt)
 
     RsAssert(pxRmt);
 
-    if (!(pxPortN1 = pvRsMemAlloc(sizeof(*pxPortN1)))) {
+    if (!(pxPortN1 = pvRsMemAlloc(sizeof(rmtN1Port_t)))) {
         LOGE(TAG_RMT, "Failed to allocate memory for port");
         return false;
     }
 
 	vRsListInit(&pxRmt->xAddresses);
-
-	/*tmp->pff = pff_create(&tmp->robj, tmp->parent);
-	if (!tmp->pff) {
-		rmt_destroy(tmp);
-		return NULL;
-	}*/
-
-    /* FIXME: This assignment makes no sense and the compile complains
-       about it. */
-	pxRmt->pxN1Port = pxPortN1;
+    vRsListInit(&pxRmt->xPorts);
 
 #if 0
 	// tmp->n1_ports = n1pmap_create(&tmp->robj);
@@ -60,7 +68,7 @@ bool_t xRmtInit(struct rmt_t *pxRmt)
 			 send_worker,
 			 (unsigned long) tmp);*/
 
-	LOGI(TAG_RMT, "Rmt initialized successfully");
+	LOGI(TAG_RMT, "RMT initialized successfully");
 
     return true;
 }
@@ -76,22 +84,20 @@ void vRmtFini(struct rmt_t *pxRmt)
 /* @brief Called when a SDU arrived into the RMT from the EFCP Container*/
 static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt, rmtN1Port_t *pxN1Port, struct du_t *pxDu);
 
-/* @brief Create an N-1 Port in the RMT Component*/
-static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, struct ipcpInstance_t *pxN1Ipcp);
-
-static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, struct ipcpInstance_t *pxN1Ipcp)
+/* Create an N-1 Port in the RMT Component*/
+static rmtN1Port_t *pxRmtN1PortCreate(portId_t unPortId, struct ipcpInstance_t *pxN1Ipcp)
 {
-
-	LOGI(TAG_RMT, "Creating a N-1 Port in the RMT");
 	rmtN1Port_t *pxTmp;
 
-	RsAssert(is_port_id_ok(xId));
+	RsAssert(is_port_id_ok(unPortId));
+    RsAssert(pxN1Ipcp);
 
-	pxTmp = pvRsMemAlloc(sizeof(rmtN1Port_t));
-	if (!pxTmp)
+	if (!(pxTmp = pvRsMemAlloc(sizeof(rmtN1Port_t)))) {
+        LOGE(TAG_RMT, "Failed to allocate memory for port");
 		return NULL;
+    }
 
-	pxTmp->xPortId = xId;
+	pxTmp->unPort = unPortId;
 	pxTmp->pxN1Ipcp = pxN1Ipcp;
 	pxTmp->eState = eN1_PORT_STATE_ENABLED;
 
@@ -104,50 +110,37 @@ static rmtN1Port_t *pxRmtN1PortCreate(portId_t xId, struct ipcpInstance_t *pxN1I
 	pxTmp->xStats.rxPdus = 0;
 	pxTmp->xStats.rxBytes = 0;
 
-	LOGI(TAG_RMT, "N-1 port %pK created successfully (port-id = %d)", pxTmp, xId);
+    vRsListInitItem(&pxTmp->xPortItem, pxTmp);
+
+	LOGI(TAG_RMT, "N-1 port %pK created successfully (port = %d)", pxTmp, unPortId);
 
 	return pxTmp;
 }
 
-/* @brief Bind the N-1 Port with the RMT. SDUP and RMT Policies are not considered.�
- * It is called from the IPCP normal when a Flow is required to be bounded. From the
- * IPCP normal is send the RMT instance, the portId from the Shim, and Shim Instance */
-bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, struct ipcpInstance_t *pxN1Ipcp);
-
-bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, struct ipcpInstance_t *pxN1Ipcp)
+/* Bind the N-1 Port with the RMT. SDUP and RMT Policies are not
+ * considered.  It is called from the IPCP normal when a Flow is
+ * required to be bound. From the IPCP normal is send the RMT
+ * instance, the portId from the Shim, and Shim Instance */
+bool_t xRmtN1PortBind(struct rmt_t *pxRmt, portId_t unPortId, struct ipcpInstance_t *pxN1Ipcp)
 {
-	LOGI(TAG_RMT, "Binding the RMT with the port id:%d", xId);
-
 	rmtN1Port_t *pxTmp;
-	// struct rmt_ps *ps;
 
-	if (!pxRmtInstance)
-	{
-		LOGE(TAG_RMT, "Bogus instance passed");
+	LOGI(TAG_RMT, "Binding the RMT with the port id:%d", unPortId);
+
+    RsAssert(pxRmt);
+    RsAssert(is_port_id_ok(unPortId));
+    RsAssert(pxN1Ipcp);
+
+    if (prvRmtPortFind(pxRmt, unPortId) != NULL) {
+        LOGE(TAG_RMT, "This RMT has already an N-1 Port bound ");
 		return false;
 	}
 
-	if (!is_port_id_ok(xId))
-	{
-		LOGE(TAG_RMT, "Wrong port-id %d", xId);
-		return false;
-	}
-
-	if (!pxN1Ipcp)
-	{
-		LOGE(TAG_RMT, "Invalid N-1 IPCP passed");
-		return false;
-	}
-
-	if (!pxRmtInstance->pxN1Port)
-	{
-		LOGE(TAG_RMT, "This RMT has already an N-1 Port bound ");
-		return false;
-	}
-
-	pxTmp = pxRmtN1PortCreate(xId, pxN1Ipcp);
+	pxTmp = pxRmtN1PortCreate(unPortId, pxN1Ipcp);
 	if (!pxTmp)
 		return false;
+
+    vRsListInsert(&pxRmt->xPorts, &pxTmp->xPortItem);
 
 	/*
 	if (!ps || !ps->rmt_q_create_policy) {
@@ -169,9 +162,7 @@ bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, struct ipcpInst
 	/*No added to the Hash Table because we've assumed there is only a flow in the shim DIF
 	 * Instead, it is aggregate to the PortIdArray with an unique member.*/
 
-	xPortIdTable[0].pxPortN1 = pxTmp;
-
-	LOGI(TAG_RMT, "Added send queue to rmt instance %pK for port-id %d", pxRmtInstance, xId);
+	LOGI(TAG_RMT, "Added send queue to RMT instance %pK for port %d", pxRmt, unPortId);
 
 	/*Associate the DIF name with the SDUP configuration, SDUP will not be used for the moment*/
 
@@ -227,14 +218,14 @@ bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 	return false;
 }
 
-static bool_t xRmtProcessMgmtPdu(portId_t xPortId, struct du_t *pxDu)
+static bool_t xRmtProcessMgmtPdu(portId_t unPort, struct du_t *pxDu)
 {
     struct ipcpInstance_t *pxNormalInstance;
     bool_t xStatus;
 
     RsAssert((pxNormalInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
 
-    CALL_IPCP_CHECK(xStatus, pxNormalInstance, mgmtDuPost, xPortId, pxDu) {
+    if (!xNormalMgmtDuPost(pxNormalInstance, unPort, pxDu)) {
         LOGE(TAG_RMT, "Failed posting management PDU to normal IPCP");
         return false;
     }
@@ -247,6 +238,10 @@ static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_
 	address_t xDstAddrTmp;
 	cepId_t xCepTmp;
 	pduType_t xPduTypeTmp;
+
+    RsAssert(pxRmt);
+    RsAssert(is_port_id_ok(xPortId));
+    RsAssert(pxDu);
 
 	xDstAddrTmp = pxDu->pxPci->xDestination;
 
@@ -280,7 +275,7 @@ static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_
 bool_t xRmtReceive(struct rmt_t *pxRmt,
                    struct efcpContainer_t *pxEfcp,
                    struct du_t *pxDu,
-                   portId_t xFrom)
+                   portId_t unPortId)
 {
 	pduType_t xPduType;
 	address_t xDstAddr;
@@ -288,19 +283,16 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 	rmtN1Port_t *pxN1Port;
 	size_t uxBytes;
 
-	LOGI(TAG_RMT, "RMT has received a RINA packet from the port %d", xFrom);
+	LOGI(TAG_RMT, "RMT has received a RINA packet from the port %d", unPortId);
 
     RsAssert(pxRmt);
-    RsAssert(is_port_id_ok(xFrom));
+    RsAssert(is_port_id_ok(unPortId));
 
 	uxBytes = pxDu->pxNetworkBuffer->xRinaDataLength;
 	pxDu->pxCfg = pxEfcp->pxConfig;
 
-	pxN1Port = xPortIdTable[0].pxPortN1;
-
-	if (!pxN1Port) {
-		LOGE(TAG_RMT, "Could not retrieve N-1 port for the received PDU...");
-		xDuDestroy(pxDu);
+    if (!(pxN1Port = prvRmtPortFind(pxRmt, unPortId))) {
+		LOGE(TAG_RMT, "Could not get a N-1 port for the received PDU");
 		return false;
 	}
 	stats_inc(rx, pxN1Port, uxBytes);
@@ -320,11 +312,9 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 	}*/
 	/* end SDU Protection */
 
-	if (xDuDecap(pxDu))
-	{
+	if (xDuDecap(pxDu))	{
 		/*Decap PDU */
 		LOGE(TAG_RMT, "Could not decap PDU");
-		xDuDestroy(pxDu);
 		return false;
 	}
 
@@ -340,7 +330,6 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 	{
 		LOGE(TAG_RMT, "Wrong PDU type (%u), dst address (%u) or qos_id (%u)",
 			 xPduType, xDstAddr, xQosId);
-		xDuDestroy(pxDu);
 		return false;
 	}
 
@@ -349,7 +338,7 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 		/* pdu is for me */
 		switch (xPduType) {
 		case PDU_TYPE_MGMT:
-			return xRmtProcessMgmtPdu(xFrom, pxDu);
+			return xRmtProcessMgmtPdu(unPortId, pxDu);
 
 		case PDU_TYPE_CACK:
 		case PDU_TYPE_SACK:
@@ -365,16 +354,14 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
              * enqueue PDU in pdus_dt[dest-addr, qos-id]
              * don't process it now ...
              */
-            if (!xRmtProcessDtPdu(pxRmt, xFrom, pxDu)) {
+            if (!xRmtProcessDtPdu(pxRmt, unPortId, pxDu)) {
                 LOGE(TAG_RMT, "PDU processing failed");
-                xDuDestroy(pxDu);
                 return false;
             }
             else return true;
 
 		default:
 			LOGE(TAG_RMT, "Unknown PDU type %d", xPduType);
-			xDuDestroy(pxDu);
 			return false;
 		}
 	}
@@ -382,7 +369,7 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 	 * forwarding to next hop will be consider in other version. */
 	else {
 		if (!xDstAddr)
-			return xRmtProcessMgmtPdu(xFrom, pxDu);
+			return xRmtProcessMgmtPdu(unPortId, pxDu);
 		else
 		{
 			LOGI(TAG_RMT, "PDU is not for me");
@@ -398,16 +385,13 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 {
 	bool_t xStatus = true;
 
-	LOGI(TAG_RMT, "Gonna send SDU to port-id %d", pxN1Port->xPortId);
+	LOGI(TAG_RMT, "Sending SDU to port %u", pxN1Port->unPort);
 
-	CALL_IPCP_CHECK(xStatus, pxN1Port->pxN1Ipcp, duWrite, pxN1Port->xPortId, pxDu, false)
+	CALL_IPCP_CHECK(xStatus, pxN1Port->pxN1Ipcp, duWrite, pxN1Port->unPort, pxDu, false)
 	{
 		// n1_port_lock(n1_port);
-		if (pxN1Port->pxPendingDu)
-		{
-			LOGE(TAG_RMT, "Already a pending SDU present for port %d",
-				 pxN1Port->xPortId);
-			xDuDestroy(pxN1Port->pxPendingDu);
+		if (pxN1Port->pxPendingDu) {
+			LOGE(TAG_RMT, "Already a pending SDU present for port %d", pxN1Port->unPort);
 			pxN1Port->xStats.plen--;
 		}
 
@@ -416,28 +400,17 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 		LOGI(TAG_RMT, "xRmtN1PortWriteDu:Pending");
 
 		if (pxN1Port->eState == eN1_PORT_STATE_DO_NOT_DISABLE)
-		{
 			pxN1Port->eState = eN1_PORT_STATE_ENABLED;
-			// tasklet_hi_schedule(&rmt->egress_tasklet);
-		}
 		else
 			pxN1Port->eState = eN1_PORT_STATE_DISABLED;
-
-		// n1_port_unlock(n1_port);
 	}
 
 	return true;
 }
 
-bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
-					  portId_t xPortId,
-					  struct du_t *pxDu)
+bool_t xRmtSendPortId(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
 {
-
-	LOGI(TAG_RMT, "xRmtSendPortId");
-
 	rmtN1Port_t *pxN1Port;
-	// rmtPs_t *ps;//???
 	int cases;
 	bool_t ret;
 	bool_t xMustEnqueue;
@@ -451,25 +424,16 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 		du_destroy(du);
 		return -1;
 	}*/
-	pxN1Port = xPortIdTable[0].pxPortN1;
-	// pxN1Port = n1pmap_find(instance, id);
-	if (!pxN1Port)
-	{
 
+    if ((pxN1Port = prvRmtPortFind(pxRmt, xPortId))) {
 		LOGE(TAG_RMT, "Could not find the N-1 port");
-		xDuDestroy(pxDu);
 		return false;
 	}
 
-	// n1_port_lock(n1_port);
-
 	xMustEnqueue = false;
-	if (pxN1Port->xStats.plen ||
-		pxN1Port->uxBusy ||
-		pxN1Port->eState == eN1_PORT_STATE_DISABLED)
-	{
+
+	if (pxN1Port->xStats.plen || pxN1Port->uxBusy || pxN1Port->eState == eN1_PORT_STATE_DISABLED)
 		xMustEnqueue = true;
-	}
 
 	// ret = ps->rmt_enqueue_policy(ps, n1_port, du, must_enqueue);
 	cases = 0; // Send Default policy, change later.
@@ -494,10 +458,8 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 		break;
 #endif
 	case RMT_PS_ENQ_SEND:
-		if (xMustEnqueue)
-		{
+		if (xMustEnqueue) {
 			LOGE(TAG_RMT, "Wrong behaviour of the policy");
-			xDuDestroy(pxDu);
 			pxN1Port->xStats.errPdus++;
 			LOGI(TAG_RMT, "Policy should have enqueue, returned SEND");
 			ret = false;
@@ -508,12 +470,11 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 
 		// n1_port_unlock(n1_port);
 		LOGI(TAG_RMT, "PDU ready to be sent, no need to enqueue");
-		ret = xRmtN1PortWriteDu(pxRmtInstance, pxN1Port, pxDu);
+		ret = xRmtN1PortWriteDu(pxRmt, pxN1Port, pxDu);
 		/*FIXME LB: This is just horrible, needs to be rethinked */
 		// N1_port_lock(n1_port);
 		pxN1Port->uxBusy = false;
-		if (cases >= 0)
-		{
+		if (cases >= 0)	{
 			stats_inc(tx, pxN1Port, ret);
 			ret = true;
 		}
@@ -529,52 +490,22 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 	return ret;
 }
 
-bool_t xRmtSend(struct rmt_t *pxRmtInstance,
-				struct du_t *pxDu)
+bool_t xRmtSend(struct rmt_t *pxRmt, struct du_t *pxDu)
 {
-	if (!pxRmtInstance || !pxDu || !xPciIsOk(pxDu->pxPci))
-	{
-		LOGE(TAG_RMT, "Bogus input parameters passed");
-		xDuDestroy(pxDu);
-		return false;
-	}
+    RsAssert(pxRmt);
+    RsAssert(pxDu);
 
+    /* In IRATI, this code tries to guess where to send the packet
+     * using the NHOP policy table. We do not have this table yet so
+     * let's... just try our best, I guess? */
+
+    /* FIXME: I HAVE NO IDEA WHAT TO DO HERE. */
 #if 0
-	if (pff_nhop(instance->pff, &du->pci,
-		     &(instance->cache.pids),
-		     &(instance->cache.count))) {
-		LOG_ERR("Cannot get the NHOP for this PDU (saddr: %u daddr: %u type: %u)",
-				pci_source(&du->pci), pci_destination(&du->pci),
-				pci_type(&du->pci));
+    if (xRmtPduIsAddressedToMe
 
-		du_destroy(du);
-		return -1;
-	}
-
-	if (pxRmtInstance. instance->cache.count == 0) {
-		LOGI(TAG_RMT, "No NHOP for this PDU ...");
-		xDuDestroy(pxDu);
-		return false;
-	}
-
-	for (i = 0; i < instance->cache.count; i++) {
-		portId_t   pid;
-		struct du_t * pxDuTmp;
-
-		pid = instance->cache.pids[i];
-
-		if (i == instance->cache.count-1)
-			pxDuTmp = pxDu;
-		else
-			pxDuTmp = du_dup(pxDu);
-
-		if (rmt_send_port_id(instance, pid, pxDuTmp))
-			LOGE("Failed to send a PDU to port-id %d", pid);
-	}
+	if (!xRmtSendPortId(pxRmt, /*pxRmtInstance->pxN1Port->xPortId*/xPortIdTable[0].pxPortN1->xPortId, pxDu))
+		LOGE(TAG_RMT, "Failed to send a PDU to port %d", xPortIdTable[0].pxPortN1->xPortId);
 #endif
-
-	if (!xRmtSendPortId(pxRmtInstance, /*pxRmtInstance->pxN1Port->xPortId*/xPortIdTable[0].pxPortN1->xPortId, pxDu))
-		LOGE(TAG_RMT, "Failed to send a PDU to port-id %d", xPortIdTable[0].pxPortN1->xPortId);
 
 	return true;
 }

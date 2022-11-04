@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "rina_common_port.h"
 #include "configRINA.h"
+
+#include "rina_common_port.h"
 #include "BufferManagement.h"
 #include "CDAP.pb.h"
 #include "pb_encode.h"
@@ -13,63 +14,64 @@
 #include "Enrollment_api.h"
 #include "FlowAllocator_api.h"
 
-/*Table of Objects*/
-struct ribObjectRow_t xRibObjectTable[RIB_TABLE_SIZE];
-
-void vRibAddObjectEntry(struct ribObject_t *pxRibObject)
+bool_t xRibAddObjectEntry(Ribd_t *pxRibd, ribObject_t *pxRibObject)
 {
     num_t x = 0;
 
-    for (x = 0; x < RIB_TABLE_SIZE; x++)
-    {
-        if (xRibObjectTable[x].xValid == false)
-        {
-            xRibObjectTable[x].pxRibObject = pxRibObject;
-            xRibObjectTable[x].xValid = true;
-            LOGD(TAG_RIB, "Rib Object Entry successful: %p", pxRibObject);
+    for (x = 0; x < RIB_TABLE_SIZE; x++) {
+        if (pxRibd->xRibObjectTable[x].xValid == false) {
+            pxRibd->xRibObjectTable[x].pxRibObject = pxRibObject;
+            pxRibd->xRibObjectTable[x].xValid = true;
 
-            break;
+            LOGD(TAG_RIB, "RIB Object Entry successful: %p", pxRibObject);
+
+            return true;
         }
     }
+
+    return false;
 }
 
-struct ribObject_t *pxRibFindObject(string_t ucRibObjectName)
+ribObject_t *pxRibFindObject(Ribd_t *pxRibd, string_t ucRibObjectName)
 {
-    LOGD(TAG_RIB, "Looking for the object %s in the RIB Object Table", ucRibObjectName);
     num_t x = 0;
-    struct ribObject_t *pxRibObject;
-    pxRibObject = pvRsMemAlloc(sizeof(*pxRibObject));
+    ribObject_t *pxRibObject;
 
-    for (x = 0; x < RIB_TABLE_SIZE; x++)
+    LOGD(TAG_RIB, "Looking for the object '%s' in the RIB Object Table", ucRibObjectName);
 
-    {
-        if (xRibObjectTable[x].xValid == true)
-        {
-            pxRibObject = xRibObjectTable[x].pxRibObject;
-            LOGD(TAG_RIB, "RibObj->ucObjName'%s', ucRibObjectName:'%s'", pxRibObject->ucObjName, ucRibObjectName);
-            if (!strcmp(pxRibObject->ucObjName, ucRibObjectName))
-            {
-                LOGI(TAG_RIB, "RibObj founded '%p', '%s'", pxRibObject, pxRibObject->ucObjName);
+    for (x = 0; x < RIB_TABLE_SIZE; x++) {
+
+        if (pxRibd->xRibObjectTable[x].xValid == true) {
+
+            pxRibObject = pxRibd->xRibObjectTable[x].pxRibObject;
+
+            LOGD(TAG_RIB, "RibObj->ucObjName: '%s', ucRibObjectName: '%s'",
+                 pxRibObject->ucObjName, ucRibObjectName);
+
+            if (!strcmp(pxRibObject->ucObjName, ucRibObjectName)) {
+                LOGI(TAG_RIB, "RIB Object found '%p', '%s'", pxRibObject, pxRibObject->ucObjName);
 
                 return pxRibObject;
                 break;
             }
         }
     }
-    LOGI(TAG_IPCPMANAGER, "RibObj '%s' not founded", ucRibObjectName);
+
+    LOGI(TAG_RIB, "RIB Object '%s' not found", ucRibObjectName);
 
     return NULL;
 }
 
-struct ribObject_t *pxRibCreateObject(string_t ucObjName,
-                                      long ulObjInst,
-                                      string_t ucDisplayableValue,
-                                      string_t ucObjClass,
-                                      eObjectType_t eObjType)
+ribObject_t *pxRibCreateObject(Ribd_t *pxRibd,
+                               string_t ucObjName,
+                               long ulObjInst,
+                               string_t ucDisplayableValue,
+                               string_t ucObjClass,
+                               eObjectType_t eObjType)
 {
     LOGI(TAG_RIB, "Creating object %s into the RIB", ucObjName);
-    struct ribObject_t *pxObj = pvRsMemAlloc(sizeof(*pxObj));
-    struct ribObjOps_t *pxObjOps = pvRsMemAlloc(sizeof(*pxObjOps));
+    ribObject_t *pxObj = pvRsMemAlloc(sizeof(ribObject_t));
+    ribObjOps_t *pxObjOps = pvRsMemAlloc(sizeof(ribObjOps_t));
 
     pxObj->ucObjName = strdup(ucObjName);
     pxObj->ulObjInst = ulObjInst;
@@ -106,8 +108,10 @@ struct ribObject_t *pxRibCreateObject(string_t ucObjName,
     }
 
     /*Add object into the table*/
-    vRibAddObjectEntry(pxObj);
-    LOGI(TAG_RIB, "RIB object created: %s, %p", pxObj->ucObjName, pxObj);
+    if (!xRibAddObjectEntry(pxRibd, pxObj)) {
+    }
+    else
+        LOGI(TAG_RIB, "RIB object created: %s, %p", pxObj->ucObjName, pxObj);
 
     return pxObj;
 }

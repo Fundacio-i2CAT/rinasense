@@ -112,9 +112,10 @@ bool_t xARPInit(ARP_t *pxARP)
 {
     memset(pxARP, 0, sizeof(ARP_t));
 
-    pxARP->pxCache = pxARPCacheCreate(MAC_ADDR_802_3, ARP_CACHE_ENTRIES);
-    if (!pxARP->pxCache)
+    if (!(pxARP->pxCache = pxARPCacheCreate(MAC_ADDR_802_3, ARP_CACHE_ENTRIES))) {
+        LOGE(TAG_ARP, "Failed to create ARP cache zone");
         return false;
+    }
 
     //vRsListInit(&pxARP->xRegisteredAppHandles);
 

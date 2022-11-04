@@ -10,14 +10,13 @@
 #include "pci.h"
 #include "du.h"
 #include "efcpStructures.h"
+#include "FlowAllocator_api.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 bool_t xEfcpContainerInit(struct efcpContainer_t *pxEfcpContainer);
-
-void vEfcpContainerFini(struct efcpContainer_t *pxEfcpContainer);
 
 bool_t xEfcpEnqueue(struct efcp_t * pxEfcp, portId_t xPort, struct du_t * pxDu);
 
@@ -44,7 +43,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               cepId_t xSrcCepId,
                               cepId_t xDstCepId,
                               dtpConfig_t *pxDtpCfg,
-                              struct dtcpConfig_t *pxDtcpCfg);
+                              dtcpConfig_t *pxDtcpCfg);
 
 bool_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,
                              cepId_t xCepId,

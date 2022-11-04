@@ -25,7 +25,7 @@
 #include "configRINA.h"
 
 /* CHeck if a Connection is ok*/
-static bool_t is_candidate_connection_ok(const struct connection_t *pxConnection);
+static bool_t is_candidate_connection_ok(const connection_t *pxConnection);
 
 /* Create and instance of efcp*/
 static struct efcp_t *pxEfcpCreate(void);
@@ -76,17 +76,13 @@ bool_t xEfcpContainerInit(struct efcpContainer_t *pxEfcpContainer)
 
     if (!xEfcpImapCreate() || pxEfcpContainer->pxCidm == NULL) {
         LOGE(TAG_EFCP, "Failed to init EFCP container instances");
-        vEfcpContainerFini(pxEfcpContainer);
+        /*vEfcpContainerFini(pxEfcpContainer);*/
         return false;
     }
 
-    LOGI(TAG_EFCP, "EFCP container instance %p created", pxEfcpContainer);
+    LOGI(TAG_EFCP, "EFCP initialized successfully");
 
     return true;
-}
-
-void vEfcpContainerFini(struct efcpContainer_t *pxEfcpContainer)
-{
 }
 
 static struct efcp_t *pxEfcpCreate(void)
@@ -131,7 +127,7 @@ bool_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, struct du_t *pxDu)
 
 /* --------- CODE ----------*/
 
-static bool_t is_candidate_connection_ok(const struct connection_t *pxConnection)
+static bool_t is_candidate_connection_ok(const connection_t *pxConnection)
 {
         /* FIXME: Add checks for policy params */
 
@@ -553,12 +549,12 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               cepId_t xSrcCepId,
                               cepId_t xDstCepId,
                               dtpConfig_t *pxDtpCfg,
-                              struct dtcpConfig_t *pxDtcpCfg)
+                              dtcpConfig_t *pxDtcpCfg)
 {
         LOGE(TAG_EFCP, "xEfcpConnectionCreate");
 
         struct efcp_t *pxEfcp;
-        struct connection_t *pxConnection = NULL;
+        connection_t *pxConnection = NULL;
         cepId_t xCepId;
         struct dtcp_t *pxDtcp;
         // struct cwq *        cwq;
@@ -619,7 +615,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         pxEfcp->pxEfcpContainer = pxEfcpContainer;
         pxConnection->xSourceCepId = xCepId;
 
-        if (!is_candidate_connection_ok((const struct connection_t *)pxConnection))
+        if (!is_candidate_connection_ok((const connection_t *)pxConnection))
         {
                 LOGE(TAG_EFCP, "Bogus connection passed, bailing out");
                 xEfcpDestroy(pxEfcp);

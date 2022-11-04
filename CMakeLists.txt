@@ -58,6 +58,7 @@ else()
     Ribd
     RINA_API
     Rmt
+    SerDes
     ShimIPCP)
 
   # Common warnings and options.

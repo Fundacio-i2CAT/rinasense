@@ -29,14 +29,12 @@ char *xGPAAddressToString(const gpa_t *pxGpa)
 	return tmp;
 }
 
-gpa_t *pxNameToGPA(const name_t *pcName)
+gpa_t *pxNameToGPA(const rname_t *pcName)
 {
 	gpa_t *pxGpa;
 	string_t pcTmp;
 
-	pcTmp = pcNameToString(pcName);
-
-	if (!pcTmp) {
+	if (!(pcTmp = pcNameToString(pcName))) {
 		LOGI(TAG_SHIM, "Failed to convert name to string");
 		return NULL;
 	}

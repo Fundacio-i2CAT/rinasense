@@ -1,9 +1,12 @@
 #ifndef _COMPONENTS_MOCKS_FLOWALLOCATOR_H
 #define _COMPONENTS_MOCKS_FLOWALLOCATOR_H
 
+#include "FlowAllocator_obj.h"
 #include "portability/port.h"
+
 #include "RINA_API_flows.h"
-#include "Ribd.h"
+#include "Ribd_api.h"
+#include "FlowAllocator_defs.h"
 
 #ifdef ESP_PLATFORM
 
@@ -13,31 +16,43 @@
 #define xFlowAllocatorDuPost        mock_FlowAllocator_xFlowAllocatorDuPost
 #define xFlowAllocatorHandleDelete  mock_FlowAllocator_xFlowAllocatorHandleDelete
 
-void mock_FlowAllocator_vFlowAllocatorFlowRequest(portId_t xAppPortId,
+void mock_FlowAllocator_vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
+                                                  portId_t xAppPortId,
                                                   flowAllocateHandle_t *pxFlowRequest);
-
-bool_t mock_FlowAllocator_xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue,
-                                                      int result);
 
 flowAllocateHandle_t *mock_FlowAllocator_pxFAFindFlowHandle(portId_t xPortId);
 
-bool_t mock_FlowAllocator_xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu);
+bool_t mock_FlowAllocator_xFlowAllocatorDuPost(flowAllocator_t *pxFA,
+                                               portId_t xAppPortId,
+                                               struct du_t *pxDu);
 
-bool_t mock_FlowAllocator_xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject,
+bool_t mock_FlowAllocator_xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData,
+                                                      serObjectValue_t *pxSerObjValue,
+                                                      int result);
+
+bool_t mock_FlowAllocator_xFlowAllocatorHandleDelete(struct ipcpInstanceData_t *pxData,
+                                                     struct ribObject_t *pxRibObject,
                                                      int invoke_id);
+
+flowAllocator_t *mock_FlowAllocator_pxFlowAllocatorCreate(struct ipcpInstance_t *pxNormalIpcp);
 
 #else
 
-void vFlowAllocatorFlowRequest(portId_t xPortId,
+void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
+                               portId_t xPortId,
                                flowAllocateHandle_t *pxFlowRequest);
 
-bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result);
+bool_t xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData,
+                                   serObjectValue_t *pxSerObjValue,
+                                   int result);
 
 flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId);
 
 bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu);
 
-bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id);
+bool_t xFlowAllocatorHandleDelete(ribObject_t *pxRibObject, int invoke_id);
+
+flowAllocator_t *pxFlowAllocatorCreate(struct ipcpInstance_t *pxNormalIpcp);
 
 #endif
 

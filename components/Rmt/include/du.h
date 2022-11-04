@@ -19,7 +19,6 @@ extern "C" {
 
 struct du_t
 {
-
 	// Configuration of EFCP (Policies, QoS, etc)
 	efcpConfig_t *pxCfg;						/*> EFCP Configuration associate to the RINA packet */
 	pci_t *pxPci;								/*> Header of the RINA packet */

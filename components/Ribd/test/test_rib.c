@@ -8,22 +8,27 @@
 #include "unity.h"
 #include "common/unity_fixups.h"
 
-RS_TEST_CASE_SETUP(test_rib) {}
+Ribd_t xRibd;
+
+RS_TEST_CASE_SETUP(test_rib) {
+    xRibdInit(&xRibd);
+}
+
 RS_TEST_CASE_TEARDOWN(test_rib) {}
 
 RS_TEST_CASE(RibCreateObject, "[rib]")
 {
     RS_TEST_CASE_BEGIN(test_rib);
-    TEST_ASSERT(pxRibCreateObject("testobj", 0, "Test Object", "testobjclass", 0) != NULL);
+    TEST_ASSERT(pxRibCreateObject(&xRibd, "testobj", 0, "Test Object", "testobjclass", 0) != NULL);
     RS_TEST_CASE_END(test_rib);
 }
 
 RS_TEST_CASE(RibFindObject, "[rib]")
 {
     RS_TEST_CASE_BEGIN(test_rib);
-    TEST_ASSERT(pxRibCreateObject("testobj", 0, "Test Object", "testobjclass", 0) != NULL);
-    TEST_ASSERT(pxRibFindObject("testobj") != NULL);
-    TEST_ASSERT(pxRibFindObject("blarg") == NULL);
+    TEST_ASSERT(pxRibCreateObject(&xRibd, "testobj", 0, "Test Object", "testobjclass", 0) != NULL);
+    TEST_ASSERT(pxRibFindObject(&xRibd, "testobj") != NULL);
+    TEST_ASSERT(pxRibFindObject(&xRibd, "blarg") == NULL);
     RS_TEST_CASE_END(test_rib);
 }
 

@@ -1,8 +1,13 @@
 #ifndef FLOW_ALLOCATOR_API_H_INCLUDED
 #define FLOW_ALLOCATOR_API_H_INCLUDED
 
-#include "Rib.h"
-#include "FlowAllocator.h"
+#include "common/rina_ids.h"
+
+#include "RibObject.h"
+#include "SerDesFlow.h"
+#include "FlowAllocator_obj.h"
+#include "Ribd_api.h"
+#include "Enrollment_obj.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,9 +15,21 @@ extern "C" {
 
 /* New reviewed API */
 
-bool_t xFlowAllocatorInit(flowAllocator_t *pxFA);
+bool_t xFlowAllocatorInit(flowAllocator_t *pxFA, Enrollment_t *pxEnrollment, Ribd_t *pxRibd);
 
-void vFlowAllocatorFini(flowAllocator_t *pxFA);
+/* Handlers */
+
+bool_t xFlowAllocatorHandleDelete(struct ipcpInstanceData_t *pxData,
+                                  ribObject_t *pxRibObject,
+                                  int invoke_id);
+
+bool_t xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData,
+                                   serObjectValue_t *pxSerObjValue,
+                                   int result);
+
+bool_t xFlowAllocatorHandleDeleteR(struct ipcpInstanceData_t *pxData,
+                                   ribObject_t *pxRibObject,
+                                   int invoke_id);
 
 /* Unreviewed API. */
 
@@ -20,17 +37,8 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
                                portId_t xAppPortId,
                                flowAllocateHandle_t *pxFlowRequest);
 
-bool_t xFlowAllocatorHandleCreateR(flowAllocator_t *pxFA,
-                                   serObjectValue_t *pxSerObjValue,
-                                   int result);
 
 void vFlowAllocatorDeallocate(portId_t xAppPortId);
-
-bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id);
-
-bool_t xFlowAllocatorHandleDeleteR(flowAllocator_t *pxFA,
-                                   struct ribObject_t *pxRibObject,
-                                   int invoke_id);
 
 flowAllocateHandle_t *pxFAFindFlowHandle(flowAllocator_t *pxFA,
                                          portId_t xPortId);
@@ -40,6 +48,7 @@ bool_t xFlowAllocatorDuPost(flowAllocator_t *pxFA,
                             struct du_t *pxDu);
 
 flowAllocator_t *pxFlowAllocatorCreate(struct ipcpInstance_t *pxNormalIpcp);
+
 
 #ifdef __cplusplus
 }

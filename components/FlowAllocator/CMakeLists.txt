@@ -1,4 +1,4 @@
 idf_component_register(
   SRCS "FlowAllocator.c"
   INCLUDE_DIRS "include"
-  REQUIRES IPCP BufferManagement Ribd CdapProto Rmt)
+  REQUIRES IPCP BufferManagement Ribd CdapProto Rmt SerDes)

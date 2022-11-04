@@ -17,7 +17,7 @@
 #include "du.h"
 #include "configRINA.h"
 #include "IpcManager.h"
-#include "FlowAllocator.h"
+#include "FlowAllocator_defs.h"
 #include "BufferManagement.h"
 #include "Ribd.h"
 #include "Ribd_api.h"
@@ -117,7 +117,7 @@ cepId_t xNormalConnectionCreateRequest(struct ipcpInstance_t *pxIpcp,
                                        address_t xDest,
                                        qosId_t xQosId,
                                        dtpConfig_t *pxDtpCfg,
-                                       struct dtcpConfig_t *pxDtcpCfg)
+                                       dtcpConfig_t *pxDtcpCfg)
 {
     cepId_t xCepId;
     struct normalFlow_t *pxFlow;
@@ -193,70 +193,6 @@ cepId_t xNormalConnectionCreateRequest(struct ipcpInstance_t *pxIpcp,
     return xCepId;
 }
 
-struct ipcpInstance_t *xNormalCreate()
-{
-    struct ipcpInstance_t *pxIpcp;
-    struct ipcpInstanceData_t *pxData;
-    struct rmt_t *pxRmt;
-    struct efcpContainer_t *pxEfcp;
-    flowAllocator_t *pxFA;
-
-    pxIpcp = pvRsMemCAlloc(1, sizeof(struct ipcpInstance_t));
-    pxData = pvRsMemCAlloc(1, sizeof(struct ipcpInstanceData_t));
-    if (!pxIpcp || !pxData)
-        goto fail;
-
-    /* Initialize flow allocator */
-    if (!xFlowAllocatorInit(&pxData->xFA)) {
-        LOGE(TAG_IPCPNORMAL, "Failed initialisation of flow allocator");
-        goto fail;
-    }
-
-    /* Initialize EFCP container */
-    if (!xEfcpContainerInit(&pxData->xEfcpContainer)) {
-        LOGE(TAG_IPCPNORMAL, "Failed initialization of EFCP container");
-        goto fail;
-    }
-
-    /* Initialize RMT */
-    if (!xRmtInit(&pxData->xRmt)) {
-        LOGE(TAG_IPCPNORMAL, "Failed initialization of RMT component");
-        goto fail;
-    }
-
-    NAME_SET(&pxData->xName,
-             NORMAL_PROCESS_NAME, NORMAL_PROCESS_INSTANCE,
-             NORMAL_ENTITY_NAME, NORMAL_ENTITY_INSTANCE);
-
-    /* FIXME: THIS IS A TEMPORARY SUBSTITUTE FOR DIF ASSIGNATION. */
-    NAME_SET(&pxData->xDifName,
-             NORMAL_DIF_NAME, "",
-             "", "");
-
-    pxData->unInstanceDataType = IPCP_INSTANCE_DATA_NORMAL;
-    pxData->xAddress = LOCAL_ADDRESS;
-    pxData->pxIpcp = pxIpcp;
-
-    /*Initialialise flows list*/
-    vRsListInit(&(pxData->xFlowsList));
-
-    pxIpcp->pxData = pxData;
-
-    return pxIpcp;
-
-    fail:
-    vFlowAllocatorFini(&pxData->xFA);
-    vEfcpContainerFini(&pxData->xEfcpContainer);
-    vRmtFini(&pxData->xRmt);
-
-    if (pxIpcp)
-        vRsMemFree(pxIpcp);
-    if (pxData)
-        vRsMemFree(pxData);
-
-    return NULL;
-}
-
 bool_t xNormalFlowPrebind(struct ipcpInstance_t *pxIpcp,
                           flowAllocateHandle_t *pxFlowHandle)
 {
@@ -289,8 +225,8 @@ bool_t xNormalFlowPrebind(struct ipcpInstance_t *pxIpcp,
 /* Called from the IPCP Task to the NormalIPCP register as APP into the SHIM DIF
  * depending on the Type of ShimDIF.*/
 bool_t xNormalRegistering(struct ipcpInstance_t *pxShimInstance,
-                          name_t *pxDifName,
-                          name_t *pxName)
+                          rname_t *pxDifName,
+                          rname_t *pxName)
 {
     bool_t xStatus;
 
@@ -397,11 +333,11 @@ bool_t xNormalFlowBinding(struct ipcpInstance_t *pxIpcp,
  * @param pxDu Data Unit to be write into the IPCP instance.
  * @return BaseType_t
  */
-bool_t xNormalMgmtDuWrite(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
+bool_t xNormalMgmtDuWrite(struct ipcpInstance_t *pxIpcp, portId_t xPortId, struct du_t *pxDu)
 {
     ssize_t sbytes;
 
-    RsAssert(pxRmt);
+    RsAssert(pxIpcp);
     RsAssert(is_port_id_ok(xPortId));
     RsAssert(pxDu);
 
@@ -431,7 +367,7 @@ bool_t xNormalMgmtDuWrite(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *px
 
     // pxRmt = pxIpcpGetRmt();
 
-    if (!xRmtSendPortId(pxRmt, xPortId, pxDu)) {
+    if (!xRmtSendPortId(&pxIpcp->pxData->xRmt, xPortId, pxDu)) {
         LOGE(TAG_IPCPNORMAL, "Could not sent to RMT");
         return false;
     }
@@ -463,15 +399,9 @@ bool_t xNormalMgmtDuPost(struct ipcpInstance_t *pxIpcp, portId_t xPortId, struct
     RsAssert(is_port_id_ok(xPortId));
     RsAssert(pxDu);
 
-    /*if (!IsDuOk(pxDu)) {
-                ESP_LOGE(TAG_IPCPNORMAL,"Bogus management SDU");
-                xDuDestroy(pxDu);
-                return pdFALSE;
-        }*/
-
     /* Send to the RIB Daemon */
     if (!xRibdProcessLayerManagementPDU(pxIpcp->pxData, xPortId, pxDu)) {
-        LOGI(TAG_IPCPNORMAL, "Was not possible to process el Management PDU");
+        LOGI(TAG_IPCPNORMAL, "Failed to preocess management PDU");
         return false;
     }
 
@@ -542,20 +472,18 @@ bool_t xNormalIsFlowAllocated(struct ipcpInstance_t *pxIpcp, portId_t xPortId)
     return false;
 }
 
-#if 0
-bool_t xNormalConnectionModify(cepId_t xCepId,
+bool_t xNormalConnectionModify(struct ipcpInstance_t *pxIpcp,
+                               cepId_t xCepId,
                                address_t xSrc,
                                address_t xDst)
 {
-    /* FIXME: WRONG IMPLEMENTATION, UNCLEAR USE. */
     struct efcpContainer_t *pxEfcpContainer;
-    pxEfcpContainer = pxIPCPGetEfcpc();
-    if (!xEfcpConnectionModify(pxEfcpContainer, xCepId, xSrc, xDst))
 
+    if (!xEfcpConnectionModify(&pxIpcp->pxData->xEfcpContainer, xCepId, xSrc, xDst))
         return false;
+
     return true;
 }
-#endif
 
 bool_t xNormalUpdateCepIdFlow(struct ipcpInstance_t *pxIpcp, portId_t xPortId, cepId_t xCepId)
 {
@@ -598,6 +526,15 @@ bool_t xNormalConnectionUpdate(struct ipcpInstance_t *pxIpcp,
     return true;
 }
 
+const rname_t *xNormalGetIpcpName(struct ipcpInstance_t *pxSelf)
+{
+    return &pxSelf->pxData->xName;
+}
+
+const rname_t *xNormalGetDifName(struct ipcpInstance_t *pxSelf)
+{
+    return &pxSelf->pxData->xDifName;
+}
 
 /* OLD CODE STARTS HERE. */
 
@@ -738,43 +675,43 @@ static bool_t prvRemoveCepIdFromFlow(struct normalFlow_t *pxFlow,
 }
 
 static struct ipcpInstanceOps_t xNormalInstanceOps = {
-    .flowAllocateRequest = NULL,       // ok
-    .flowAllocateResponse = NULL,      // ok
-    .flowDeallocate = NULL,            // ok
-    .flowPrebind = xNormalFlowPrebind, // ok
-    .flowBindingIpcp = NULL,           // ok
-    .flowUnbindingIpcp = NULL,         // ok
-    .flowUnbindingUserIpcp = NULL,     // ok
-    .nm1FlowStateChange = NULL,        // ok
+    .flowAllocateRequest = NULL,
+    .flowAllocateResponse = NULL,
+    .flowDeallocate = NULL,
+    .flowPrebind = xNormalFlowPrebind,
+    .flowBindingIpcp = xNormalFlowBinding,
+    .flowUnbindingIpcp = NULL,
+    .flowUnbindingUserIpcp = NULL,
+    .nm1FlowStateChange = NULL,
 
-    .applicationRegister = NULL,   // ok
-    .applicationUnregister = NULL, // ok
+    .applicationRegister = NULL,
+    .applicationUnregister = NULL,
 
-    .assignToDif = NULL,     // ok
-    .updateDifConfig = NULL, // ok
+    .assignToDif = NULL,
+    .updateDifConfig = NULL,
 
-    .connectionCreate = xNormalConnectionCreateRequest, // ok
-    .connectionUpdate = NULL,                           // ok
-    .connectionDestroy = NULL,                          // ok
-    .connectionCreateArrived = NULL,                    // ok
-    .connectionModify = NULL,                           // ok
+    .connectionCreate = xNormalConnectionCreateRequest,
+    .connectionUpdate = NULL,
+    .connectionDestroy = NULL,
+    .connectionCreateArrived = NULL,
+    .connectionModify = NULL,
 
-    .duEnqueue = xNormalDuEnqueue, // ok
+    .duEnqueue = xNormalDuEnqueue,
     .duWrite = NULL,
 
-    .mgmtDuWrite = NULL, // ok
-    .mgmtDuPost = NULL,  // ok
+    .mgmtDuWrite = xNormalMgmtDuWrite,
+    .mgmtDuPost = NULL,
 
-    .pffAdd = NULL,    // ok
-    .pffRemove = NULL, // ok
+    .pffAdd = NULL,
+    .pffRemove = NULL,
     //.pff_dump                  = NULL,
     //.pff_flush                 = NULL,
     //.pff_modify		   		   = NULL,
 
     //.query_rib		  		   = NULL,
 
-    .ipcpName = NULL, // ok
-    .difName = NULL,  // ok
+    .ipcpName = xNormalGetIpcpName,
+    .difName = xNormalGetDifName,
     //.ipcp_id		  		   = NULL,
 
     //.set_policy_set_param      = NULL,
@@ -782,4 +719,87 @@ static struct ipcpInstanceOps_t xNormalInstanceOps = {
     //.update_crypto_state	   = NULL,
     //.address_change            = NULL,
     //.dif_name		   		   = NULL,
-    .maxSduSize = NULL};
+    .maxSduSize = NULL
+};
+
+
+struct ipcpInstance_t *pxNormalCreate(ipcProcessId_t unIpcpId)
+{
+    struct ipcpInstance_t *pxIpcp;
+    struct ipcpInstanceData_t *pxData;
+    struct rmt_t *pxRmt;
+    struct efcpContainer_t *pxEfcp;
+    flowAllocator_t *pxFA;
+
+    pxIpcp = pvRsMemCAlloc(1, sizeof(struct ipcpInstance_t));
+    pxData = pvRsMemCAlloc(1, sizeof(struct ipcpInstanceData_t));
+    if (!pxIpcp || !pxData)
+        goto fail;
+
+    /* Initialize the RIB */
+    if (!xRibdInit(&pxData->xRibd)) {
+        LOGE(TAG_IPCPNORMAL, "Failed initialisation of RIB");
+        goto fail;
+    }
+
+    /* Initialise Enrollment component */
+    if (!xEnrollmentInit(&pxData->xEnrollment, &pxData->xRibd)) {
+        LOGE(TAG_IPCPNORMAL, "Failed initialisation of Enrollment component");
+        goto fail;
+    }
+    
+    /* Initialize flow allocator */
+    if (!xFlowAllocatorInit(&pxData->xFA, &pxData->xEnrollment, &pxData->xRibd)) {
+        LOGE(TAG_IPCPNORMAL, "Failed initialisation of flow allocator");
+        goto fail;
+    }
+
+    /* Initialize EFCP container */
+    if (!xEfcpContainerInit(&pxData->xEfcpContainer)) {
+        LOGE(TAG_IPCPNORMAL, "Failed initialisation of EFCP container");
+        goto fail;
+    }
+
+    /* Initialize RMT */
+    if (!xRmtInit(&pxData->xRmt)) {
+        LOGE(TAG_IPCPNORMAL, "Failed initialisation of RMT component");
+        goto fail;
+    }
+
+    vNameAssignFromPartsStatic(&pxData->xName,
+                               NORMAL_PROCESS_NAME, NORMAL_PROCESS_INSTANCE,
+                               NORMAL_ENTITY_NAME, NORMAL_ENTITY_INSTANCE);
+
+    /* FIXME: THIS IS A TEMPORARY SUBSTITUTE FOR DIF ASSIGNATION. */
+    vNameAssignFromPartsStatic(&pxData->xDifName,
+                               NORMAL_DIF_NAME, "",
+                               "", "");
+
+#ifndef NDEBUG
+    pxData->unInstanceDataType = IPCP_INSTANCE_DATA_NORMAL;
+#endif
+    pxData->xAddress = LOCAL_ADDRESS;
+    pxData->pxIpcp = pxIpcp;
+
+    /*Initialialise flows list*/
+    vRsListInit(&(pxData->xFlowsList));
+
+    pxIpcp->pxData = pxData;
+    pxIpcp->xId = unIpcpId;
+    pxIpcp->xType = eNormal;
+    pxIpcp->pxOps = &xNormalInstanceOps;
+
+    return pxIpcp;
+
+    fail:
+    /*vFlowAllocatorFini(&pxData->xFA);*/
+    /*vEfcpContainerFini(&pxData->xEfcpContainer);*/
+    vRmtFini(&pxData->xRmt);
+
+    if (pxIpcp)
+        vRsMemFree(pxIpcp);
+    if (pxData)
+        vRsMemFree(pxData);
+
+    return NULL;
+}

@@ -5,20 +5,22 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "SerDesFlow.h"
 #include "common/rina_ids.h"
+#include "common/rina_name.h"
+#include "common/rsrc.h"
 #include "portability/port.h"
 
 #include "configSensor.h"
 #include "configRINA.h"
 
 #include "efcpStructures.h"
-#include "Enrollment.h"
 #include "Enrollment_api.h"
 #include "EnrollmentInformationMessage.pb.h"
 #include "IPCP.h"
 #include "IPCP_normal_defs.h"
 #include "IPCP_normal_api.h"
-#include "FlowAllocator.h"
+#include "FlowAllocator_defs.h"
 #include "FlowAllocator_api.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
@@ -27,18 +29,28 @@
 #include "Ribd_api.h"
 #include "rina_common_port.h"
 #include "RINA_API_flows.h"
-#include "SerdesMsg.h"
+#include "SerDesFlow.h"
 #include "IPCP_api.h"
 
 /* New API */
 
-bool_t xFlowAllocatorInit(flowAllocator_t *pxFA)
+bool_t xFlowAllocatorInit(flowAllocator_t *pxFA, Enrollment_t *pxEnrollment, Ribd_t *pxRibd)
 {
-    return false;
-}
+    /* Create object in the Rib*/
+    /* FIXME: TBD */
 
-void vFlowAllocatorFini(flowAllocator_t *pxFA)
-{
+    /*Init List*/
+    vRsListInit(&pxFA->xFlowAllocatorInstances);
+
+    /* */
+    xSerDesFlowInit(&pxFA->xSD);
+
+    pxFA->pxRib = pxRibd;
+    pxFA->pxEnrollment = pxEnrollment;
+
+    LOGI(TAG_FA, "Flow Allocated initialized successfully");
+
+    return true;
 }
 
 /* OLD UNREVIEWED API */
@@ -47,10 +59,8 @@ void prvAddFlowRequestEntry(flowAllocator_t *pxFA, flowAllocatorInstance_t *pxFA
 {
     num_t x = 0;
 
-    for (x = 0; x < FLOWS_REQUEST; x++)
-    {
-        if (pxFA->xFlowRequestTable[x].xValid == false)
-        {
+    for (x = 0; x < FLOWS_REQUEST; x++) {
+        if (pxFA->xFlowRequestTable[x].xValid == false) {
             pxFA->xFlowRequestTable[x].pxFAI = pxFAI;
             pxFA->xFlowRequestTable[x].xValid = true;
 
@@ -64,15 +74,12 @@ flowAllocatorInstance_t *pxFAFindInstance(flowAllocator_t *pxFA, portId_t xPortI
     num_t x = 0;
     flowAllocatorInstance_t *pxFAI;
 
-    for (x = 0; x < FLOWS_REQUEST; x++)
-    {
-        if (pxFA->xFlowRequestTable[x].xValid == true)
-        {
+    for (x = 0; x < FLOWS_REQUEST; x++) {
+        if (pxFA->xFlowRequestTable[x].xValid == true) {
+
             pxFAI = pxFA->xFlowRequestTable->pxFAI;
-            if (pxFAI->xPortId == xPortId) // ad xPortId
-            {
+            if (pxFAI->xPortId == xPortId)
                 return pxFAI;
-            }
         }
     }
     return NULL;
@@ -84,16 +91,11 @@ flowAllocateHandle_t *pxFAFindFlowHandle(flowAllocator_t *pxFA, portId_t xPortId
     flowAllocatorInstance_t *pxFAI;
     flowAllocateHandle_t *pxFlowAllocateRequest;
 
-    for (x = 0; x < FLOWS_REQUEST; x++)
-    {
-        if (pxFA->xFlowRequestTable[x].xValid == true)
-        {
+    for (x = 0; x < FLOWS_REQUEST; x++) {
+        if (pxFA->xFlowRequestTable[x].xValid == true) {
             pxFAI = pxFA->xFlowRequestTable->pxFAI;
-            if (pxFAI->xPortId == xPortId) // ad xPortId
-            {
-
+            if (pxFAI->xPortId == xPortId)
                 return pxFAI->pxFlowAllocatorHandle;
-            }
         }
     }
     return NULL;
@@ -105,13 +107,10 @@ flowAllocateHandle_t *prvGetPendingFlowRequest(flowAllocator_t *pxFA, portId_t x
     flowAllocateHandle_t *pxFlowAllocateRequest;
     flowAllocatorInstance_t *pxFAI;
 
-    for (x = 0; x < FLOWS_REQUEST; x++)
-    {
-        if (pxFA->xFlowRequestTable[x].xValid == true)
-        {
+    for (x = 0; x < FLOWS_REQUEST; x++) {
+        if (pxFA->xFlowRequestTable[x].xValid == true) {
             pxFAI = pxFA->xFlowRequestTable->pxFAI;
-            if (pxFAI->xPortId == xPortId) // ad xPortId
-            {
+            if (pxFAI->xPortId == xPortId) {
                 pxFlowAllocateRequest = pxFAI->pxFlowAllocatorHandle;
                 return pxFlowAllocateRequest;
             }
@@ -120,44 +119,15 @@ flowAllocateHandle_t *prvGetPendingFlowRequest(flowAllocator_t *pxFA, portId_t x
     return NULL;
 }
 
-flowAllocator_t *pxFlowAllocatorCreate(struct ipcpInstance_t *pxNormalIpcp)
+static qosSpec_t *prvFlowAllocatorSelectQoSCube(qosSpec_t *pxQosSpec)
 {
-    flowAllocator_t *pxFlowAllocator;
-
-    if (!(pxFlowAllocator = pvRsMemAlloc(sizeof(*pxFlowAllocator)))) {
-        LOGE(TAG_FA, "Failed to allocated memory for flow allocator object");
-        return NULL;
-    }
-
-    /* Save the normal IPCP instance we're attached to. */
-    pxFlowAllocator->pxNormalIpcp = pxNormalIpcp;
-
-    /* Create object in the Rib*/
-    /* FIXME: TBD */
-
-    /*Init List*/
-    vRsListInit(&pxFlowAllocator->xFlowAllocatorInstances);
-
-    return pxFlowAllocator;
-}
-
-static qosSpec_t *prvFlowAllocatorSelectQoSCube(void)
-{
-    qosSpec_t *pxQosSpec;
-    struct flowSpec_t *pxFlowSpec;
-
-    pxQosSpec = pvRsMemAlloc(sizeof(*pxQosSpec));
-    pxFlowSpec = pvRsMemAlloc(sizeof(*pxFlowSpec));
-
     /* TODO: Found the most suitable QoScube for the pxFlowRequest->pxFspec
      * Now, it use a default cube to test */
     pxQosSpec->xQosId = QoS_CUBE_ID;
     pxQosSpec->pcQosName = QoS_CUBE_NAME;
 
-    pxFlowSpec->xPartialDelivery = QoS_CUBE_PARTIAL_DELIVERY;
-    pxFlowSpec->xOrderedDelivery = QoS_CUBE_ORDERED_DELIVERY;
-
-    pxQosSpec->pxFlowSpec = pxFlowSpec;
+    pxQosSpec->xFlowSpec.xPartialDelivery = QoS_CUBE_PARTIAL_DELIVERY;
+    pxQosSpec->xFlowSpec.xOrderedDelivery = QoS_CUBE_ORDERED_DELIVERY;
 
     return pxQosSpec;
 }
@@ -166,20 +136,29 @@ static qosSpec_t *prvFlowAllocatorSelectQoSCube(void)
 static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 {
     flow_t *pxFlow;
-
     dtpConfig_t *pxDtpConfig;
     policy_t *pxDtpPolicySet;
-    /* UNUSED struct dtcpConfig_t *pxDtcpConfig = NULL; */
 
-    pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
+    if (!(pxFlow = pvRsMemAlloc(sizeof(*pxFlow)))) {
+        LOGE(TAG_FA, "Failed to allocate memory for flow object");
+        return NULL;
+    }
 
-    pxDtpConfig = pvRsMemAlloc((sizeof(*pxDtpConfig)));
-    pxDtpPolicySet = pvRsMemAlloc(sizeof(*pxDtpPolicySet));
+    //pxDtpConfig = pvRsMemAlloc((sizeof(*pxDtpConfig)));
+    //pxDtpPolicySet = pvRsMemAlloc(sizeof(*pxDtpPolicySet));
 
     // ESP_LOGI(TAG_FA, "DEst:%s", strdup(pxFlowRequest->pxRemote));
 
-    pxFlow->pxSourceInfo = pxFlowRequest->pxLocal;
-    pxFlow->pxDestInfo = pxFlowRequest->pxRemote;
+    if (!xNameAssignDup(&pxFlow->xSourceInfo, &pxFlowRequest->xLocal)) {
+        LOGE(TAG_FA, "Failed to allocate memory for source name in flow");
+        goto fail;
+    }
+
+    if (!xNameAssignDup(&pxFlow->xDestInfo, &pxFlowRequest->xRemote)) {
+        LOGE(TAG_FA, "Failed to allocate memory for destination name in flow");
+        goto fail;
+    }
+
     pxFlow->ulHopCount = 4;
     pxFlow->ulMaxCreateFlowRetries = 1;
     pxFlow->eState = eFA_ALLOCATION_IN_PROGRESS;
@@ -187,22 +166,25 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
     pxFlow->ulCurrentConnectionId = 0;
 
     /* Select QoS Cube based on the FlowSpec Required */
-    pxFlow->pxQosSpec = prvFlowAllocatorSelectQoSCube();
+    prvFlowAllocatorSelectQoSCube(&pxFlow->xQosSpec);
 
     /* Fulfill the DTP_config and the DTCP_config based on the QoSCube*/
 
-    pxDtpConfig->xDtcpPresent = DTP_DTCP_PRESENT;
-    pxDtpConfig->xInitialATimer = DTP_INITIAL_A_TIMER;
+    pxFlow->xDtpConfig.xInitialATimer = DTP_INITIAL_A_TIMER;
 
-    pxDtpPolicySet->pcPolicyName = DTP_POLICY_SET_NAME;
-    pxDtpPolicySet->pcPolicyVersion = DTP_POLICY_SET_VERSION;
-    pxDtpConfig->pxDtpPolicySet = pxDtpPolicySet;
-
-    pxFlow->pxDtpConfig = pxDtpConfig;
+    pxFlow->xDtpConfig.xDtpPolicySet.pcPolicyName = DTP_POLICY_SET_NAME;
+    pxFlow->xDtpConfig.xDtpPolicySet.pcPolicyVersion = DTP_POLICY_SET_VERSION;
 
     // By the moment the DTCP is not implemented yet so we are using DTP_DTCP_PRESENT = pdFALSE
 
     return pxFlow;
+
+    fail:
+
+    if (pxFlow)
+        vRsMemFree(pxFlow);
+
+    return NULL;
 }
 
 /*Allocate_Request: Handle the request send by the application
@@ -227,11 +209,6 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
     /* Create a flow object and fill using the event FlowRequest */
     pxFlow = prvFlowAllocatorNewFlow(pxFlowRequest);
 
-    if (!(pxConnectionId = pvRsMemAlloc(sizeof(connectionId_t)))) {
-        LOGE(TAG_FA, "Failed to allocate memory for connection ID");
-        goto fail;
-    }
-
     /* Create a FAI and fill the struct properly*/
     if (!(pxFlowAllocatorInstance = pvRsMemAlloc(sizeof(*pxFlowAllocatorInstance)))) {
         LOGE(TAG_FA, "Failed to allocate memory for flow allocator instance");
@@ -254,7 +231,7 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
     LOGD(TAG_FA, "Getting Neighbor");
 
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
-    pxNeighbor = pxEnrollmentFindNeighbor(pcNeighbor);
+    pxNeighbor = pxEnrollmentFindNeighbor(pxFA->pxEnrollment, pcNeighbor);
     if (!pxNeighbor) {
         LOGE(TAG_FA, "No neighbor found");
         return;
@@ -274,9 +251,9 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
                                                        xAppPortId,
                                                        LOCAL_ADDRESS,
                                                        pxFlow->xRemoteAddress,
-                                                       pxFlow->pxQosSpec->xQosId,
-                                                       pxFlow->pxDtpConfig,
-                                                       pxFlow->pxDtcpConfig)) == CEP_ID_WRONG) {
+                                                       pxFlow->xQosSpec.xQosId,
+                                                       &pxFlow->xDtpConfig,
+                                                       &pxFlow->xDtcpConfig)) == CEP_ID_WRONG) {
         LOGE(TAG_FA, "Failed to create connection request");
     }
 
@@ -287,47 +264,46 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
     }
 
     LOGD(TAG_FA, "CepId updated into the flow");
-    /* Fill the Flow connectionId */
-    pxConnectionId->xSource = xCepSourceId;
-    pxConnectionId->xQosId = pxFlow->pxQosSpec->xQosId;
-    pxConnectionId->xDestination = 0;
 
-    pxFlow->pxConnectionId = pxConnectionId;
+    /* Fill the Flow connectionId */
+    pxFlow->xConnectionId.xSource = xCepSourceId;
+    pxFlow->xConnectionId.xQosId = pxFlow->xQosSpec.xQosId;
+    pxFlow->xConnectionId.xDestination = 0;
 
     /* Send the flow message to the neighbor */
     // Serialize the pxFLow Struct into FlowMsg and Encode the FlowMsg as obj_value
     serObjectValue_t *pxObjVal = NULL;
 
-    pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
+    pxObjVal = pxSerDesFlowEncode(&pxFA->xSD, pxFlow);
 
     char flowObj[CHAR_MAX];
     sprintf(flowObj, "/fa/flows/key=%d-%d", pxFlow->xSourceAddress, pxFlow->xSourcePortId);
 
-    if (!pxRibCreateObject(flowObj, -1, "Flow", "Flow", FLOW))
+    if (!pxRibCreateObject(pxFA->pxRib, flowObj, -1, "Flow", "Flow", FLOW))
     {
         LOGE(TAG_FA, "It was a problem to create Rib Object");
     }
 
-    if (!xRibdSendRequest("Flow", flowObj, -1, M_CREATE, pxNeighbor->xN1Port, pxObjVal))
+    if (!xRibdSendRequest(&pxIpcpData->xRibd, "Flow", flowObj, -1, M_CREATE, pxNeighbor->xN1Port, pxObjVal))
     {
         LOGE(TAG_FA, "It was a problem to send the request");
         // return pdFALSE;
     }
 
     if (pxObjVal != NULL)
-        vRsMemFree(pxObjVal);
+        vRsrcFree(pxObjVal);
 
     fail:
 }
 
-bool_t xFlowAllocatorHandleCreateR(flowAllocator_t *pxFA, serObjectValue_t *pxSerObjValue, int result)
+bool_t xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData, serObjectValue_t *pxSerObjValue, int result)
 {
     portId_t xAppPortId;
     flowAllocatorInstance_t *pxFAI;
     flow_t *pxFlow;
     bool_t xStatus;
 
-    RsAssert(pxFA);
+    RsAssert(pxData);
     RsAssert(pxSerObjValue);
 
     if (result != 0) {
@@ -335,28 +311,29 @@ bool_t xFlowAllocatorHandleCreateR(flowAllocator_t *pxFA, serObjectValue_t *pxSe
         return false;
     }
 
-    if (!(pxFlow = pxSerdesMsgDecodeFlow(pxSerObjValue->pvSerBuffer, pxSerObjValue->xSerLength))) {
+    if (!(pxFlow = pxSerDesFlowDecode(&pxData->xFA.xSD,
+                                      pxSerObjValue->pvSerBuffer, pxSerObjValue->xSerLength))) {
         LOGE(TAG_FA, "Failed to deserialize flow creation message");
         return false;
     }
 
-    if (!(pxFAI = pxFAFindInstance(pxFA, pxFlow->xDestinationPortId))) {
+    if (!(pxFAI = pxFAFindInstance(&pxData->xFA, pxFlow->xDestinationPortId))) {
         LOGE(TAG_FA, "Flow Allocator Instance was not founded ");
         return false;
     }
 
-    CALL_IPCP_CHECK(xStatus, pxFA->pxNormalIpcp, connectionModify,
-                    pxFlow->pxConnectionId->xDestination,
-                    pxFlow->xRemoteAddress,
-                    pxFlow->xSourceAddress) {
+    if (!xNormalConnectionModify(pxData->pxIpcp,
+                                 pxFlow->xConnectionId.xDestination,
+                                 pxFlow->xRemoteAddress,
+                                 pxFlow->xSourceAddress)) {
         LOGE(TAG_FA, "Failed to modify the connection");
         return false;
     }
 
-    CALL_IPCP_CHECK(xStatus, pxFA->pxNormalIpcp, connectionUpdate,
-                    pxFlow->xDestinationPortId,
-                    pxFlow->pxConnectionId->xSource,
-                    pxFlow->pxConnectionId->xDestination) {
+    if (!xNormalConnectionUpdate(pxData->pxIpcp,
+                                 pxFlow->xDestinationPortId,
+                                 pxFlow->xConnectionId.xSource,
+                                 pxFlow->xConnectionId.xDestination)) {
         LOGE(TAG_FA, "It was not possible to update the connection");
         return false;
     }
@@ -374,7 +351,7 @@ bool_t xFlowAllocatorHandleCreateR(flowAllocator_t *pxFA, serObjectValue_t *pxSe
     return true;
 }
 
-bool_t xFlowAllocatorHandleDeleteR(flowAllocator_t *pxFA, struct ribObject_t *pxRibObject, int invoke_id)
+bool_t xFlowAllocatorHandleDeleteR(struct ipcpInstanceData_t *pxData, ribObject_t *pxRibObject, int invoke_id)
 {
     LOGE(TAG_FA, "HANDLE DELETE");
 
@@ -386,7 +363,7 @@ bool_t xFlowAllocatorHandleDeleteR(flowAllocator_t *pxFA, struct ribObject_t *px
     return false;
 }
 
-bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id)
+bool_t xFlowAllocatorHandleDelete(struct ipcpInstanceData_t *pxData, ribObject_t *pxRibObject, int invoke_id)
 {
     LOGD(TAG_FA, "Calling: %s", __func__);
 

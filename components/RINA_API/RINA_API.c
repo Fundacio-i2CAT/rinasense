@@ -12,17 +12,17 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "common/num_mgr.h"
 #include "portability/port.h"
+#include "common/num_mgr.h"
 #include "common/list.h"
 #include "common/rina_ids.h"
 #include "common/rina_name.h"
 
+#include "configSensor.h"
+
 #include "IpcManager.h"
 #include "BufferManagement.h"
 #include "RINA_API_flows.h"
-#include "common/list.h"
-#include "configSensor.h"
 #include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
@@ -65,7 +65,7 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif,
                                                     string_t pcLocalApp,
                                                     uint8_t Flags)
 {
-    name_t *xDn, *xAppn, *xDan;
+    rname_t *xDn, *xAppn, *xDan;
     registerApplicationHandle_t *xRegAppRequest;
     RINAStackEvent_t xStackAppRegistrationEvent = {
         .eEventType = eStackAppRegistrationEvent,
@@ -79,12 +79,12 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif,
     }
 
     /*Check Flags (RINA_F_NOWAIT)*/
+#if 0
 
     /*Create name_t objects*/
     xDn = pxRStrNameCreate();
     xAppn = pxRStrNameCreate();
     xDan = pxRStrNameCreate();
-#if 0
     if (pcNameDif && xRinaNameFromString(pcNameDif, xDn))
         {
             ESP_LOGE(TAG_RINA, "DIFName incorrect");
@@ -174,22 +174,11 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
                                                       struct rinaFlowSpec_t *xFlowSpec)
 {
     portId_t xPortId; /* PortId to return to the user*/
-    name_t *pxDIFName = NULL;
-    name_t *pxLocalName = NULL;
-    name_t *pxRemoteName = NULL;
-    struct flowSpec_t *pxFlowSpecTmp = NULL;
     flowAllocateHandle_t *pxFlowAllocateRequest = NULL;
 
     LOGI(TAG_RINA, "Creating a new flow request");
 
-    pxFlowSpecTmp = pvRsMemAlloc(sizeof(*pxFlowSpecTmp));
-    if (!pxFlowSpecTmp) {
-        LOGE(TAG_RINA, "Failed to allocate memory for flow specifications");
-        goto err;
-    }
-
-    pxFlowAllocateRequest = pvRsMemAlloc(sizeof(*pxFlowAllocateRequest));
-    if (!pxFlowAllocateRequest) {
+    if (!(pxFlowAllocateRequest = pvRsMemCAlloc(1, sizeof(*pxFlowAllocateRequest)))) {
         LOGE(TAG_RINA, "Failed to allocate memory for flow request");
         goto err;
     }
@@ -207,30 +196,18 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
 
     pxFlowAllocateRequest->nEventBits = 0;
 
-    /* Check Flow spec ok version*/
-
-    /*Check Flags*/
-    (void)memset(pxFlowAllocateRequest, 0, sizeof(*pxFlowAllocateRequest));
-
-    /*Create objetcs type name_t from string_t*/
-    pxDIFName = pxRStrNameCreate();
-    pxLocalName = pxRStrNameCreate();
-    pxRemoteName = pxRStrNameCreate();
-
-    if (!pxDIFName || !pxLocalName || !pxRemoteName) {
-        LOGE(TAG_RINA, "Rina Names were not created properly");
+    if (!xNameAssignFromString(&pxFlowAllocateRequest->xDifName, pcNameDIF)) {
+        LOGE(TAG_RINA, "Invalid DIF name");
         goto err;
     }
-    if (!xRinaNameFromString(pcNameDIF, pxDIFName)) {
-        LOGE(TAG_RINA, "No possible to convert String to Rina Name");
+
+    if (!xNameAssignFromString(&pxFlowAllocateRequest->xLocal, pcLocalApp)) {
+        LOGE(TAG_RINA, "Invalid local name");
         goto err;
     }
-    if (!pcLocalApp || !xRinaNameFromString(pcLocalApp, pxLocalName)) {
-        LOGE(TAG_RINA, "LocalName incorrect");
-        goto err;
-    }
-    if (!pcRemoteApp || !xRinaNameFromString(pcRemoteApp, pxRemoteName)) {
-        LOGE(TAG_RINA, "RemoteName incorrect");
+
+    if (!xNameAssignFromString(&pxFlowAllocateRequest->xRemote, pcRemoteApp)) {
+        LOGE(TAG_RINA, "Invalid remote name");
         goto err;
     }
 
@@ -241,41 +218,34 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
 
     /*Struct Data to sent attached into the event*/
 
-    if (pxFlowAllocateRequest != NULL) {
-        pxFlowAllocateRequest->xReceiveBlockTime = FLOW_DEFAULT_RECEIVE_BLOCK_TIME;
-        pxFlowAllocateRequest->xSendBlockTime = FLOW_DEFAULT_SEND_BLOCK_TIME;
+    pxFlowAllocateRequest->xReceiveBlockTime = FLOW_DEFAULT_RECEIVE_BLOCK_TIME;
+    pxFlowAllocateRequest->xSendBlockTime = FLOW_DEFAULT_SEND_BLOCK_TIME;
+    pxFlowAllocateRequest->xPortId = xPortId;
 
-        pxFlowAllocateRequest->pxLocal = pxLocalName;
-        pxFlowAllocateRequest->pxRemote = pxRemoteName;
-        pxFlowAllocateRequest->pxDifName = pxDIFName;
-        pxFlowAllocateRequest->pxFspec = pxFlowSpecTmp;
-        pxFlowAllocateRequest->xPortId = xPortId;
+    vRsListInit(&pxFlowAllocateRequest->xListWaitingPackets);
 
-        vRsListInit(&pxFlowAllocateRequest->xListWaitingPackets);
-
-        if (!xFlowSpec) {
-            pxFlowAllocateRequest->pxFspec->ulAverageBandwidth = 0;
-            pxFlowAllocateRequest->pxFspec->ulAverageSduBandwidth = 0;
-            pxFlowAllocateRequest->pxFspec->ulDelay = 0;
-            pxFlowAllocateRequest->pxFspec->ulJitter = 0;
-            pxFlowAllocateRequest->pxFspec->usLoss = 10000;
-            pxFlowAllocateRequest->pxFspec->ulMaxAllowableGap = 10;
-            pxFlowAllocateRequest->pxFspec->xOrderedDelivery = false;
-            pxFlowAllocateRequest->pxFspec->ulUndetectedBitErrorRate = 0;
-            pxFlowAllocateRequest->pxFspec->xPartialDelivery = true;
-            pxFlowAllocateRequest->pxFspec->xMsgBoundaries = false;
-        } else {
-            pxFlowAllocateRequest->pxFspec->ulAverageBandwidth = xFlowSpec->avg_bandwidth;
-            pxFlowAllocateRequest->pxFspec->ulAverageSduBandwidth = 0;
-            pxFlowAllocateRequest->pxFspec->ulDelay = xFlowSpec->max_delay;
-            pxFlowAllocateRequest->pxFspec->ulJitter = xFlowSpec->max_jitter;
-            pxFlowAllocateRequest->pxFspec->usLoss = xFlowSpec->max_loss;
-            pxFlowAllocateRequest->pxFspec->ulMaxAllowableGap = xFlowSpec->max_sdu_gap;
-            pxFlowAllocateRequest->pxFspec->xOrderedDelivery = xFlowSpec->in_order_delivery;
-            pxFlowAllocateRequest->pxFspec->ulUndetectedBitErrorRate = 0;
-            pxFlowAllocateRequest->pxFspec->xPartialDelivery = true;
-            pxFlowAllocateRequest->pxFspec->xMsgBoundaries = xFlowSpec->msg_boundaries;
-        }
+    if (!xFlowSpec) {
+        pxFlowAllocateRequest->xFspec.ulAverageBandwidth = 0;
+        pxFlowAllocateRequest->xFspec.ulAverageSduBandwidth = 0;
+        pxFlowAllocateRequest->xFspec.ulDelay = 0;
+        pxFlowAllocateRequest->xFspec.ulJitter = 0;
+        pxFlowAllocateRequest->xFspec.usLoss = 10000;
+        pxFlowAllocateRequest->xFspec.ulMaxAllowableGap = 10;
+        pxFlowAllocateRequest->xFspec.xOrderedDelivery = false;
+        pxFlowAllocateRequest->xFspec.ulUndetectedBitErrorRate = 0;
+        pxFlowAllocateRequest->xFspec.xPartialDelivery = true;
+        pxFlowAllocateRequest->xFspec.xMsgBoundaries = false;
+    } else {
+        pxFlowAllocateRequest->xFspec.ulAverageBandwidth = xFlowSpec->avg_bandwidth;
+        pxFlowAllocateRequest->xFspec.ulAverageSduBandwidth = 0;
+        pxFlowAllocateRequest->xFspec.ulDelay = xFlowSpec->max_delay;
+        pxFlowAllocateRequest->xFspec.ulJitter = xFlowSpec->max_jitter;
+        pxFlowAllocateRequest->xFspec.usLoss = xFlowSpec->max_loss;
+        pxFlowAllocateRequest->xFspec.ulMaxAllowableGap = xFlowSpec->max_sdu_gap;
+        pxFlowAllocateRequest->xFspec.xOrderedDelivery = xFlowSpec->in_order_delivery;
+        pxFlowAllocateRequest->xFspec.ulUndetectedBitErrorRate = 0;
+        pxFlowAllocateRequest->xFspec.xPartialDelivery = true;
+        pxFlowAllocateRequest->xFspec.xMsgBoundaries = xFlowSpec->msg_boundaries;
     }
 
     return pxFlowAllocateRequest;
@@ -283,14 +253,6 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
     err:
     if (pxFlowAllocateRequest)
         vRsMemFree(pxFlowAllocateRequest);
-    if (pxFlowSpecTmp)
-        vRsMemFree(pxFlowSpecTmp);
-    if (pxDIFName)
-        vRstrNameFree(pxDIFName);
-    if (pxLocalName)
-        vRstrNameFree(pxLocalName);
-    if (pxRemoteName)
-        vRstrNameFree(pxRemoteName);
 
     return NULL;
 }
@@ -344,6 +306,8 @@ bool_t prvConnect(flowAllocator_t *pxFA, flowAllocateHandle_t *pxFlowAllocateReq
  */
 void RINA_Init()
 {
+    RsAssert(xIpcManagerInit(&xIpcManager));
+
     RINA_IPCPInit();
 
     /* FIXME: This picks the first normal IPCP instance found in the

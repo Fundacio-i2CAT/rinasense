@@ -5,6 +5,10 @@
 #include "common/rina_name.h"
 #include "common/list.h"
 
+#include "FlowAllocator_api.h"
+#include "FlowAllocator_defs.h"
+#include "Ribd_api.h"
+#include "Enrollment_api.h"
 #include "efcpStructures.h"
 
 #ifdef __cplusplus
@@ -40,10 +44,10 @@ struct ipcpInstanceData_t
     struct ipcpInstance_t *pxIpcp;
 
     /* IPCP Instance's Name */
-    name_t xName;
+    rname_t xName;
 
     /* IPCP Instance's DIF Name */
-    name_t xDifName;
+    rname_t xDifName;
 
     /* IPCP Instance's List of Flows created */
     RsList_t xFlowsList;
@@ -57,8 +61,14 @@ struct ipcpInstanceData_t
     /* RMT asociated at the IPCP Instance */
     struct rmt_t xRmt;
 
+    /* Enrollment component */
+    Enrollment_t xEnrollment;
+
     /* Flow allocator associated to the IPCP instance. */
     flowAllocator_t xFA;
+
+    /* RIB object */
+    Ribd_t xRibd;
 
     /* SDUP asociated at the IPCP Instance */
     // struct sdup *           sdup;

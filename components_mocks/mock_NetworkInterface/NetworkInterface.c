@@ -1,5 +1,7 @@
 #include "common/mac.h"
+
 #include "rina_buffers.h"
+#include "IPCP_instance.h"
 
 static NetworkBufferDescriptor_t *lastBufferOutput = NULL;
 
@@ -18,9 +20,9 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
 }
 
 #ifdef ESP_PLATFORM
-bool_t mock_NetworkInterface_xNetworkInterfaceInitialise(const MACAddress_t *phyDev)
+bool_t mock_NetworkInterface_xNetworkInterfaceInitialise(struct ipcpInstance_t *pxSelf, const MACAddress_t *phyDev)
 #else
-bool_t xNetworkInterfaceInitialise(const MACAddress_t *phyDev)
+    bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxSelf, MACAddress_t *phyDev)
 #endif
 {
     LOGI(TAG_WIFI, "Mock-NetworkInterface initialized");

@@ -52,7 +52,7 @@ struct ARPCache *pxARPCacheCreate(eGHAType_t eType, num_t nEntries)
 
     unMem = sizeof(struct ARPCache) + (sizeof(struct ARPCacheRow) * nEntries);
 
-    if (!(pxCache = pvRsMemAlloc(unMem))) {
+    if (!(pxCache = pvRsMemCAlloc(1, unMem))) {
         LOGE(TAG_ARP, "Failed to allocate memory for ARP cache");
         return NULL;
     }
@@ -62,11 +62,6 @@ struct ARPCache *pxARPCacheCreate(eGHAType_t eType, num_t nEntries)
     pxCache->pxRows = (void *)pxCache + sizeof(struct ARPCache);
     pxCache->nEntries = nEntries;
     pxCache->eType = eType;
-
-    /* Reset the cache to 0. */
-    vARPRemoveAll(pxCache);
-
-	LOGI(TAG_ARP, "ARP Cache create");
 
     return pxCache;
 }
@@ -208,6 +203,7 @@ eARPLookupResult_t eARPCacheLookupGPA(const struct ARPCache *pxCache,
 
 	/* Loop through each entry in the ARP cache. */
 	for (x = 0; x < pxCache->nEntries; x++)	{
+
         /* Skip empty entries. */
         if (pxCache->pxRows[x].ucAge == 0)
             continue;
@@ -226,7 +222,8 @@ eARPLookupResult_t eARPCacheLookupGPA(const struct ARPCache *pxCache,
 		if (xGPACmp(pxCache->pxRows[x].pxPa, pxGpaToLookup)) {
 
 			/* A matching valid entry was found, make sure it's valid. */
-			if (pxCache->pxRows[x].ucValid == (uint8_t) false) {
+			if (pxCache->pxRows[x].ucValid == (uint8_t)false) {
+
 				/* This entry is waiting an ARP reply, so is not valid. */
 				eReturn = eCantSendPacket;
 

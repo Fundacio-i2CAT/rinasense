@@ -6,6 +6,8 @@
 #include "common/rina_ids.h"
 #include "common/list.h"
 
+#include "rina_common_port.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,10 +30,13 @@ typedef struct xFLOW_ALLOCATE_HANDLE
     useconds_t usTimeout; /**< Time (in microseconds) after which this socket needs attention */
 
     portId_t xPortId; /*Should be change by the TASK*/
-    name_t *pxLocal;
-    name_t *pxRemote;
-    name_t *pxDifName;
-    struct flowSpec_t *pxFspec;
+
+    rname_t xLocal;
+    rname_t xRemote;
+    rname_t xDifName;
+
+    flowSpec_t xFspec;
+
     RsList_t xListWaitingPackets;
 
     /* Condition variable. */

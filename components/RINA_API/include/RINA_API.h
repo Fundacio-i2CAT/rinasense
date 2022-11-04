@@ -42,9 +42,9 @@ typedef struct xREGISTER_APPLICATION_HANDLE
     uint32_t xDestPort;
     ipcProcessId_t xSrcIpcpId;
     ipcProcessId_t xDestIpcpId;
-    name_t *pxAppName;
-    name_t *pxDafName;
-    name_t *pxDifName;
+    rname_t xAppName;
+    rname_t xDafName;
+    rname_t xDifName;
 
 } registerApplicationHandle_t;
 

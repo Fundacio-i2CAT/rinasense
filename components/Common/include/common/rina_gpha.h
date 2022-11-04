@@ -56,7 +56,7 @@ bool_t xGPACmp(const gpa_t *gpa1, const gpa_t *gpa2);
 
 bool_t xGHACmp(const gha_t *pxHa1, const gha_t *pxHa2);
 
-gpa_t *pxNameToGPA(const name_t *xLocalInfo);
+gpa_t *pxNameToGPA(const rname_t *xLocalInfo);
 
 char* xGPAAddressToString(const gpa_t * pxGpa);
 

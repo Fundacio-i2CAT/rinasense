@@ -1,9 +1,10 @@
 #ifndef COMPONENTS_RMT_INCLUDE_RMT_H_
 #define COMPONENTS_RMT_INCLUDE_RMT_H_
 
+#include "common/list.h"
+
 #include "du.h"
 #include "efcpStructures.h"
-#include "IPCP_instance.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,7 +48,7 @@ typedef struct xRMT_N1_PORT
      spinlock_t		lock;*/
 
     /*Port Id from Shim*/
-    portId_t xPortId;
+    portId_t unPort;
 
     /* Shim Instance*/
     struct ipcpInstance_t *pxN1Ipcp;
@@ -66,6 +67,8 @@ typedef struct xRMT_N1_PORT
 
     /*???*/
     void *pvRmtPsQueues;
+
+    RsListItem_t xPortItem;
 
 } rmtN1Port_t;
 
@@ -90,8 +93,10 @@ struct rmt_t
     struct efcpContainer_t *pxEfcpc;
 
     /* N-1 */
-    rmtN1Port_t *pxN1Port;
     struct rmt_Config_t *pxRmtCfg;
+
+    /* Ports */
+    RsList_t xPorts;
 };
 
 typedef struct xPORT_TABLE_ENTRY

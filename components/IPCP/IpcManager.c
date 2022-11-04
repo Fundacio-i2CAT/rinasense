@@ -30,6 +30,35 @@
 
 ipcManager_t xIpcManager;
 
+#define DEFINE_IPC_MANAGER_LIFECYCLE_FUNCTION(nm, fn)                    \
+    bool_t xIpcManagerRun##nm() {                                       \
+    num_t x = 0;                                                        \
+    for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++) {                      \
+        if (xIpcManager.xIpcpTable[x].xActive) {                        \
+            struct ipcpInstance_t *pxIpcp = xIpcManager.xIpcpTable[x].pxIpcpInstance; \
+            if (pxIpcp->pxOps && pxIpcp->pxOps->fn) {                   \
+                LOGD(TAG_IPCPMANAGER, "LIFECYCLE "#fn" ON IPCP %u", pxIpcp->xId); \
+                if (!pxIpcp->pxOps->fn(pxIpcp)) {                       \
+                    LOGE(TAG_IPCPMANAGER, "LIFECYCLE "#fn" FAILED ON IPCP %u", pxIpcp->xId); \
+                    return false;                                       \
+                }                                                       \
+            }                                                           \
+            else {                                                      \
+                LOGW(TAG_IPCPMANAGER, "LIFECYCLE "#fn" UNDEFINED ON IPCP %u", pxIpcp->xId); \
+            }                                                           \
+        }                                                               \
+    }                                                                   \
+    return true;                                                        \
+    }
+
+DEFINE_IPC_MANAGER_LIFECYCLE_FUNCTION(Start, start);
+
+DEFINE_IPC_MANAGER_LIFECYCLE_FUNCTION(Stop, stop);
+
+DEFINE_IPC_MANAGER_LIFECYCLE_FUNCTION(Enable, enable);
+
+DEFINE_IPC_MANAGER_LIFECYCLE_FUNCTION(Disable, disable);
+
 /**
  * @brief Initialize a IPC Manager object. Create a Port Id Manager
  * instance. Create an IPCP Id Manager.
@@ -99,6 +128,32 @@ struct ipcpInstance_t *pxIpcManagerFindByType(ipcManager_t *pxIpcManager,
 }
 
 /**
+ * Reserve an IPC process ID
+ */
+ipcProcessId_t unIpcManagerReserveIpcpId(ipcManager_t *pxIpcManager)
+{
+    ipcProcessId_t unIpcpId;
+
+    RsAssert(pxIpcManager);
+
+    if ((unIpcpId = ulNumMgrAllocate(pxIpcManager->pxIpcpIdm)) == IPCP_ID_WRONG)
+        LOGW(TAG_IPCPMANAGER, "Out of available IPCP ID");
+
+    return unIpcpId;
+}
+
+/**
+ * Release an IPC process ID previously allocated
+ */
+void vIpcManagerReleaseIpcpId(ipcManager_t *pxIpcManager, ipcProcessId_t unIpcpId)
+{
+    RsAssert(pxIpcManager);
+
+    if (!xNumMgrRelease(pxIpcManager->pxIpcpIdm, unIpcpId))
+        LOGW(TAG_IPCPMANAGER, "Tried to release unreserved IPCP ID %u", unIpcpId);
+}
+
+/**
  * Reserve a port ID
  */
 portId_t unIpcManagerReservePort(ipcManager_t *pxIpcManager)
@@ -124,10 +179,11 @@ void vIpcManagerReleasePort(ipcManager_t *pxIpcManager, portId_t unPortId)
         LOGW(TAG_IPCPMANAGER, "Tried to release unreserved port %u", unPortId);
 }
 
-void vIcpManagerEnrollmentFlowRequest(struct ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName)
+#if 0
+void vIcpManagerEnrollmentFlowRequest(struct ipcpInstance_t *pxShimInstance, portId_t xN1PortId, rname_t *pxIPCPName)
 {
     /*This should be proposed by the Flow Allocator?*/
-    name_t *destinationInfo = pvRsMemAlloc(sizeof(*destinationInfo));
+    rname_t *destinationInfo = pvRsMemAlloc(sizeof(*destinationInfo));
     destinationInfo->pcProcessName = REMOTE_ADDRESS_AP_NAME;
     destinationInfo->pcEntityName = "";
     destinationInfo->pcProcessInstance = REMOTE_ADDRESS_AP_INSTANCE;
@@ -144,6 +200,7 @@ void vIcpManagerEnrollmentFlowRequest(struct ipcpInstance_t *pxShimInstance, por
                                                    xN1PortId))
         LOGI(TAG_IPCPNORMAL, "Flow Request processed by the Shim sucessfully");
 }
+#endif
 
 #if 0
 void vIpcManagerRINAPackettHandler(struct ipcpInstanceData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
@@ -190,14 +247,3 @@ void vIpcManagerRINAPackettHandler(struct ipcpInstanceData_t *pxData, NetworkBuf
     }
 }
 #endif
-
-struct ipcpInstance_t *pxIpcManagerCreateShim()
-{
-    ipcProcessId_t xIpcpId;
-
-    xIpcpId = ulNumMgrAllocate(xIpcManager.pxIpcpIdm);
-
-    // add the shimInstance into the instance list.
-
-    return pxShimWiFiCreate(xIpcpId);
-}

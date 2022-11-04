@@ -1,23 +1,16 @@
-/*
- * Enrollment.h
- *
- *  Created on: 14 february. 2022
- *      Author: i2CAT
- */
+#ifndef SERDES_NEIGHBOR_H_INCLUDED
+#define SERDES_NEIGHBOR_H_INCLUDED
 
-#ifndef ENROLLMENT_H_INCLUDED
-#define ENROLLMENT_H_INCLUDED
+#include "portability/port.h"
+#include "common/list.h"
+#include "common/rsrc.h"
+#include "common/rina_ids.h"
 
-#include "Rib.h"
-#include "IPCP_normal_defs.h"
+#include "SerDes.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*-----------------------------------------------------------*/
-/* Miscellaneous structure and definitions. */
-/*-----------------------------------------------------------*/
 
 #define NEIGHBOR_TABLE_SIZE (5)
 typedef enum
@@ -28,7 +21,7 @@ typedef enum
 
 } enrollmentState_t;
 
-typedef struct xNEIGHBOR_INFO
+typedef struct
 {
     /*States of enrollment process*/
     enrollmentState_t eEnrollmentState;
@@ -50,20 +43,7 @@ typedef struct xNEIGHBOR_INFO
 
 } neighborInfo_t;
 
-typedef struct xENROLLMENT_MESSAGE
-{
-    /*Address*/
-    uint64_t ullAddress;
-
-    string_t pcSupportingDifs;
-
-    bool_t xStartEarly;
-
-    string_t pcToken;
-
-} enrollmentMessage_t;
-
-typedef struct xNEIGHBOR
+typedef struct
 {
     string_t pcApName;
     string_t pcApInstance;
@@ -73,15 +53,21 @@ typedef struct xNEIGHBOR
     string_t pcSupportingDifs;
 } neighborMessage_t;
 
-typedef struct xNEIGHBOR_ROW
+typedef struct
 {
-    neighborInfo_t *pxNeighborInfo;
-    bool_t xValid;
+    rsrcPoolP_t xEncPool;
+    rsrcPoolP_t xDecPool;
 
-} neighborsTableRow_t;
+} NeighborSerDes_t;
+
+bool_t xSerDesNeighborInit(NeighborSerDes_t *pxSD);
+
+serObjectValue_t *pxSerDesNeighborEncode(NeighborSerDes_t *pxSD, neighborMessage_t *pxMsg);
+
+neighborMessage_t *pxSerDesNeighborDecode(NeighborSerDes_t *pxSD, uint8_t *pucBuffer, size_t xMessageLength);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ENROLLMENT_H_ */
+#endif /* SERDES_NEIGHBOR_H_INCLUDE */
