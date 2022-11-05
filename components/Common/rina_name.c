@@ -45,9 +45,16 @@ bool_t prvBreakdownNameString(rname_t *pxDst, string_t pxStr)
     pxDst->pcEntityName = c + 1;
 
     for (c++; *c != DELIMITER && *c != 0; c++);
-    if (*c == DELIMITER) *c = 0;
 
-    pxDst->pcEntityInstance = c + 1;
+    /* We're taking into account the possibility of a missing last
+     * delimiter here. If the last character we went over isn't the
+     * delimiter, we presume the string continues past it. Otherwise,
+     * we just point EntityInstance at the 0. */
+    if (*c == DELIMITER) {
+        *c = 0;
+        pxDst->pcEntityInstance = c + 1;
+    }
+    else pxDst->pcEntityInstance = c;
 
     return true;
 }
@@ -62,14 +69,23 @@ rname_t *pxNameNewFromString(const string_t pcNmStr)
 
     len = strlen(pcNmStr);
 
+    /* Allocate enough memory for the whole string past the
+       structure */
     if (!(pxDst = pvRsMemAlloc(sizeof(rname_t) + len + 1)))
         return NULL;
 
+    /* Keep track of how much memory we have past it */
     pxDst->unPostLn = len;
+
+    /* Copy the string after the struct */
     pxData = (void *)pxDst + sizeof(rname_t);
+    pxDst->pxFree = pxDst;
     strcpy(pxData, pcNmStr);
 
     if (!prvBreakdownNameString(pxDst, pxData)) {
+        /* Error? Entirely wipe the name_t object to make sure it's
+         * not usable. */
+        bzero(pxDst, sizeof(rname_t));
         vRsMemFree(pxDst);
         return NULL;
     }
@@ -85,18 +101,22 @@ rname_t *pxNameNewFromParts(string_t pcProcessName,
 	string_t pxData;
     rname_t *pxDst;
 
+    /* Figure out the memory we need past the structure size */
     len = strlen(pcProcessName)
         + strlen(pcProcessInstance)
         + strlen(pcEntityName)
         + strlen(pcEntityInstance);
 
+    /* Allocate the structure + memory past it */
     if (!(pxDst = pvRsMemAlloc(sizeof(rname_t) + len + 4)))
         return false;
 
+    /* Keep track of how much memory we have past it */
     pxDst->unPostLn = len;
 
     /* Copy the name components in memory after the struct */
     pxData = (void *)pxDst + sizeof(rname_t);
+    pxDst->pxFree = pxDst;
 
     prvNameCopyAssignParts(pxDst, pxData,
                            pcProcessName, pcProcessInstance,
@@ -107,14 +127,8 @@ rname_t *pxNameNewFromParts(string_t pcProcessName,
 
 void vNameFree(rname_t *pxNm)
 {
-    /* If there is no memory reserved after the struct, free the first
-       component. This will take care of the rest. Otherwise, free the
-       whole struct. */
-
-    if (!pxNm->unPostLn)
-        vRsMemFree(pxNm->pcProcessName);
-    else
-        vRsMemFree(pxNm);
+    if (pxNm->pxFree)
+        vRsMemFree(pxNm->pxFree);
 }
 
 void vNameAssignFromPartsStatic(rname_t *pxDst,
@@ -127,6 +141,7 @@ void vNameAssignFromPartsStatic(rname_t *pxDst,
     pxDst->pcProcessInstance = pcProcessInstance;
     pxDst->pcEntityName = pcEntityName;
     pxDst->pcEntityInstance = pcEntityInstance;
+    pxDst->pxFree = NULL;
 
     /* No memory reserved after the struct */
     pxDst->unPostLn = 0;
@@ -139,7 +154,6 @@ bool_t xNameAssignFromPartsDup(rname_t *pxDst,
                                string_t pcEntityInstance)
 {
     size_t len;
-    string_t newq;
 
     /* 1 char for the '0' */
     len = (pcProcessName     ? strlen(pcProcessName)     : 1)
@@ -147,10 +161,10 @@ bool_t xNameAssignFromPartsDup(rname_t *pxDst,
         + (pcEntityName      ? strlen(pcEntityName)      : 1)
         + (pcEntityInstance  ? strlen(pcEntityInstance)  : 1);
 
-    if (!(newq = pvRsMemAlloc(len + 4 + 1)))
+    if (!(pxDst->pxFree = pvRsMemAlloc(len + 4 + 1)))
         return false;
 
-    prvNameCopyAssignParts(pxDst, newq,
+    prvNameCopyAssignParts(pxDst, pxDst->pxFree,
                            (pcProcessName     ? pcProcessName     : ""),
                            (pcProcessInstance ? pcProcessInstance : ""),
                            (pcEntityName      ? pcEntityName      : ""),
@@ -168,19 +182,24 @@ bool_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr)
     size_t unStrSz;
     char *c;
 
-    /* Copy the string */
+    /* Get the amount of memory we need */
     unStrSz = strlen(pxNmStr);
-    pxNewStr = pvRsMemAlloc(unStrSz + 1);
-    strcpy(pxNewStr, pxNmStr);
 
+    /* Allocate enough memory for the string */
+    if (!(pxDst->pxFree = pvRsMemAlloc(unStrSz + 1)))
+        return false;
+
+    /* Copy */
+    strcpy(pxDst->pxFree, pxNmStr);
+
+    /* Nothing is allocate past the structure size */
     pxDst->unPostLn = 0;
 
-    if (!prvBreakdownNameString(pxDst, pxNewStr)) {
+    if (!prvBreakdownNameString(pxDst, pxDst->pxFree)) {
         /* Error? Entirely wipe the name_t object to make sure it's
          * not usable. */
-
         bzero(pxDst, sizeof(rname_t));
-        vRsMemFree(pxNewStr);
+        vRsMemFree(pxDst->pxFree);
         return false;
     }
     else return true;
@@ -266,14 +285,14 @@ string_t pcNameToString(const rname_t *pxDst)
        the length we need and the strings are supposed to be all one
        after each other after the structure. */
     else {
-        unDestLn = pxDst->unPostLn;
+        unDestLn = pxDst->unPostLn + 1;
 
         if (!(pcDest = pvRsMemAlloc(unDestLn)))
             return NULL;
 
         memcpy(pcDest, pxDst->pcProcessName, unDestLn);
 
-        for (c = pcDest; c < pcDest + unDestLn; c++)
+        for (c = pcDest; c < pcDest + unDestLn - 1; c++)
             if (*c == 0) *c = DELIMITER;
     }
 

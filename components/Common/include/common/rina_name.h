@@ -15,6 +15,8 @@ typedef struct xName_info
     string_t pcProcessInstance;
     string_t pcEntityName;
     string_t pcEntityInstance;
+
+    void *pxFree;
 } rname_t;
 
 rname_t *pxNameNewFromString(const string_t pcNmStr);
