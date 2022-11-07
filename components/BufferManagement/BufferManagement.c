@@ -289,10 +289,6 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptorFor (const char *nam
 #endif // OLD
             pxReturn->pucEthernetBuffer = ( uint8_t * ) pxRsrcVarAlloc (xNetworkBufferPool,
                         name, xRequestedSizeBytes + BUFFER_PADDING );
-#ifndef NDEBUG
-            /* Zero the buffer to facilitate debugging. */
-            memset(pxReturn->pucEthernetBuffer, 0, xRequestedSizeBytes + BUFFER_PADDING);
-#endif
 
             if (pxReturn->pucEthernetBuffer == NULL) {
                 /* The attempt to allocate storage for the buffer payload failed,
@@ -303,6 +299,11 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptorFor (const char *nam
                 pxReturn = NULL;
             }
             else {
+#ifndef NDEBUG
+                /* Zero the buffer to facilitate debugging. */
+                memset(pxReturn->pucEthernetBuffer, 0, xRequestedSizeBytes + BUFFER_PADDING);
+#endif
+
                 /* Store a pointer to the network buffer structure in the
                  * buffer storage area, then move the buffer pointer on past the
                  * stored pointer so the pointer value is not overwritten by the
