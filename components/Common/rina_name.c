@@ -236,7 +236,9 @@ void vNameToStringBuf(const rname_t *pxDst, string_t pcBuf, size_t unSzBuf)
     size_t unSzCopy, unSzSrc, unSzMax;
     char *px;
 
+    /* Keep a place for the final NUL */
     unSzMax = unSzBuf - 1;
+
     px = pcBuf;
 
     for (int i = 0; i < 4; i++) {
@@ -246,6 +248,7 @@ void vNameToStringBuf(const rname_t *pxDst, string_t pcBuf, size_t unSzBuf)
             unSzCopy = unSzMax;
 
         strncpy(px, strings[i], unSzCopy);
+        *(px + unSzCopy) = 0;
         px += unSzCopy + 1;
 
         if (i < 3)
@@ -274,7 +277,7 @@ string_t pcNameToString(const rname_t *pxDst)
         unDestLn += strlen(pxDst->pcProcessInstance);
         unDestLn += strlen(pxDst->pcEntityName);
         unDestLn += strlen(pxDst->pcEntityInstance);
-        unDestLn += 4; /* Null bytes */
+        unDestLn += 4; /* 3 '/' characters ++ NUL */
 
         if (!(pcDest = pvRsMemAlloc(unDestLn)))
             return NULL;
