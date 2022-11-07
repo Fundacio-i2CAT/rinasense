@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "linux_rsmem.h"
 #include "portability/port.h"
 #include "common/rina_name.h"
 #include "common/rina_gpha.h"
@@ -34,7 +35,7 @@ RS_TEST_CASE(SimpleGPA, "[gpa][gpha]")
  * name, and then convert that name back to string. */
 RS_TEST_CASE(GPAConversion, "[gpa][gpha]")
 {
-    string_t nm1 = "e1|e2|e3|e4", nm2;
+    string_t nm1 = "e1/e2/e3/e4/", nm2;
     gpa_t *gpa1;
     rname_t *n1;
 
@@ -47,6 +48,10 @@ RS_TEST_CASE(GPAConversion, "[gpa][gpha]")
 
     LOGD(TAG_RINA, "nm1: %s", nm1);
     LOGD(TAG_RINA, "nm2: %s", nm2);
+
+    vNameFree(n1);
+    vGPADestroy(gpa1);
+    vRsMemFree(nm2);
 
     /* This will not work while the name separator isn't set to | */
     /* RsAssert(strcmp(nm1, nm2) == 0); */
@@ -109,6 +114,10 @@ RS_TEST_CASE(GPADup, "[gpa][gpha]") {
     TEST_ASSERT(xGPACmp(gpa1, gpa3));
     TEST_ASSERT(gpa3->uxLength == 1);
 
+    vGPADestroy(gpa1);
+    vGPADestroy(gpa2);
+    vGPADestroy(gpa3);
+
     RS_TEST_CASE_END(test_rina_gpha);
 }
 
@@ -128,6 +137,10 @@ RS_TEST_CASE(GPAShrink, "[gpa][gpha]") {
     TEST_ASSERT(gpa1->uxLength == 1);
     gpa3 = pxCreateGPA((buffer_t)addr2, strlen(addr1));
     TEST_ASSERT(xGPAShrink(gpa3, 0));
+
+    vGPADestroy(gpa1);
+    vGPADestroy(gpa2);
+    vGPADestroy(gpa3);
 
     RS_TEST_CASE_END(test_rina_gpha);
 }
