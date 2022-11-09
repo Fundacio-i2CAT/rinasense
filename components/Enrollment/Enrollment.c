@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "SerDesNeighbor.h"
 #include "common/rina_ids.h"
 #include "common/rsrc.h"
 #include "portability/port.h"
@@ -34,6 +35,15 @@ bool_t xEnrollmentInit(Enrollment_t *pxEnrollment, Ribd_t *pxRibd)
     rname_t xDestInfo;
     authPolicy_t xAuth;
 
+    if (!xSerDesEnrollmentInit(&pxEnrollment->xEnrollmentSD)) {
+        LOGE(TAG_ENROLLMENT, "Failed to allocate pool for enrollment SerDes");
+        return false;
+    }
+
+    if (!xSerDesNeighborInit(&pxEnrollment->xNeighborSD)) {
+        LOGE(TAG_ENROLLMENT, "Failed to allocate pool for neighbor SerDes");
+        return false;
+    }
 
     /*Creating Enrollment object into the RIB*/
     pxRibCreateObject(pxRibd, "/difm/enr", 0, "enrollment", "enrollment", ENROLLMENT);
@@ -82,7 +92,6 @@ bool_t xEnrollmentAddNeighborEntry(Enrollment_t *pxEnrollment, neighborInfo_t *p
         if (pxEnrollment->xNeighborsTable[x].xValid == false) {
             pxEnrollment->xNeighborsTable[x].pxNeighborInfo = pxNeighbor;
             pxEnrollment->xNeighborsTable[x].xValid = true;
-            LOGI(TAG_ENROLLMENT, "Neighbor Entry successful: %p", pxNeighbor);
 
             return true;
         }
@@ -123,6 +132,10 @@ bool_t xEnrollmentHandleConnect(struct ipcpInstanceData_t *pxData, string_t pcRe
     serObjectValue_t *pxObjVal;
     bool_t xStatus = false;
 
+    RsAssert(pxData);
+    RsAssert(pcRemoteName);
+    RsAssert(is_port_id_ok(unPort));
+
     // Check if the neighbor is already in the neighbor list, add it if not
     pxNeighbor = pxEnrollmentFindNeighbor(&pxData->xEnrollment, pcRemoteName);
 
@@ -151,7 +164,7 @@ bool_t xEnrollmentHandleConnect(struct ipcpInstanceData_t *pxData, string_t pcRe
     if ((pxObjVal = pxSerDesEnrollmentEncode(&pxData->xEnrollment.xEnrollmentSD, pxEnrollmentMsg))) {
 
         /* Try to send it. */
-        if (!xRibdSendResponse(&pxData->xRibd, "Enrollment", "/difm/enr", -1, 0, "", -1, M_CONNECT_R, unPort, pxObjVal))
+        if (!xRibdSendResponse(&pxData->xRibd, "Enrollment", "/difm/enr", -1, 0, "", M_CONNECT_R, -1, unPort, pxObjVal))
             LOGE(TAG_ENROLLMENT, "Failed to send the RIB enrollment request");
         else
             xStatus = true;
