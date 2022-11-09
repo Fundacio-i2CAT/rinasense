@@ -71,6 +71,9 @@ typedef struct
     /*Result*/
     int result;
 
+    /* Extra message for the result. */
+    string_t pcResultReason;
+
 } messageCdap_t;
 
 #ifdef __cplusplus

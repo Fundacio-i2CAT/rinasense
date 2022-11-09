@@ -2,6 +2,8 @@
 #include <string.h>
 #include <time.h>
 
+#include "ARP826_defs.h"
+#include "CdapMessage.h"
 #include "Ribd_msg.h"
 #include "SerDes.h"
 #include "common/rsrc.h"
@@ -31,107 +33,6 @@
 #include "RINA_API_flows.h"
 #include "SerDesMessage.h"
 #include "SerDesAData.h"
-
-/* REVIEWED CODE HERE */
-
-messageCdap_t *prvRibMessageCdapInit(Ribd_t *pxRibd, size_t unSz)
-{
-    messageCdap_t *pxMsg = NULL;
-    authPolicy_t *pxAuthPolicy;
-
-    if (!(pxMsg = pxRsrcVarAlloc(pxRibd->xMsgPool, "CDAP Message", unSz))) {
-        LOGE(TAG_RIB, "Failed to allocate memory for CDAP message");
-        return NULL;
-    }
-
-    /* Init to Default Values*/
-
-    pxMsg->version = 0x01;
-    pxMsg->eOpCode = -1; // No code
-    pxMsg->invokeID = 1; // by default
-    pxMsg->objInst = -1;
-    pxMsg->pcObjClass = NULL;
-    pxMsg->pcObjName = NULL;
-    pxMsg->pxObjValue = NULL;
-    pxMsg->result = 0;
-
-    if (!xNameAssignFromPartsDup(&pxMsg->xDestinationInfo, "", MANAGEMENT_AE, "", ""))
-        goto fail;
-
-    if (!xNameAssignFromPartsDup(&pxMsg->xSourceInfo, "", MANAGEMENT_AE, "", ""))
-        goto fail;
-
-    pxMsg->xAuthPolicy.pcName = NULL;
-    pxMsg->xAuthPolicy.pcVersion = NULL;
-
-    return pxMsg;
-
-    fail:
-    vNameFree(&pxMsg->xDestinationInfo);
-    vNameFree(&pxMsg->xSourceInfo);
-    vRsrcFree(pxMsg);
-
-    return NULL;
-}
-
-messageCdap_t *prvRibdFillMsg(Ribd_t *pxRibd,
-                              string_t pcObjClass,
-                              string_t pcObjName,
-                              long objInst,
-                              opCode_t eOpCode,
-                              serObjectValue_t *pxObjValue)
-{
-    messageCdap_t *pxMsg;
-    size_t unSz = 0, unSzObjName = 0, unSzObjClass = 0;
-    void *px;
-
-    /* Check how much memory we'll need after the structure */
-
-    if (pcObjName != NULL)
-        unSz += (unSzObjName = strlen(pcObjName));
-
-    if (pcObjClass != NULL)
-        unSz += (unSzObjClass = strlen(pcObjClass));
-
-    if (pxObjValue != NULL)
-        unSz += sizeof(serObjectValue_t) + pxObjValue->xSerLength;
-
-    /* Allocate the memory we need */
-
-    if (!(pxMsg = prvRibMessageCdapInit(pxRibd, unSz)))
-        return NULL;
-
-    pxMsg->invokeID = get_next_invoke_id();
-    pxMsg->eOpCode = eOpCode;
-    pxMsg->objInst = objInst;
-
-    /* Initialize the strings and pointers */
-
-    if (unSz > 0) {
-        px = pxMsg + sizeof(messageCdap_t);
-        memset(px, 0, unSz);
-
-        if (pxObjValue != NULL) {
-            pxMsg->pxObjValue = px;
-            pxMsg->pxObjValue->pvSerBuffer = (px += sizeof(serObjectValue_t));
-            pxMsg->pxObjValue->xSerLength = pxObjValue->xSerLength;
-            px += pxObjValue->xSerLength;
-
-            memcpy(pxMsg->pxObjValue->pvSerBuffer, pxObjValue->pvSerBuffer, pxObjValue->xSerLength);
-        }
-
-        if (pcObjName != NULL) {
-            pxMsg->pcObjName = (px += unSzObjName + 1);
-            strcpy(pxMsg->pcObjName, pcObjName);
-        }
-
-        if (pcObjClass != NULL) {
-            pxMsg->pcObjClass = (px += unSzObjClass + 1);
-        }
-    }
-
-    return pxMsg;
-}
 
 ribCallbackOps_t *prvRibdCreateCdapCallback(Ribd_t *pxRibd, opCode_t xOpCode, int invoke_id)
 {
@@ -227,50 +128,28 @@ void prvRibdHandleAData(struct ipcpInstanceData_t *pxData, serObjectValue_t *pxO
     }
 }
 
-messageCdap_t *prvRibdFillEnrollMsgStart(Ribd_t *pxRibd,
-                                         string_t pcObjClass,
-                                         string_t pcObjName,
-                                         long objInst,
-                                         opCode_t eOpCode,
-                                         serObjectValue_t *pxObjValue,
-                                         int result,
-                                         string_t pcResultReason,
-                                         int invokeID)
+appConnection_t *prvRibCreateConnection(rname_t *pxSource, rname_t *pxDestInfo)
 {
-    messageCdap_t *pxMsg;
+    appConnection_t *pxAppConnectionTmp;
+    rname_t *pxDestinationInfo, *pxSourceInfo;
 
-    pxMsg = prvRibdFillMsg(pxRibd, pcObjClass, pcObjName, objInst, eOpCode, pxObjValue);
-    if (!pxMsg)
+    if (!((pxAppConnectionTmp = pvRsMemCAlloc(1, sizeof(appConnection_t))))) {
+        LOGE(TAG_RIB, "Failed to allocate memory for application connection information");
         return NULL;
+    }
 
-    pxMsg->invokeID = invokeID;
-    pxMsg->result = result;
+    /* We need the copy the names in the structure since it'll get
+     * inside the list of active connections */
+    pxAppConnectionTmp->uCdapVersion = 0x01;
 
-    return pxMsg;
+    xNameAssignDup(&pxAppConnectionTmp->xSourceInfo, pxSource);
+    xNameAssignDup(&pxAppConnectionTmp->xDestinationInfo, pxDestInfo);
+
+    pxAppConnectionTmp->xStatus = eCONNECTION_IN_PROGRESS;
+    pxAppConnectionTmp->uRibVersion = 0x01;
+
+    return pxAppConnectionTmp;
 }
-
-messageCdap_t *prvRibdFillEnrollMsgStop(Ribd_t *pxRibd,
-                                        string_t pcObjClass,
-                                        string_t pcObjName,
-                                        long objInst,
-                                        opCode_t eOpCode,
-                                        serObjectValue_t *pxObjValue,
-                                        int result,
-                                        string_t pcResultReason,
-                                        int invokeID)
-{
-    messageCdap_t *pxMsg;
-
-    pxMsg = prvRibdFillMsg(pxRibd, pcObjClass, pcObjName, objInst, eOpCode, pxObjValue);
-    if (!pxMsg)
-        return NULL;
-
-    pxMsg->invokeID = invokeID;
-    pxMsg->result = result;
-
-    return pxMsg;
-}
-
 
 bool_t prvRibHandleMessage(struct ipcpInstanceData_t *pxData,
                            messageCdap_t *pxDecodeCdap,
@@ -315,14 +194,13 @@ bool_t prvRibHandleMessage(struct ipcpInstanceData_t *pxData,
 
         /* If App Connection is not registered, create a new one */
         if (pxAppCon == NULL) {
+            pxAppCon = prvRibCreateConnection(&pxDecodeCdap->xDestinationInfo,
+                                              &pxDecodeCdap->xSourceInfo);
 
-            /* Check that the OpCode is a M_CONNECT */
-            if (pxDecodeCdap->eOpCode != M_CONNECT) {
-                LOGE(TAG_RIB, "Error wrong opCode in CDAP PDU");
-                vRsMemFree(pxDecodeCdap);
+            if (!pxAppCon) {
+                LOGE(TAG_RIB, "Failed to create new connection object");
+                return false;
             }
-
-            // Call to the xEnrollmentHandleConnect
 
             xEnrollmentHandleConnect(pxData, pxAppCon->xDestinationInfo.pcProcessName, unPort);
         }
@@ -452,29 +330,6 @@ bool_t prvRibHandleMessage(struct ipcpInstanceData_t *pxData,
     return ret;
 }
 
-appConnection_t *prvRibCreateConnection(rname_t *pxSource, rname_t *pxDestInfo)
-{
-    appConnection_t *pxAppConnectionTmp;
-    rname_t *pxDestinationInfo, *pxSourceInfo;
-
-    if (!((pxAppConnectionTmp = pvRsMemCAlloc(1, sizeof(appConnection_t))))) {
-        LOGE(TAG_RIB, "Failed to allocate memory for application connection information");
-        return NULL;
-    }
-
-    /* We need the copy the names in the structure since it'll get
-     * inside the list of active connections */
-    pxAppConnectionTmp->uCdapVersion = 0x01;
-
-    xNameAssignDup(&pxAppConnectionTmp->xSourceInfo, pxSource);
-    xNameAssignDup(&pxAppConnectionTmp->xDestinationInfo, pxDestInfo);
-
-    pxAppConnectionTmp->xStatus = eCONNECTION_IN_PROGRESS;
-    pxAppConnectionTmp->uRibVersion = 0x01;
-
-    return pxAppConnectionTmp;
-}
-
 bool_t xRibdInit(Ribd_t *pxRibd)
 {
     size_t unSz;
@@ -526,20 +381,12 @@ bool_t xRibdAddAppConnectionEntry(Ribd_t *pxRibd, appConnection_t *pxAppConnecti
     return false;
 }
 
-messageCdap_t *prvRibdFillMsgCreate(Ribd_t *pxRibd,
-                                    string_t pcObjClass,
-                                    string_t pcObjName,
-                                    long objInst,
-                                    serObjectValue_t *pxObjValue)
-{
-    return prvRibdFillMsg(pxRibd, pcObjClass, pcObjName, objInst, M_CREATE, pxObjValue);
-}
-
 bool_t xRibdSendCdapMsg(serObjectValue_t *pxSerVal, portId_t unPort)
 {
     NetworkBufferDescriptor_t *pxNetBuf;
     RINAStackEvent_t xEv;
     struct du_t *pxDu;
+    size_t unHeaderSz, unSz;
 
     LOGI(TAG_RIB, "Sending the CDAP Message to the RMT");
 
@@ -549,13 +396,17 @@ bool_t xRibdSendCdapMsg(serObjectValue_t *pxSerVal, portId_t unPort)
         return false;
     }
 
-    if (!(pxNetBuf = pxGetNetworkBufferWithDescriptor(pxSerVal->xSerLength, 1000))) {
+    /* FIXME: HARDCODING TYPE OF HEADERS: THIS IS REALLY BAD! */
+    unHeaderSz = sizeof(pci_t) + sizeof(EthernetHeader_t);
+    unSz = unHeaderSz + pxSerVal->xSerLength;
+
+    if (!(pxNetBuf = pxGetNetworkBufferWithDescriptor(unSz, 1000))) {
         LOGE(TAG_RIB, "Failed to obtain network buffer");
         return false;
     }
 
     /* This is type of byte copy we should be able to avoid... */
-    memcpy(pxDu->pxNetworkBuffer->pucDataBuffer, pxSerVal->pvSerBuffer, pxSerVal->xSerLength);
+    memcpy(pxNetBuf->pucEthernetBuffer + unHeaderSz, pxSerVal->pvSerBuffer, pxSerVal->xSerLength);
 
     pxDu->pxNetworkBuffer = pxNetBuf;
     pxDu->pxNetworkBuffer->ulBoundPort = unPort;
@@ -585,33 +436,40 @@ bool_t xRibdSendResponse(Ribd_t *pxRibd,
 {
     messageCdap_t *pxMsgCdap = NULL;
     serObjectValue_t *pxSerVal;
-    bool_t xStatus = true;
+    bool_t xStatus = false;
 
     switch (eOpCode) {
-    case M_CONNECT_R: break;
-
-    case M_START_R:
-        pxMsgCdap = prvRibdFillEnrollMsgStart(pxRibd,
-                                              pcObjClass, pcObjName, objInst, eOpCode, pxObjVal,
-                                              result, pcResultReason, invokeId);
+    case M_CONNECT:
+        pxMsgCdap = pxRibdCdapMsgCreateRequest(pxRibd, pcObjClass, pcObjName, objInst, eOpCode, pxObjVal);
         break;
+
+    case M_CONNECT_R:
+    case M_START_R:
     case M_STOP_R:
-        pxMsgCdap = prvRibdFillEnrollMsgStop(pxRibd,
-                                             pcObjClass, pcObjName, objInst, eOpCode, pxObjVal,
-                                             result, pcResultReason, invokeId);
+        pxMsgCdap = pxRibdCdapMsgCreateResponse(pxRibd,
+                                                pcObjClass, pcObjName, objInst, eOpCode, pxObjVal,
+                                                result, pcResultReason, invokeId);
         break;
 
     default:
         break;
     }
 
+    if (!pxMsgCdap) {
+        LOGE(TAG_RIB, "Failed to generate CDAP message");
+        return false;
+    }
+
     if (!(pxSerVal = pxSerDesMessageEncode(&pxRibd->xMsgSD, pxMsgCdap))) {
         LOGE(TAG_RIB, "Failed to encode CDAP message");
-        return false;
+        goto fail;
     }
 
     /*Sent to the IPCP task */
     xStatus = xRibdSendCdapMsg(pxSerVal, xN1Port);
+
+    fail:
+    vRibdCdapMsgFree(pxMsgCdap);
     vRsrcFree(pxSerVal);
 
     return xStatus;
@@ -724,22 +582,9 @@ bool_t xRibdSendRequest(Ribd_t *pxRibd,
     messageCdap_t *pxMsgCdap = NULL;
     ribCallbackOps_t *pxCb = NULL;
     serObjectValue_t *pxSerVal;
-    bool_t xStatus;
+    bool_t xStatus = false;
 
-    switch (eOpCode) {
-    case M_START:
-    case M_STOP:
-        pxMsgCdap = prvRibdFillMsg(pxRibd, pcObjClass, pcObjName, objInst, eOpCode, pxObjVal);
-        break;
-
-    case M_CREATE:
-        pxMsgCdap = prvRibdFillMsg(pxRibd, pcObjClass, pcObjName, objInst, M_CREATE, pxObjVal);
-        break;
-
-    default:
-        LOGE(TAG_RIB, "Unhandled message type %s", opcodeNamesTable[eOpCode]);
-        return false;
-    }
+    pxMsgCdap = pxRibdCdapMsgCreateRequest(pxRibd, pcObjClass, pcObjName, objInst, eOpCode, pxObjVal);
 
     if (!(pxCb = prvRibdCreateCdapCallback(pxRibd, eOpCode, pxMsgCdap->invokeID))) {
         LOGE(TAG_RIB, "Failed to create CDAP response callback");
@@ -758,14 +603,12 @@ bool_t xRibdSendRequest(Ribd_t *pxRibd,
 
     /*Sent to the IPCP task*/
     xStatus = xRibdSendCdapMsg(pxSerVal, xN1flowPortId);
-    vRsrcFree(pxSerVal);
-
-    return true;
 
     fail:
     vRsrcFree(pxMsgCdap);
+    vRibdCdapMsgFree(pxMsgCdap);
 
-    return false;
+    return xStatus;
 }
 
 /* OLD CODE HERE */
