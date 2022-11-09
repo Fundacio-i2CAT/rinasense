@@ -15,7 +15,7 @@
 #include "EFCP.h"
 #include "configRINA.h"
 
-rmtN1Port_t *prvRmtPortFind(struct rmt_t *pxRmt, portId_t unPortId)
+rmtN1Port_t *prvRmtPortFind(struct rmt_t *pxRmt, portId_t unPort)
 {
     rmtN1Port_t *pxPort;
     RsListItem_t *pxListItem;
@@ -25,7 +25,7 @@ rmtN1Port_t *prvRmtPortFind(struct rmt_t *pxRmt, portId_t unPortId)
     while (pxListItem != NULL) {
         pxPort = (rmtN1Port_t *)pxRsListGetItemOwner(pxListItem);
 
-        if (pxPort && pxPort->unPort == unPortId)
+        if (pxPort && pxPort->unPort == unPort)
             return pxPort;
 
         pxListItem = pxRsListGetNext(pxListItem);
@@ -85,11 +85,11 @@ void vRmtFini(struct rmt_t *pxRmt)
 static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt, rmtN1Port_t *pxN1Port, struct du_t *pxDu);
 
 /* Create an N-1 Port in the RMT Component*/
-static rmtN1Port_t *pxRmtN1PortCreate(portId_t unPortId, struct ipcpInstance_t *pxN1Ipcp)
+static rmtN1Port_t *pxRmtN1PortCreate(portId_t unPort, struct ipcpInstance_t *pxN1Ipcp)
 {
 	rmtN1Port_t *pxTmp;
 
-	RsAssert(is_port_id_ok(unPortId));
+	RsAssert(is_port_id_ok(unPort));
     RsAssert(pxN1Ipcp);
 
 	if (!(pxTmp = pvRsMemAlloc(sizeof(rmtN1Port_t)))) {
@@ -97,7 +97,7 @@ static rmtN1Port_t *pxRmtN1PortCreate(portId_t unPortId, struct ipcpInstance_t *
 		return NULL;
     }
 
-	pxTmp->unPort = unPortId;
+	pxTmp->unPort = unPort;
 	pxTmp->pxN1Ipcp = pxN1Ipcp;
 	pxTmp->eState = eN1_PORT_STATE_ENABLED;
 
@@ -112,7 +112,7 @@ static rmtN1Port_t *pxRmtN1PortCreate(portId_t unPortId, struct ipcpInstance_t *
 
     vRsListInitItem(&pxTmp->xPortItem, pxTmp);
 
-	LOGI(TAG_RMT, "N-1 port %pK created successfully (port = %d)", pxTmp, unPortId);
+	LOGI(TAG_RMT, "N-1 port %pK created successfully (port = %d)", pxTmp, unPort);
 
 	return pxTmp;
 }
@@ -121,22 +121,22 @@ static rmtN1Port_t *pxRmtN1PortCreate(portId_t unPortId, struct ipcpInstance_t *
  * considered.  It is called from the IPCP normal when a Flow is
  * required to be bound. From the IPCP normal is send the RMT
  * instance, the portId from the Shim, and Shim Instance */
-bool_t xRmtN1PortBind(struct rmt_t *pxRmt, portId_t unPortId, struct ipcpInstance_t *pxN1Ipcp)
+bool_t xRmtN1PortBind(struct rmt_t *pxRmt, portId_t unPort, struct ipcpInstance_t *pxN1Ipcp)
 {
 	rmtN1Port_t *pxTmp;
 
-	LOGI(TAG_RMT, "Binding the RMT with the port id:%d", unPortId);
+	LOGI(TAG_RMT, "Binding the RMT with the port id:%d", unPort);
 
     RsAssert(pxRmt);
-    RsAssert(is_port_id_ok(unPortId));
+    RsAssert(is_port_id_ok(unPort));
     RsAssert(pxN1Ipcp);
 
-    if (prvRmtPortFind(pxRmt, unPortId) != NULL) {
+    if (prvRmtPortFind(pxRmt, unPort) != NULL) {
         LOGE(TAG_RMT, "This RMT has already an N-1 Port bound ");
 		return false;
 	}
 
-	pxTmp = pxRmtN1PortCreate(unPortId, pxN1Ipcp);
+	pxTmp = pxRmtN1PortCreate(unPort, pxN1Ipcp);
 	if (!pxTmp)
 		return false;
 
@@ -162,7 +162,7 @@ bool_t xRmtN1PortBind(struct rmt_t *pxRmt, portId_t unPortId, struct ipcpInstanc
 	/*No added to the Hash Table because we've assumed there is only a flow in the shim DIF
 	 * Instead, it is aggregate to the PortIdArray with an unique member.*/
 
-	LOGI(TAG_RMT, "Added send queue to RMT instance %pK for port %d", pxRmt, unPortId);
+	LOGI(TAG_RMT, "Added send queue to RMT instance %pK for port %d", pxRmt, unPort);
 
 	/*Associate the DIF name with the SDUP configuration, SDUP will not be used for the moment*/
 
@@ -408,7 +408,7 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 	return true;
 }
 
-bool_t xRmtSendPortId(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
+bool_t xRmtSendPortId(struct rmt_t *pxRmt, portId_t unPort, struct du_t *pxDu)
 {
 	rmtN1Port_t *pxN1Port;
 	int cases;
@@ -425,8 +425,8 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
 		return -1;
 	}*/
 
-    if ((pxN1Port = prvRmtPortFind(pxRmt, xPortId))) {
-		LOGE(TAG_RMT, "Could not find the N-1 port");
+    if (!(pxN1Port = prvRmtPortFind(pxRmt, unPort))) {
+		LOGE(TAG_RMT, "Could not find the N-1 port: %u", unPort);
 		return false;
 	}
 
