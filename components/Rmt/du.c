@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "common/rsrc.h"
 #include "rmt.h"
 #include "du.h"
 #include "pci.h"
@@ -19,11 +20,10 @@
 bool_t xDuDestroy(struct du_t *pxDu)
 {
 	/* If there is an NetworkBuffer then release and release memory */
-	if (pxDu->pxNetworkBuffer) {
-		LOGI(TAG_DTP, "Destroying du struct and releasing Buffer");
+	if (pxDu->pxNetworkBuffer)
 		vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
-	}
-	vRsMemFree(pxDu);
+
+	vRsrcFree(pxDu);
 
 	return true;
 }
