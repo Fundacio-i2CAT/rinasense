@@ -313,14 +313,14 @@ static bool_t xNormalConnectionDestroy(struct ipcpInstanceData_t *pxData, cepId_
  * @return BaseType_t
  */
 bool_t xNormalFlowBinding(struct ipcpInstance_t *pxIpcp,
-                          portId_t xPid,
+                          portId_t unPort,
                           struct ipcpInstance_t *pxN1Ipcp)
 {
     RsAssert(pxIpcp);
-    RsAssert(is_port_id_ok(xPid));
+    RsAssert(is_port_id_ok(unPort));
     RsAssert(pxN1Ipcp);
 
-    return xRmtN1PortBind(&pxIpcp->pxData->xRmt, xPid, pxN1Ipcp);
+    return xRmtN1PortBind(&pxIpcp->pxData->xRmt, unPort, pxN1Ipcp);
 }
 
 /**

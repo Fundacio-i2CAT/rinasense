@@ -38,7 +38,7 @@ bool_t xSerDesEnrollmentInit(EnrollmentSerDes_t *pxSD)
 serObjectValue_t *pxSerDesEnrollmentEncode(EnrollmentSerDes_t *pxSD, enrollmentMessage_t *pxMsg)
 {
     bool_t xStatus;
-    serObjectValue_t *pxSer;
+    serObjectValue_t *pxSerVal;
     pb_ostream_t xStream;
     rina_messages_enrollmentInformation_t enrollMsg = rina_messages_enrollmentInformation_t_init_zero;
 
@@ -47,15 +47,15 @@ serObjectValue_t *pxSerDesEnrollmentEncode(EnrollmentSerDes_t *pxSD, enrollmentM
         enrollMsg.has_address = true;
     }
 
-    if (!(pxSer = pxRsrcAlloc(pxSD->xPoolEnc, "Enrollment Encoding"))) {
+    if (!(pxSerVal = pxRsrcAlloc(pxSD->xPoolEnc, "Enrollment Encoding"))) {
         LOGE(TAG_SD_ENROLLMENT, "Failed to allocate memory for enrollment message encoding");
         return NULL;
     }
 
-    pxSer->pvSerBuffer = pxSer + sizeof(serObjectValue_t);
+    pxSerVal->pvSerBuffer = pxSerVal + sizeof(serObjectValue_t);
 
     /* Create a stream that writes to our buffer. */
-    xStream = pb_ostream_from_buffer(pxSer->pvSerBuffer, ENROLLMENT_MSG_SIZE);
+    xStream = pb_ostream_from_buffer(pxSerVal->pvSerBuffer, ENROLLMENT_MSG_SIZE);
 
     /* Now we are ready to encode the message. */
     xStatus = pb_encode(&xStream, rina_messages_enrollmentInformation_t_fields, &enrollMsg);
@@ -63,13 +63,13 @@ serObjectValue_t *pxSerDesEnrollmentEncode(EnrollmentSerDes_t *pxSD, enrollmentM
     /* Check for errors... */
     if (!xStatus) {
         LOGE(TAG_SD_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&xStream));
-        vRsrcFree(pxSer);
+        vRsrcFree(pxSerVal);
         return NULL;
     }
 
-    pxSer->xSerLength = xStream.bytes_written;
+    pxSerVal->xSerLength = xStream.bytes_written;
 
-    return pxSer;
+    return pxSerVal;
 }
 
 enrollmentMessage_t *pxSerDesEnrollmentDecode(EnrollmentSerDes_t *pxSD,

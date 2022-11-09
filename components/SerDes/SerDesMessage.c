@@ -287,14 +287,14 @@ serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *px
 
     /*Encode the message*/
     xStatus = pb_encode(&xStream, rina_messages_CDAPMessage_fields, &xMsg);
-    unMessageLength = xStream.bytes_written;
+    pxSerValue->xSerLength = xStream.bytes_written;
 
     if (!xStatus) {
         LOGE(TAG_RIB, "Encoding failed: %s", PB_GET_ERROR(&xStream));
         return NULL;
     }
 
-    LOGI(TAG_RIB, "Message CDAP with length: %zu encoded sucessfully ", unMessageLength);
+    LOGI(TAG_RIB, "Message CDAP with length: %zu encoded sucessfully ", pxSerValue->xSerLength);
 
     return pxSerValue;
 }
