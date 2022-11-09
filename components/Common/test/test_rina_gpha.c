@@ -35,7 +35,7 @@ RS_TEST_CASE(SimpleGPA, "[gpa][gpha]")
  * name, and then convert that name back to string. */
 RS_TEST_CASE(GPAConversion, "[gpa][gpha]")
 {
-    string_t nm1 = "e1/e2/e3/e4/", nm2;
+    string_t nm1 = "ue1.mobile.DIF/1//", nm2;
     gpa_t *gpa1;
     rname_t *n1;
 

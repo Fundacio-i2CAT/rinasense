@@ -59,9 +59,10 @@ RS_TEST_CASE(RinaNameNewFromParts, "[rina_name]")
 
 RS_TEST_CASE(RinaNameToString, "[rina_name]")
 {
-    rname_t *n1;
+    rname_t *n1, n2;
     char bbuf[255] = {0}, sbuf[5] = {0};
     string_t s;
+    size_t sz;
 
     RS_TEST_CASE_BEGIN(test_rina_name);
 
@@ -79,11 +80,19 @@ RS_TEST_CASE(RinaNameToString, "[rina_name]")
     TEST_ASSERT(strcmp(sbuf, "long") == 0);
     vNameFree(n1);
 
-    TEST_ASSERT((n1 = pxNameNewFromString("e1/e2/e3/e4")));
+    TEST_ASSERT((n1 = pxNameNewFromString("ue1.mobile.DIF/1//")));
     TEST_ASSERT((s = pcNameToString(n1)));
-    TEST_ASSERT(strcmp(s, "e1/e2/e3/e4") == 0);
+    TEST_ASSERT((sz = strlen(s)) == 18);
+    TEST_ASSERT(strcmp(s, "ue1.mobile.DIF/1//") == 0);
     vRsMemFree(s);
     vNameFree(n1);
+
+    TEST_ASSERT(xNameAssignFromPartsDup(&n2, "ue1.mobile.DIF", "1", "", ""));
+    TEST_ASSERT(s = pcNameToString(&n2));
+    TEST_ASSERT((sz = strlen(s)) == 18);
+    TEST_ASSERT(strcmp(s, "ue1.mobile.DIF/1//") == 0);
+    vRsMemFree(s);
+    vNameFree(&n2);
 
     RS_TEST_CASE_END(test_rina_name);
 }

@@ -41,7 +41,7 @@ gpa_t *pxNameToGPA(const rname_t *pxName)
 	}
 
 	// Convert the IPCPAddress Concatenated to bits
-	pxGpa = pxCreateGPA((buffer_t)pcTmp, strlen(pcTmp)); //considering the null terminated
+	pxGpa = pxCreateGPA((buffer_t)pcTmp, strlen(pcTmp) + 1);
 
 	if (!pxGpa)	{
 		LOGI(TAG_SHIM, "GPA was not created correct");
