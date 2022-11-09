@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "common/list.h"
 #include "common/simple_queue.h"
@@ -41,6 +42,8 @@ struct ipcpInstanceData_t
      * correct. */
     uint8_t unInstanceDataType;
 #endif
+
+    pthread_mutex_t xLock;
 
 	ipcProcessId_t xId;
 
@@ -84,26 +87,36 @@ struct ipcpInstanceData_t
 	unsigned int ucTxBusy;
 };
 
-static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, portId_t xPortId)
+static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, portId_t unPort)
 {
 	shimFlow_t *pxFlow;
 	RsListItem_t *pxListItem;
 
     RsAssert(pxData);
 
-	if (!unRsListLength(&pxData->xFlowsList))
+    pthread_mutex_lock(&pxData->xLock);
+
+	if (!unRsListLength(&pxData->xFlowsList)) {
+        pthread_mutex_unlock(&pxData->xLock);
 		return NULL;
+    }
 
     pxListItem = pxRsListGetFirst(&pxData->xFlowsList);
 
 	while (pxListItem != NULL) {
         pxFlow = (shimFlow_t *)pxRsListGetItemOwner(pxListItem);
 
-        if (pxFlow->unPort == xPortId)
+        LOGD(TAG_RIB, "Looking at flow port %u", pxFlow->unPort);
+
+        if (pxFlow->unPort == unPort) {
+            pthread_mutex_unlock(&pxData->xLock);
             return pxFlow;
+        }
 
         pxListItem = pxRsListGetNext(pxListItem);
 	}
+
+    pthread_mutex_unlock(&pxData->xLock);
 
 	return NULL;
 }
@@ -116,19 +129,27 @@ static shimFlow_t *prvShimFindFlowByGHA(struct ipcpInstanceData_t *pxData, gha_t
     RsAssert(pxData);
     RsAssert(pxHa);
 
-    if (!unRsListLength(&pxData->xFlowsList))
+    pthread_mutex_lock(&pxData->xLock);
+
+    if (!unRsListLength(&pxData->xFlowsList)) {
+        pthread_mutex_unlock(&pxData->xLock);
         return NULL;
+    }
 
     pxListItem = pxRsListGetFirst(&pxData->xFlowsList);
 
     while (pxListItem != NULL) {
         pxFlow = (shimFlow_t *)pxRsListGetItemOwner(pxListItem);
 
-        if (xGHACmp(pxFlow->pxDestHa, pxHa))
+        if (xGHACmp(pxFlow->pxDestHa, pxHa)) {
+            pthread_mutex_unlock(&pxData->xLock);
             return pxFlow;
+        }
 
         pxListItem = pxRsListGetNext(pxListItem);
     }
+
+    pthread_mutex_unlock(&pxData->xLock);
 
     return NULL;
 }
@@ -276,12 +297,16 @@ static eFrameProcessingResult_t prvShimHandleRinaFrame(struct ipcpInstance_t *px
 
         /* SEE ARP CODE */
 
+        pthread_mutex_lock(&pxSelf->pxData->xLock);
+
         /* Reserve a port number */
         pxFlow->unPort = unIpcManagerReservePort(&xIpcManager);
 
         /* Create the flow in the IPCP. */
         vRsListInitItem(&pxFlow->xFlowItem, &pxFlow->xFlowItem);
         vRsListInsert(&pxSelf->pxData->xFlowsList, &pxFlow->xFlowItem);
+
+        pthread_mutex_unlock(&pxSelf->pxData->xLock);
 
         {
             bool_t xStatus;
@@ -290,6 +315,8 @@ static eFrameProcessingResult_t prvShimHandleRinaFrame(struct ipcpInstance_t *px
             RsAssert((pxIpcp = pxIpcManagerFindByType(&xIpcManager, eNormal)));
 
             CALL_IPCP_CHECK(xStatus, pxIpcp, flowBindingIpcp, pxFlow->unPort, pxSelf) {
+                LOGE(TAG_SHIM, "Failed to bind new flow to port %d", pxFlow->unPort);
+                goto err;
             }
         }
     }
@@ -517,8 +544,7 @@ bool_t xShimFlowAllocateResponse(struct ipcpInstance_t *pxSelf, portId_t unPort)
 	/* Searching for the Flow registered into the shim Instance Flow list */
 	// Should include the portId into the search.
 	pxFlow = prvShimFindFlowByPortId(pxSelf->pxData, unPort);
-	if (!pxFlow)
-	{
+	if (!pxFlow) {
 		LOGE(TAG_SHIM, "Flow does not exist, you shouldn't call this");
 		return false;
 	}
@@ -595,6 +621,8 @@ bool_t xShimApplicationRegister(struct ipcpInstance_t *pxSelf,
 
     pxData = pxSelf->pxData;
 
+    pthread_mutex_lock(&pxData->xLock);
+
     if (!xNameAssignDup(&pxSelf->pxData->xAppName, pxAppName)) {
 		LOGE(TAG_SHIM, "Failed to create application name for shim");
         goto err;
@@ -635,6 +663,8 @@ bool_t xShimApplicationRegister(struct ipcpInstance_t *pxSelf,
         goto unregister_err;
     }
 
+    pthread_mutex_unlock(&pxData->xLock);
+
     return true;
 
     unregister_err:
@@ -655,6 +685,8 @@ bool_t xShimApplicationRegister(struct ipcpInstance_t *pxSelf,
 
     if (pxData->pxHa)
         vGHADestroy(pxData->pxHa);
+
+    pthread_mutex_unlock(&pxData->xLock);
 
     return false;
 }
@@ -682,6 +714,8 @@ bool_t xShimApplicationUnregister(struct ipcpInstance_t *pxSelf, const rname_t *
 
 	LOGI(TAG_SHIM, "Application Unregistering");
 
+    pthread_mutex_lock(&pxSelf->pxData->xLock);
+
     pxData = pxSelf->pxData;
     pxPa = pxNameToGPA(pxName);
 
@@ -694,10 +728,12 @@ bool_t xShimApplicationUnregister(struct ipcpInstance_t *pxSelf, const rname_t *
 
 	LOGI(TAG_SHIM, "Application unregister");
 
+    pthread_mutex_unlock(&pxSelf->pxData->xLock);
+
 	return true;
 }
 
-bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t xId, struct du_t *pxDu, bool_t uxBlocking)
+bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t unPort, struct du_t *pxDu, bool_t uxBlocking)
 {
 	shimFlow_t *pxFlow;
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
@@ -727,7 +763,7 @@ bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t xId, struct du_t *p
 		return false;
 	}
 
-	pxFlow = prvShimFindFlowByPortId(pxData, xId);
+	pxFlow = prvShimFindFlowByPortId(pxData, unPort);
 	if (!pxFlow) {
 		LOGE(TAG_SHIM, "Flow does not exist, you shouldn't call this");
 		xDuDestroy(pxDu);
@@ -971,6 +1007,9 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 
     /* FIXME: ARBITRARY NUMBERS HERE, PUT IN CONFIGURATION SOMEWHERE. */
     if (!(pxInstData->pxDuPool = pxRsrcNewPool("Ethernet Shim DU pool", sizeof(struct du_t), 5, 1, 0)))
+        goto err;
+
+    if (pthread_mutex_init(&pxInstData->xLock, NULL))
         goto err;
 
     pxInst->pxData = pxInstData;
