@@ -127,7 +127,7 @@ bool_t vARPSendRequest(ARP_t *pxArp, const gpa_t *pxTpa, const gpa_t *pxSpa, con
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
 	size_t xMaxLen;
 	size_t xBufferSize;
-    gpa_t *pxGrownSpa, *pxGrownTpa;
+    gpa_t *pxGrownSpa, *pxGrownTpa = NULL;
     RINAStackEvent_t xSendEvent;
 
 	xMaxLen = MAX(pxSpa->uxLength, pxTpa->uxLength);

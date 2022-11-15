@@ -8,6 +8,7 @@ set(reqs
   Common
   Portability
   RINA_API
+  SerDes
   IPCP)
 
 idf_component_register(

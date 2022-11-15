@@ -8,6 +8,16 @@ set(SRCS
 )
 
 idf_component_register(
-  SRCS ${SRCS}
+  SRCS
+  "SerdesMsg.c"
+  "SerDesFlow.c"
+  "SerDesEnrollment.c"
+  "SerDesAData.c"
+  "SerDesNeighbor.c"
+  "SerDesMessage.c"
   INCLUDE_DIRS "include"
-  REQUIRES IPCP CdapProto)
+  PRIV_REQUIRES FlowAllocator
+  REQUIRES Common Portability CdapProto)
+
+# As per: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/build-system.html
+set_property(TARGET ${COMPONENT_LIB} APPEND PROPERTY LINK_INTERFACE_MULTIPLICITY 3)

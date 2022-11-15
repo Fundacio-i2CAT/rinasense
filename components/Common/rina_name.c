@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "linux_rsmem.h"
 #include "portability/port.h"
 
 #include "common/rina_name.h"

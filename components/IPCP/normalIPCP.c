@@ -8,7 +8,6 @@
 #include "configSensor.h"
 #include "portability/port.h"
 #include "efcpStructures.h"
-#include "linux_rsmem.h"
 #include "IPCP.h"
 
 #include "EFCP.h"

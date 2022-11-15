@@ -1,7 +1,7 @@
 #include "common/simple_queue.h"
 #include "common/list.h"
 #include "common/rsrc.h"
-#include "linux_rsmem.h"
+#include "portability/port.h"
 
 struct queueItem {
     RsListItem_t xListItem;

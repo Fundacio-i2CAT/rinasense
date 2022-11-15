@@ -2,7 +2,6 @@
 
 #include "common/mac.h"
 #include "common/rina_gpha.h"
-#include "linux_rsmem.h"
 #include "portability/port.h"
 
 /* No used check if this is necessary */

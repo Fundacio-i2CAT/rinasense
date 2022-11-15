@@ -964,7 +964,7 @@ static struct ipcpInstanceOps_t xShimWifiOps = {
 struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 {
 	struct ipcpInstance_t *pxInst;
-	struct ipcpInstanceData_t *pxInstData;
+	struct ipcpInstanceData_t *pxInstData = NULL;
 	flowSpec_t *pxFspec;
 	string_t pcInterfaceName = SHIM_INTERFACE;
     rname_t xName;

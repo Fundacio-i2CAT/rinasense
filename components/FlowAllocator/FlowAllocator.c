@@ -293,7 +293,7 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
     if (pxObjVal != NULL)
         vRsrcFree(pxObjVal);
 
-    fail:
+    fail:;
 }
 
 bool_t xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData, serObjectValue_t *pxSerObjValue, int result)

@@ -110,13 +110,17 @@ static void event_handler(void *arg, esp_event_base_t event_base,
  *  Mac address variable in the ShimIPCP.h
  *  Return a Boolean pdTrue or pdFalse
  * */
-BaseType_t xNetworkInterfaceInitialise(MACAddress_t *pxPhyDev)
+BaseType_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev)
 {
 	LOGI(TAG_WIFI, "Initializing the network interface");
 	uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES];
 
 	esp_efuse_mac_get_default(ucMACAddress);
-	vARPUpdateMACAddress(ucMACAddress, pxPhyDev);
+
+    /* FIXME: The previous calls reads the MAC address to use, but
+     * as of the commit carrying this comment, I've not looked into
+     * what else I need to be doing here. */
+
 	return pdTRUE;
 }
 
