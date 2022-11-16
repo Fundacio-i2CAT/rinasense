@@ -41,7 +41,9 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);*/
+    RINA_Init();
 
+#if 0
     RINA_IPCPInit();
 
     portId_t xAppPortId;
@@ -157,4 +159,5 @@ void app_main(void)
     ESP_LOGI(TAG_APP, "     Packets: send = %d, received = %d , timeout = %d", NUMBER_OF_PINGS, received, NUMBER_OF_PINGS - received);
     ESP_LOGI(TAG_APP, "Approximate round trip times in milliseconds: ");
     ESP_LOGI(TAG_APP, "     Minimum = %dms , Maximum = %dms, Average = %fms ", min / 1000, max / 1000, average);
+    #endif
 }
