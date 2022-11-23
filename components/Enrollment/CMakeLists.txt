@@ -1,4 +1,4 @@
 idf_component_register(
-  SRCS  "Enrollment.c"
+  SRCS "Enrollment.c"
   INCLUDE_DIRS "include"
-  REQUIRES IPCP BufferManagement Ribd CdapProto FlowAllocator)
+  REQUIRES IPCP Ribd CdapProto FlowAllocator SerDes)

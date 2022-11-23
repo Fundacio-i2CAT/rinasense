@@ -93,6 +93,9 @@ typedef struct
     /* Pool for ribCallbackOps_t objects */
     rsrcPoolP_t xCbPool;
 
+    /* Pool for DU objects */
+    rsrcPoolP_t xDuPool;
+
     /* Table to manage the app connections */
     appConnectionTableRow_t xAppConnectionTable[APP_CONNECTION_TABLE_SIZE];
 

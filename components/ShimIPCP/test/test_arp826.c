@@ -8,7 +8,6 @@
 #include "configSensor.h"
 #include "IPCP_api.h"
 #include "NetworkInterface.h"
-#include "BufferManagement.h"
 
 #include "unity.h"
 #include "common/unity_fixups.h"

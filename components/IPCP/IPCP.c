@@ -13,7 +13,6 @@
 
 #include "ARP826.h"
 #include "ARP826_defs.h"
-#include "BufferManagement.h"
 #include "configSensor.h"
 #include "configRINA.h"
 #include "IpcManager.h"
@@ -26,7 +25,6 @@
 #include "ShimIPCP.h"
 #include "IpcManager.h"
 #include "Enrollment_api.h"
-#include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
 
@@ -188,6 +186,34 @@ static void *prvIPCPTask(void *pvParameters)
 
         switch (xEv.eEventType)
         {
+        case eRinaTxEvent:{
+        }
+
+        case eRinaRxEvent: {
+            struct ipcpInstance_t *pxInstance;
+            du_t *pxDu;
+            portId_t unPort;
+            bool_t xStatus;
+
+            /*
+             * A RINA packet was received by a shim module and wants
+             * to go up the stack. In the future we will need to
+             * determine where to send it, but right now just send it
+             * to the first normal IPCP we find.
+             */
+
+            RsAssert((pxInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
+
+            unPort = xEv.xData.UN;
+            pxDu = xEv.xData2.PV;
+
+            CALL_IPCP_CHECK(xStatus, pxInstance, duEnqueue, unPort, pxDu) {
+                LOGE(TAG_IPCPMANAGER, "Failed to receive DU");
+            }
+
+            break;
+        }
+
         case eNetworkDownEvent:
         {
             struct timespec ts = {INITIALISATION_RETRY_DELAY_SEC, 0};
@@ -202,51 +228,6 @@ static void *prvIPCPTask(void *pvParameters)
             LOGI(TAG_IPCPMANAGER, "eNetworkDownEvent");
             xNetworkUp = false;
             prvProcessNetworkDownEvent();
-            break;
-        }
-
-        case eNetworkRxEvent: {
-            struct ipcpInstance_t *pxInstance;
-            portId_t unPortId;
-            struct du_t *pxDu;
-
-            LOGD(TAG_IPCPMANAGER, "Event: eNetworkRxEvent");
-
-            /* NOTE: This event receives the notification that
-             * something has been received on a flow. This is strictly
-             * for RINA packets. Other types of packet needs to be
-             * handled entirely by their respective shims. */
-
-            RsAssert((pxInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
-
-            unPortId = xEv.xData.UN;
-            pxDu = xEv.xData2.DU;
-
-            RsAssert(is_port_id_ok(unPortId));
-            RsAssert(pxDu);
-
-            /* Enqueue to the normal IPCP. */
-            CALL_IPCP(pxInstance, duEnqueue, unPortId, pxDu);
-
-            xDuDestroy(pxDu);
-
-            break;
-        }
-
-        case eNetworkTxEvent: {
-            NetworkBufferDescriptor_t *pxNetworkBuffer;
-
-            LOGD(TAG_IPCPMANAGER, "Event: eNetworkTxEvent");
-
-            /* FIXME: THIS NEEDS TO BE SENT TO THE RMT TASK, NOT
-             * DIRECTLY THROUGH THE NETWORK INTERFACE */
-
-            pxNetworkBuffer = (NetworkBufferDescriptor_t *)xEv.xData.PV;
-
-            /* Send a network packet. The ownership will  be transferred to
-             * the driver, which will release it after delivery. */
-            xNetworkInterfaceOutput(pxNetworkBuffer, true);
-
             break;
         }
 
@@ -338,24 +319,6 @@ static void *prvIPCPTask(void *pvParameters)
 
             break;
         }
-        case eStackTxEvent: {
-            struct ipcpInstance_t *pxInstance;
-            struct du_t *pxDu;
-
-            LOGD(TAG_IPCPMANAGER, "Event: eStackTxEvent");
-
-            /* FIXME: WHAT ARRIVES HERE IS NOT A CORRECT SDU */
-
-            RsAssert((pxInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
-
-            // call Efcp to write SDU.
-            pxDu = (struct du_t *)xEv.xData.PV;
-
-            CALL_IPCP(pxInstance, duWrite, pxDu->pxNetworkBuffer->ulBoundPort, pxDu, false);
-
-            //(void)xNormalDuWrite(pxNormalIpcpData, pxNetBuffer->ulBoundPort, pxNetBuffer);
-        }
-        break;
 
         case eNoEvent:
             /* xQueueReceive() returned because of a normal time-out. */
@@ -413,35 +376,23 @@ bool_t RINA_IPCPInit()
     xIpcManagerRunStart();
 
     if (xNetworkEventQueue != NULL) {
+        pthread_attr_t attr;
 
-        if (xNetworkBuffersInitialise()) {
-            pthread_attr_t attr;
+        if (pthread_attr_init(&attr) != 0)
+            return false;
 
-            if (pthread_attr_init(&attr) != 0)
-                return false;
+        pthread_attr_setstacksize(&attr, IPCP_TASK_STACK_SIZE);
 
-            pthread_attr_setstacksize(&attr, IPCP_TASK_STACK_SIZE);
-
-            if (pthread_create(&xIPCPThread, &attr, prvIPCPTask, NULL) != 0) {
-                LOGE(TAG_IPCPMANAGER, "RINAInit: failed to start IPC process");
-                xReturn = false;
-            }
-            else
-                xReturn = true;
-
-            pthread_attr_destroy(&attr);
+        if (pthread_create(&xIPCPThread, &attr, prvIPCPTask, NULL) != 0) {
+            LOGE(TAG_IPCPMANAGER, "RINAInit: failed to start IPC process");
+            xReturn = false;
         }
         else
-        {
-            LOGE(TAG_IPCPMANAGER, "RINAInit: xNetworkBuffersInitialise() failed\n");
+            xReturn = true;
 
-            /* Clean up. */
-            vRsQueueDelete(xNetworkEventQueue);
-            xNetworkEventQueue = NULL;
-        }
+        pthread_attr_destroy(&attr);
     }
-    else
-        LOGE(TAG_IPCPMANAGER, "RINAInit: Network event queue could not be created\n");
+    else LOGE(TAG_IPCPMANAGER, "RINAInit: Network event queue could not be created\n");
 
     return xReturn;
 }

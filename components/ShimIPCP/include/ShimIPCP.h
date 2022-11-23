@@ -72,7 +72,7 @@ bool_t xShimSDURead(struct ipcpInstanceData_t *pxData,
                     struct du_t *pxDu);
 
 void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf,
-                               NetworkBufferDescriptor_t *pxNetworkBuffer);
+                               netbuf_t *pxNb);
 
 #ifdef __cplusplus
 }

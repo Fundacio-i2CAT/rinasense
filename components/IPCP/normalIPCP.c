@@ -1,25 +1,28 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "FlowAllocator_api.h"
+#include "portability/port.h"
 #include "common/list.h"
+#include "common/netbuf.h"
 #include "common/rina_ids.h"
 #include "common/rina_name.h"
-#include "configSensor.h"
-#include "portability/port.h"
-#include "efcpStructures.h"
-#include "IPCP.h"
+#include "common/rsrc.h"
 
+#include "configSensor.h"
+
+#include "FlowAllocator_api.h"
 #include "EFCP.h"
+#include "efcpStructures.h"
 #include "rmt.h"
 #include "rina_common_port.h"
 #include "du.h"
+#include "pci.h"
 #include "configRINA.h"
 #include "IpcManager.h"
 #include "FlowAllocator_defs.h"
-#include "BufferManagement.h"
 #include "Ribd.h"
 #include "Ribd_api.h"
+#include "IPCP.h"
 #include "IPCP_api.h"
 #include "IPCP_normal_defs.h"
 #include "IPCP_normal_api.h"
@@ -99,7 +102,7 @@ static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
 /* Correct implementation based on IRATI's kernel module */
 bool_t xNormalDuEnqueue(struct ipcpInstance_t *pxIpcp,
                         portId_t xN1PortId,
-                        struct du_t *pxDu)
+                        du_t *pxDu)
 {
     if (!xRmtReceive(&pxIpcp->pxData->xRmt, &pxIpcp->pxData->xEfcpContainer, pxDu, xN1PortId)) {
         LOGE(TAG_IPCPNORMAL, "Failed to enqueue the SDU to the RMT");
@@ -240,17 +243,13 @@ bool_t xNormalRegistering(struct ipcpInstance_t *pxShimInstance,
 
 bool_t xNormalDuWrite(struct ipcpInstance_t *pxIpcp,
                       portId_t xAppPortId,
-                      NetworkBufferDescriptor_t *pxNetworkBuffer)
+                      du_t *pxDu)
 {
-    struct du_t *pxDu;
     struct normalFlow_t *pxFlow;
 
     RsAssert(pxIpcp);
     RsAssert(is_port_id_ok(xAppPortId));
-    RsAssert(pxNetworkBuffer);
-
-    pxDu = pvRsMemAlloc(sizeof(*pxDu));
-    pxDu->pxNetworkBuffer = pxNetworkBuffer;
+    RsAssert(pxDu);
 
     pxFlow = prvNormalFindFlow(pxIpcp->pxData, xAppPortId);
 
@@ -332,35 +331,45 @@ bool_t xNormalFlowBinding(struct ipcpInstance_t *pxIpcp,
  * @param pxDu Data Unit to be write into the IPCP instance.
  * @return BaseType_t
  */
-bool_t xNormalMgmtDuWrite(struct ipcpInstance_t *pxIpcp, portId_t xPortId, struct du_t *pxDu)
+bool_t xNormalMgmtDuWrite(struct ipcpInstance_t *pxIpcp, portId_t xPortId, du_t *pxDu)
 {
-    ssize_t sbytes;
-
+    size_t sz;
+    buffer_t xPci;
+    
     RsAssert(pxIpcp);
     RsAssert(is_port_id_ok(xPortId));
     RsAssert(pxDu);
+    RsAssert(eNetBufType(pxDu) == NB_RINA_DATA);
 
     LOGI(TAG_IPCPNORMAL, "Passing SDU to be written to N-1 port %d ", xPortId);
+
+    /* Allocate some memory for the PCI header */
+    if (!(xPci = pxRsrcAlloc(pxIpcp->pxData->xPciPool, NULL))) {
+        LOGE(TAG_IPCPNORMAL, "Failed to allocate memory for PCI");
+        return false;
+    }
 
     // pxDu->pxCfg = pxData->pxEfcpc->pxConfig;
     /* SET BUT NOT USED: sbytes = xDuLen(pxDu); */
 
-    if (!xDuEncap(pxDu, PDU_TYPE_MGMT)) {
+    sz = unNetBufTotalSize(pxDu);
+
+    if (!xDuEncap(xPci, sizeof(pci_t), pxDu)) {
         LOGE(TAG_IPCPNORMAL, "Failed to encap DU");
         return false;
     }
 
-    /*Fill the PCI*/
-    pxDu->pxPci->ucVersion = 0X01;
-    pxDu->pxPci->connectionId_t.xDestination = 0;
-    pxDu->pxPci->connectionId_t.xQosId = 1;
-    pxDu->pxPci->connectionId_t.xSource = 0;
-    pxDu->pxPci->xDestination = 0;
-    pxDu->pxPci->xFlags = 0;
-    pxDu->pxPci->xType = PDU_TYPE_MGMT;
-    pxDu->pxPci->xSequenceNumber = 0;
-    pxDu->pxPci->xPduLen = pxDu->pxNetworkBuffer->xDataLength;
-    pxDu->pxPci->xSource = LOCAL_ADDRESS;
+    /* Fill the PCI */
+    PCI_SET(pxDu, PCI_VERSION, 0x01);
+    PCI_SET(pxDu, PCI_CONN_SRC_ID, 0);
+    PCI_SET(pxDu, PCI_CONN_DST_ID, 1);
+    PCI_SET(pxDu, PCI_CONN_QOS_ID, 0);
+    PCI_SET(pxDu, PCI_ADDR_DST, 0);
+    PCI_SET(pxDu, PCI_FLAGS, 0);
+    PCI_SET(pxDu, PCI_TYPE, PDU_TYPE_MGMT);
+    PCI_SET(pxDu, PCI_SEQ_NO, 0);
+    PCI_SET(pxDu, PCI_PDU_LEN, sz);
+    PCI_SET(pxDu, PCI_ADDR_SRC, LOCAL_ADDRESS);
 
     // vPciPrint(pxDu->pxPci);
 
@@ -392,7 +401,7 @@ bool_t xNormalUpdateFlowStatus(struct ipcpInstance_t *pxIpcp, portId_t xPortId, 
     return true;
 }
 
-bool_t xNormalMgmtDuPost(struct ipcpInstance_t *pxIpcp, portId_t xPortId, struct du_t *pxDu)
+bool_t xNormalMgmtDuPost(struct ipcpInstance_t *pxIpcp, portId_t xPortId, du_t *pxDu)
 {
     RsAssert(pxIpcp);
     RsAssert(is_port_id_ok(xPortId));
@@ -407,13 +416,14 @@ bool_t xNormalMgmtDuPost(struct ipcpInstance_t *pxIpcp, portId_t xPortId, struct
     return true;
 }
 
+#if 0
 /* FIXME: UNSURE WHAT THIS IS FOR!! */
 bool_t xNormalTest(struct ipcpInstance_t *pxNormalInstance, struct ipcpInstance_t *pxN1Ipcp)
 {
     portId_t xId = 1;
 
     /* Data User */
-    struct du_t *testDu;
+    du_t *testDu;
     NetworkBufferDescriptor_t *pxNetworkBuffer;
     size_t xBufferSize;
 
@@ -445,13 +455,14 @@ bool_t xNormalTest(struct ipcpInstance_t *pxNormalInstance, struct ipcpInstance_
       }*/
 
     /*Call to Normalwrite function to send data*/
-    if (xNormalDuWrite(pxNormalInstance, xId, testDu->pxNetworkBuffer)) {
+    if (xNormalDuWrite(pxNormalInstance, xId, testDu)) {
         LOGI(TAG_IPCPNORMAL, "Wrote packet on the shimWiFi");
         return true;
     }
 
     return false;
 }
+#endif
 
 bool_t xNormalIsFlowAllocated(struct ipcpInstance_t *pxIpcp, portId_t xPortId)
 {
@@ -735,6 +746,12 @@ struct ipcpInstance_t *pxNormalCreate(ipcProcessId_t unIpcpId)
     if (!pxIpcp || !pxData)
         goto fail;
 
+    /* Memory pool for PCI objects. */
+    if (!(pxData->xPciPool = pxRsrcNewPool("PCI pool", sizeof(pci_t), 1, 1, 0))) {
+        LOGE(TAG_IPCPNORMAL, "Failed to allocate PCI object pool");
+        goto fail;
+    }
+
     /* Initialize the RIB */
     if (!xRibdInit(&pxData->xRibd)) {
         LOGE(TAG_IPCPNORMAL, "Failed initialisation of RIB");
@@ -746,7 +763,7 @@ struct ipcpInstance_t *pxNormalCreate(ipcProcessId_t unIpcpId)
         LOGE(TAG_IPCPNORMAL, "Failed initialisation of Enrollment component");
         goto fail;
     }
-    
+
     /* Initialize flow allocator */
     if (!xFlowAllocatorInit(&pxData->xFA, &pxData->xEnrollment, &pxData->xRibd)) {
         LOGE(TAG_IPCPNORMAL, "Failed initialisation of flow allocator");
@@ -754,7 +771,7 @@ struct ipcpInstance_t *pxNormalCreate(ipcProcessId_t unIpcpId)
     }
 
     /* Initialize EFCP container */
-    if (!xEfcpContainerInit(&pxData->xEfcpContainer)) {
+    if (!xEfcpContainerInit(&pxData->xEfcpContainer, pxData->xPciPool)) {
         LOGE(TAG_IPCPNORMAL, "Failed initialisation of EFCP container");
         goto fail;
     }

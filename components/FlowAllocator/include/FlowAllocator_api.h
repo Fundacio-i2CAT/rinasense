@@ -45,7 +45,7 @@ flowAllocateHandle_t *pxFAFindFlowHandle(flowAllocator_t *pxFA,
 
 bool_t xFlowAllocatorDuPost(flowAllocator_t *pxFA,
                             portId_t xAppPortId,
-                            struct du_t *pxDu);
+                            du_t *pxDu);
 
 flowAllocator_t *pxFlowAllocatorCreate(struct ipcpInstance_t *pxNormalIpcp);
 

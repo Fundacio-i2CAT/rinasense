@@ -6,7 +6,6 @@
 #include "configSensor.h"
 #include "IPCP_instance.h"
 #include "EFCP.h"
-#include "rina_buffers.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,7 +77,9 @@ struct ipcpInstance_t *pxIpcManagerFindById(ipcManager_t *pxIpcManager, ipcpInst
 
 struct ipcpInstance_t *pxIpcManagerFindByType(ipcManager_t *pxIpcManager, ipcpInstanceType_t xType);
 
+#if 0
 void vIpcManagerRINAPackettHandler(struct ipcpInstanceData_t *pxData, NetworkBufferDescriptor_t *pxNetworkBuffer);
+#endif
 
 #ifdef __cplusplus
 }

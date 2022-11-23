@@ -4,13 +4,15 @@
 #include <pthread.h>
 #include <signal.h>
 
+#include "ShimIPCP.h"
+#include "common/netbuf.h"
 #include "configSensor.h"
 #include "portability/port.h"
 #include "common/rina_gpha.h"
 
 #include "IPCP_api.h"
 #include "IPCP_events.h"
-#include "BufferManagement.h"
+#include "ShimIPCP_instance.h"
 #include "NetworkInterface.h"
 #include "NetworkInterface_mq.h"
 
@@ -41,6 +43,8 @@ static struct mq_attr mqInitAttr = {
     .mq_curmsgs = 0
 };
 
+struct ipcpInstance_t *pxSelf;
+
 /* Test API */
 
 #ifdef ESP_PLATFORM
@@ -64,7 +68,7 @@ void *xNotifyThread() {
         if (!xNetworkInterfaceInput(buf, mqattr.mq_msgsize, NULL))
             LOGE(TAG_WIFI, "RX processing failed");
 
-        vRsMemFree(buf);
+        /* Netbuf library will arrange freeing the buffer */
     }
 }
 
@@ -169,10 +173,13 @@ static void event_handler(union sigval sv)
 
 /* Public interface */
 
-bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxSelf, MACAddress_t *pxPhyDev)
+bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev)
 {
+    pxSelf = pxS;
+
     /* Save the MAC address to use as queue names. */
     mac2str(pxPhyDev, sMac, sizeof(sMac));
+
     return true;
 }
 
@@ -269,54 +276,35 @@ bool_t xNetworkInterfaceDisconnect(void)
     return r1 == 0 && r2 == 0;
 }
 
-bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
-                               bool_t xReleaseAfterSend)
+bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 {
-    if (mq_send(mqOut, (const char *)pxNetworkBuffer->pucEthernetBuffer,
-                pxNetworkBuffer->xDataLength, 0) != 0) {
-        LOGE(TAG_WIFI, "Error writing %zu bytes to network interface (errno: %d)",
-             pxNetworkBuffer->xDataLength, errno);
-        return false;
+    FOREACH_NETBUF(pxNbFrame, pxNbIter) {
+        if (mq_send(mqOut, pvNetBufPtr(pxNbIter), unNetBufSize(pxNbIter), 0) != 0) {
+            LOGE(TAG_WIFI, "Error writing %zu bytes to network interface (errno: %d)",
+                 unNetBufSize(pxNbIter), errno);
+        }
     }
 
-    LOGI(TAG_WIFI, "Wrote %zu bytes to network interface", pxNetworkBuffer->xDataLength);
+    LOGI(TAG_WIFI, "Wrote %zu bytes to network interface", unNetBufTotalSize(pxNbFrame));
+
+    vNetBufFreeAll(pxNbFrame);
 
     return true;
 }
 
 bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
-	NetworkBufferDescriptor_t *pxNetworkBuffer;
-	RINAStackEvent_t xRxEvent;
+    netbuf_t *pxNbFrame;
 
-	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, 0);
-    xRxEvent.eEventType = eNetworkRxEvent;
+    if (!(pxNbFrame = pxNetBufNew(pxSelf->pxData->pxNbPool, NB_ETH_HDR, buffer, len, NETBUF_FREE_NORMAL))) {
+        LOGE(TAG_WIFI, "Failed to allocate netbuf for incoming message");
+        vRsMemFree(buffer);
+        return false;
+    }
 
-	if (pxNetworkBuffer != NULL)
-	{
-		/* Set the packet size, in case a larger buffer was returned. */
-		pxNetworkBuffer->xDataLength = len;
+    vShimHandleEthernetPacket(pxSelf, pxNbFrame);
 
-		/* Copy the packet data. */
-		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
-		xRxEvent.xData.PV = (void *)pxNetworkBuffer;
-
-		if (xSendEventStructToIPCPTask(&xRxEvent, 0) == false)
-		{
-			LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
-			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-			return false;
-		}
-
-        return true;
-	}
-
-	else
-	{
-		LOGE(TAG_WIFI, "Failed to get buffer descriptor");
-		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-		return false;
-	}
+    return true;
 }
 
 void vNetworkNotifyIFDown()

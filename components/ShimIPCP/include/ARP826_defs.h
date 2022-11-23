@@ -4,7 +4,9 @@
 #include <stdint.h>
 
 #include "common/mac.h"
+#include "common/eth.h"
 #include "common/rina_gpha.h"
+#include "common/rsrc.h"
 #include "configSensor.h"
 
 #ifdef __cplusplus
@@ -18,6 +20,10 @@ typedef struct xARP {
     /* Keep track of all the registered applications to be able to
        unregister them. */
     //RsList_t xRegisteredAppHandles;
+
+    rsrcPoolP_t xEthPool;
+    rsrcPoolP_t xArpPool;
+
 } ARP_t;
 
 typedef enum {
@@ -28,15 +34,8 @@ typedef enum {
     PACKET_END
 } eARPPacketPtrType_t;
 
-// Structure Ethernet Header
-typedef struct __attribute__((packed))
-{
-	MACAddress_t xDestinationAddress; /**< Destination address  0 + 6 = 6  */
-	MACAddress_t xSourceAddress;	  /**< Source address       6 + 6 = 12 */
-	uint16_t usFrameType;			  /**< The EtherType field 12 + 2 = 14 */
-} EthernetHeader_t;
-
-// Generic ARP Header
+/* This is the STATIC, non-changing, part of an ARP packet. There is data past this
+ * header but the later elements change in size. */
 typedef struct __attribute__((packed))
 {
 	uint16_t usHType;	  /**< Network Link Protocol type                     0 +  2 =  2 */
@@ -49,22 +48,13 @@ typedef struct __attribute__((packed))
 						  // uint32_t ucSpa;            		/**< Internetwork address of sender                14 +  4 = 18  */
 						  // MACAddress_t xTha;             /**< Media address of the intended receiver        18 +  6 = 24  */
 						  // uint32_t ulTpa;                /**< Internetwork address of the intended receiver 24 +  4 = 28  */
-} ARPHeader_t;
+} ARPStaticHeader_t;
 
 /*
- * This is the headers of a ethernet + ARP packet
- */
-typedef struct __attribute__((packed))
-{
-	EthernetHeader_t xEthernetHeader; /**< The ethernet header of an ARP Packet  0 + 14 = 14 */
-	ARPHeader_t xARPHeader;			  /**< The ARP header of an ARP Packet       14 + 28 = 42 */
-} ARPPacket_t;
-
-/*
- * All the data of an ARP packet including pointers to ARJeP addresses stored in the packet.
+ * All the data of an ARP packet including pointers to AP addresses stored in the packet.
  */
 typedef struct {
-    ARPPacket_t *pxARPPacket;
+    ARPStaticHeader_t *pxARPHdr;
 
     /* Pointers to the ARP request data within the packet. */
     buffer_t ucSpa;

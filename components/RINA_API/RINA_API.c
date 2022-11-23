@@ -12,6 +12,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "common/netbuf.h"
+#include "common/rsrc.h"
 #include "portability/port.h"
 #include "common/num_mgr.h"
 #include "common/list.h"
@@ -21,9 +23,7 @@
 #include "configSensor.h"
 
 #include "IpcManager.h"
-#include "BufferManagement.h"
 #include "RINA_API_flows.h"
-#include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
 #include "IPCP.h"
@@ -37,6 +37,9 @@ static pthread_mutex_t mux = PTHREAD_MUTEX_INITIALIZER;
 
 /* This is the normal IPCP instance the RINA_API will address. */
 static struct ipcpInstance_t *pxIpcp;
+
+/* The pool of netbufs */
+rsrcPoolP_t xPool;
 
 void prvWaitForBit(pthread_cond_t *pxCond,
                    pthread_mutex_t *pxCondMutex,
@@ -313,6 +316,11 @@ void RINA_Init()
     /* FIXME: This picks the first normal IPCP instance found in the
        list. */
     RsAssert((pxIpcp = pxIpcManagerFindByType(&xIpcManager, eNormal)));
+
+    /* FIXME: We should handle failure here but I can't be bothered
+       for now as it seems very unlikely that we'll run out of memory
+       right at initialisation. */
+    RsAssert((xPool = xNetBufNewPool("RINA_API Netbufs")));
 }
 
 portId_t RINA_flow_alloc(string_t pcNameDIF,
@@ -388,14 +396,14 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
     return pxFlowAllocateRequest->xPortId;
 }
 
-size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength)
+size_t RINA_flow_write(portId_t unPort, void *pvBuffer, size_t uxTotalDataLength)
 {
-    NetworkBufferDescriptor_t *pxNetworkBuffer;
+    netbuf_t *pxNb;
     void *pvCopyDest;
     struct RsTimeOut xTimeOut;
     useconds_t xTimeToWait, xTimeDiff;
-    RINAStackEvent_t xStackTxEvent = {
-        .eEventType = eStackTxEvent,
+    RINAStackEvent_t xTxEvent = {
+        .eEventType = eRinaTxEvent,
         .xData.PV = NULL
     };
 
@@ -412,12 +420,10 @@ size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
         return 0;
     }
 
-    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxTotalDataLength, xTimeToWait);
+    /* We're not freeing the buffer as it's owned by the app */
+    pxNb = pxNetBufNew(xPool, NB_RINA_DATA, pvBuffer, uxTotalDataLength, NETBUF_FREE_DONT);
 
-    if (pxNetworkBuffer != NULL) {
-        pvCopyDest = (void *)pxNetworkBuffer->pucEthernetBuffer;
-        (void)memcpy(pvCopyDest, pvBuffer, uxTotalDataLength);
-
+    if (pxNb != NULL) {
         /* This will update xTimeToWait with whatever is left to
            wait. */
         if (!xRsTimeCheckTimeOut(&xTimeOut, &xTimeToWait)) {
@@ -425,22 +431,19 @@ size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
             return 0;
         }
 
-        /*Fill the pxNetworkBuffer descriptor properly*/
-        pxNetworkBuffer->xDataLength = uxTotalDataLength;
-        pxNetworkBuffer->ulBoundPort = xPortId;
+        xTxEvent.xData.UN = unPort;
+        xTxEvent.xData2.PV = pxNb;
 
-        xStackTxEvent.xData.PV = pxNetworkBuffer;
-
-        if (xSendEventStructToIPCPTask(&xStackTxEvent, xTimeToWait))
+        if (xSendEventStructToIPCPTask(&xTxEvent, xTimeToWait))
             return uxTotalDataLength;
         else {
-            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-            return 0;
+            vNetBufFree(pxNb);
+            return -1;
         }
     }
     else {
         LOGE(TAG_RINA, "Error allocating network buffer for writing");
-        return 0;
+        return -1;
     }
 
     return 0;
@@ -470,21 +473,21 @@ bool_t RINA_close(portId_t xAppPortId)
 int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLength)
 {
     size_t xPacketCount;
-    const void *pvCopySource; // to copy data from networkBuffer to pvBuffer
-    NetworkBufferDescriptor_t *pxNetworkBuffer;
+    netbuf_t *pxNb;
     flowAllocateHandle_t *pxFlowHandle;
     useconds_t xRemainingTime;
     bool_t xTimed = false;
     struct RsTimeOut xTimeOut;
     int32_t lDataLength;
-    size_t uxPayloadLength;
+    size_t uxPayloadLength, unIdx;
 
-    // Validate if the flow is valid, if the xPortId is working status CONNECTED
+    /* Validate if the flow is valid, if the xPortId is working status
+       CONNECTED */
     if (!RINA_flowStatus(xPortId)) {
         LOGE(TAG_RINA, "No flow for port ID: %u", xPortId);
         return 0;
     } else {
-        // find the flow handle associated to the xPortId.
+        /* find the flow handle associated to the xPortId */
         pxFlowHandle = pxFAFindFlowHandle(&pxIpcp->pxData->xFA, xPortId);
         xPacketCount = unRsListLength(&(pxFlowHandle->xListWaitingPackets));
 
@@ -531,17 +534,16 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
             pthread_mutex_lock(&mux);
             {
                 /* The owner of the list item is the network buffer. */
-                pxNetworkBuffer = (NetworkBufferDescriptor_t *)pxRsListGetHeadOwner((&pxFlowHandle->xListWaitingPackets));
-                vRsListRemove(&(pxNetworkBuffer->xBufferListItem));
+                pxNb = (netbuf_t *)pxRsListGetHeadOwner((&pxFlowHandle->xListWaitingPackets));
+                vRsListRemove(&(pxNb->xListItem));
             }
             pthread_mutex_unlock(&mux);
 
-            lDataLength = (int32_t)pxNetworkBuffer->xDataLength;
+            lDataLength = unNetBufTotalSize(pxNb);
+            unIdx = 0;
 
-            // vPrintBytes((void *)pxNetworkBuffer->pucDataBuffer, lDataLength);
-
-            (void)memcpy(pvBuffer, (const void *)pxNetworkBuffer->pucDataBuffer, (size_t)lDataLength);
-            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+            unNetBufRead(pxNb, pvBuffer, 0, lDataLength);
+            vNetBufFree(pxNb);
         }
         else {
             LOGE(TAG_RINA, "Timeout reading from flow");

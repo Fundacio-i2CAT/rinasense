@@ -2,14 +2,16 @@
 #include <string.h>
 #include <pthread.h>
 
+#include "common/eth.h"
+#include "common/rsrc.h"
+#include "portability/port.h"
 #include "common/list.h"
+#include "common/netbuf.h"
 #include "common/simple_queue.h"
 #include "common/mac.h"
 #include "common/rina_gpha.h"
 #include "common/rina_name.h"
 #include "common/rina_ids.h"
-#include "pci.h"
-#include "portability/port.h"
 
 #include "configRINA.h"
 #include "configSensor.h"
@@ -22,70 +24,12 @@
 #include "IPCP_api.h"
 #include "IPCP_events.h"
 #include "NetworkInterface.h"
-#include "BufferManagement.h"
+#include "pci.h"
 #include "du.h"
 #include "IpcManager.h"
-#include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "ShimIPCP.h"
-
-/* Safeguards against mistakenly including a file which uses another
- * definition of struct ipcpInstance_data */
-#ifdef IPCP_INSTANCE_DATA_TYPE
-#error IPCP_INSTANCE_DATA_TYPE should not be defined here
-#endif
-
-struct ipcpInstanceData_t
-{
-#ifndef NDEBUG
-    /* Used to assert on the type of instance data we're address is
-     * correct. */
-    uint8_t unInstanceDataType;
-#endif
-
-    pthread_mutex_t xLock;
-
-	ipcProcessId_t xId;
-
-    ARP_t xARP;
-
-	/* IPC Process name */
-	rname_t xName;
-	rname_t xDifName;
-	string_t pcInterfaceName;
-
-    /* Physical interface address to which this flow is attached. */
-	MACAddress_t xPhyDev;
-
-	flowSpec_t xFspec;
-
-    /* Memory pools for DUs */
-    rsrcPoolP_t pxDuPool;
-
-    /* Hardware address for this shim */
-    gha_t *pxHa;
-
-	/* The IPC Process using the shim-WiFi */
-	rname_t xAppName;
-	rname_t xDafName;
-
-    /* ARP registration names corresponding to the name_t above. */
-    gpa_t *pxAppPa;
-    gpa_t *pxDafPa;
-
-	/* Stores the state of flows indexed by port_id */
-	// spinlock_t             lock;
-	RsList_t xFlowsList;
-
-	/* FIXME: Remove it as soon as the kipcm_kfa gets removed */
-	// struct kfa *           kfa;
-
-	/* To handle device notifications. */
-	// struct notifier_block ntfy;
-
-	/* Flow control between this IPCP and the associated netdev. */
-	unsigned int ucTxBusy;
-};
+#include "ShimIPCP_instance.h"
 
 static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, portId_t unPort)
 {
@@ -192,18 +136,16 @@ static bool_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData,
  * Return an ethernet frame to its source. This always free the
  * buffer.
  */
-static void prvReturnEthernetFrame(NetworkBufferDescriptor_t *const pxNetworkBuffer)
+static void prvReturnEthernetFrame(netbuf_t *pxNbFrame)
 {
     EthernetHeader_t *pxEthernetHeader;
     MACAddress_t xTmpMac;
     MACAddress_t *pxDstMac, *pxSrcMac;
-	RINAStackEvent_t xTxEvent = {
-        .eEventType = eNetworkTxEvent,
-        .xData.PV = NULL
-    };
+
+    RsAssert(eNetBufType(pxNbFrame) == NB_ETH_HDR);
 
     /* Switch source and address. */
-    pxEthernetHeader = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
+    pxEthernetHeader = (EthernetHeader_t *)pvNetBufPtr(pxNbFrame);
 
     pxDstMac = &pxEthernetHeader->xDestinationAddress;
     pxSrcMac = &pxEthernetHeader->xSourceAddress;
@@ -212,21 +154,19 @@ static void prvReturnEthernetFrame(NetworkBufferDescriptor_t *const pxNetworkBuf
     memcpy(pxDstMac, pxSrcMac, sizeof(MACAddress_t));
     memcpy(pxSrcMac, &xTmpMac, sizeof(MACAddress_t));
 
-    /* Send the packet back */
-    xTxEvent.xData.PV = (void *)pxNetworkBuffer;
-    xSendEventStructToIPCPTask(&xTxEvent, 0);
+    /* Send the packet back. No need to go through the IPCP */
+    xNetworkInterfaceOutput(pxNbFrame);
 }
 
-static eFrameProcessingResult_t prvShimHandleARPFrame(struct ipcpInstance_t *pxSelf,
-                                                      NetworkBufferDescriptor_t *pxNetworkBuffer)
+static eFrameProcessingResult_t prvShimHandleARPFrame(struct ipcpInstance_t *pxSelf, netbuf_t *pxNbFrame)
 {
     eFrameProcessingResult_t eReturned;
 
     /* The Ethernet frame contains an ARP packet. */
     LOGI(TAG_WIFI, "Handling ARP frame");
 
-    if (pxNetworkBuffer->xEthernetDataLength >= sizeof(ARPPacket_t))
-        eReturned = eARPProcessPacket(&pxSelf->pxData->xARP, pxNetworkBuffer);
+    if (unNetBufSize(pxNetBufNext(pxNbFrame)) >= sizeof(ARPStaticHeader_t))
+        eReturned = eARPProcessPacket(&pxSelf->pxData->xARP, pxNbFrame);
     else {
         /* Drop invalid ARP packets */
         LOGW(TAG_IPCPMANAGER, "Discarding invalid ARP packet");
@@ -236,8 +176,7 @@ static eFrameProcessingResult_t prvShimHandleARPFrame(struct ipcpInstance_t *pxS
     return eReturned;
 }
 
-static eFrameProcessingResult_t prvShimHandleRinaFrame(struct ipcpInstance_t *pxSelf,
-                                                       NetworkBufferDescriptor_t *pxNetworkBuffer)
+static eFrameProcessingResult_t prvShimHandleRinaFrame(struct ipcpInstance_t *pxSelf, netbuf_t *pxNbFrame)
 {
     uint8_t *ptr;
     size_t uxRinaLength;
@@ -245,7 +184,7 @@ static eFrameProcessingResult_t prvShimHandleRinaFrame(struct ipcpInstance_t *px
     EthernetHeader_t *eth;
     gha_t *pxSrcHa;
 	RINAStackEvent_t xEvent;
-    struct du_t *pxDu;
+    du_t *pxDu;
 
     /* This function is inspired by what is coded in the functions
      * eth_rcv_process_packet and eth_rcv_worker in the
@@ -253,13 +192,10 @@ static eFrameProcessingResult_t prvShimHandleRinaFrame(struct ipcpInstance_t *px
 
     LOGI(TAG_WIFI, "Handling RINA frame");
 
-    /* Arrange the ethernet frame as a RINA packet before starting
-     * working on it. */
-    uxRinaLength = pxNetworkBuffer->xEthernetDataLength - sizeof(EthernetHeader_t);
-    pxNetworkBuffer->xRinaDataLength = uxRinaLength;
-    pxNetworkBuffer->pucRinaBuffer = pxNetworkBuffer->pucEthernetBuffer + sizeof(EthernetHeader_t);
+    if (!(xNetBufSplit(pxNbFrame, NB_RINA_PCI, sizeof(EthernetHeader_t)))) {
+    }
 
-    eth = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
+    eth = (EthernetHeader_t *)pvNetBufPtr(pxNbFrame);
 
     pxSrcHa = pxCreateGHA(MAC_ADDR_802_3, &eth->xSourceAddress);
 
@@ -332,17 +268,13 @@ static eFrameProcessingResult_t prvShimHandleRinaFrame(struct ipcpInstance_t *px
     }
 
     /* Prepare a DU to send up the stack. */
-    if (!(pxDu = pxRsrcAlloc(pxSelf->pxData->pxDuPool, "Ethernet shim"))) {
+    if (!(pxDu = pxRsrcAlloc(pxSelf->pxData->pxNbPool, NULL))) {
         LOGE(TAG_SHIM, "Failed to allocate memory for DU");
         return eFrameConsumed;
     }
 
-    /* Initialize the DU from the network buffer */
-    pxDu->pxNetworkBuffer = pxNetworkBuffer;
-    pxDu->pxPci = (pci_t *)pxNetworkBuffer->pucRinaBuffer;
-
     /* Notify the IPCM that something was posted for the flow */
-    xEvent.eEventType = eNetworkRxEvent;
+    xEvent.eEventType = eRinaRxEvent;
     xEvent.xData.UN = pxFlow->unPort;
     xEvent.xData2.DU = pxDu;
 
@@ -712,41 +644,34 @@ bool_t xShimApplicationUnregister(struct ipcpInstance_t *pxSelf, const rname_t *
     RsAssert(pxSelf);
     RsAssert(pxName);
 
-	LOGI(TAG_SHIM, "Application Unregistering");
+    LOGI(TAG_SHIM, "Application Unregistering");
 
     pthread_mutex_lock(&pxSelf->pxData->xLock);
 
     pxData = pxSelf->pxData;
     pxPa = pxNameToGPA(pxName);
 
-    if (!xARPRemoveApplication(&pxData->xARP, pxPa)) {
+    if (!xARPRemoveApplication(&pxData->xARP, pxPa))
+        LOGW(TAG_SHIM, "Failed to remove application registered in the shim");
 
-    }
+    vNameFree(&pxData->xAppName);
+    vNameFree(&pxData->xDafName);
 
-	vNameFree(&pxData->xAppName);
-	vNameFree(&pxData->xDafName);
-
-	LOGI(TAG_SHIM, "Application unregister");
+    LOGI(TAG_SHIM, "Application unregister");
 
     pthread_mutex_unlock(&pxSelf->pxData->xLock);
 
-	return true;
+    return true;
 }
 
-bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t unPort, struct du_t *pxDu, bool_t uxBlocking)
+bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t unPort, du_t *pxDu, bool_t uxBlocking)
 {
 	shimFlow_t *pxFlow;
-	NetworkBufferDescriptor_t *pxNetworkBuffer;
-    struct ipcpInstanceData_t *pxData;
-	EthernetHeader_t *pxEthernetHeader;
+	netbuf_t *pxNbEth;
 	gha_t *pxSrcHw;
 	size_t uxHeadLen, uxLength;
-	struct timespec ts;
-	RINAStackEvent_t xTxEvent = {
-        .eEventType = eNetworkTxEvent,
-        .xData.PV = NULL
-    };
-	unsigned char *pucArpPtr;
+    buffer_t pxBufEthHdr;
+    EthernetHeader_t *pxEthHdr;
 
     RsAssert(pxSelf);
     RsAssert(pxDu);
@@ -754,52 +679,67 @@ bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t unPort, struct du_t
 	LOGI(TAG_SHIM, "SDU write received");
 
 	uxHeadLen = sizeof(EthernetHeader_t);		   // Header length Ethernet
-	uxLength = pxDu->pxNetworkBuffer->xDataLength; // total length PDU
-    pxData = pxSelf->pxData;
+	uxLength = unNetBufTotalSize(pxDu); // total length PDU
 
 	if (uxLength > MTU) {
 		LOGE(TAG_SHIM, "SDU too large (%zu), dropping", uxLength);
-		xDuDestroy(pxDu);
+        vNetBufFreeAll(pxDu);
 		return false;
 	}
 
-	pxFlow = prvShimFindFlowByPortId(pxData, unPort);
-	if (!pxFlow) {
+    if (!(pxFlow = prvShimFindFlowByPortId(pxSelf->pxData, unPort))) {
 		LOGE(TAG_SHIM, "Flow does not exist, you shouldn't call this");
-		xDuDestroy(pxDu);
+        vNetBufFreeAll(pxDu);
 		return false;
 	}
 
-	// spin_lock_bh(&data->lock);
-	LOGI(TAG_SHIM, "SDUWrite: flow state check %d", pxFlow->ePortIdState);
-	if (pxFlow->ePortIdState != eALLOCATED)
-	{
+	if (pxFlow->ePortIdState != eALLOCATED) {
 		LOGE(TAG_SHIM, "Flow is not in the right state to call this");
-		xDuDestroy(pxDu);
+        vNetBufFreeAll(pxDu);
 		return false;
 	}
 
 	LOGI(TAG_SHIM, "SDUWrite: creating source GHA");
-	pxSrcHw = pxCreateGHA(MAC_ADDR_802_3, &pxData->xPhyDev);
-	if (!pxSrcHw)
-	{
+
+	if (!(pxSrcHw = pxCreateGHA(MAC_ADDR_802_3, &pxSelf->pxData->xPhyDev))) {
 		LOGE(TAG_SHIM, "Failed to get source HW addr");
-		xDuDestroy(pxDu);
+        vNetBufFreeAll(pxDu);
 		return false;
 	}
 
-	/*
-	vARPPrintMACAddress(pxFlow->pxDestHa);
-	*/
-	// pxDestHw = pxShimCreateGHA(MAC_ADDR_802_3, pxFlow->pxDestHa->xAddress);
-	if (!pxFlow->pxDestHa)
-	{
+	if (!pxFlow->pxDestHa) {
 		LOGE(TAG_SHIM, "Destination HW address is unknown");
-		xDuDestroy(pxDu);
+        vNetBufFreeAll(pxDu);
 		return false;
 	}
 
 	LOGI(TAG_SHIM, "SDUWrite: Encapsulating packet into Ethernet Frame");
+
+    if (!(pxBufEthHdr = pxRsrcAlloc(pxSelf->pxData->pxEthPool, NULL))) {
+        LOGE(TAG_SHIM, "Failed to allocate memory for ethernet header");
+        return false;
+    }
+
+    /* Generate an ethernet header */
+    if (!(pxNbEth = pxNetBufNew(pxSelf->pxData->pxNbPool, NB_ETH_HDR, pxBufEthHdr,
+                                sizeof(EthernetHeader_t), NETBUF_FREE_POOL))) {
+        LOGE(TAG_SHIM, "Failed to allocate memory for netbuf");
+        return false;
+    }
+
+    vNetBufAppend(pxNbEth, pxDu);
+
+    pxEthHdr = (EthernetHeader_t *)pvNetBufPtr(pxNbEth);
+
+	pxEthHdr->usFrameType = RsHtoNS(ETH_P_RINA);
+	memcpy(pxEthHdr->xSourceAddress.ucBytes,
+           pxSrcHw->xAddress.ucBytes, sizeof(pxSrcHw->xAddress));
+	memcpy(pxEthHdr->xDestinationAddress.ucBytes,
+           pxFlow->pxDestHa->xAddress.ucBytes, sizeof(pxFlow->pxDestHa->xAddress));
+
+    /* Call the attached network interface */
+
+#if 0
 	/* Get a Network Buffer with size total ethernet + PDU size*/
 
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxHeadLen + uxLength, 250 * 1000);
@@ -814,14 +754,6 @@ bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t unPort, struct du_t
 	//pxEthernetHeader =
 	//CAST_CONST_PTR_TO_CONST_TYPE_PTR(EthernetHeader_t,
 	//pxNetworkBuffer->pucEthernetBuffer);
-    pxEthernetHeader = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
-
-	pxEthernetHeader->usFrameType = RsHtoNS(ETH_P_RINA);
-
-	memcpy(pxEthernetHeader->xSourceAddress.ucBytes, pxSrcHw->xAddress.ucBytes, sizeof(pxSrcHw->xAddress));
-	memcpy(pxEthernetHeader->xDestinationAddress.ucBytes,
-           pxFlow->pxDestHa->xAddress.ucBytes,
-           sizeof(pxFlow->pxDestHa->xAddress));
 
 	/*Copy from the buffer PDU to the buffer Ethernet*/
 	pucArpPtr = (unsigned char *)(pxEthernetHeader + 1);
@@ -850,53 +782,55 @@ bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t unPort, struct du_t
 
 	LOGE(TAG_SHIM, "Data sent to the IPCP TAsk");
 
+#endif
+
 	return true;
 }
 
-void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf,
-                               NetworkBufferDescriptor_t *pxNetworkBuffer)
+void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf, netbuf_t *pxNbFrame)
 {
-    const EthernetHeader_t *pxEthernetHeader;
+    const EthernetHeader_t *pxEthHdr;
     eFrameProcessingResult_t eReturned = eFrameConsumed;
     uint16_t usFrameType;
     struct ipcpInstanceData_t *pxData;
 
-    RsAssert(pxNetworkBuffer != NULL);
+    RsAssert(pxNbFrame != NULL);
 
     ASSERT_INSTANCE_DATA(pxSelf->pxData, IPCP_INSTANCE_DATA_ETHERNET_SHIM);
 
-    /* Interpret the Ethernet frame. */
-    if (pxNetworkBuffer->xEthernetDataLength >= sizeof(EthernetHeader_t)) {
-
+    /* Carve out the ethernet header from the frame */
+    if (!xNetBufSplit(pxNbFrame, NB_ETH_HDR, sizeof(EthernetHeader_t))) {
+        LOGE(TAG_WIFI, "Failed to allocate netbuf for ethernet content, rejecting packet");
+        eReturned = eReleaseBuffer;
+    }
+    else {
         /* Map the buffer onto the Ethernet Header struct for easy access to the fields. */
-        pxEthernetHeader = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
-        usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
+        pxEthHdr = (EthernetHeader_t *)pvNetBufPtr(pxNbFrame);
+        usFrameType = RsNtoHS(pxEthHdr->usFrameType);
 
         /* Interpret the received Ethernet packet. */
-        switch (usFrameType)
-        {
+        switch (usFrameType) {
         case ETH_P_RINA_ARP:
-            eReturned = prvShimHandleARPFrame(pxSelf, pxNetworkBuffer);
+            eReturned = prvShimHandleARPFrame(pxSelf, pxNbFrame);
             break;
 
         case ETH_P_RINA:
-            eReturned = prvShimHandleRinaFrame(pxSelf, pxNetworkBuffer);
+            eReturned = prvShimHandleRinaFrame(pxSelf, pxNbFrame);
             break;
 
         default:
-            LOGE(TAG_WIFI, "Unhandled type of ethernet frame ()");
+            LOGE(TAG_WIFI, "Unhandled type of ethernet frame: %xu", usFrameType);
             eReturned = eReleaseBuffer;
             break;
         }
     }
 
     /* Perform any actions that resulted from processing the Ethernet frame. */
-    switch (eReturned)
-    {
+    switch (eReturned) {
     case eReturnEthernetFrame:
         /* The Ethernet frame will have been updated (maybe it was an
          * ARP request) and should be sent back to its source. */
-        prvReturnEthernetFrame(pxNetworkBuffer);
+        prvReturnEthernetFrame(pxNbFrame);
         break;
 
     case eFrameConsumed:
@@ -906,23 +840,11 @@ void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf,
         break;
 
     case eReleaseBuffer:
-        if (pxNetworkBuffer != NULL)
-            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-
+        if (pxNbFrame)
+            vNetBufFree(pxNbFrame);
         break;
+
     case eProcessBuffer:
-        /*ARP process buffer, call to ShimAllocateResponse*/
-
-        /* Finding an instance of eShimiFi and call the floww allocate Response using this instance*/
-
-        if (xShimFlowAllocateResponse(pxSelf, 1)) {
-            LOGE(TAG_IPCPMANAGER, "Error during the Allocation Request at Shim");
-            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-        }
-        else {
-            LOGI(TAG_IPCPMANAGER, "Buffer Processed");
-            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-        }
 
         break;
     default:
@@ -931,7 +853,7 @@ void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf,
          * NetworkBufferDescriptor_t structure containing the frame should
          * just be released back to the list of free buffers. */
         // ESP_LOGI(TAG_SHIM, "Default: Releasing Buffer");
-        vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+        
         break;
     }
 }
@@ -1006,7 +928,11 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
         goto err;
 
     /* FIXME: ARBITRARY NUMBERS HERE, PUT IN CONFIGURATION SOMEWHERE. */
-    if (!(pxInstData->pxDuPool = pxRsrcNewPool("Ethernet Shim DU pool", sizeof(struct du_t), 5, 1, 0)))
+    if (!(pxInstData->pxNbPool = xNetBufNewPool("Ethernet shim netbuf pool")))
+        goto err;
+
+    if (!(pxInstData->pxEthPool = pxRsrcNewPool("Ethernet shim header pool",
+                                                sizeof(EthernetHeader_t), 5, 1, 0)))
         goto err;
 
     if (pthread_mutex_init(&pxInstData->xLock, NULL))

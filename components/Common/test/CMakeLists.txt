@@ -5,8 +5,7 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
 else()
   add_executable(test_lists "${CMAKE_CURRENT_LIST_DIR}/test_lists.c")
   target_link_libraries(test_lists
-    RINA
-    NetworkInterface_MQ
+    Common
     Portability
     unity
   )
@@ -59,6 +58,13 @@ else()
     unity
   )
 
+  add_executable(test_netbuf "${CMAKE_CURRENT_LIST_DIR}/test_netbuf.c")
+  target_link_libraries(test_netbuf
+    Common
+    Portability
+    unity
+  )
+
   add_test(
     NAME "test_ids"
     COMMAND "./test_ids"
@@ -87,5 +93,10 @@ else()
   add_test(
     NAME test_simple_queue
     COMMAND "./test_simple_queue"
+  )
+
+  add_test(
+    NAME test_netbuf
+    COMMAND "./test_netbuf"
   )
 endif()

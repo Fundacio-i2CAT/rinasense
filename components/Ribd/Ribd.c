@@ -6,6 +6,7 @@
 #include "CdapMessage.h"
 #include "Ribd_msg.h"
 #include "SerDes.h"
+#include "common/netbuf.h"
 #include "common/rsrc.h"
 #include "portability/port.h"
 #include "common/rina_ids.h"
@@ -14,7 +15,6 @@
 #include "configRINA.h"
 #include "configSensor.h"
 
-#include "BufferManagement.h"
 #include "du.h"
 #include "CDAP.pb.h"
 #include "Enrollment_api.h"
@@ -23,7 +23,6 @@
 #include "IPCP_api.h"
 #include "IPCP_events.h"
 #include "IPCP_normal_api.h"
-#include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
@@ -344,14 +343,22 @@ bool_t xRibdInit(Ribd_t *pxRibd)
         return false;
     }
 
+    /* Pool for CDAP message content */
     if (!(pxRibd->xMsgPool = pxRsrcNewVarPool("RIB CDAP message pool", 0))) {
         LOGE(TAG_RIB, "Failed to allocate RIB CDAP message pool");
         return false;
     }
 
+    /* Pool for callbacks attached to CDAP messages */
     unSz = sizeof(ribCallbackOps_t);
     if (!(pxRibd->xCbPool = pxRsrcNewPool("RIB callbacks pool", unSz, 1, 1, 0))) {
         LOGE(TAG_RIB, "Failed to allocate RIB callbacks pool");
+        return false;
+    }
+
+    /* Pool for DU object containing CDAP data */
+    if (!(pxRibd->xDuPool = xNetBufNewPool("RIBD DU pool"))) {
+        LOGE(TAG_RIB, "Failed to allocate RIB DU pool");
         return false;
     }
 
@@ -381,35 +388,19 @@ bool_t xRibdAddAppConnectionEntry(Ribd_t *pxRibd, appConnection_t *pxAppConnecti
     return false;
 }
 
-bool_t xRibdSendCdapMsg(serObjectValue_t *pxSerVal, portId_t unPort)
+bool_t xRibdSendCdapMsg(Ribd_t *pxRibd, serObjectValue_t *pxSerVal, portId_t unPort)
 {
-    NetworkBufferDescriptor_t *pxNetBuf;
     RINAStackEvent_t xEv;
-    struct du_t *pxDu;
+    du_t *pxDu;
     size_t unHeaderSz, unSz;
 
     LOGI(TAG_RIB, "Sending the CDAP Message to the RMT");
 
-    /* Fill the DU with PDU type (layer management)*/
-    if (!(pxDu = pvRsMemAlloc(sizeof(struct du_t)))) {
-        LOGE(TAG_RIB, "Failed to allocate memory for managemen DU");
+    pxDu = pxNetBufNew(NULL, NB_RINA_DATA, pxSerVal->pvSerBuffer, pxSerVal->xSerLength, NETBUF_FREE_POOL);
+    if (!pxDu) {
+        LOGE(TAG_RIB, "Failed to allocate DU");
         return false;
     }
-
-    /* FIXME: HARDCODING TYPE OF HEADERS: THIS IS REALLY BAD! */
-    unHeaderSz = sizeof(pci_t) + sizeof(EthernetHeader_t);
-    unSz = unHeaderSz + pxSerVal->xSerLength;
-
-    if (!(pxNetBuf = pxGetNetworkBufferWithDescriptor(unSz, 1000))) {
-        LOGE(TAG_RIB, "Failed to obtain network buffer");
-        return false;
-    }
-
-    /* This is type of byte copy we should be able to avoid... */
-    memcpy(pxNetBuf->pucEthernetBuffer + unHeaderSz, pxSerVal->pvSerBuffer, pxSerVal->xSerLength);
-
-    pxDu->pxNetworkBuffer = pxNetBuf;
-    pxDu->pxNetworkBuffer->ulBoundPort = unPort;
 
     xEv.eEventType = eSendMgmtEvent;
     xEv.xData.UN = unPort;
@@ -466,7 +457,7 @@ bool_t xRibdSendResponse(Ribd_t *pxRibd,
     }
 
     /*Sent to the IPCP task */
-    xStatus = xRibdSendCdapMsg(pxSerVal, xN1Port);
+    xStatus = xRibdSendCdapMsg(pxRibd, pxSerVal, xN1Port);
 
     fail:
     vRibdCdapMsgFree(pxMsgCdap);
@@ -602,7 +593,7 @@ bool_t xRibdSendRequest(Ribd_t *pxRibd,
     }
 
     /*Sent to the IPCP task*/
-    xStatus = xRibdSendCdapMsg(pxSerVal, xN1flowPortId);
+    xStatus = xRibdSendCdapMsg(pxRibd, pxSerVal, xN1flowPortId);
 
     fail:
     vRsrcFree(pxMsgCdap);
@@ -611,34 +602,20 @@ bool_t xRibdSendRequest(Ribd_t *pxRibd,
     return xStatus;
 }
 
-/* OLD CODE HERE */
-
-
-bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
-{
-    const char *str = (const char *)(*arg);
-
-    if (!pb_encode_tag_for_field(stream, field))
-        return false;
-
-    return pb_encode_string(stream, (uint8_t *)str, strlen(str));
-}
-
-
-
-
 bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData,
                                       portId_t xN1flowPortId,
-                                      struct du_t *pxDu)
+                                      du_t *pxDu)
 {
     messageCdap_t *pxDecodeCdap;
 
     LOGI(TAG_RIB, "Processing a Management PDU");
 
+    RsAssert(eNetBufType(pxDu) == NB_RINA_DATA);
+
     /* Decode CDAP Message */
     pxDecodeCdap = pxSerDesMessageDecode(&pxData->xRibd.xMsgSD,
-                                         pxDu->pxNetworkBuffer->pucDataBuffer,
-                                         pxDu->pxNetworkBuffer->xDataLength);
+                                         pvNetBufPtr(pxDu),
+                                         unNetBufSize(pxDu));
     if (!pxDecodeCdap) {
         LOGE(TAG_RIB, "Failed to decode management PDU");
         return false;
@@ -655,6 +632,18 @@ bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData,
     return true;
 }
 
+/* OLD CODE HERE */
+
+
+bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
+{
+    const char *str = (const char *)(*arg);
+
+    if (!pb_encode_tag_for_field(stream, field))
+        return false;
+
+    return pb_encode_string(stream, (uint8_t *)str, strlen(str));
+}
 
 void vPrintAppConnection(appConnection_t *pxAppConnection)
 {

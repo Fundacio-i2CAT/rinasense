@@ -97,7 +97,7 @@ struct ipcpInstanceOps_t
     /* Takes the ownership of the passed SDU */
     bool_t (*duWrite)(struct ipcpInstance_t *pxIpcp,
                       portId_t xId,
-                      struct du_t *pxDu,
+                      du_t *pxDu,
                       bool_t uxBlocking);
 
     cepId_t (*connectionCreate)(struct ipcpInstance_t *pxIpcp,
@@ -150,17 +150,17 @@ struct ipcpInstanceOps_t
 
     bool_t (*duEnqueue)(struct ipcpInstance_t *pxIpcp,
                         portId_t xId,
-                        struct du_t *pxDu);
+                        du_t *pxDu);
 
     /* Takes the ownership of the passed sdu */
     bool_t (*mgmtDuWrite)(struct ipcpInstance_t *pxIpcp,
                           portId_t xPortId,
-                          struct du_t *pxDu);
+                          du_t *pxDu);
 
     /* Takes the ownership of the passed sdu */
     bool_t (*mgmtDuPost)(struct ipcpInstance_t *pxIpcp,
                          portId_t xPortId,
-                         struct du_t *xDu);
+                         du_t *xDu);
 
     bool_t (*pffAdd)(struct ipcpInstance_t *pxIpcp
                          /*struct mod_pff_entry	  * pxEntry*/);

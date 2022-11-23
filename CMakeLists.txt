@@ -44,8 +44,6 @@ else()
 
   # Declares which components needs to be built in the shared library.
   set(shared_library_components
-    ARP826
-    BufferManagement
     CdapProto
     Common
     configRINA

@@ -38,7 +38,8 @@ struct ipcpInstanceData_t
     uint8_t unInstanceDataType;
 #endif
 
-    /* FIXME: add missing needed attributes */
+    /* Pool */
+    rsrcPoolP_t xPciPool;
 
     /* IPCP instance interface. */
     struct ipcpInstance_t *pxIpcp;

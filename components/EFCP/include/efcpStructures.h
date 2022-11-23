@@ -39,7 +39,6 @@ typedef struct
     bool_t xFlowCtrl;
     bool_t rtx_ctrl;
 
-    policy_t *lost_control_pdu;
     policy_t *dtcp_ps;
     policy_t *rtt_estimator;
 } dtcpConfig_t;
@@ -114,33 +113,21 @@ typedef struct
 
 } dtcp_t;
 
-struct dtp_t
+typedef struct
 {
-    dtcp_t *pxDtcp;
     struct efcp_t *pxEfcp;
 
     /*
      * NOTE: The DTP State Vector is discarded only after and explicit
      *       release by the AP or by the system (if the AP crashes).
      */
-    dtpSv_t *pxDtpStateVector; /* The state-vector */
-    // spinlock_t          sv_lock; /* The state vector lock (DTP & DTCP) */
+    dtpSv_t xDtpStateVector; /* The state-vector */
 
-    dtpConfig_t *pxDtpCfg;
+    dtpConfig_t xDtpCfg;
+
     struct rmt_t *pxRmt;
-    // struct squeue *           seqq;
-    // struct ringq *            to_post;
-    // struct ringq *            to_send;
-    /*struct {
-      struct timer_list sender_inactivity;
-      struct timer_list receiver_inactivity;
-      struct timer_list a;
-      struct timer_list rate_window;
-      struct timer_list rtx;
-      struct timer_list rendezvous;
-      } timers;*/
 
-};
+} dtp_t;
 
 /* Retransmission Queue RTXQ used to buffer those PDUs
  * that may require retransmission */
@@ -180,14 +167,17 @@ struct efcpContainer_t
     // struct kfa *         kfa;
     // spinlock_t           lock;
     // wait_queue_head_t    del_wq;
+
+    /* Pointer to the PCI header pool */
+    rsrcPoolP_t xPciPool;
 };
 
 struct efcp_t
 {
     connection_t *pxConnection;
-    struct ipcpInstance_t *pxUserIpcp; // IPCP NORMAL
-    struct dtp_t *pxDtp;               // implement in EFCP Component
-    delim_t *pxDelim;           // delimiting module
+    struct ipcpInstance_t *pxUserIpcp;
+    dtp_t *pxDtp;
+    delim_t *pxDelim;
     struct efcpContainer_t *pxEfcpContainer;
     eEfcpState_t xState;
 };

@@ -62,6 +62,26 @@ typedef struct xPCI {
 }pci_t;
 #endif
 
+#define PCI_VERSION      ucVersion
+#define PCI_ADDR_DST     xDestination
+#define PCI_ADDR_SRC     xSource
+#define PCI_CONN_QOS_ID  connectionId_t.xQosId
+#define PCI_CONN_DST_ID  connectionId_t.xDestination
+#define PCI_CONN_SRC_ID  connectionId_t.xSource
+#define PCI_TYPE         xType
+#define PCI_FLAGS        xFlags
+#define PCI_PDU_LEN      xPduLen
+#define PCI_SEQ_NO       xSequenceNumber
+
+#define PCI_GET(du, field) \
+    (((pci_t *)(pvNetBufPtr(du)))->field)
+
+#define PCI_SET(du, field, val) \
+    RsAssert(eNetBufType(du) == NB_RINA_PCI); \
+    ((pci_t *)(pvNetBufPtr(du)))->field = val;
+
+/* FIXME: THIS IS FIXED SIZE AND THUS BAD. */
+
 typedef struct __attribute__((packed))
 {
 	uint8_t ucVersion; /**< Version  0 + 1 = 1 */

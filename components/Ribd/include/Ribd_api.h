@@ -22,7 +22,7 @@ bool_t xRibdDisconnectToIpcp(portId_t xN1flowPortId);
 
 bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData,
                                       portId_t xN1flowPortId,
-                                      struct du_t *pxDu);
+                                      du_t *pxDu);
 
 bool_t xRibdSendRequest(Ribd_t *pxRibd,
                         string_t pcObjClass,

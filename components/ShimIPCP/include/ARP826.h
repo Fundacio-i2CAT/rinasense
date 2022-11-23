@@ -8,14 +8,15 @@
 #ifndef ARP_H_INCLUDED
 #define ARP_H_INCLUDED
 
+#include "portability/port.h"
+
 #include "common/mac.h"
 #include "common/rina_gpha.h"
-#include "portability/port.h"
+#include "common/netbuf.h"
 
 #include "ARP826_defs.h"
 #include "ARP826_cache_defs.h"
 #include "IPCP_frames.h"
-#include "rina_buffers.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,7 +51,7 @@ bool_t vARPSendRequest(ARP_t *pxArp, const gpa_t *pxTpa, const gpa_t *pxSpa, con
 eARPLookupResult_t eARPGetCacheEntry(gpa_t *pulIPAddress,
 									 gha_t *const pxMACAddress);
 
-eFrameProcessingResult_t eARPProcessPacket(ARP_t *pARp, NetworkBufferDescriptor_t *const pxARPEthernetPacket);
+eFrameProcessingResult_t eARPProcessPacket(ARP_t *pxARP, netbuf_t *pxNbEth);
 
 /*************** RINA ***************************/
 // UpdateMACAddress

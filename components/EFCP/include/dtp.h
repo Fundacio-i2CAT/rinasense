@@ -12,13 +12,13 @@
 extern "C" {
 #endif
 
-bool_t xDtpWrite(struct dtp_t * pxDtpInstance, struct du_t * pxDu);
-bool_t xDtpReceive(struct dtp_t * pxInstance, struct du_t * pxDu);
-bool_t xDtpDestroy(struct dtp_t * pxInstance);
+bool_t xDtpWrite(dtp_t *pxDtpInstance, du_t *pxDu);
+bool_t xDtpReceive(dtp_t *pxInstance, du_t *pxDu);
+bool_t xDtpDestroy(dtp_t *pxInstance);
 
-struct dtp_t * pxDtpCreate(struct efcp_t *       pxEfcp,
-                           struct rmt_t *        pxRmt,
-                           dtpConfig_t * pxDtpCfg);
+dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
+                   struct rmt_t *pxRmt,
+                   dtpConfig_t * pxDtpCfg);
 
 #ifdef __cplusplus
 }

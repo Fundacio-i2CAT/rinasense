@@ -14,7 +14,6 @@
 /* RINA Components includes. */
 //#include "ARP826.h"
 #include "ShimIPCP.h"
-#include "BufferManagement.h"
 #include "NetworkInterface.h"
 #include "configRINA.h"
 #include "configSensor.h"

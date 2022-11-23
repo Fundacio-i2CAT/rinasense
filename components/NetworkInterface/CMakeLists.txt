@@ -21,7 +21,7 @@ else()
       "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
 
       REQUIRES
-      Common configRINA BufferManagement ARP826 IPCP configSensor Rmt ShimIPCP
+      Common configRINA IPCP configSensor Rmt ShimIPCP
       EFCP Portability RINA_API)
 
     rs_component(NetworkInterface_MQ
@@ -33,7 +33,7 @@ else()
       "${CMAKE_SOURCE_DIR}/components/NetworkInterface/mq/include"
 
       REQUIRES
-      Common configRINA BufferManagement ARP826 IPCP configSensor Rmt
+      Common configRINA IPCP configSensor Rmt
       ShimIPCP EFCP Portability RINA_API)
 
   elseif("${TARGET_TYPE}" STREQUAL "arduino_esp32")
@@ -45,7 +45,7 @@ else()
       "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
 
       REQUIRES
-      Common configRINA BufferManagement ARP826 IPCP configSensor Rmt
+      Common configRINA IPCP configSensor Rmt
       ShimIPCP EFCP Portability RINA_API)
   endif()
 endif()

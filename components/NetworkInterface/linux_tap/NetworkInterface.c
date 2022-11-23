@@ -1,4 +1,5 @@
 #include <sys/ioctl.h>
+#include <sys/uio.h>
 #include <linux/netlink.h>
 #include <linux/if_tun.h>
 #include <linux/rtnetlink.h>
@@ -14,19 +15,22 @@
 #include <string.h>
 #include <signal.h>
 
+#include "linux_rsmem.h"
+#include "portability/port.h"
+#include "common/netbuf.h"
 #include "common/mac.h"
+#include "common/rsrc.h"
+#include "common/rina_gpha.h"
+
 #include "configSensor.h"
 #include "configRINA.h"
-#include "linux_rsdefs.h"
-#include "portability/port.h"
-#include "common/rina_gpha.h"
 
 #include "ARP826_defs.h"
 #include "IPCP_api.h"
 #include "IPCP_events.h"
-#include "BufferManagement.h"
 #include "NetworkInterface.h"
 #include "ShimIPCP.h"
+#include "ShimIPCP_instance.h"
 #include "rina_common_port.h"
 
 struct ReadThreadParams {
@@ -229,9 +233,11 @@ bool_t prvLinuxTapSetDown(string_t sTapName)
 void *prvLinuxTapReadThread(void *pvParams)
 {
     struct ReadThreadParams *pxParams;
-    uint8_t buffer[TAP_MTU + sizeof(EthernetHeader_t)];
     struct pollfd pfds[2];
+    uint8_t buffer[TAP_MTU + sizeof(EthernetHeader_t)];
     int nPoll;
+    size_t sz;
+    rsrcPoolP_t xPool;
 
     pxParams = (struct ReadThreadParams *)pvParams;
 
@@ -451,6 +457,25 @@ static inline void prvGenRandomEth(uint8_t *pAddr)
     pAddr[0] |= 0x02;	/* set local assignment bit (IEEE802) */
 }
 
+struct iovec *prvNetBufToIovec(netbuf_t *pxNb) {
+    size_t i = 0, n;
+    struct iovec *iovecs;
+    netbuf_t *pxNbIter;
+
+    n = unNetBufCount(pxNb);
+
+    if (!(iovecs = pvRsMemCAlloc(n, sizeof(struct iovec))))
+        return NULL;
+
+    FOREACH_NETBUF(pxNb, pxNbIter) {
+        iovecs[i].iov_base = pvNetBufPtr(pxNbIter);
+        iovecs[i].iov_len = unNetBufSize(pxNbIter);
+        i++;
+    }
+
+    return iovecs;
+}
+
 /* Public interface */
 
 bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev)
@@ -535,25 +560,28 @@ bool_t xNetworkInterfaceDisconnect(void)
     return true;
 }
 
-bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
-                               bool_t xReleaseAfterSend)
+bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 {
     /* Write the packet on the device. */
     ssize_t nWriteSz;
-    size_t unWriteSzLeft = pxNetworkBuffer->xDataLength;
+    size_t unWriteSzLeft = unNetBufTotalSize(pxNbFrame);
     size_t unLastWriteSz = 0;
+    struct iovec *iovecs;
 
     if (!prvLinuxTapCheckFlags(LINUX_TAP_DEVICE, IFF_UP)) {
         LOGE(TAG_WIFI, "Writing %zu bytes on interface %s failed, interface is DOWN",
-             pxNetworkBuffer->xDataLength, LINUX_TAP_DEVICE);
+             unWriteSzLeft, LINUX_TAP_DEVICE);
         return false;
     }
 
+    iovecs = prvNetBufToIovec(pxNbFrame);
+
     do {
-        nWriteSz = write(nTapFD, pxNetworkBuffer->pucEthernetBuffer + unLastWriteSz, unWriteSzLeft);
+        nWriteSz = writev(nTapFD, iovecs, unNetBufCount(pxNbFrame));
 
         if (nWriteSz < 0) {
             LOGD(TAG_WIFI, "Write error (errno: %d)", errno);
+            vRsMemFree(iovecs);
             return false;
         }
 
@@ -561,10 +589,10 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
         unLastWriteSz = nWriteSz;
     } while (unWriteSzLeft > 0);
 
-    LOGD(TAG_WIFI, "Wrote %zu bytes to the network", pxNetworkBuffer->xDataLength);
+    LOGD(TAG_WIFI, "Wrote %zu bytes to the network", unNetBufTotalSize(pxNbFrame));
 
-    if (xReleaseAfterSend)
-        vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+    vRsMemFree(iovecs);
+    vNetBufFreeAll(pxNbFrame);
 
     return true;
 }
@@ -573,59 +601,61 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
  * frame has arrived. */
 bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
-	NetworkBufferDescriptor_t *pxNetworkBuffer;
     EthernetHeader_t *pxEthernetHeader;
-	RINAStackEvent_t xRxEvent = {
-        .eEventType = eNetworkRxEvent,
-        .xData.PV = NULL
-    };
+    size_t unSzFrData;
+    buffer_t pvFrame;
+    netbuf_t *pxNbFrame;
 
+    /* Shortcut the frame processing if we do not have to deal with
+     * the packet type. */
 	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
 		return true;
 
-    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, 250 * 1000);
-
-	if (pxNetworkBuffer != NULL) {
-		/* Set the packet size, in case a larger buffer was returned. */
-		pxNetworkBuffer->xEthernetDataLength = len;
-
-        /* We need to look into the frame data. */
-        pxEthernetHeader = (EthernetHeader_t *)buffer;
-
-        /* If it's a broadcasted packet, replace the target address in
-         * the frame by ours. The rest of the code should not have to
-         * deal with this. */
-        if (xIsBroadcastMac(&pxEthernetHeader->xDestinationAddress)) {
-            LOGD(TAG_WIFI, "Handling broadcasted ethernet packet.");
-            memcpy(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t));
-
-        } else {
-            /* Make sure this is actually meant from us. */
-            if (memcmp(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t)) != 0) {
-#ifndef NDEBUG
-                {
-                    stringbuf_t ucMac[MAC2STR_MIN_BUFSZ];
-                    mac2str(&pxEthernetHeader->xDestinationAddress, ucMac, MAC2STR_MIN_BUFSZ);
-                    LOGW(TAG_WIFI, "Dropping packet with destination %s, not for us", ucMac);
-                }
-#else
-                LOGW(TAG_WIFI, "Dropping ethernet packet not destined for us")
-#endif
-                return false;
-            }
-        }
-
-		/* Copy the packet data. */
-		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
-        vShimHandleEthernetPacket(pxSelf, pxNetworkBuffer);
-
-		return true;
-	}
-	else {
-        LOGE(TAG_WIFI, "Failed to get buffer descriptor");
-        vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+    /* Copy the frame in a buffer of the right size instead of
+     * manipulating a whole MTU. */
+    if (!(pvFrame = pvRsMemAlloc(len))) {
+        LOGE(TAG_WIFI, "Failed to allocate memory for frame content");
         return false;
     }
+
+    memcpy(pvFrame, buffer, len);
+
+    if (!(pxNbFrame = pxNetBufNew(pxSelf->pxData->pxNbPool, NB_ETH_HDR, pvFrame, len, NETBUF_FREE_NORMAL))) {
+        LOGE(TAG_WIFI, "Failed to allocate netbuf for incoming message");
+        vRsMemFree(pvFrame);
+        return false;
+    }
+
+    /* We need to look into the frame data. */
+    pxEthernetHeader = (EthernetHeader_t *)pvNetBufPtr(pxNbFrame);;
+
+    /* If it's a broadcasted packet, replace the target address in
+     * the frame by ours. The rest of the code should not have to
+     * deal with this. */
+    if (xIsBroadcastMac(&pxEthernetHeader->xDestinationAddress)) {
+        LOGD(TAG_WIFI, "Handling broadcasted ethernet packet.");
+        memcpy(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t));
+
+    } else {
+        /* Make sure this is actually meant from us. */
+        if (memcmp(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t)) != 0) {
+#ifndef NDEBUG
+            {
+                stringbuf_t ucMac[MAC2STR_MIN_BUFSZ];
+                mac2str(&pxEthernetHeader->xDestinationAddress, ucMac, MAC2STR_MIN_BUFSZ);
+                LOGW(TAG_WIFI, "Dropping packet with destination %s, not for us", ucMac);
+            }
+#else
+            LOGW(TAG_WIFI, "Dropping ethernet packet not destined for us")
+#endif
+                return false;
+        }
+    }
+
+    /* Copy the packet data. */
+    vShimHandleEthernetPacket(pxSelf, pxNbFrame);
+
+    return true;
 }
 
 void vNetworkNotifyIFDown()

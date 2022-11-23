@@ -1,19 +1,21 @@
 #include <stdio.h>
 
-#include "IPCP_normal_api.h"
-#include "IpcManager.h"
-#include "common/list.h"
-#include "efcpStructures.h"
+#include "common/netbuf.h"
 #include "portability/port.h"
 #include "common/rina_ids.h"
+#include "common/list.h"
 
+#include "configRINA.h"
+
+#include "IPCP_normal_api.h"
+#include "IpcManager.h"
+#include "efcpStructures.h"
 #include "rmt.h"
 #include "du.h"
 #include "pci.h"
 #include "IPCP.h"
 #include "IPCP_instance.h"
 #include "EFCP.h"
-#include "configRINA.h"
 
 rmtN1Port_t *prvRmtPortFind(struct rmt_t *pxRmt, portId_t unPort)
 {
@@ -82,7 +84,7 @@ void vRmtFini(struct rmt_t *pxRmt)
 // bool_t xRmtReceive(struct ipcpInstance_t *pxRmt, struct du_t *pxDu, portId_t xFrom);
 
 /* @brief Called when a SDU arrived into the RMT from the EFCP Container*/
-static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt, rmtN1Port_t *pxN1Port, struct du_t *pxDu);
+static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt, rmtN1Port_t *pxN1Port, du_t *pxDu);
 
 /* Create an N-1 Port in the RMT Component*/
 static rmtN1Port_t *pxRmtN1PortCreate(portId_t unPort, struct ipcpInstance_t *pxN1Ipcp)
@@ -218,7 +220,7 @@ bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 	return false;
 }
 
-static bool_t xRmtProcessMgmtPdu(portId_t unPort, struct du_t *pxDu)
+static bool_t xRmtProcessMgmtPdu(portId_t unPort, du_t *pxDu)
 {
     struct ipcpInstance_t *pxNormalInstance;
     bool_t xStatus;
@@ -233,7 +235,7 @@ static bool_t xRmtProcessMgmtPdu(portId_t unPort, struct du_t *pxDu)
     return true;
 }
 
-static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_t *pxDu)
+static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, du_t *pxDu)
 {
 	address_t xDstAddrTmp;
 	cepId_t xCepTmp;
@@ -243,21 +245,21 @@ static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_
     RsAssert(is_port_id_ok(xPortId));
     RsAssert(pxDu);
 
-	xDstAddrTmp = pxDu->pxPci->xDestination;
+    xDstAddrTmp = PCI_GET(pxDu, xDestination);
 
 	if (!is_address_ok(xDstAddrTmp)) {
 		LOGE(TAG_RMT, "PDU has invalid destination address");
 		return false;
 	}
 
-	xPduTypeTmp = pxDu->pxPci->xType;
+    xPduTypeTmp = PCI_GET(pxDu, PCI_TYPE);
 
 	if (xPduTypeTmp == PDU_TYPE_MGMT) {
 		LOGE(TAG_RMT, "Management PDU took the wrong code path");
 		return false;
 	}
 
-	xCepTmp = pxDu->pxPci->connectionId_t.xDestination;
+    xCepTmp = PCI_GET(pxDu, PCI_CONN_DST_ID);
 
 	if (!is_cep_id_ok(xCepTmp))	{
 		LOGE(TAG_RMT, "Invalid CEP-id in PDU");
@@ -274,7 +276,7 @@ static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_
 
 bool_t xRmtReceive(struct rmt_t *pxRmt,
                    struct efcpContainer_t *pxEfcp,
-                   struct du_t *pxDu,
+                   du_t *pxDu,
                    portId_t unPortId)
 {
 	pduType_t xPduType;
@@ -288,8 +290,8 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
     RsAssert(pxRmt);
     RsAssert(is_port_id_ok(unPortId));
 
-	uxBytes = pxDu->pxNetworkBuffer->xRinaDataLength;
-	pxDu->pxCfg = pxEfcp->pxConfig;
+	uxBytes = unNetBufTotalSize(pxDu);
+	/*pxDu->pxCfg = pxEfcp->pxConfig;*/
 
     if (!(pxN1Port = prvRmtPortFind(pxRmt, unPortId))) {
 		LOGE(TAG_RMT, "Could not get a N-1 port for the received PDU");
@@ -320,9 +322,9 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 
 	LOGI(TAG_RMT, "DU Decap sucessfuly");
 
-	xPduType = pxDu->pxPci->xType;
-	xDstAddr = pxDu->pxPci->xDestination;
-	xQosId = pxDu->pxPci->connectionId_t.xQosId;
+    xPduType = PCI_GET(pxDu, PCI_TYPE);
+    xDstAddr = PCI_GET(pxDu, PCI_ADDR_DST);
+    xQosId = PCI_GET(pxDu, PCI_CONN_QOS_ID);
 
 	if (!pdu_type_is_ok(xPduType) ||
 		!is_address_ok(xDstAddr) ||
@@ -381,7 +383,7 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 
 static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 								rmtN1Port_t *pxN1Port,
-								struct du_t *pxDu)
+								du_t *pxDu)
 {
 	bool_t xStatus = true;
 
@@ -408,7 +410,7 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 	return true;
 }
 
-bool_t xRmtSendPortId(struct rmt_t *pxRmt, portId_t unPort, struct du_t *pxDu)
+bool_t xRmtSendPortId(struct rmt_t *pxRmt, portId_t unPort, du_t *pxDu)
 {
 	rmtN1Port_t *pxN1Port;
 	int cases;
@@ -490,7 +492,7 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmt, portId_t unPort, struct du_t *pxDu)
 	return ret;
 }
 
-bool_t xRmtSend(struct rmt_t *pxRmt, struct du_t *pxDu)
+bool_t xRmtSend(struct rmt_t *pxRmt, du_t *pxDu)
 {
     RsAssert(pxRmt);
     RsAssert(pxDu);

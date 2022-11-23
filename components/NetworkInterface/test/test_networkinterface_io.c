@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "BufferManagement.h"
 #include "NetworkInterface.h"
 #include "NetworkInterface_mq.h"
 #include "portability/port.h"

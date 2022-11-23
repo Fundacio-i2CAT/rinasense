@@ -57,7 +57,7 @@ typedef struct xRMT_N1_PORT
     eFlowState_t eState;
 
     /*Data Unit Pending to send*/
-    struct du_t *pxPendingDu;
+    du_t *pxPendingDu;
 
     /*N1 Port Statistics */
     n1PortStats_t xStats;
@@ -109,7 +109,7 @@ bool_t xRmtInit(struct rmt_t *pxRmt);
 
 void vRmtFini(struct rmt_t *pxRmt);
 
-bool_t xRmtSend(struct rmt_t *pxRmtInstance, struct du_t *pxDu);
+bool_t xRmtSend(struct rmt_t *pxRmtInstance, du_t *pxDu);
 
 bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance,
                       portId_t xId,
@@ -117,11 +117,11 @@ bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance,
 
 bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
                       portId_t xPortId,
-                      struct du_t *pxDu);
+                      du_t *pxDu);
 
 bool_t xRmtReceive(struct rmt_t *pxRmt,
                    struct efcpContainer_t *pxEfcp,
-                   struct du_t *pxDu,
+                   du_t *pxDu,
                    portId_t xFrom);
 
 bool_t xRmtAddressAdd(struct rmt_t *pxRmt,

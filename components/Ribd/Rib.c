@@ -4,7 +4,6 @@
 #include "configRINA.h"
 
 #include "rina_common_port.h"
-#include "BufferManagement.h"
 #include "CDAP.pb.h"
 #include "pb_encode.h"
 #include "pb_decode.h"

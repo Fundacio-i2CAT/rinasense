@@ -1,5 +1,5 @@
 idf_component_register(
-  SRCS "ShimIPCP.c"
+  SRCS "ShimIPCP.c" "ARP826.c" "cache.c" "eth.c"
   INCLUDE_DIRS "include"
-  REQUIRES BufferManagement ARP826 NetworkInterface IPCP configRINA configSensor Rmt)
+  REQUIRES NetworkInterface IPCP configRINA configSensor Rmt)
 

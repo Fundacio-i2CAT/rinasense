@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "du.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -11,24 +13,29 @@ typedef enum RINA_EVENTS
 {
     eNoEvent = -1,
 
-    /* 0: The network interface has been lost and/or needs [re]connecting. */
+    /* The network interface has been lost and/or needs [re]connecting. */
     eNetworkDownEvent,
 
-    /* 1: The network interface has queued a received Ethernet frame.
-     * Data: Port ID
-     * Data2: DU
-     */
-    eNetworkRxEvent,
-
-    /* 2: Let the Shim-task send a network packet. */
-    eNetworkTxEvent,
-
-    /* 3: Shim Enrolled: network Interface Init*/
+    /* Shim Enrolled: network Interface Init*/
     eShimEnrolledEvent,
 
-    /* 4: The ARP timer expired. */
+    /* The ARP timer expired. */
     eARPTimerEvent,
-    eStackTxEvent,              /* 5: The software stack IPCP has queued a packet to transmit. */
+
+    /* Request to transmit a RINA DU down the stack
+     * Args:
+     * 1: Port ID
+     * 2: DU
+     */
+    eRinaTxEvent,
+
+    /* Request to transmit a RINA DU up the stack
+     * Args:
+     * 1: Port ID
+     * 2: DU
+     */
+    eRinaRxEvent,
+
     eFATimerEvent,              /* 6: See if any IPCP socket needs attention. */
     eFlowBindEvent,             /* 7: Client API request to bind a flow. */
     eFlowDeallocateEvent,       /* 8: A flow must be deallocated */
@@ -49,7 +56,7 @@ typedef union xRINA_Event_Data
     char     C;
     uint8_t  B;
 
-    struct du_t *DU;
+    du_t *DU;
 
 } RINAEventData_u;
 

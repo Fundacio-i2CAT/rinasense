@@ -5,11 +5,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "SerDesFlow.h"
+#include "portability/port.h"
 #include "common/rina_ids.h"
 #include "common/rina_name.h"
 #include "common/rsrc.h"
-#include "portability/port.h"
 
 #include "configSensor.h"
 #include "configRINA.h"
@@ -386,13 +385,11 @@ void vFlowAllocatorDeallocate(portId_t xAppPortId)
     // Find Flow and move to deallocate status.
 }
 
-bool_t xFlowAllocatorDuPost(flowAllocator_t *pxFA, portId_t xAppPortId, struct du_t *pxDu)
+bool_t xFlowAllocatorDuPost(flowAllocator_t *pxFA, portId_t xAppPortId, du_t *pxDu)
 {
     flowAllocatorInstance_t *pxFlowAllocatorInstance;
-    NetworkBufferDescriptor_t *pxNetworkBuffer;
 
     RsAssert(pxFA);
-    RsAssert(xDuIsOk(pxDu));
     RsAssert(is_port_id_ok(xAppPortId));
 
     pxFlowAllocatorInstance = pxFAFindInstance(pxFA, xAppPortId);
@@ -403,8 +400,6 @@ bool_t xFlowAllocatorDuPost(flowAllocator_t *pxFA, portId_t xAppPortId, struct d
     }
 
     LOGD(TAG_FA, "Posting DU to port-id %d ", xAppPortId);
-
-    pxNetworkBuffer = pxDu->pxNetworkBuffer;
 
     if (pxFlowAllocatorInstance->eFaiState != eFAI_ALLOCATED) {
         LOGE(TAG_FA, "Flow with port-id %d is not allocated", xAppPortId);
@@ -421,8 +416,8 @@ bool_t xFlowAllocatorDuPost(flowAllocator_t *pxFA, portId_t xAppPortId, struct d
 
     pthread_mutex_lock(&pxFA->xMux);
     {
-        vRsListInitItem(&(pxNetworkBuffer->xBufferListItem), (void *)pxNetworkBuffer);
-        vRsListInsert(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxNetworkBuffer->xBufferListItem));
+        vRsListInitItem(&(pxDu->xListItem), (void *)pxDu);
+        vRsListInsert(&(pxFlowAllocatorInstance->pxFlowAllocatorHandle->xListWaitingPackets), &(pxDu->xListItem));
     }
     pthread_mutex_unlock(&pxFA->xMux);
 
