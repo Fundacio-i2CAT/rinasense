@@ -14,6 +14,7 @@
 /* RINA Components includes. */
 //#include "ARP826.h"
 #include "ShimIPCP.h"
+#include "ShimIPCP_instance.h"
 #include "NetworkInterface.h"
 #include "configRINA.h"
 #include "configSensor.h"
@@ -59,6 +60,13 @@ static int s_retry_num = 0;
 BaseType_t event_loop_inited = pdFALSE;
 
 esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb);
+
+/* TEMPORARY: blind pointer to the IPCP instance data so we can pass
+ * it to the shim when we receive packets. */
+struct ipcpInstance_t *pxSelf;
+
+/* MAC address */
+const MACAddress_t *pxMacAddr;
 
 // NetworkBufferDescriptor_t * pxNetworkBuffer;
 
@@ -113,6 +121,8 @@ BaseType_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t 
 {
 	LOGI(TAG_WIFI, "Initializing the network interface");
 	uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES];
+
+    pxSelf = pxS;
 
 	esp_efuse_mac_get_default(ucMACAddress);
 
@@ -245,16 +255,11 @@ BaseType_t xNetworkInterfaceConnect(void)
 	}
 }
 
-BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
-								   BaseType_t xReleaseAfterSend)
+BaseType_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 {
-	if ((pxNetworkBuffer == NULL) || (pxNetworkBuffer->pucEthernetBuffer == NULL) || (pxNetworkBuffer->xDataLength == 0))
-	{
-		LOGE(TAG_WIFI, "Invalid parameters");
-		return pdFALSE;
-	}
-
 	esp_err_t ret;
+    void *pvBuf;
+    size_t unTotalSz;
 
 	if (xInterfaceState == INTERFACE_DOWN)
 	{
@@ -263,12 +268,24 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuf
 	}
 	else
 	{
+        unTotalSz = unNetBufTotalSize(pxNbFrame);
 
-		ret = esp_wifi_internal_tx(ESP_IF_WIFI_STA, pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength);
+        if (!(pvBuf = pvRsMemAlloc(unTotalSz))) {
+            LOGE(TAG_WIFI, "Failed to allocate memory for write buffer");
+            return false;
+        }
+
+        if (unNetBufRead(pxNbFrame, pvBuf, 0, unTotalSz) != unTotalSz) {
+            LOGE(TAG_WIFI, "Failed to transfer netbufs content to write buffer");
+            vRsMemFree(pvBuf);
+        }
+
+
+		ret = esp_wifi_internal_tx(ESP_IF_WIFI_STA, pvBuf, unTotalSz);
 
 		if (ret != ESP_OK)
 		{
-			LOGE(TAG_WIFI, "Failed to tx buffer %p, len %d, err %d", pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength, ret);
+			LOGE(TAG_WIFI, "Failed to tx buffer %p, len %u, err %d", pvBuf, unTotalSz, ret);
 		}
 		else
 		{
@@ -276,11 +293,7 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuf
 		}
 	}
 
-	if (xReleaseAfterSend == pdTRUE)
-	{
-		// ESP_LOGE(TAG_WIFI, "Releasing Buffer interface WiFi after send");
-		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-	}
+    vNetBufFreeAll(pxNbFrame);
 
 	return ret == ESP_OK ? pdTRUE : pdFALSE;
 }
@@ -297,54 +310,65 @@ BaseType_t xNetworkInterfaceDisconnect(void)
 	return ret == ESP_OK ? pdTRUE : pdFALSE;
 }
 
+/* Called by the tap read thread to advertises that an ethernet
+ * frame has arrived. */
 esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
-	NetworkBufferDescriptor_t *pxNetworkBuffer;
-	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(250);
-	RINAStackEvent_t xRxEvent = {
-        .eEventType = eNetworkRxEvent,
-        .xData.PV = NULL
-    };
+    EthernetHeader_t *pxEthernetHeader;
+    size_t unSzFrData;
+    buffer_t pvFrame;
+    netbuf_t *pxNbFrame;
 
+    /* Shortcut the frame processing if we do not have to deal with
+     * the packet type. */
 	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
-	{
+		return true;
 
-		esp_wifi_internal_free_rx_buffer(eb);
-		return ESP_OK;
-	}
+    /* Copy the frame in a buffer of the right size instead of
+     * manipulating a whole MTU. */
+    if (!(pvFrame = pvRsMemAlloc(len))) {
+        LOGE(TAG_WIFI, "Failed to allocate memory for frame content");
+        return false;
+    }
 
-    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, 250 * 1000);
-	// ESP_LOGE(TAG_WIFI,"xNetworkInterfaceInput Taking buffer to copy wifidriver buffer");
+    memcpy(pvFrame, buffer, len);
 
-	if (pxNetworkBuffer != NULL)
-	{
+    if (!(pxNbFrame = pxNetBufNew(pxSelf->pxData->pxNbPool, NB_ETH_HDR, pvFrame, len, NETBUF_FREE_NORMAL))) {
+        LOGE(TAG_WIFI, "Failed to allocate netbuf for incoming message");
+        vRsMemFree(pvFrame);
+        return false;
+    }
 
-		/* Set the packet size, in case a larger buffer was returned. */
-		pxNetworkBuffer->xEthernetDataLength = len;
+    /* We need to look into the frame data. */
+    pxEthernetHeader = (EthernetHeader_t *)pvNetBufPtr(pxNbFrame);;
 
-		/* Copy the packet data. */
-		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
-		xRxEvent.xData.PV = (void *)pxNetworkBuffer;
+    /* If it's a broadcasted packet, replace the target address in
+     * the frame by ours. The rest of the code should not have to
+     * deal with this. */
+    if (xIsBroadcastMac(&pxEthernetHeader->xDestinationAddress)) {
+        LOGD(TAG_WIFI, "Handling broadcasted ethernet packet.");
+        memcpy(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t));
 
-		// ESP_LOGE(TAG_RINA, "pucEthernetBuffer and len: %p, %d", pxNetworkBuffer->pucEthernetBuffer, len);
+    } else {
+        /* Make sure this is actually meant from us. */
+        if (memcmp(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t)) != 0) {
+#ifndef NDEBUG
+            {
+                stringbuf_t ucMac[MAC2STR_MIN_BUFSZ];
+                mac2str(&pxEthernetHeader->xDestinationAddress, ucMac, MAC2STR_MIN_BUFSZ);
+                LOGW(TAG_WIFI, "Dropping packet with destination %s, not for us", ucMac);
+            }
+#else
+            LOGW(TAG_WIFI, "Dropping ethernet packet not destined for us")
+#endif
+                return false;
+        }
+    }
 
-		if (xSendEventStructToIPCPTask(&xRxEvent, xDescriptorWaitTime) == pdFAIL)
-		{
-			LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
-			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-			return ESP_FAIL;
-		}
+    /* Copy the packet data. */
+    vShimHandleEthernetPacket(pxSelf, pxNbFrame);
 
-		esp_wifi_internal_free_rx_buffer(eb);
-		return ESP_OK;
-	}
-
-	else
-	{
-		LOGE(TAG_WIFI, "Failed to get buffer descriptor");
-		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-		return ESP_FAIL;
-	}
+    return true;
 }
 
 void vNetworkNotifyIFDown()

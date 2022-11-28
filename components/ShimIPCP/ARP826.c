@@ -4,7 +4,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "linux_rsnet.h"
 #include "portability/port.h"
 #include "common/rsrc.h"
 #include "common/list.h"
