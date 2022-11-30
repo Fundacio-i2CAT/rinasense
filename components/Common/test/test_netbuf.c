@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "common/rsrc.h"
+#include "linux_rsmem.h"
 #include "portability/port.h"
 #include "common/netbuf.h"
 
@@ -86,7 +87,7 @@ RS_TEST_CASE(NetBufSplit, "[netbuf]")
 
     TEST_ASSERT(nb1->xFreed);
     TEST_ASSERT(nb1->pxBuf == NULL);
-    TEST_ASSERT(nb1->pxBufStart == buf);
+    TEST_ASSERT(nb1->pxBufStart == NULL);
     TEST_ASSERT(!nb2->xFreed);
     TEST_ASSERT(nb2->unSz == sz2);
     TEST_ASSERT(unNetBufCount(nb2) == 1);
@@ -94,7 +95,31 @@ RS_TEST_CASE(NetBufSplit, "[netbuf]")
 
     vNetBufFree(nb2);
 
+    TEST_ASSERT(xWasFreeCalled);
+
     RS_TEST_CASE_END(test_netbuf);
+}
+
+RS_TEST_CASE(NetBufSplit2, "[netbuf]")
+{
+    rsrcPoolP_t xPool;
+    uint8_t *buf;
+    netbuf_t *nb1, *nb2;
+    size_t sz1 = 20, sz2 = 10;
+
+    RS_TEST_CASE_BEGIN(test_netbuf);
+
+    TEST_ASSERT((xPool = xNetBufNewPool("NetBufSplit")));
+    TEST_ASSERT((buf = pvRsMemAlloc(sz1)));
+
+    TEST_ASSERT((nb1 = pxNetBufNew(xPool, NB_UNKNOWN, buf, sz1, &vTestFreeNormal)));
+    TEST_ASSERT(nb1->unSz == 20);
+    TEST_ASSERT((xNetBufSplit(nb1, NB_UNKNOWN, sz2)));
+    nb2 = pxNetBufNext(nb1);
+
+    vNetBufFreeAll(nb2);
+
+    TEST_ASSERT(xWasFreeCalled);
 }
 
 RS_TEST_CASE(NetBufBuildAppend, "[netbuf]")
@@ -131,6 +156,31 @@ RS_TEST_CASE(NetBufBuildAppend, "[netbuf]")
     TEST_ASSERT(unNetBufTotalSize(nb2) == sz2);
 
     vNetBufFree(nb2);
+
+    TEST_ASSERT(xWasFreeCalled);
+
+    RS_TEST_CASE_END(test_netbuf);
+}
+
+RS_TEST_CASE(NetBufBuildAppend2, "[netbuf]")
+{
+    rsrcPoolP_t xPool;
+    uint8_t *buf1, *buf2;
+    size_t sz1 = 11, sz2 = 9;
+    netbuf_t *nb1, *nb2;
+
+    RS_TEST_CASE_BEGIN(test_netbuf);
+
+    TEST_ASSERT((xPool = xNetBufNewPool("NetBufBuildAppend2")));
+    TEST_ASSERT((buf1 = pvRsMemAlloc(sz1)));
+    TEST_ASSERT((buf2 = pvRsMemAlloc(sz2)));
+
+    TEST_ASSERT((nb1 = pxNetBufNew(xPool, NB_UNKNOWN, buf1, sz1, &vTestFreeNormal)));
+    TEST_ASSERT((nb2 = pxNetBufNew(xPool, NB_UNKNOWN, buf2, sz2, &vTestFreeNormal)));
+
+    vNetBufAppend(nb1, nb2);
+
+    vNetBufFreeAll(nb2);
 
     TEST_ASSERT(xWasFreeCalled);
 
@@ -257,6 +307,7 @@ RS_TEST_CASE(NetBufRead1, "[netbuf]")
     TEST_ASSERT(unNetBufRead(nb1, buf2, 10, 1) == 0);
 
     vNetBufFree(nb1);
+    vRsMemFree(buf2);
 
     RS_TEST_CASE_END(test_netbuf);
 }
@@ -306,6 +357,7 @@ RS_TEST_CASE(NetBufRead2, "[netbuf]")
 
     vNetBufFree(nb1);
     vNetBufFree(nb2);
+    vRsMemFree(bufw);
 
     RS_TEST_CASE_END(test_netbuf);
 }
@@ -386,7 +438,9 @@ int main() {
     RS_RUN_TEST(NetBufSimple);
     RS_RUN_TEST(NetBufSimpleFree);
     RS_RUN_TEST(NetBufSplit);
+    RS_RUN_TEST(NetBufSplit2);
     RS_RUN_TEST(NetBufBuildAppend);
+    RS_RUN_TEST(NetBufBuildAppend2);
     RS_RUN_TEST(NetBufBuild3);
     RS_RUN_TEST(NetBufRead1);
     RS_RUN_TEST(NetBufRead2);

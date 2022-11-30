@@ -1,8 +1,3 @@
-#ifndef __FREERTOS__
-/* For struct iovec */
-#include <sys/uio.h>
-#endif
-
 #include <string.h>
 
 #include "common/list.h"
@@ -11,20 +6,23 @@
 
 void vNetBufFreeNormal(netbuf_t *pxNb)
 {
-    vRsMemFree(pxNb->pxBufStart);
-    vRsrcFree(pxNb);
+    if (pxNb->pxBufStart) {
+        vRsMemFree(pxNb->pxBufStart);
+        pxNb->pxBufStart = NULL;
+    }
 }
 
 void vNetBufFreePool(netbuf_t *pxNb)
 {
-    vRsrcFree(pxNb->pxBufStart);
-    vRsrcFree(pxNb);
+    if (pxNb->pxBufStart) {
+        vRsrcFree(pxNb->pxBufStart);
+        pxNb->pxBufStart = NULL;
+    }
 }
 
 void vNetBufFreeButDont(netbuf_t *pxNb)
 {
     /* We don't free the buffer */
-    vRsrcFree(pxNb);
 }
 
 rsrcPoolP_t xNetBufNewPool(const char *pcPoolName)
@@ -40,7 +38,10 @@ netbuf_t *pxNetBufNew(rsrcPoolP_t xPool,
 {
     netbuf_t *pxNewBuf;
 
-    if (!(pxNewBuf = pxRsrcAlloc(xPool, "")))
+    RsAssert(xPool);
+    RsAssert(unSz);
+
+    if (!(pxNewBuf = pxRsrcAlloc(xPool, "pxNetBufNew")))
         return NULL;
 
     pxNewBuf->eType = eType;
@@ -56,91 +57,88 @@ netbuf_t *pxNetBufNew(rsrcPoolP_t xPool,
     return pxNewBuf;
 }
 
+/* This ensures that the netbuf chain has a cut at 'unSz' bytes. If
+ * it doesn't, it will be created. */
 bool_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
 {
     netbuf_t *pxNewBuf;
 
-    if (!(pxNewBuf = pxRsrcAlloc(pxNb->xPool, "")))
-        return NULL;
-
-    pxNewBuf->eType = eType;
-    pxNewBuf->pxNext = NULL;
-    pxNewBuf->pxFirst = pxNb->pxFirst;
-    pxNewBuf->pxBuf = pxNb->pxBuf + unSz;
-    pxNewBuf->unSz = pxNb->unSz - unSz;
-    pxNewBuf->pxBufStart = pxNb->pxBufStart;
-    pxNewBuf->xFreed = false;
-    pxNewBuf->freemethod = pxNb->freemethod;
-    pxNewBuf->xPool = pxNb->xPool;
-
-    pxNb->unSz = unSz;
-    pxNb->pxNext = pxNewBuf;
-
-    return true;
-}
-
-bool_t xNetBufPop(netbuf_t *pxNb, size_t unSz)
-{
     FOREACH_NETBUF(pxNb, pxNbIter) {
-        /* If the desired pop size is bigger than the current netbuf,
-           free the current netbuf in the chain. */
-        if (pxNbIter->unSz <= unSz) {
+        /* If the current netbuf is shorter than what is required,
+         * skip it. */
+        if (pxNbIter->unSz < unSz) {
             unSz -= pxNbIter->unSz;
-            vNetBufFree(pxNbIter);
+            continue;
         }
-        /* Otherwise just shit the size and pointer of the current
-         * netbuf link */
+        /* There is already a cut! */
+        else if (pxNbIter->unSz == unSz) {
+            return true;
+        }
         else {
-            pxNbIter->unSz -= unSz;
-            pxNbIter->pxBuf += unSz;
-        }
+            if (!(pxNewBuf = pxRsrcAlloc(pxNb->xPool, "xNetBufSplit")))
+                return false;
 
-        /* If there is some bytes left to pop, move onto the next
-           netbuf, otherwise just get out of the loop */
-        if (!unSz) break;
+            pxNewBuf->eType = eType;
+            pxNewBuf->pxNext = pxNbIter->pxNext;
+            pxNewBuf->pxFirst = pxNbIter->pxFirst;
+            pxNewBuf->pxBuf = pxNbIter->pxBuf + unSz;
+            pxNewBuf->unSz = pxNbIter->unSz - unSz;
+            pxNewBuf->pxBufStart = pxNbIter->pxBufStart;
+            pxNewBuf->xFreed = false;
+            pxNewBuf->freemethod = pxNbIter->freemethod;
+            pxNewBuf->xPool = pxNbIter->xPool;
+
+            pxNbIter->unSz = unSz;
+            pxNbIter->pxNext = pxNewBuf;
+
+            return true;
+        }
     }
 
-    /* Success here means that we could push enough bytes in the
-       chain. */
-    return unSz == 0;
+    return false;
 }
 
 void vNetBufFreeAll(netbuf_t *pxNb)
 {
-    FOREACH_ALL_NETBUF(pxNb, pxNbIter) {
-        if (pxNbIter->freemethod)
-            pxNbIter->freemethod(pxNb);
+    FOREACH_ALL_NETBUF_SAFE(pxNb, pxNbIter) {
+        vNetBufFree(pxNbIter);
     }
 }
 
 void vNetBufFree(netbuf_t *pxNb)
 {
-    int unCnt;
-    netbuf_t *pxNbFirst, *pxNbIter;
+    int unCnt = 0;
     bool_t xFullyFreed;
 
-    /* Mark the target netbuf as freed */
+    /* Mark the target netbuf as freed and not to be used as part of
+     * the total buffer. */
     pxNb->xFreed = true;
     pxNb->unSz = 0;
     pxNb->pxBuf = NULL;
 
-    /* Get the first netbuf in the chain. */
-    pxNbFirst = pxNb->pxFirst;
-    pxNbIter = pxNbFirst;
-
-    /* Scan through the netbuf list, checking if all the netbufs that
-     * are pointing to the same buffer are freed. If we find that all
-     * the buffers are freed, we will be able to free the underlying
-     * buffer.  */
+    /* Counter the number of netbufs pointing to the same underlying
+     * buffer. If it's at least 2, clear the pointer here, if it's 0,
+     * we can immediately free the underlying buffer. */
     xFullyFreed = true;
     FOREACH_ALL_NETBUF(pxNb, pxNbIter) {
+        if (pxNb->pxBufStart == pxNbIter->pxBufStart)
+            unCnt++;
         xFullyFreed &= pxNbIter->xFreed;
     }
+    if (unCnt >= 2)
+        pxNb->pxBufStart = NULL;
+    else if (unCnt == 0)
+        if (pxNb->freemethod)
+            pxNb->freemethod(pxNb);
 
-    /* If all the parts of the netbuf are freed, we can actually free
-       the buffer. */
-    if (xFullyFreed)
-        pxNb->freemethod(pxNbFirst);
+    if (xFullyFreed) {
+        FOREACH_ALL_NETBUF_SAFE(pxNb, pxNbIter) {
+            if (pxNbIter->freemethod)
+                pxNbIter->freemethod(pxNbIter);
+
+            vRsrcFree(pxNbIter);
+        }
+    }
 }
 
 void vNetBufLink(netbuf_t *pxNbFirst, ...)
@@ -255,7 +253,7 @@ void vNetBufAppend(netbuf_t *pxNbLeft, netbuf_t *pxNbRight)
 
     RsAssert(!pxNbLeft->xFreed);
 
-    /* Loop until we find the next netbuf in the chain that wasn't
+    /* Loop until we find the next netbuf in the chain that hasn't *
      * been freed */
 
     pxNbIter = pxNbLeft;

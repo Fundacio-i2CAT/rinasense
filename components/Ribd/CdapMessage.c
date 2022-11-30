@@ -79,7 +79,7 @@ messageCdap_t *pxRibdCdapMsgCreateResponse(Ribd_t *pxRibd,
     if (!(pxMsg = pxRibdCdapMsgCreate(pxRibd, sizeof(messageCdap_t) + unSz)))
         return NULL;
 
-    pxMsg->invokeID = get_next_invoke_id();
+    pxMsg->invokeID = nInvokeId;
     pxMsg->eOpCode = eOpCode;
     pxMsg->objInst = nObjInst;
 

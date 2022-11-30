@@ -150,6 +150,29 @@ appConnection_t *prvRibCreateConnection(rname_t *pxSource, rname_t *pxDestInfo)
     return pxAppConnectionTmp;
 }
 
+bool_t prvRibdAddAppConnectionEntry(Ribd_t *pxRibd, appConnection_t *pxAppConnectionToAdd, portId_t xPortId)
+{
+    num_t x = 0;
+
+    RsAssert(pxRibd);
+    RsAssert(pxAppConnectionToAdd);
+
+    for (x = 0; x < APP_CONNECTION_TABLE_SIZE; x++) {
+
+        if (pxRibd->xAppConnectionTable[x].xValid == false) {
+            pxRibd->xAppConnectionTable[x].pxAppConnection = pxAppConnectionToAdd;
+            pxRibd->xAppConnectionTable[x].xN1portId = xPortId;
+            pxRibd->xAppConnectionTable[x].xValid = true;
+
+            LOGI(TAG_RIB, "AppConnection Entry successful: %p,id:%d", pxAppConnectionToAdd, xPortId);
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool_t prvRibHandleMessage(struct ipcpInstanceData_t *pxData,
                            messageCdap_t *pxDecodeCdap,
                            portId_t unPort)
@@ -201,7 +224,12 @@ bool_t prvRibHandleMessage(struct ipcpInstanceData_t *pxData,
                 return false;
             }
 
-            xEnrollmentHandleConnect(pxData, pxAppCon->xDestinationInfo.pcProcessName, unPort);
+            if (!xEnrollmentHandleConnect(pxData, pxAppCon->xDestinationInfo.pcProcessName, unPort)) {
+                LOGE(TAG_RIB, "Failed to handle enrollment CONNECT message");
+                return false;
+            }
+
+            prvRibdAddAppConnectionEntry(&pxData->xRibd, pxAppCon, unPort);
         }
 
         break;
@@ -365,29 +393,6 @@ bool_t xRibdInit(Ribd_t *pxRibd)
     return true;
 }
 
-bool_t xRibdAddAppConnectionEntry(Ribd_t *pxRibd, appConnection_t *pxAppConnectionToAdd, portId_t xPortId)
-{
-    num_t x = 0;
-
-    RsAssert(pxRibd);
-    RsAssert(pxAppConnectionToAdd);
-
-    for (x = 0; x < APP_CONNECTION_TABLE_SIZE; x++) {
-
-        if (pxRibd->xAppConnectionTable[x].xValid == false) {
-            pxRibd->xAppConnectionTable[x].pxAppConnection = pxAppConnectionToAdd;
-            pxRibd->xAppConnectionTable[x].xN1portId = xPortId;
-            pxRibd->xAppConnectionTable[x].xValid = true;
-
-            LOGI(TAG_RIB, "AppConnection Entry successful: %p,id:%d", pxAppConnectionToAdd, xPortId);
-
-            return true;
-        }
-    }
-
-    return false;
-}
-
 bool_t xRibdSendCdapMsg(Ribd_t *pxRibd, serObjectValue_t *pxSerVal, portId_t unPort)
 {
     RINAStackEvent_t xEv;
@@ -396,7 +401,9 @@ bool_t xRibdSendCdapMsg(Ribd_t *pxRibd, serObjectValue_t *pxSerVal, portId_t unP
 
     LOGI(TAG_RIB, "Sending the CDAP Message to the RMT");
 
-    pxDu = pxNetBufNew(NULL, NB_RINA_DATA, pxSerVal->pvSerBuffer, pxSerVal->xSerLength, NETBUF_FREE_POOL);
+    pxDu = pxNetBufNew(pxRibd->xDuPool, NB_RINA_DATA,
+                       pxSerVal->pvSerBuffer, pxSerVal->xSerLength,
+                       NETBUF_FREE_POOL);
     if (!pxDu) {
         LOGE(TAG_RIB, "Failed to allocate DU");
         return false;
@@ -456,8 +463,15 @@ bool_t xRibdSendResponse(Ribd_t *pxRibd,
         goto fail;
     }
 
-    /*Sent to the IPCP task */
+    /* Send */
     xStatus = xRibdSendCdapMsg(pxRibd, pxSerVal, xN1Port);
+
+    vRibdCdapMsgFree(pxMsgCdap);
+
+    if (!xStatus)
+        goto fail;
+
+    return xStatus;
 
     fail:
     vRibdCdapMsgFree(pxMsgCdap);
@@ -467,7 +481,6 @@ bool_t xRibdSendResponse(Ribd_t *pxRibd,
 }
 
 #if 0
-/* FIXME: IT'S NOT CLEAR IF THIS IS HOW IT SHOULD BE DONE. */
 bool_t xRibdConnectToIpcp(Ribd_t *pxRibd,
                           struct ipcpInstanceData_t *pxIpcpData,
                           rname_t *pxSource,
@@ -592,18 +605,16 @@ bool_t xRibdSendRequest(Ribd_t *pxRibd,
         goto fail;
     }
 
-    /*Sent to the IPCP task*/
     xStatus = xRibdSendCdapMsg(pxRibd, pxSerVal, xN1flowPortId);
 
     fail:
-    vRsrcFree(pxMsgCdap);
     vRibdCdapMsgFree(pxMsgCdap);
 
     return xStatus;
 }
 
 bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData,
-                                      portId_t xN1flowPortId,
+                                      portId_t unPort,
                                       du_t *pxDu)
 {
     messageCdap_t *pxDecodeCdap;
@@ -624,11 +635,13 @@ bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData,
     vRibdPrintCdapMessage(pxDecodeCdap);
 
     /* Call to rib Handle Message */
-    if (!prvRibHandleMessage(pxData, pxDecodeCdap, xN1flowPortId)) {
+    if (!prvRibHandleMessage(pxData, pxDecodeCdap, unPort)) {
         LOGE(TAG_RIB, "Failed to handle management PDU");
+        vRsrcFree(pxDecodeCdap);
         return false;
     }
 
+    vRsrcFree(pxDecodeCdap);
     return true;
 }
 

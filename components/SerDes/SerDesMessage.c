@@ -54,128 +54,18 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
     LOGD(TAG_SD_MSG, "Dest APN: %s", pxDecodeCdap->xDestinationInfo.pcProcessName);
     LOGD(TAG_SD_MSG, "Result: %d", pxDecodeCdap->result);
 
-    // configASSERT(pxDecodeCdap->xObjName == NULL);
-
     if (pxDecodeCdap->pcObjName)
-        LOGE(TAG_SD_MSG, "ObjectName:%s", pxDecodeCdap->pcObjName);
+        LOGD(TAG_SD_MSG, "ObjectName:%s", pxDecodeCdap->pcObjName);
 
     if (pxDecodeCdap->objInst)
-        LOGE(TAG_SD_MSG, "ObjectInstance:%d", (int)pxDecodeCdap->objInst);
+        LOGD(TAG_SD_MSG, "ObjectInstance:%d", (int)pxDecodeCdap->objInst);
 
     if (pxDecodeCdap->pcObjClass)
-        LOGE(TAG_SD_MSG, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
+        LOGD(TAG_SD_MSG, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
+
+    if (pxDecodeCdap->pxObjValue)
+        LOGD(TAG_SD_MSG, "ObjectValue:%zu byte(s)", pxDecodeCdap->pxObjValue->xSerLength);
 }
-
-#if 0
-rina_messages_CDAPMessage prvRibdSerToRinaMessage(messageCdap_t *pxMessageCdap)
-{
-    /*Allocate space on the Stack to store the message data*/
-    rina_messages_CDAPMessage message = rina_messages_CDAPMessage_init_zero;
-
-    message.version = pxMessageCdap->version;
-    message.has_version = true;
-    message.opCode = (rina_messages_opCode_t)pxMessageCdap->eOpCode;
-    message.invokeID = pxMessageCdap->invokeID;
-    message.has_invokeID = true;
-
-    if (pxMessageCdap->result != -1) {
-        message.result = pxMessageCdap->result;
-        message.has_result = true;
-    }
-
-#define _COPY(x, y) strncpy(x, y, sizeof(x))
-
-    /*Destination*/
-    if (pxMessageCdap->pxDestinationInfo->pcEntityInstance != NULL) {
-        strcpy(message.destAEInst, pxMessageCdap->pxDestinationInfo->pcEntityInstance);
-        message.has_destAEInst = true;
-    }
-
-    if (pxMessageCdap->pxDestinationInfo->pcEntityName != NULL)
-    {
-        strcpy(message.destAEName, pxMessageCdap->pxDestinationInfo->pcEntityName);
-        message.has_destAEName = true;
-    }
-
-    if (pxMessageCdap->pxDestinationInfo->pcProcessInstance != NULL)
-    {
-        strcpy(message.destApInst, pxMessageCdap->pxDestinationInfo->pcProcessInstance);
-        message.has_destApInst = true;
-    }
-
-    if (pxMessageCdap->pxDestinationInfo->pcProcessName != NULL)
-    {
-        strcpy(message.destApName, pxMessageCdap->pxDestinationInfo->pcProcessName);
-        message.has_destApName = true;
-    }
-
-    /*Source*/
-    if (pxMessageCdap->pxSourceInfo->pcEntityInstance != NULL)
-    {
-        strcpy(message.srcAEInst, pxMessageCdap->pxSourceInfo->pcEntityInstance);
-        message.has_srcAEInst = true;
-    }
-
-    if (pxMessageCdap->pxSourceInfo->pcEntityName != NULL)
-    {
-        strcpy(message.srcAEName, pxMessageCdap->pxSourceInfo->pcEntityName);
-        message.has_srcAEName = true;
-    }
-
-    if (pxMessageCdap->pxSourceInfo->pcProcessInstance != NULL)
-    {
-        strcpy(message.srcApInst, pxMessageCdap->pxSourceInfo->pcProcessInstance);
-        message.has_srcApInst = true;
-    }
-
-    if (pxMessageCdap->pxSourceInfo->pcProcessName != NULL)
-    {
-        strcpy(message.srcApName, pxMessageCdap->pxSourceInfo->pcProcessName);
-        message.has_srcApName = true;
-    }
-
-    /*Authentication Policy*/
-    if (pxMessageCdap->pxAuthPolicy->pcName != NULL)
-    {
-        strcpy(message.authPolicy.name, pxMessageCdap->pxAuthPolicy->pcName);
-        message.has_authPolicy = true;
-        message.authPolicy.versions_count = 1;
-        strcpy(message.authPolicy.versions[0], pxMessageCdap->pxAuthPolicy->pcVersion);
-
-        message.authPolicy.has_name = true;
-    }
-
-    /*Object Value*/
-    if (pxMessageCdap->pcObjClass != NULL)
-    {
-        strcpy(message.objClass, pxMessageCdap->pcObjClass);
-        message.has_objClass = true;
-    }
-
-    if (pxMessageCdap->pcObjName != NULL)
-    {
-        strcpy(message.objName, pxMessageCdap->pcObjName);
-        message.has_objName = true;
-    }
-
-    if (pxMessageCdap->objInst != -1)
-    {
-        message.objInst = pxMessageCdap->objInst;
-        message.has_objInst = true;
-    }
-
-    if (pxMessageCdap->pxObjValue != NULL)
-    {
-        message.objValue.byteval.size = pxMessageCdap->pxObjValue->xSerLength;
-        memcpy(message.objValue.byteval.bytes, pxMessageCdap->pxObjValue->pvSerBuffer, pxMessageCdap->pxObjValue->xSerLength);
-
-        message.has_objValue = true;
-        message.objValue.has_byteval = true;
-    }
-
-    return message;
-}
-#endif
 
 bool_t xSerDesMessageInit(MessageSerDes_t *pxSD)
 {
@@ -183,16 +73,17 @@ bool_t xSerDesMessageInit(MessageSerDes_t *pxSD)
 
     unSz = member_size(rina_messages_CDAPMessage, objClass)
         + member_size(rina_messages_CDAPMessage, objName)
-        + member_size(rina_messages_objVal_t_byteval_t, bytes)
+        + member_size(rina_messages_CDAPMessage, resultReason)
         + member_size(rina_messages_authPolicy_t, name)
         + member_size(rina_messages_authPolicy_t, versions)
+        + sizeof(rina_messages_objVal_t_byteval_t)
         + sizeof(messageCdap_t)
         + sizeof(serObjectValue_t);
-    if (!(pxSD->xDecPool = pxRsrcNewPool("CDAP Message SerDes Decoding", unSz, 1, 0, 0)))
+    if (!(pxSD->xDecPool = pxRsrcNewPool("CDAP Message SerDes Decoding", unSz, 1, 1, 0)))
         return false;
 
     unSz = sizeof(rina_messages_CDAPMessage) + sizeof(serObjectValue_t);
-    if (!(pxSD->xEncPool = pxRsrcNewPool("CDAP Message SerDes Encoding", unSz, 1, 0, 0)))
+    if (!(pxSD->xEncPool = pxRsrcNewPool("CDAP Message SerDes Encoding", unSz, 1, 1, 0)))
         return false;
 
     return true;
@@ -225,8 +116,10 @@ serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *px
     }
 
 #define _COPY(x, i, y)                             \
-    strncpy(x.i , y, sizeof(x.i));                 \
-    xMsg.has_##i = true
+    if (y) {                                       \
+        strncpy(x.i , y, sizeof(x.i));             \
+        xMsg.has_##i = true;                       \
+    }
 
     /* Destination */
     _COPY(xMsg, destAEInst, pxMsgCdap->xDestinationInfo.pcEntityInstance);
@@ -251,15 +144,14 @@ serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *px
         xMsg.authPolicy.has_name = true;
     }
 
+    /* Result reason */
+    _COPY(xMsg, resultReason, pxMsgCdap->pcResultReason);
+
     /* Object value */
-    if (pxMsgCdap->pcObjClass != NULL) {
-        _COPY(xMsg, objClass, pxMsgCdap->pcObjClass);
-    }
+    _COPY(xMsg, objClass, pxMsgCdap->pcObjClass);
 
     /* Object name */
-    if (pxMsgCdap->pcObjName != NULL) {
-        _COPY(xMsg, objName, pxMsgCdap->pcObjName);
-    }
+    _COPY(xMsg, objName, pxMsgCdap->pcObjName);
 
     /* Object instance */
     if (pxMsgCdap->objInst != -1) {
@@ -267,6 +159,7 @@ serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *px
         xMsg.has_objInst = true;
     }
 
+    /* Object value */
     if (pxMsgCdap->pxObjValue != NULL) {
         xMsg.objValue.byteval.size = pxMsgCdap->pxObjValue->xSerLength;
         memcpy(xMsg.objValue.byteval.bytes, pxMsgCdap->pxObjValue->pvSerBuffer, pxMsgCdap->pxObjValue->xSerLength);
@@ -318,9 +211,11 @@ messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD, uint8_t *pucBuffer, 
     }
 
     if (!(pxMsg = pxRsrcAlloc(pxSD->xDecPool, "CDAP Message Decoding"))) {
-        LOGE(TAG_SD_MSG, "Failed to decode CDAP message");
+        LOGE(TAG_SD_MSG, "Failed to allocate memory for CDAM message decoding");
         return NULL;
     }
+
+    memset(pxMsg, 0, sizeof(messageCdap_t));
 
     if (!(xNameAssignFromPartsDup(&pxMsg->xDestinationInfo,
                                   message.destApName, message.destApInst,
@@ -331,7 +226,7 @@ messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD, uint8_t *pucBuffer, 
 
     if (!(xNameAssignFromPartsDup(&pxMsg->xSourceInfo,
                                   message.srcApName, message.srcApInst,
-                                  message.srcAEName, message.srcAEName))) {
+                                  message.srcAEName, message.srcAEInst))) {
         LOGE(TAG_SD_MSG, "Failed to assigne source RINA name");
         return NULL;
     }
@@ -345,10 +240,11 @@ messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD, uint8_t *pucBuffer, 
     /* Initialize the string pointers */
     pxMsg->pcObjClass = (px = (void *)pxMsg + sizeof(messageCdap_t));
     pxMsg->pcObjName = (px += member_size(rina_messages_CDAPMessage, objClass));
+    pxMsg->pcResultReason = (px += member_size(rina_messages_CDAPMessage, resultReason));
     pxMsg->xAuthPolicy.pcName = (px += member_size(rina_messages_CDAPMessage, objName));
     pxMsg->xAuthPolicy.pcVersion = (px += member_size(rina_messages_authPolicy_t, name));
 
-    /* Move the pointer past the version size for next use */
+    /* Move the pointer past the last field */
     px += member_size(rina_messages_authPolicy_t, versions);
 
     /* Copy the strings */
@@ -373,9 +269,14 @@ messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD, uint8_t *pucBuffer, 
         strcpy(pxMsg->xAuthPolicy.pcVersion, "");
     }
 
+    if (message.has_resultReason)
+        strcpy(pxMsg->pcResultReason, message.resultReason);
+    else
+        strcpy(pxMsg->pcResultReason, "");
+
     if (message.has_objValue) {
-        pxMsg->pxObjValue = (px += member_size(rina_messages_objVal_t, byteval));
-        pxMsg->pxObjValue->pvSerBuffer = (px += member_size(rina_messages_objVal_t_byteval_t, bytes));
+        pxMsg->pxObjValue = px;
+        pxMsg->pxObjValue->pvSerBuffer = (px += sizeof(serObjectValue_t));
         pxMsg->pxObjValue->xSerLength = message.objValue.byteval.size;
 
         memcpy(pxMsg->pxObjValue->pvSerBuffer, message.objValue.byteval.bytes,

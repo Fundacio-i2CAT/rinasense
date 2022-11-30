@@ -43,7 +43,7 @@ bool_t xDtpPduSend(dtp_t *pxDtp, struct rmt_t *pxRmt, du_t *pxDu)
     pxEfcpContainer = pxDtp->pxEfcp->pxEfcpContainer;
 
     // pxEfcpContainer = pxDtp->pxEfcp->pxEfcpContainer;
-    if (!pxEfcpContainer || !xDuDecap(pxDu) || !xDuIsOk(pxDu)) {
+    if (!pxEfcpContainer || !xDuDecap(sizeof(pci_t), pxDu) || !xDuIsOk(pxDu)) {
         LOGE(TAG_DTP, "Could not retrieve the EFCP container in loopback operation");
         return false;
     }

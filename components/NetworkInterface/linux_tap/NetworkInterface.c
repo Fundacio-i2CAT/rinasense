@@ -560,6 +560,7 @@ bool_t xNetworkInterfaceDisconnect(void)
     return true;
 }
 
+#ifdef NETWORK_INTERFACE_USE_IOVEC
 bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 {
     /* Write the packet on the device. */
@@ -596,6 +597,61 @@ bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 
     return true;
 }
+#else
+bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
+{
+    bool_t xStatus = false;
+    size_t unTotalSz;
+    ssize_t nWriteSz;
+    size_t unWrIdx = 0, unWrLeft;
+    void *pvBuf;
+
+    unTotalSz = unNetBufTotalSize(pxNbFrame);
+
+    if (!prvLinuxTapCheckFlags(LINUX_TAP_DEVICE, IFF_UP)) {
+        LOGE(TAG_WIFI, "Writing %zu bytes on interface %s failed, interface is DOWN",
+             unNetBufTotalSize(pxNbFrame), LINUX_TAP_DEVICE);
+        return false;
+    }
+
+    if (!(pvBuf = pvRsMemAlloc(unTotalSz))) {
+        LOGE(TAG_WIFI, "Failed to allocate memory for write buffer");
+        return false;
+    }
+
+    if (unNetBufRead(pxNbFrame, pvBuf, 0, unTotalSz) != unTotalSz) {
+        LOGE(TAG_WIFI, "Failed to transfer netbufs content to write buffer");
+        vRsMemFree(pvBuf);
+    }
+
+    unWrLeft = unTotalSz;
+    do {
+        nWriteSz = write(nTapFD, pvBuf + unWrIdx, unWrLeft);
+
+        if (nWriteSz < 0) {
+            LOGD(TAG_WIFI, "Write error (errno: %d)", errno);
+            goto end;
+        }
+
+        unWrLeft -= nWriteSz;
+        unWrIdx += nWriteSz;
+
+    } while (unWrLeft > 0);
+
+    xStatus = true;
+
+    end:
+    vRsMemFree(pvBuf);
+
+    netbuf_t *nb1, *nb2;
+    nb1 = pxNbFrame;
+    nb2 = pxNetBufNext(nb1);
+    vNetBufFree(nb2);
+    vNetBufFree(nb1);
+
+    return xStatus;
+}
+#endif
 
 /* Called by the tap read thread to advertises that an ethernet
  * frame has arrived. */

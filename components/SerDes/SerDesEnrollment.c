@@ -11,8 +11,6 @@
 
 #define TAG_SD_ENROLLMENT "[SD-ENROLLMENT]"
 
-/* Found this online somewhere. Could be put in macros.h */
-
 bool_t xSerDesEnrollmentInit(EnrollmentSerDes_t *pxSD)
 {
     size_t unSz;
@@ -42,10 +40,20 @@ serObjectValue_t *pxSerDesEnrollmentEncode(EnrollmentSerDes_t *pxSD, enrollmentM
     pb_ostream_t xStream;
     rina_messages_enrollmentInformation_t enrollMsg = rina_messages_enrollmentInformation_t_init_zero;
 
+    enrollMsg.has_startEarly = true;
+    enrollMsg.startEarly = pxMsg->xStartEarly;
+
     if (pxMsg->ullAddress > 0) {
         enrollMsg.address = pxMsg->ullAddress;
         enrollMsg.has_address = true;
     }
+
+    if (pxMsg->pcToken) {
+        strncpy(enrollMsg.token, pxMsg->pcToken, sizeof(enrollMsg.token));
+        enrollMsg.has_token = true;
+    }
+
+    /* FIXME: Not handling supporting DIFs for now. */
 
     if (!(pxSerVal = pxRsrcAlloc(pxSD->xPoolEnc, "Enrollment Encoding"))) {
         LOGE(TAG_SD_ENROLLMENT, "Failed to allocate memory for enrollment message encoding");

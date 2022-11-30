@@ -109,8 +109,7 @@ ribObject_t *pxRibCreateObject(Ribd_t *pxRibd,
     /*Add object into the table*/
     if (!xRibAddObjectEntry(pxRibd, pxObj)) {
     }
-    else
-        LOGI(TAG_RIB, "RIB object created: %s, %p", pxObj->ucObjName, pxObj);
+    else LOGI(TAG_RIB, "RIB object created: %s, %p", pxObj->ucObjName, pxObj);
 
     return pxObj;
 }

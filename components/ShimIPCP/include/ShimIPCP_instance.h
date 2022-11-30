@@ -1,6 +1,7 @@
 #ifndef _SHIMIPCP_INSTANCE_H_INCLUDED
 #define _SHIMIPCP_INSTANCE_H_INCLUDED
 
+#include "ShimIPCP.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -60,7 +61,8 @@ struct ipcpInstanceData_t
 
 	/* Stores the state of flows indexed by port_id */
 	// spinlock_t             lock;
-	RsList_t xFlowsList;
+	//RsList_t xFlowsList;
+    shimFlow_t *xFlows[256];
 
 	/* FIXME: Remove it as soon as the kipcm_kfa gets removed */
 	// struct kfa *           kfa;

@@ -331,20 +331,21 @@ bool_t xNormalFlowBinding(struct ipcpInstance_t *pxIpcp,
  * @param pxDu Data Unit to be write into the IPCP instance.
  * @return BaseType_t
  */
-bool_t xNormalMgmtDuWrite(struct ipcpInstance_t *pxIpcp, portId_t xPortId, du_t *pxDu)
+bool_t xNormalMgmtDuWrite(struct ipcpInstance_t *pxIpcp, portId_t xPortId, du_t *pxDataDu)
 {
     size_t sz;
     buffer_t xPci;
-    
+    du_t *pxDu;
+
     RsAssert(pxIpcp);
     RsAssert(is_port_id_ok(xPortId));
-    RsAssert(pxDu);
-    RsAssert(eNetBufType(pxDu) == NB_RINA_DATA);
+    RsAssert(pxDataDu);
+    RsAssert(eNetBufType(pxDataDu) == NB_RINA_DATA);
 
     LOGI(TAG_IPCPNORMAL, "Passing SDU to be written to N-1 port %d ", xPortId);
 
     /* Allocate some memory for the PCI header */
-    if (!(xPci = pxRsrcAlloc(pxIpcp->pxData->xPciPool, NULL))) {
+    if (!(xPci = pxRsrcAlloc(pxIpcp->pxData->xPciPool, "Normal IPC Management PCI"))) {
         LOGE(TAG_IPCPNORMAL, "Failed to allocate memory for PCI");
         return false;
     }
@@ -352,9 +353,9 @@ bool_t xNormalMgmtDuWrite(struct ipcpInstance_t *pxIpcp, portId_t xPortId, du_t 
     // pxDu->pxCfg = pxData->pxEfcpc->pxConfig;
     /* SET BUT NOT USED: sbytes = xDuLen(pxDu); */
 
-    sz = unNetBufTotalSize(pxDu);
+    sz = unNetBufTotalSize(pxDataDu);
 
-    if (!xDuEncap(xPci, sizeof(pci_t), pxDu)) {
+    if (!(pxDu = xDuEncap(xPci, sizeof(pci_t), pxDataDu))) {
         LOGE(TAG_IPCPNORMAL, "Failed to encap DU");
         return false;
     }
@@ -368,7 +369,7 @@ bool_t xNormalMgmtDuWrite(struct ipcpInstance_t *pxIpcp, portId_t xPortId, du_t 
     PCI_SET(pxDu, PCI_FLAGS, 0);
     PCI_SET(pxDu, PCI_TYPE, PDU_TYPE_MGMT);
     PCI_SET(pxDu, PCI_SEQ_NO, 0);
-    PCI_SET(pxDu, PCI_PDU_LEN, sz);
+    PCI_SET(pxDu, PCI_PDU_LEN, sz + sizeof(pci_t));
     PCI_SET(pxDu, PCI_ADDR_SRC, LOCAL_ADDRESS);
 
     // vPciPrint(pxDu->pxPci);

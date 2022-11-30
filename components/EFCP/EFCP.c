@@ -557,7 +557,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         }
 
         LOGE(TAG_EFCP, "xEfcpConnectionCreate: ConnectionCreate");
-#ifdef __FREERTOS__
+#ifdef ESP_PLATFORM
         size_t Test = xPortGetFreeHeapSize();
         LOGE(TAG_EFCP, "Memory size:%d", (int)Test);
 #endif

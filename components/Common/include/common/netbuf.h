@@ -1,10 +1,6 @@
 #ifndef _COMMON_MBUF_H_INCLUDED
 #define _COMMON_MBUF_H_INCLUDED
 
-#ifndef __FREERTOS__
-#include <sys/uio.h>
-#endif
-
 #include <stdint.h>
 #include <stddef.h>
 
@@ -78,9 +74,11 @@ netbuf_t *pxNetBufNew(rsrcPoolP_t xPool, eNetBufType_t eType, buffer_t pxBuf, si
 
 bool_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz);
 
+#if 0
 /* Strip 'unSz' bytes from the start of a netbuf chain or a single
  * netbuf. */
-bool_t xNetBufPop(netbuf_t *pxNb, size_t unSz);
+netbuf_t *xNetBufPop(netbuf_t *pxNb, size_t unSz);
+#endif
 
 void vNetBufLink(netbuf_t *pxNb, ...);
 
@@ -126,6 +124,9 @@ void vNetBufFreeButDont(netbuf_t *pxNb);
 
 #define FOREACH_ALL_NETBUF(_nb, _iterNb)                                         \
     for (netbuf_t *_iterNb = _nb->pxFirst; _iterNb; _iterNb = _iterNb->pxNext)
+
+#define FOREACH_ALL_NETBUF_SAFE(_nb, _iterNb)   \
+    for (netbuf_t *_iterNb = _nb->pxFirst, *_nnext = _nb->pxFirst->pxNext; _iterNb; _iterNb = _nnext, _nnext = _iterNb ? _iterNb->pxNext : NULL)
 
 #define FOREACH_NETBUF_FROM(_nb, _iterNb)                                 \
     for (netbuf_t *_iterNb = _nb; _iterNb; _iterNb = _iterNb->pxNext) \

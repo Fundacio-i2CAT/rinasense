@@ -33,10 +33,10 @@ static inline void vDuDestroy(du_t *pxDu)
 }
 
 /* Split the header from the data */
-bool_t xDuDecap(du_t *pxDu);
+bool_t xDuDecap(size_t unSz, du_t *pxDu);
 
 /* Prepend a header netbuf */
-bool_t xDuEncap(void *pvPci, size_t unSz, du_t *pxDu);
+du_t *xDuEncap(void *pvPci, size_t unSz, du_t *pxDu);
 
 bool_t xDuIsOk(const du_t *pxDu);
 

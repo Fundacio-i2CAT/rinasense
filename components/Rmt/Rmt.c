@@ -284,6 +284,7 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 	qosId_t xQosId;
 	rmtN1Port_t *pxN1Port;
 	size_t uxBytes;
+    du_t *pxDuData;
 
 	LOGI(TAG_RMT, "RMT has received a RINA packet from the port %d", unPortId);
 
@@ -314,8 +315,7 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 	}*/
 	/* end SDU Protection */
 
-	if (xDuDecap(pxDu))	{
-		/*Decap PDU */
+	if (!xDuDecap(sizeof(pci_t), pxDu)) {
 		LOGE(TAG_RMT, "Could not decap PDU");
 		return false;
 	}
@@ -335,12 +335,19 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 		return false;
 	}
 
+    /* Move to the next netbuf in the chain, which is the RINA
+     * packet data. */
+    pxDuData = pxNetBufNext(pxDu);
+    vNetBufFree(pxDu);
+    pxDu = NULL;
+
 	/* pdu is for me */
 	if (xRmtPduIsAddressedToMe(pxRmt, xDstAddr)) {
+
 		/* pdu is for me */
 		switch (xPduType) {
 		case PDU_TYPE_MGMT:
-			return xRmtProcessMgmtPdu(unPortId, pxDu);
+			return xRmtProcessMgmtPdu(unPortId, pxDuData);
 
 		case PDU_TYPE_CACK:
 		case PDU_TYPE_SACK:
@@ -356,7 +363,7 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
              * enqueue PDU in pdus_dt[dest-addr, qos-id]
              * don't process it now ...
              */
-            if (!xRmtProcessDtPdu(pxRmt, unPortId, pxDu)) {
+            if (!xRmtProcessDtPdu(pxRmt, unPortId, pxDuData)) {
                 LOGE(TAG_RMT, "PDU processing failed");
                 return false;
             }
@@ -371,7 +378,7 @@ bool_t xRmtReceive(struct rmt_t *pxRmt,
 	 * forwarding to next hop will be consider in other version. */
 	else {
 		if (!xDstAddr)
-			return xRmtProcessMgmtPdu(unPortId, pxDu);
+			return xRmtProcessMgmtPdu(unPortId, pxDuData);
 		else
 		{
 			LOGI(TAG_RMT, "PDU is not for me");
@@ -391,23 +398,26 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 
 	CALL_IPCP_CHECK(xStatus, pxN1Port->pxN1Ipcp, duWrite, pxN1Port->unPort, pxDu, false)
 	{
-		// n1_port_lock(n1_port);
-		if (pxN1Port->pxPendingDu) {
-			LOGE(TAG_RMT, "Already a pending SDU present for port %d", pxN1Port->unPort);
-			pxN1Port->xStats.plen--;
-		}
+        LOGE(TAG_RMT, "Failed to write SDU to port %d", pxN1Port->unPort);
+        return false;
+	} else {
+		/* // n1_port_lock(n1_port); */
+		/* if (pxN1Port->pxPendingDu) { */
+		/* 	LOGE(TAG_RMT, "Already a pending SDU present for port %d", pxN1Port->unPort); */
+		/* 	pxN1Port->xStats.plen--; */
+		/* } */
 
-		pxN1Port->pxPendingDu = pxDu;
-		pxN1Port->xStats.plen++;
-		LOGI(TAG_RMT, "xRmtN1PortWriteDu:Pending");
+		/* pxN1Port->pxPendingDu = pxDu; */
+		/* pxN1Port->xStats.plen++; */
 
-		if (pxN1Port->eState == eN1_PORT_STATE_DO_NOT_DISABLE)
-			pxN1Port->eState = eN1_PORT_STATE_ENABLED;
-		else
-			pxN1Port->eState = eN1_PORT_STATE_DISABLED;
-	}
+		/* if (pxN1Port->eState == eN1_PORT_STATE_DO_NOT_DISABLE) */
+		/* 	pxN1Port->eState = eN1_PORT_STATE_ENABLED; */
+		/* else */
+		/* 	pxN1Port->eState = eN1_PORT_STATE_DISABLED; */
 
-	return true;
+        /* return true; */
+        return true;
+    }
 }
 
 bool_t xRmtSendPortId(struct rmt_t *pxRmt, portId_t unPort, du_t *pxDu)

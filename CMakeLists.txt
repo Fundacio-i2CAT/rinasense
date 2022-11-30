@@ -129,13 +129,23 @@ else()
 
     include(CTest)
     include(GNUInstallDirs)
+    include(FindPkgConfig)
+
+    # Look for Valgrind development files.
+    pkg_check_modules(VALGRIND valgrind)
+    if (${VALGRIND_FOUND})
+      message("Valgrind FOUND AT: ${VALGRIND_INCLUDE_DIRS}")
+      set(VALGRIND_EXTRA -I${VALGRIND_INCLUDE_DIRS} -DHAS_VALGRIND)
+    else()
+      set(VALGRIND_EXTRA "")
+    endif()
 
     # Add all components objects in the Linux shared library.
     foreach(component IN LISTS shared_library_components)
       list(APPEND shared_library_objects $<TARGET_OBJECTS:${component}>)
       rs_get_component_include_dirs(${component} component_includes)
       list(APPEND shared_library_includes ${component_includes})
-      target_compile_options(${component} PRIVATE -fPIC)
+      target_compile_options(${component} PRIVATE -fPIC ${VALGRIND_EXTRA})
     endforeach()
 
     # Public headers we'll install with the target

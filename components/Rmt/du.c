@@ -17,24 +17,24 @@
 
 #define TAG_DTP "[DTP]"
 
-bool_t xDuDecap(du_t *pxDu)
+bool_t xDuDecap(size_t unSz, du_t *pxDu)
 {
     RsAssert(eNetBufType(pxDu) == NB_RINA_PCI);
-    return xNetBufPop(pxDu, unNetBufSize(pxDu));
+    return xNetBufSplit(pxDu, NB_RINA_DATA, unSz);
 }
 
-bool_t xDuEncap(void *pvPci, size_t unSz, du_t *pxDu)
+du_t *xDuEncap(void *pvPci, size_t unSz, du_t *pxDu)
 {
     netbuf_t *pxNb;
 
     RsAssert(eNetBufType(pxDu) == NB_RINA_DATA);
 
     if (!(pxNb = pxNetBufNew(pxDu->xPool, NB_RINA_PCI, pvPci, unSz, NETBUF_FREE_POOL)))
-        return false;
+        return NULL;
 
     vNetBufAppend(pxNb, pxDu);
 
-    return true;
+    return pxNb;
 }
 
 size_t xDuLen(du_t *pxDu)
