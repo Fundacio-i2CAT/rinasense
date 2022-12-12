@@ -25,6 +25,17 @@ typedef struct
  */
 #define ENROLLMENT_MSG_SIZE 1500
 
+#define _SERDES_FIELD_COPY(x, i, y)                \
+    if (y) {                                       \
+        strncpy(x.i, y, sizeof(x.i));              \
+        x.has_##i = true;                          \
+    }
+
+#define _SERDES_STRING_COPY(x, i, y)            \
+    if (y) {                                    \
+        strncpy(x.i, y, sizeof(x.i));           \
+    }
+
 #ifdef __cplusplus
 }
 #endif

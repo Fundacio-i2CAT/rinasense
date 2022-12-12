@@ -126,7 +126,7 @@ serObjectValue_t *pxSerDesFlowEncode(SerDesFlow_t *pxSD, flow_t *pxMsg)
     _COPY(msg.sourceNamingInfo.applicationProcessInstance, pxMsg->xSourceInfo.pcProcessInstance);
     _COPY(msg.sourceNamingInfo.applicationEntityName, pxMsg->xSourceInfo.pcEntityName);
     _COPY(msg.sourceNamingInfo.applicationEntityInstance, pxMsg->xSourceInfo.pcEntityInstance);
-    
+
     _COPY(msg.destinationNamingInfo.applicationProcessName, pxMsg->xDestInfo.pcProcessName);
     _COPY(msg.destinationNamingInfo.applicationProcessInstance, pxMsg->xDestInfo.pcProcessInstance);
     _COPY(msg.destinationNamingInfo.applicationEntityName, pxMsg->xDestInfo.pcEntityName);

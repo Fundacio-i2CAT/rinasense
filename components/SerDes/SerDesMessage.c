@@ -12,31 +12,11 @@
 
 #define TAG_SD_MSG "[SD-MSG]"
 
-char *opcodeNamesTable[] = {
-    [M_CONNECT] = "M_CONNECT",
-    [M_CONNECT_R] = "M_CONNECT_R",
-    [M_RELEASE] = "M_RELEASE",
-    [M_RELEASE_R] = "M_RELEASE_R",
-    [M_CREATE] = "M_CREATE",
-    [M_CREATE_R] = "M_CREATE_R",
-    [M_DELETE] = "M_DELETE",
-    [M_DELETE_R] = "M_DELETE_R",
-    [M_READ] = "M_READ",
-    [M_READ_R] = "M_READ_R",
-    [M_CANCELREAD] = "M_CANCELREAD",
-    [M_CANCELREAD_R] = "M_CANCELREAD_R",
-    [M_WRITE] = "M_WRITE",
-    [M_WRITE_R] = "M_WRITE_R",
-    [M_START] = "M_START",
-    [M_START_R] = "M_START_R",
-    [M_STOP] = "M_STOP",
-    [M_STOP_R] = "M_STOP_R"};
-
 void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
 {
     LOGD(TAG_SD_MSG, "DECODE");
     LOGD(TAG_SD_MSG, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
-    LOGD(TAG_SD_MSG, "Invoke Id: %d ", pxDecodeCdap->invokeID);
+    LOGD(TAG_SD_MSG, "Invoke Id: %d ", pxDecodeCdap->nInvokeID);
     LOGD(TAG_SD_MSG, "Version: %jd", pxDecodeCdap->version);
 
     if (pxDecodeCdap->xAuthPolicy.pcName != NULL) {
@@ -107,7 +87,7 @@ serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *px
     xMsg.version = pxMsgCdap->version;
     xMsg.has_version = true;
     xMsg.opCode = (rina_messages_opCode_t)pxMsgCdap->eOpCode;
-    xMsg.invokeID = pxMsgCdap->invokeID;
+    xMsg.invokeID = pxMsgCdap->nInvokeID;
     xMsg.has_invokeID = true;
 
     if (pxMsgCdap->result != -1) {
@@ -233,7 +213,7 @@ messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD, uint8_t *pucBuffer, 
 
     pxMsg->eOpCode = (opCode_t)message.opCode;
     pxMsg->version = message.version;
-    pxMsg->invokeID = message.invokeID;
+    pxMsg->nInvokeID = message.invokeID;
     pxMsg->result = message.result;
     pxMsg->objInst = message.objInst;
 

@@ -19,16 +19,6 @@ address_t xEnrollmentGetNeighborAddress(Enrollment_t *pxEnrollment, string_t pcR
 
 neighborInfo_t *pxEnrollmentFindNeighbor(Enrollment_t *pxEnrollment, string_t pcRemoteApName);
 
-/* RIB Handlers */
-
-bool_t xEnrollmentEnroller(struct ipcpInstanceData_t *pxData,
-                           ribObject_t *pxEnrRibObj,
-                           serObjectValue_t *pxObjValue,
-                           string_t pcRemoteApName,
-                           string_t pcLocalApName,
-                           int invokeId,
-                           portId_t xN1Port);
-
 bool_t xEnrollmentHandleConnect(struct ipcpInstanceData_t *pxData,
                                 string_t pcRemoteName,
                                 portId_t unPort);
@@ -37,25 +27,46 @@ bool_t xEnrollmentHandleConnectR(struct ipcpInstanceData_t *pxData,
                                  string_t pcRemoteName,
                                  portId_t unPort);
 
+/* RIB Handlers */
+
+bool_t xEnrollmentNeighborsRead(struct ipcpInstanceData_t *pxData,
+                                ribObject_t *pxThis,
+                                serObjectValue_t *pxObjValue,
+                                rname_t *pxRemoteName,
+                                rname_t *pxLocalName,
+                                invokeId_t invokeId,
+                                portId_t unPort);
+
+bool_t xEnrollmentEnroller(struct ipcpInstanceData_t *pxData,
+                           ribObject_t *pxThis,
+                           serObjectValue_t *pxObjValue,
+                           rname_t *pxRemoteName,
+                           rname_t *pxLocalName,
+                           invokeId_t invokeId,
+                           portId_t unPort);
+
+bool_t xEnrollmentHandleOperationalStart(struct ipcpInstanceData_t *pxData,
+                                         ribObject_t *pxThis,
+                                         serObjectValue_t *pxObjValue,
+                                         rname_t *pxRemoteName,
+                                         rname_t *pxLocalName,
+                                         invokeId_t invokeId,
+                                         portId_t unPort);
+
+bool_t xEnrollmentHandleStop(struct ipcpInstanceData_t *pxData,
+                             ribObject_t *pxThis,
+                             serObjectValue_t *pxObjValue,
+                             rname_t *pxRemoteName,
+                             rname_t *pxLocalName,
+                             invokeId_t invokeId,
+                             portId_t unPort);
+
 bool_t xEnrollmentHandleStartR(struct ipcpInstanceData_t *pxData,
                                string_t pcRemoteApName,
                                serObjectValue_t *pxSerObjValue);
 
 bool_t xEnrollmentHandleStopR(struct ipcpInstanceData_t *pxData,
                               string_t pcRemoteApName);
-
-bool_t xEnrollmentHandleStop(struct ipcpInstanceData_t *pxData,
-                             ribObject_t *pxEnrRibObj,
-                             serObjectValue_t *pxObjValue, string_t pcRemoteApName,
-                             string_t pcLocalProcessName, int invokeId, portId_t xN1Port);
-
-bool_t xEnrollmentHandleOperationalStart(struct ipcpInstanceData_t *pxData,
-                                         ribObject_t *pxOperRibObj,
-                                         serObjectValue_t *pxSerObjectValue,
-                                         string_t pcRemoteApName,
-                                         string_t pxLocalApName,
-                                         int invokeId,
-                                         portId_t xN1Port);
 
 
 #ifdef __cplusplus

@@ -1,8 +1,9 @@
-#ifndef RIB_OBJECT_H_INCLUDED
-#define RIB_OBJECT_H_INCLUDED
+#ifndef _RIB_OBJECT_H_INCLUDED
+#define _RIB_OBJECT_H_INCLUDED
 
 #include "portability/port.h"
 #include "common/rina_ids.h"
+#include "common/rina_name.h"
 
 #include "SerDes.h"
 #include "Enrollment_obj.h"
@@ -14,32 +15,35 @@ extern "C" {
 
 struct xRIBOBJ;
 
-typedef struct
-{
-    bool_t (*start)(struct ipcpInstanceData_t *pxData,
-                    struct xRIBOBJ *pxRibObject, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
-                    string_t pxLocalApName, int invokeId, portId_t xN1Port);
+typedef bool_t (*ribObjectMethod)(struct ipcpInstanceData_t *pxData,
+                                  struct xRIBOBJ *pxThis,
+                                  serObjectValue_t *pxObjValue,
+                                  rname_t *pxRemoteName,
+                                  rname_t *pxLocalName,
+                                  invokeId_t nInvokeId,
+                                  portId_t unPort);
 
-    bool_t (*stop)(struct ipcpInstanceData_t *pxData,
-                   struct xRIBOBJ *pxRibObject, serObjectValue_t *pxObjValue, string_t pcRemoteApName,
-                   string_t pxLocalApName, int invokeId, portId_t xN1Port);
+typedef bool_t (*ribObjectShow)(struct ipcpInstanceData_t *pxData,
+                                struct xRIBOBJ *pxThis);
 
-    bool_t (*create)(struct ipcpInstanceData_t *pxData,
-                     struct xRIBOBJ *pxRibObject, serObjectValue_t *pxObjValue, string_t remote_process_name,
-                     string_t local_process_name, int invokeId, portId_t xN1Port);
-
-    bool_t (*delete)(struct ipcpInstanceData_t *pxData, struct xRIBOBJ *pxRibObject, int invoke_id);
-
-} ribObjOps_t;
-
+typedef void (*ribObjectFree)(struct xRIBOBJ *pxThis);
 
 struct xRIBOBJ
 {
-    ribObjOps_t *pxObjOps;
     string_t ucObjName;
     string_t ucObjClass;
     long ulObjInst;
-    string_t ucDisplayableValue;
+
+    ribObjectMethod fnStart;
+    ribObjectMethod fnStop;
+    ribObjectMethod fnCreate;
+    ribObjectMethod fnDelete;
+    ribObjectMethod fnRead;
+    ribObjectMethod fnWrite;
+
+    ribObjectShow fnShow;
+
+    ribObjectFree fnFree;
 };
 
 typedef struct xRIBOBJ ribObject_t;
@@ -48,4 +52,4 @@ typedef struct xRIBOBJ ribObject_t;
 }
 #endif
 
-#endif /* RIB_OBJECT_H_INCLUDED */
+#endif /* _RIB_OBJECT_H_INCLUDED */

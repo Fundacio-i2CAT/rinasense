@@ -21,8 +21,7 @@ typedef struct _rina_messages_neighbor_t { /* carries information about a neighb
     char aeinstance[20];
     bool has_address;
     uint64_t address;
-    pb_size_t supportingDifs_count;
-    char supportingDifs[1][20];
+    pb_callback_t supportingDifs;
 } rina_messages_neighbor_t;
 
 
@@ -31,8 +30,8 @@ extern "C" {
 #endif
 
 /* Initializer values for message structs */
-#define rina_messages_neighbor_t_init_default    {false, "", false, "", false, "", false, "", false, 0, 0, {""}}
-#define rina_messages_neighbor_t_init_zero       {false, "", false, "", false, "", false, "", false, 0, 0, {""}}
+#define rina_messages_neighbor_t_init_default    {false, "", false, "", false, "", false, "", false, 0, {{NULL}, NULL}}
+#define rina_messages_neighbor_t_init_zero       {false, "", false, "", false, "", false, "", false, 0, {{NULL}, NULL}}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define rina_messages_neighbor_t_apname_tag      1
@@ -49,8 +48,8 @@ X(a, STATIC,   OPTIONAL, STRING,   apinstance,        2) \
 X(a, STATIC,   OPTIONAL, STRING,   aename,            3) \
 X(a, STATIC,   OPTIONAL, STRING,   aeinstance,        4) \
 X(a, STATIC,   OPTIONAL, UINT64,   address,           5) \
-X(a, STATIC,   REPEATED, STRING,   supportingDifs,    6)
-#define rina_messages_neighbor_t_CALLBACK NULL
+X(a, CALLBACK, REPEATED, STRING,   supportingDifs,    6)
+#define rina_messages_neighbor_t_CALLBACK pb_default_field_callback
 #define rina_messages_neighbor_t_DEFAULT NULL
 
 extern const pb_msgdesc_t rina_messages_neighbor_t_msg;
@@ -59,7 +58,7 @@ extern const pb_msgdesc_t rina_messages_neighbor_t_msg;
 #define rina_messages_neighbor_t_fields &rina_messages_neighbor_t_msg
 
 /* Maximum encoded size of messages (where known) */
-#define rina_messages_neighbor_t_size            117
+/* rina_messages_neighbor_t_size depends on runtime parameters */
 
 #ifdef __cplusplus
 } /* extern "C" */

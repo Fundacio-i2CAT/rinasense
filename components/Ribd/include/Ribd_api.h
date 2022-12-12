@@ -24,6 +24,14 @@ bool_t xRibdProcessLayerManagementPDU(struct ipcpInstanceData_t *pxData,
                                       portId_t xN1flowPortId,
                                       du_t *pxDu);
 
+bool_t xRibdSend(Ribd_t *pxRibd,
+                 string_t pcObjClass,
+                 string_t pcObjName,
+                 long objInst,
+                 opCode_t eOpCode,
+                 portId_t xN1flowPortId,
+                 serObjectValue_t *pxObjVal);
+
 bool_t xRibdSendRequest(Ribd_t *pxRibd,
                         string_t pcObjClass,
                         string_t pcObjName,

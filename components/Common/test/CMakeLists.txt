@@ -65,6 +65,20 @@ else()
     unity
   )
 
+  add_executable(test_datapacker "${CMAKE_CURRENT_LIST_DIR}/test_datapacker.c")
+  target_link_libraries(test_datapacker
+    Common
+    Portability
+    unity
+  )
+
+  add_executable(test_arraylist "${CMAKE_CURRENT_LIST_DIR}/test_arraylist.c")
+  target_link_libraries(test_arraylist
+    Common
+    Portability
+    unity
+  )
+
   add_test(
     NAME "test_ids"
     COMMAND "./test_ids"
@@ -98,5 +112,15 @@ else()
   add_test(
     NAME test_netbuf
     COMMAND "./test_netbuf"
+  )
+
+  add_test(
+    NAME test_datapacker
+    COMMAND "./test_datapacker"
+  )
+
+  add_test(
+    NAME test_arraylist
+    COMMAND "./test_arraylist"
   )
 endif()

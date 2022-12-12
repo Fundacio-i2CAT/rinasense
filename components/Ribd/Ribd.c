@@ -106,7 +106,7 @@ void prvRibdHandleAData(struct ipcpInstanceData_t *pxData, serObjectValue_t *pxO
 
     switch (pxDecodeCdap->eOpCode) {
     case M_CREATE_R:
-        pxCallback = prvRibdFindPendingResponseHandler(&pxData->xRibd, pxDecodeCdap->invokeID);
+        pxCallback = prvRibdFindPendingResponseHandler(&pxData->xRibd, pxDecodeCdap->nInvokeID);
         if (!pxCallback) {
             LOGE(TAG_RIB, "Failed to find proper response handler");
             break;
@@ -118,7 +118,14 @@ void prvRibdHandleAData(struct ipcpInstanceData_t *pxData, serObjectValue_t *pxO
         break;
 
     case M_DELETE:
-        pxRibObject->pxObjOps->delete(pxData, pxRibObject, pxDecodeCdap->invokeID);
+        if (pxRibObject->fnDelete)
+            pxRibObject->fnDelete(pxData, pxRibObject, NULL,
+                                  &pxDecodeCdap->xDestinationInfo,
+                                  &pxDecodeCdap->xSourceInfo,
+                                  pxDecodeCdap->nInvokeID,
+                                  PORT_ID_WRONG);
+        else
+            LOGW(TAG_RIB, "Unsupported method M_DELETE on object %s", pxRibObject->ucObjName);
 
         break;
     default:
@@ -277,58 +284,54 @@ bool_t prvRibHandleMessage(struct ipcpInstanceData_t *pxData,
         /* Calling the Create function of the enrollment object to create a Neighbor object and
          * add into the RibObject table
          */
+        #if 0
         pxRibCreateObject(&pxData->xRibd,
                           pxDecodeCdap->pcObjName, pxDecodeCdap->objInst,
                           pxDecodeCdap->pcObjName, pxDecodeCdap->pcObjClass,
                           ENROLLMENT);
+        #endif
         break;
 
     case M_STOP:
         LOGI(TAG_RIB, "Preparing a M_STOP_R");
 
-        pxRibObject->pxObjOps->stop(pxData,
-                                    pxRibObject,
-                                    pxDecodeCdap->pxObjValue,
-                                    pxAppCon->xDestinationInfo.pcProcessName,
-                                    pxAppCon->xSourceInfo.pcProcessName,
-                                    pxDecodeCdap->invokeID,
-                                    unPort);
+        pxRibObject->fnStop(pxData,
+                            pxRibObject,
+                            pxDecodeCdap->pxObjValue,
+                            &pxAppCon->xDestinationInfo,
+                            &pxAppCon->xSourceInfo,
+                            pxDecodeCdap->nInvokeID,
+                            unPort);
         break;
 
     case M_START:
         LOGI(TAG_RIB, "Preparing a M_START_R");
 
-        pxRibObject->pxObjOps->start(pxData,
-                                     pxRibObject,
-                                     pxDecodeCdap->pxObjValue,
-                                     pxAppCon->xDestinationInfo.pcProcessName,
-                                     pxAppCon->xSourceInfo.pcProcessName,
-                                     pxDecodeCdap->invokeID,
-                                     unPort);
+        pxRibObject->fnStart(pxData,
+                             pxRibObject,
+                             pxDecodeCdap->pxObjValue,
+                             &pxAppCon->xDestinationInfo,
+                             &pxAppCon->xSourceInfo,
+                             pxDecodeCdap->nInvokeID,
+                             unPort);
         break;
 
     case M_START_R:
         /* Looking for a pending request */
-        pxCallback = prvRibdFindPendingResponseHandler(&pxData->xRibd, pxDecodeCdap->invokeID);
+        pxCallback = prvRibdFindPendingResponseHandler(&pxData->xRibd, pxDecodeCdap->nInvokeID);
         pxCallback->start_response(pxData, pxAppCon->xDestinationInfo.pcProcessName, pxDecodeCdap->pxObjValue);
 
         break;
     case M_STOP_R:
-        /* Looking for a pending request */
-        pxCallback = prvRibdFindPendingResponseHandler(&pxData->xRibd, pxDecodeCdap->invokeID);
+        pxCallback = prvRibdFindPendingResponseHandler(&pxData->xRibd, pxDecodeCdap->nInvokeID);
         pxCallback->stop_response(pxData, pxAppCon->xDestinationInfo.pcProcessName);
-
         break;
     case M_CREATE_R:
-        pxCallback = prvRibdFindPendingResponseHandler(&pxData->xRibd, pxDecodeCdap->invokeID);
+        pxCallback = prvRibdFindPendingResponseHandler(&pxData->xRibd, pxDecodeCdap->nInvokeID);
         pxCallback->create_response(pxData, pxDecodeCdap->pxObjValue, pxDecodeCdap->result);
-
         break;
-    // for testing purposes
+
     case M_WRITE:
-
-        LOGD(TAG_RIB, "-------Handling M_WRITE----------");
-
         if (strcmp(pxDecodeCdap->pcObjName, "a_data") == 0) {
             LOGD(TAG_RIB, "Handling M_WRITE a_data sending to decode");
 
@@ -345,11 +348,25 @@ bool_t prvRibHandleMessage(struct ipcpInstanceData_t *pxData,
 
         break;
 
-    case M_DELETE:
-        LOGD(TAG_RIB, "Deleting");
+    case M_READ:
+        LOGW(TAG_RIB, "Preparing a M_READ_R on objName: %s", pxDecodeCdap->pcObjName);
+        if (pxRibObject->fnRead)
+            pxRibObject->fnRead(pxData,
+                                pxRibObject,
+                                pxDecodeCdap->pxObjValue,
+                                &pxDecodeCdap->xDestinationInfo,
+                                &pxDecodeCdap->xSourceInfo,
+                                pxDecodeCdap->nInvokeID,
+                                unPort);
+
+        /* Iterate over the connection table. */
+
+        /* Neighbors */
+        
         break;
 
     default:
+        LOGE(TAG_RIB, "Unhandled CDAP message type: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
         ret = false;
         break;
     }
@@ -444,6 +461,7 @@ bool_t xRibdSendResponse(Ribd_t *pxRibd,
     case M_CONNECT_R:
     case M_START_R:
     case M_STOP_R:
+    case M_READ_R:
         pxMsgCdap = pxRibdCdapMsgCreateResponse(pxRibd,
                                                 pcObjClass, pcObjName, objInst, eOpCode, pxObjVal,
                                                 result, pcResultReason, invokeId);
@@ -479,67 +497,6 @@ bool_t xRibdSendResponse(Ribd_t *pxRibd,
 
     return xStatus;
 }
-
-#if 0
-bool_t xRibdConnectToIpcp(Ribd_t *pxRibd,
-                          struct ipcpInstanceData_t *pxIpcpData,
-                          rname_t *pxSource,
-                          rname_t *pxDestInfo,
-                          portId_t unPort,
-                          authPolicy_t *pxAuth)
-{
-    appConnection_t *pxAppConnectionTmp;
-    NetworkBufferDescriptor_t *pxNetworkBuffer;
-    messageCdap_t *pxMessageEncode;
-    size_t xBufferSize;
-
-    RsAssert(pxRibd);
-    RsAssert(pxIpcpData);
-    RsAssert(pxSource);
-    RsAssert(pxDestInfo);
-    RsAssert(is_port_id_ok(unPort));
-    RsAssert(pxAuth);
-
-    LOGI(TAG_RIB, "Preparing a M_CONNECT message");
-
-    pxMessageEncode = prvRibMessageCdapInit();
-
-    /*Fill the Message to be encoded in the connection*/
-    pxMessageEncode->eOpCode = (opCode_t)rina_messages_opCode_t_M_CONNECT;
-
-    vNameAssignStatic(&pxMessageEncode->xDestinationInfo, pxDestInfo);
-    vNameAssignStatic(&pxMessageEncode->xSourceInfo, pxSource);
-
-    pxMessageEncode->xAuthPolicy.pcName = pxAuth->pcName;
-    pxMessageEncode->xAuthPolicy.pcVersion = pxAuth->pcVersion;
-
-    // printf("ENCODE\n");
-    //vRibdPrintCdapMessage(pxMessageEncode);
-
-    /*Fill the appConnection structure*/
-    pxAppConnectionTmp = prvRibCreateConnection(pxSource, pxDestInfo);
-
-    if (!xRibdAddAppConnectionEntry(pxRibd, pxAppConnectionTmp, unPort)) {
-    }
-
-    /* Generate and Encode Message M_CONNECT*/
-    if (!(pxNetworkBuffer = prvRibdEncodeCDAP(pxMessageEncode))) {
-        LOGE(TAG_RIB, "Error encoding CDAP message");
-        return false;
-    }
-
-    /*Testing*/
-    /* pxMessageDecode = prvRibdDecodeCDAP(pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength);
-     vRibdPrintCdapMessage( pxMessageDecode );*/
-
-    if (!xRibdSendCdapMsg(pxIpcpData, pxNetworkBuffer, unPort)) {
-        LOGE(TAG_RIB, "Failed to send CDAP message");
-        return false;
-    }
-
-    return true;
-}
-#endif
 
 bool_t xRibdAddResponseHandler(Ribd_t *pxRibd, int32_t invokeID, ribCallbackOps_t *pxCb)
 {
@@ -579,6 +536,32 @@ appConnection_t *pxRibdFindAppConnection(Ribd_t *pxRibd, portId_t unPort)
     return NULL;
 }
 
+bool_t xRibdSend(Ribd_t *pxRibd,
+                 string_t pcObjClass, string_t pcObjName, long objInst,
+                 opCode_t eOpCode, portId_t xN1flowPortId, serObjectValue_t *pxObjVal)
+{
+    messageCdap_t *pxMsgCdap = NULL;
+    serObjectValue_t *pxSerVal;
+    bool_t xStatus = false;
+
+    pxMsgCdap = pxRibdCdapMsgCreateRequest(pxRibd, pcObjClass, pcObjName, objInst, eOpCode, pxObjVal);
+
+    /* This is an unconditional request, not expecting an answer. */
+    pxMsgCdap->nInvokeID = 0;
+
+    if (!(pxSerVal = pxSerDesMessageEncode(&pxRibd->xMsgSD, pxMsgCdap))) {
+        LOGE(TAG_RIB, "Failed to encode CDAP message");
+        goto fail;
+    }
+
+    xStatus = xRibdSendCdapMsg(pxRibd, pxSerVal, xN1flowPortId);
+
+    fail:
+    vRibdCdapMsgFree(pxMsgCdap);
+
+    return xStatus;
+}
+
 bool_t xRibdSendRequest(Ribd_t *pxRibd,
                         string_t pcObjClass, string_t pcObjName, long objInst,
                         opCode_t eOpCode, portId_t xN1flowPortId, serObjectValue_t *pxObjVal)
@@ -590,12 +573,12 @@ bool_t xRibdSendRequest(Ribd_t *pxRibd,
 
     pxMsgCdap = pxRibdCdapMsgCreateRequest(pxRibd, pcObjClass, pcObjName, objInst, eOpCode, pxObjVal);
 
-    if (!(pxCb = prvRibdCreateCdapCallback(pxRibd, eOpCode, pxMsgCdap->invokeID))) {
+    if (!(pxCb = prvRibdCreateCdapCallback(pxRibd, eOpCode, pxMsgCdap->nInvokeID))) {
         LOGE(TAG_RIB, "Failed to create CDAP response callback");
         goto fail;
     }
 
-    if (!xRibdAddResponseHandler(pxRibd, pxMsgCdap->invokeID, pxCb)) {
+    if (!xRibdAddResponseHandler(pxRibd, pxMsgCdap->nInvokeID, pxCb)) {
         LOGE(TAG_RIB, "Failed to add CDAP response handled");
         goto fail;
     }

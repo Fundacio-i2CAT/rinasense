@@ -11,6 +11,9 @@
 
 Ribd_t xRibd;
 
+#define OBJCLASS "a"
+#define OBJNAME  "bcde"
+
 RS_TEST_CASE_SETUP(test_cdap_message) {
     xRibdInit(&xRibd);
 }
@@ -23,9 +26,9 @@ RS_TEST_CASE(CdapMessageRequest, "[cdap]")
 
     RS_TEST_CASE_BEGIN(test_cdap_message);
 
-    TEST_ASSERT(pxMsg = pxRibdCdapMsgCreateRequest(&xRibd, "a", "b", 99, M_CREATE, NULL));
-    TEST_ASSERT(strcmp(pxMsg->pcObjClass, "a") == 0);
-    TEST_ASSERT(strcmp(pxMsg->pcObjName, "b") == 0);
+    TEST_ASSERT(pxMsg = pxRibdCdapMsgCreateRequest(&xRibd, OBJCLASS, OBJNAME, 99, M_CREATE, NULL));
+    TEST_ASSERT(strcmp(pxMsg->pcObjClass, OBJCLASS) == 0);
+    TEST_ASSERT(strcmp(pxMsg->pcObjName, OBJNAME) == 0);
     TEST_ASSERT(strcmp(pxMsg->xDestinationInfo.pcProcessInstance, "Management") == 0);
     vRibdCdapMsgFree(pxMsg);
 
@@ -38,8 +41,10 @@ RS_TEST_CASE(CdapMessageResponse, "[cdap]")
 
     RS_TEST_CASE_BEGIN(test_cdap_message);
 
-    TEST_ASSERT(pxMsg = pxRibdCdapMsgCreateResponse(&xRibd, "a", "b", 99, M_CREATE_R, NULL, 1, "Test", 1));
+    TEST_ASSERT(pxMsg = pxRibdCdapMsgCreateResponse(&xRibd, OBJCLASS, OBJNAME, 99, M_CREATE_R, NULL, 1, "Test", 1));
     TEST_ASSERT(strcmp(pxMsg->pcResultReason, "Test") == 0);
+    TEST_ASSERT(strcmp(pxMsg->pcObjClass, OBJCLASS) == 0);
+    TEST_ASSERT(strcmp(pxMsg->pcObjName, OBJNAME) == 0);
     vRibdCdapMsgFree(pxMsg);
 
     RS_TEST_CASE_END(test_cdap_message);

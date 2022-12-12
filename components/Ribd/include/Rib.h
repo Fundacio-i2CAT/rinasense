@@ -21,13 +21,6 @@ extern "C" {
 
 ribObject_t *pxRibFindObject(Ribd_t *pxRibd, string_t ucRibObjectName);
 
-ribObject_t *pxRibCreateObject(Ribd_t *pxRibd,
-                               string_t ucObjName,
-                               long ulObjInst,
-                               string_t ucDisplayableValue,
-                               string_t ucObjClass,
-                               eObjectType_t eObjType);
-
 bool_t xRibAddObjectEntry(Ribd_t *pxRibd, ribObject_t *pxRibObject);
 
 #ifdef __cplusplus

@@ -7,6 +7,8 @@
 #include "common/rina_ids.h"
 
 #include "SerDes.h"
+#include "NeighborMessage.pb.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,8 +52,18 @@ typedef struct
     string_t pcAeName;
     string_t pcAeInstance;
     uint64_t ullAddress;
-    string_t pcSupportingDifs;
+
+    size_t unSupportingDifCount;
+    string_t pcSupportingDifs[];
 } neighborMessage_t;
+
+typedef struct
+{
+    size_t unNb;
+
+    neighborMessage_t *pxNeighsMsg[];
+
+} neighborsMessage_t;
 
 typedef struct
 {
@@ -65,6 +77,14 @@ bool_t xSerDesNeighborInit(NeighborSerDes_t *pxSD);
 serObjectValue_t *pxSerDesNeighborEncode(NeighborSerDes_t *pxSD, neighborMessage_t *pxMsg);
 
 neighborMessage_t *pxSerDesNeighborDecode(NeighborSerDes_t *pxSD, uint8_t *pucBuffer, size_t xMessageLength);
+
+serObjectValue_t *pxSerDesNeighborListEncode(NeighborSerDes_t *pxSD,
+                                             size_t unNeighCount,
+                                             neighborMessage_t **pxNeighbors);
+
+neighborsMessage_t *pxSerDesNeighborListDecode(NeighborSerDes_t *pxSD,
+                                               uint8_t *pucBuffer,
+                                               size_t xMessageLength);
 
 #ifdef __cplusplus
 }

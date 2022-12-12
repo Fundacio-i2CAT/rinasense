@@ -15,4 +15,17 @@ else()
     NAME test_SerDesMessage
     COMMAND "./test_SerDesMessage"
   )
+
+  add_executable(test_SerDesNeighbor "${CMAKE_CURRENT_LIST_DIR}/test_SerDesNeighbor.c")
+  target_link_libraries(test_SerDesNeighbor
+    RINA
+    SerDes
+    NetworkInterface_MQ
+    unity
+  )
+
+  add_test(
+    NAME test_SerDesNeighbor
+    COMMAND "./test_SerDesNeighbor"
+  )
 endif()

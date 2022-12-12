@@ -19,7 +19,7 @@ EnrollmentSerDes_t xEnrollmentSD;
 static void BullshitMsg(messageCdap_t *pxMsg)
 {
     pxMsg->version = 1;
-    pxMsg->invokeID = 1;
+    pxMsg->nInvokeID = 1;
     pxMsg->eOpCode = M_START;
     pxMsg->objInst = 1;
 
@@ -39,7 +39,7 @@ static void BullshitMsg(messageCdap_t *pxMsg)
 static void IsBullshitMsgOkay(messageCdap_t *pxMsgA, messageCdap_t *pxMsgB)
 {
     TEST_ASSERT(pxMsgA->version  == pxMsgB->version);
-    TEST_ASSERT(pxMsgA->invokeID == pxMsgB->invokeID);
+    TEST_ASSERT(pxMsgA->nInvokeID == pxMsgB->nInvokeID);
     TEST_ASSERT(pxMsgA->eOpCode  == pxMsgB->eOpCode);
     TEST_ASSERT(pxMsgA->objInst  == pxMsgB->objInst);
     TEST_ASSERT(pxMsgA->result   == pxMsgB->result);

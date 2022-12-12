@@ -2,6 +2,7 @@
 #define _RIBD_MSG_H_INCLUDED
 
 #include "common/rina_name.h"
+#include "common/rina_ids.h"
 
 #include "rina_common_port.h"
 #include "SerDes.h"
@@ -54,7 +55,7 @@ typedef struct
     authPolicy_t xAuthPolicy;
 
     /*Invoke ID*/
-    int32_t invokeID;
+    invokeId_t nInvokeID;
 
     /*Name of the object class of objName*/
     string_t pcObjClass;

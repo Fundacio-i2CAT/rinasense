@@ -9,6 +9,8 @@ void *pvRsMemCAlloc(size_t unNb, size_t unSz);
 
 void *pvRsMemAlloc(size_t unSz);
 
+void *pvRsMemRealloc(void *px, size_t unSz);
+
 void vRsMemFree(void *px);
 
 #ifdef __cplusplus

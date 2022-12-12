@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "FlowAllocator_obj.h"
+#include "linux_rsmem.h"
 #include "portability/port.h"
 #include "common/rina_ids.h"
 #include "common/rina_name.h"
@@ -50,6 +52,12 @@ bool_t xFlowAllocatorInit(flowAllocator_t *pxFA, Enrollment_t *pxEnrollment, Rib
     LOGI(TAG_FA, "Flow Allocated initialized successfully");
 
     return true;
+}
+
+void prvFlowAllocatorFreeFlowRibObject(ribObject_t *pxThis)
+{
+    vRsMemFree(pxThis->ucObjName);
+    vRsMemFree(pxThis);
 }
 
 /* OLD UNREVIEWED API */
@@ -272,21 +280,28 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
     /* Send the flow message to the neighbor */
     // Serialize the pxFLow Struct into FlowMsg and Encode the FlowMsg as obj_value
     serObjectValue_t *pxObjVal = NULL;
+    ribObject_t *pxFlowRibObj = NULL;
 
     pxObjVal = pxSerDesFlowEncode(&pxFA->xSD, pxFlow);
+
+    if (!(pxFlowRibObj = pvRsMemCAlloc(1, sizeof(ribObject_t)))) {
+    }
 
     char flowObj[CHAR_MAX];
     sprintf(flowObj, "/fa/flows/key=%d-%d", pxFlow->xSourceAddress, pxFlow->xSourcePortId);
 
-    if (!pxRibCreateObject(pxFA->pxRib, flowObj, -1, "Flow", "Flow", FLOW))
-    {
-        LOGE(TAG_FA, "It was a problem to create Rib Object");
-    }
+    pxFlowRibObj->ucObjClass = "Flow";
+    pxFlowRibObj->ucObjName = flowObj;
+    pxFlowRibObj->fnCreate = NULL;
+    pxFlowRibObj->fnDelete = &xFlowAllocatorHandleDelete;
+    pxFlowRibObj->fnRead = NULL;
+    pxFlowRibObj->fnWrite = NULL;
+    pxFlowRibObj->fnStart = NULL;
+    pxFlowRibObj->fnStop = NULL;
+    pxFlowRibObj->fnFree = &prvFlowAllocatorFreeFlowRibObject;
 
-    if (!xRibdSendRequest(&pxIpcpData->xRibd, "Flow", flowObj, -1, M_CREATE, pxNeighbor->xN1Port, pxObjVal))
-    {
-        LOGE(TAG_FA, "It was a problem to send the request");
-        // return pdFALSE;
+    if (xRibAddObjectEntry(pxFA->pxRib, pxFlowRibObj)) {
+        LOGE(TAG_FA, "Failed to add RIB object for flow");
     }
 
     if (pxObjVal != NULL)
@@ -362,7 +377,13 @@ bool_t xFlowAllocatorHandleDeleteR(struct ipcpInstanceData_t *pxData, ribObject_
     return false;
 }
 
-bool_t xFlowAllocatorHandleDelete(struct ipcpInstanceData_t *pxData, ribObject_t *pxRibObject, int invoke_id)
+bool_t xFlowAllocatorHandleDelete(struct ipcpInstanceData_t *pxData,
+                                  ribObject_t *pxThis,
+                                  serObjectValue_t *pxObjValue,
+                                  rname_t *pxRemoteName,
+                                  rname_t *pxLocalName,
+                                  invokeId_t nInvokeId,
+                                  portId_t unPort)
 {
     LOGD(TAG_FA, "Calling: %s", __func__);
 

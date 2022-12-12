@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "RibObject.h"
 #include "configRINA.h"
 
 #include "rina_common_port.h"
@@ -61,55 +62,3 @@ ribObject_t *pxRibFindObject(Ribd_t *pxRibd, string_t ucRibObjectName)
     return NULL;
 }
 
-ribObject_t *pxRibCreateObject(Ribd_t *pxRibd,
-                               string_t ucObjName,
-                               long ulObjInst,
-                               string_t ucDisplayableValue,
-                               string_t ucObjClass,
-                               eObjectType_t eObjType)
-{
-    LOGI(TAG_RIB, "Creating object %s into the RIB", ucObjName);
-    ribObject_t *pxObj = pvRsMemAlloc(sizeof(ribObject_t));
-    ribObjOps_t *pxObjOps = pvRsMemAlloc(sizeof(ribObjOps_t));
-
-    pxObj->ucObjName = strdup(ucObjName);
-    pxObj->ulObjInst = ulObjInst;
-    pxObj->ucDisplayableValue = ucDisplayableValue;
-    pxObj->pxObjOps = pxObjOps;
-
-    switch (eObjType)
-    {
-    case ENROLLMENT:
-        pxObj->pxObjOps->stop = xEnrollmentHandleStop;
-        pxObj->pxObjOps->start = xEnrollmentEnroller;
-        break;
-
-    case FLOW_ALLOCATOR:
-        // M_create
-        // M_Delete
-        // M_write
-
-        break;
-
-    case OPERATIONAL:
-        pxObj->pxObjOps->start = xEnrollmentHandleOperationalStart;
-        break;
-
-    case FLOW:
-        pxObj->pxObjOps->delete = xFlowAllocatorHandleDelete;
-        // pxObj->pxObjOps->create = xFlowAllocatorHandleCreate;
-
-        break;
-
-    default:
-        pxObj->pxObjOps->create = NULL;
-        break;
-    }
-
-    /*Add object into the table*/
-    if (!xRibAddObjectEntry(pxRibd, pxObj)) {
-    }
-    else LOGI(TAG_RIB, "RIB object created: %s, %p", pxObj->ucObjName, pxObj);
-
-    return pxObj;
-}

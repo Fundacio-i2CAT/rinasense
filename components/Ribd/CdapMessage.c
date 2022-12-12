@@ -4,6 +4,26 @@
 #include "SerDes.h"
 #include "common/rina_name.h"
 
+char *opcodeNamesTable[] = {
+    [M_CONNECT] = "M_CONNECT",
+    [M_CONNECT_R] = "M_CONNECT_R",
+    [M_RELEASE] = "M_RELEASE",
+    [M_RELEASE_R] = "M_RELEASE_R",
+    [M_CREATE] = "M_CREATE",
+    [M_CREATE_R] = "M_CREATE_R",
+    [M_DELETE] = "M_DELETE",
+    [M_DELETE_R] = "M_DELETE_R",
+    [M_READ] = "M_READ",
+    [M_READ_R] = "M_READ_R",
+    [M_CANCELREAD] = "M_CANCELREAD",
+    [M_CANCELREAD_R] = "M_CANCELREAD_R",
+    [M_WRITE] = "M_WRITE",
+    [M_WRITE_R] = "M_WRITE_R",
+    [M_START] = "M_START",
+    [M_START_R] = "M_START_R",
+    [M_STOP] = "M_STOP",
+    [M_STOP_R] = "M_STOP_R"};
+
 void prvCopyCommonStrings(messageCdap_t *pxMsg,
                           string_t pcObjClass, string_t pcObjName, serObjectValue_t *pxObjValue,
                           size_t unSzObjClass, size_t unSzObjName,
@@ -23,13 +43,15 @@ void prvCopyCommonStrings(messageCdap_t *pxMsg,
     }
 
     if (pcObjName != NULL) {
-        pxMsg->pcObjName = (px += unSzObjName + 1);
+        pxMsg->pcObjName = px;
         strcpy(pxMsg->pcObjName, pcObjName);
+        px += unSzObjName;
     }
 
     if (pcObjClass != NULL) {
-        pxMsg->pcObjClass = (px += unSzObjClass + 1);
+        pxMsg->pcObjClass = px;
         strcpy(pxMsg->pcObjClass, pcObjClass);
+        px += unSzObjClass;
     }
 
     if (pxNext) *pxNext = px;
@@ -41,10 +63,10 @@ size_t prvCountCommonItems(string_t pcObjClass, string_t pcObjName, serObjectVal
     size_t unSz = 0;
 
     if (pcObjName != NULL)
-        unSz += (*pxUnSzObjName = strlen(pcObjName) + 1);
+        unSz += (*pxUnSzObjName = (strlen(pcObjName) + 1));
 
     if (pcObjClass != NULL)
-        unSz += (*pxUnSzObjClass = strlen(pcObjClass) + 1);
+        unSz += (*pxUnSzObjClass = (strlen(pcObjClass) + 1));
 
     if (pxObjValue != NULL)
         unSz += sizeof(serObjectValue_t) + pxObjValue->xSerLength;
@@ -79,7 +101,7 @@ messageCdap_t *pxRibdCdapMsgCreateResponse(Ribd_t *pxRibd,
     if (!(pxMsg = pxRibdCdapMsgCreate(pxRibd, sizeof(messageCdap_t) + unSz)))
         return NULL;
 
-    pxMsg->invokeID = nInvokeId;
+    pxMsg->nInvokeID = nInvokeId;
     pxMsg->eOpCode = eOpCode;
     pxMsg->objInst = nObjInst;
 
@@ -118,7 +140,7 @@ messageCdap_t *pxRibdCdapMsgCreateRequest(Ribd_t *pxRibd,
     if (!(pxMsg = pxRibdCdapMsgCreate(pxRibd, unSz)))
         return NULL;
 
-    pxMsg->invokeID = get_next_invoke_id();
+    pxMsg->nInvokeID = get_next_invoke_id();
     pxMsg->eOpCode = eOpCode;
     pxMsg->objInst = objInst;
 
@@ -146,7 +168,7 @@ messageCdap_t *pxRibdCdapMsgCreate(Ribd_t *pxRibd, size_t unSz)
 
     pxMsg->version = 0x01;
     pxMsg->eOpCode = -1; // No code
-    pxMsg->invokeID = 1; // by default
+    pxMsg->nInvokeID = 1; // by default
     pxMsg->objInst = -1;
     pxMsg->pcObjClass = NULL;
     pxMsg->pcObjName = NULL;

@@ -11,6 +11,10 @@
 #define pvRsMemCAlloc(n, sz) calloc(n, sz)
 #endif
 
+#ifndef pvRsMemRealloc
+#define pvRsMemRealloc(n, sz) realloc(n, sz)
+#endif
+
 #ifndef vRsMemFree
 #define vRsMemFree(x) free(x)
 #endif
