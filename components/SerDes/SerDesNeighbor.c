@@ -5,7 +5,6 @@
 #include "common/macros.h"
 #include "common/datapacker.h"
 
-#include "linux_rsmem.h"
 #include "pb.h"
 #include "pb_encode.h"
 #include "pb_decode.h"

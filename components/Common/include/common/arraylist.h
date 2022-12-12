@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-#include "linux_rsmem.h"
 #include "portability/port.h"
 #include "common/rsrc.h"
 

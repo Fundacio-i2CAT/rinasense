@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "linux_rsmem.h"
 #include "portability/port.h"
 #include "common/rsrc.h"
 #include "common/arraylist.h"

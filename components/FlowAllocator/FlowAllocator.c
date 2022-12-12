@@ -6,7 +6,6 @@
 #include <stdlib.h>
 
 #include "FlowAllocator_obj.h"
-#include "linux_rsmem.h"
 #include "portability/port.h"
 #include "common/rina_ids.h"
 #include "common/rina_name.h"

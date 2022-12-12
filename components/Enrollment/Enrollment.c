@@ -7,7 +7,6 @@
 #include "RibObject.h"
 #include "Ribd_msg.h"
 #include "SerDesMessage.h"
-#include "linux_rsmem.h"
 #include "portability/port.h"
 
 #include "common/rina_ids.h"
