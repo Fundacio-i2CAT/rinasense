@@ -10,6 +10,11 @@
 extern "C" {
 #endif
 
+/* TAG for logging */
+#define TAG_IPCPNORMAL "[IPCP_NORMAL]"
+#define TAG_IPCPMANAGER "[IPCP_MANAGER]"
+#define TAG_IPCPFACTORY "[IPCP_FACTORY]"
+
 /* Constant to be used at for normal DIF data structure
  * initialisation. */
 #define IPCP_INSTANCE_DATA_NORMAL 0x1

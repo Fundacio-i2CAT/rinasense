@@ -12,6 +12,8 @@
 extern "C" {
 #endif
 
+#define TAG_WIFI "[iface]"
+
 bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxSelf, MACAddress_t *phyDev);
 
 bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame);

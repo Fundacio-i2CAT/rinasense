@@ -22,6 +22,9 @@
 extern "C" {
 #endif
 
+/* TAG for logging */
+#define TAG_ARP "[ARP]"
+
 /* Ethernet frame types. */
 #define ARP_FRAME_TYPE (0x0608U)
 

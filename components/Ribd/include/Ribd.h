@@ -12,6 +12,8 @@
 extern "C" {
 #endif
 
+#define TAG_RIB "[RIB]"
+
 #ifdef __cplusplus
 }
 #endif

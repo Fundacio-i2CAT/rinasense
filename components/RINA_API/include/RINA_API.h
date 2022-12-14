@@ -15,6 +15,8 @@
 extern "C" {
 #endif
 
+#define TAG_RINA "[RINA_API]"
+
 struct appRegistration_t
 {
     string_t pcNameDIF;

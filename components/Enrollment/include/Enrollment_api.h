@@ -13,7 +13,9 @@
 extern "C" {
 #endif
 
-bool_t xEnrollmentInit(Enrollment_t *pxEnrollment, Ribd_t *pxRibd);
+#define TAG_ENROLLMENT "[ENROLLMENT]"
+
+err_t xEnrollmentInit(Enrollment_t *pxEnrollment, Ribd_t *pxRibd);
 
 address_t xEnrollmentGetNeighborAddress(Enrollment_t *pxEnrollment, string_t pcRemoteApName);
 

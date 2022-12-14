@@ -26,6 +26,8 @@ extern "C" {
 
 #define IPCP_INSTANCE_DATA_ETHERNET_SHIM 0xA
 
+#define TAG_SHIM "[Wifi]"
+
 /* Flow states */
 typedef enum xFLOW_STATES
 

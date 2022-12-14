@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+#define TAG_FA "[FLOW_ALLOCATOR]"
+
 /* New reviewed API */
 
 bool_t xFlowAllocatorInit(flowAllocator_t *pxFA, Enrollment_t *pxEnrollment, Ribd_t *pxRibd);

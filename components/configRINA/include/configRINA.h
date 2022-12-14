@@ -1,9 +1,6 @@
 #ifndef CONFIG_RINA_H
 #define CONFIG_RINA_H
 
-/************* SHIM WIFI CONFIGURATION ***********/
-#define SHIM_WIFI_MODULE (1) // Zero if not shim WiFi modules is required.
-
 #define SHIM_PROCESS_NAME "wlan0.ue"
 #define SHIM_PROCESS_INSTANCE "1"
 #define SHIM_ENTITY_NAME ""
@@ -12,8 +9,6 @@
 #define SHIM_DIF_NAME "Irati"
 
 #define SHIM_INTERFACE "ESP_WIFI_MODE_STA"
-
-#define SIZE_SDU_QUEUE (200)
 
 /************ SHIM DIF CONFIGURATION **************/
 #define ESP_WIFI_SSID "Overside"	  //"WS02"

@@ -16,6 +16,8 @@
 extern "C" {
 #endif
 
+#define TAG_EFCP "[EFCP]"
+
 bool_t xEfcpContainerInit(struct efcpContainer_t *pxEfcpContainer, rsrcPoolP_t xPciPool);
 
 bool_t xEfcpEnqueue(struct efcp_t * pxEfcp, portId_t xPort, du_t *pxDu);
