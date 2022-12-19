@@ -73,7 +73,7 @@ typedef struct xRESPONSE_HANDLER_ROW
 
 } responseHandlersRow_t;
 
-typedef struct xMESSAGE_CDAP
+typedef struct xCDAPMessage
 {
     /*Operation Code*/
     opCode_t eOpCode;
@@ -87,7 +87,7 @@ typedef struct xMESSAGE_CDAP
     name_t *pxSourceInfo;
 
     /*Version*/
-    intmax_t version;
+    int64_t version;
 
     /*Authentication Policy*/
     authPolicy_t *pxAuthPolicy;

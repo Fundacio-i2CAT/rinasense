@@ -21,7 +21,7 @@ bool_t xDuDestroy(struct du_t *pxDu)
 	/* If there is an NetworkBuffer then release and release memory */
 	if (pxDu->pxNetworkBuffer)
 	{
-		LOGI(TAG_DTP, "Destroying du struct and releasing Buffer");
+		LOGD(TAG_DTP, "Destroying du struct and releasing Buffer");
 		vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
 	}
 	vRsMemFree(pxDu);
@@ -31,7 +31,7 @@ bool_t xDuDestroy(struct du_t *pxDu)
 
 bool_t xDuDecap(struct du_t *pxDu)
 {
-	LOGI(TAG_DTP, "xDuDecap");
+	LOGD(TAG_DTP, "Decapsulating the DU");
 	pduType_t xType;
 	pci_t *pxPciTmp;
 	size_t uxPciLen;
@@ -70,19 +70,18 @@ bool_t xDuDecap(struct du_t *pxDu)
 
 	pxDu->pxPci = pxPciTmp;
 
-#if 0
-	ESP_LOGI(TAG_DTP, "------------ PCI DT DECAP-----------");
-	ESP_LOGI(TAG_DTP, "PCI Version: 0x%04x", pxDu->pxPci->ucVersion);
-	ESP_LOGI(TAG_DTP, "PCI SourceAddress: 0x%04x", pxDu->pxPci->xSource);
-	ESP_LOGI(TAG_DTP, "PCI DestinationAddress: 0x%04x", pxDu->pxPci->xDestination);
-	ESP_LOGI(TAG_DTP, "PCI QoS: 0x%04x", pxDu->pxPci->connectionId_t.xQosId);
-	ESP_LOGI(TAG_DTP, "PCI CEP Source: 0x%04x", pxDu->pxPci->connectionId_t.xSource);
-	ESP_LOGI(TAG_DTP, "PCI CEP Destination: 0x%04x", pxDu->pxPci->connectionId_t.xDestination);
-	ESP_LOGI(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
-	ESP_LOGI(TAG_DTP, "PCI Type: 0x%04x", pxDu->pxPci->xType);
-	ESP_LOGI(TAG_DTP, "PCI SequenceNumber: 0x%08x", pxDu->pxPci->xSequenceNumber);
-	ESP_LOGI(TAG_DTP, "PCI xPDULEN: 0x%04x", pxDu->pxPci->xPduLen);
-#endif
+	LOGD(TAG_DTP, "------------ PCI DT DECAP-----------");
+	LOGD(TAG_DTP, "PCI Version: 0x%04x", pxDu->pxPci->ucVersion);
+	LOGD(TAG_DTP, "PCI SourceAddress: 0x%04x", pxDu->pxPci->xSource);
+	LOGD(TAG_DTP, "PCI DestinationAddress: 0x%04x", pxDu->pxPci->xDestination);
+	LOGD(TAG_DTP, "PCI QoS: 0x%04x", pxDu->pxPci->connectionId_t.xQosId);
+	LOGD(TAG_DTP, "PCI CEP Source: 0x%04x", pxDu->pxPci->connectionId_t.xSource);
+	LOGD(TAG_DTP, "PCI CEP Destination: 0x%04x", pxDu->pxPci->connectionId_t.xDestination);
+	LOGD(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
+	LOGD(TAG_DTP, "PCI Type: 0x%04x", pxDu->pxPci->xType);
+	LOGD(TAG_DTP, "PCI SequenceNumber: 0x%08x", pxDu->pxPci->xSequenceNumber);
+	LOGD(TAG_DTP, "PCI xPDULEN: 0x%04x", pxDu->pxPci->xPduLen);
+
 	/*
 		pxDu->pxPci->ucVersion = pxPciTmp->ucVersion;
 		pxDu->pxPci->xSource = pxPciTmp->xSource;
@@ -118,7 +117,7 @@ bool_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 	NetworkBufferDescriptor_t *pxNewBuffer;
 	uint8_t *pucDataPtr;
 	size_t xBufferSize;
-	pci_t * pxPciTmp;
+	pci_t *pxPciTmp;
 
 	uxPciLen = (size_t)(14); /* PCI defined static for this initial stage = 14Bytes*/
 
@@ -139,8 +138,7 @@ bool_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 	memcpy(pucDataPtr, pxDu->pxNetworkBuffer->pucEthernetBuffer,
 		   pxDu->pxNetworkBuffer->xDataLength);
 
-	// ESP_LOGE(TAG_DTP, "Releasing Buffer after encap PDU");
-	// vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
+	vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
 
 	pxNewBuffer->xDataLength = xBufferSize;
 

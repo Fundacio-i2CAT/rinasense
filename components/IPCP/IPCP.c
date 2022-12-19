@@ -217,7 +217,8 @@ static void *prvIPCPTask(void *pvParameters)
         LOGE(TAG_IPCPNORMAL, "It was not possible to create Shim ");
 
     // Init shim use API?
-    if (!xShimWiFiInit(pxShimInstance)) {
+    if (!xShimWiFiInit(pxShimInstance))
+    {
         LOGE(TAG_IPCPMANAGER, "Failed to initialize WiFi shim");
         return NULL;
     }
@@ -307,7 +308,6 @@ static void *prvIPCPTask(void *pvParameters)
             //(void)vFlowAllocatorDeallocate((portId_t *)xReceivedEvent.pvData);
 
             break;
-
 
         case eFlowBindEvent:
 
@@ -493,7 +493,7 @@ bool_t xSendEventToIPCPTask(eRINAEvent_t eEvent)
 bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t xTimeOutUS)
 {
     bool_t xReturn, xSendMessage;
-    useconds_t xCalculatedTimeOutUS;
+    useconds_t xCalculatedTimeOutUS = xTimeOutUS;
 
     if (!xIPCPTaskReady() && (pxEvent->eEventType != eNetworkDownEvent))
     {
@@ -511,10 +511,8 @@ bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t xT
         {
             /* The IP task cannot block itself while waiting for
              * itself to respond. */
-            if (xIsCallingFromIPCPTask())
+            if ((xIsCallingFromIPCPTask()) && (xCalculatedTimeOutUS > 0))
                 xCalculatedTimeOutUS = 0;
-            else
-                xCalculatedTimeOutUS = xTimeOutUS;
 
             xReturn = xRsQueueSendToBack(xNetworkEventQueue, pxEvent, sizeof(RINAStackEvent_t), xCalculatedTimeOutUS);
 
@@ -717,7 +715,8 @@ eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEth
     usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
 
     // Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
-    if (usFrameType == ETH_P_RINA_ARP || usFrameType == ETH_P_RINA) {
+    if (usFrameType == ETH_P_RINA_ARP || usFrameType == ETH_P_RINA)
+    {
         eReturn = eProcessBuffer;
         LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: ACCEPTED", usFrameType);
     }
@@ -910,8 +909,7 @@ void RINA_NetworkDown(void)
 {
     static const RINAStackEvent_t xNetworkDownEvent = {
         .eEventType = eNetworkDownEvent,
-        .xData = { .PV = NULL }
-    };
+        .xData = {.PV = NULL}};
 
     LOGI(TAG_IPCPMANAGER, "RINA_NetworkDown");
 

@@ -25,27 +25,30 @@ RsQueue_t *pxRsQueueCreate(const char *sQueueName,
         .mq_flags = 0,
         .mq_maxmsg = uxQueueLength,
         .mq_msgsize = uxItemSize,
-        .mq_curmsgs = 0
-    };
+        .mq_curmsgs = 0};
 
-    if (!snprintf(buf, sizeof(buf), "/%s", sQueueName)) {
+    if (!snprintf(buf, sizeof(buf), "/%s", sQueueName))
+    {
         LOGE(TAG, "Error setting up queue name");
         return NULL;
     }
 
     xQueue = mq_open(buf, O_RDWR | O_CREAT, 0644, &mqInitAttr);
-    if (xQueue == (mqd_t)-1) {
+    if (xQueue == (mqd_t)-1)
+    {
         LOGE(TAG, "mq_open failed (errno: %d)", errno);
         return NULL;
     }
 
     pQueue = pvRsMemAlloc(sizeof(RsQueue_t));
-    if (!pQueue) {
+    if (!pQueue)
+    {
         LOGE(TAG, "Out of memory allocating queue object");
         goto err;
     }
 
-    if ((pQueue->sQueueName = strdup(buf)) == NULL) {
+    if ((pQueue->sQueueName = strdup(buf)) == NULL)
+    {
         LOGE(TAG, "Out of memory allocating queue name");
         goto err;
     }
@@ -56,7 +59,7 @@ RsQueue_t *pxRsQueueCreate(const char *sQueueName,
 
     return pQueue;
 
-    err:
+err:
     mq_close(xQueue);
     mq_unlink(buf);
 
@@ -85,35 +88,43 @@ bool_t xRsQueueSendToBack(RsQueue_t *pQueue,
     struct timespec ts;
     struct mq_attr attr;
 
-    if (xTimeOutUS == 0) {
+    if (xTimeOutUS == 0)
+    {
         /* If there is no timeout specified, we need to first check if
            the call to mq_send will block or not. If it does, we must not
            call it. */
-        if (mq_getattr(pQueue->xQueue, &attr) == 0) {
+        if (mq_getattr(pQueue->xQueue, &attr) == 0)
+        {
 
             /* Check if the queue is full. */
-            if (attr.mq_curmsgs == attr.mq_maxmsg) {
+            if (attr.mq_curmsgs == attr.mq_maxmsg)
+            {
                 LOGE(TAG, "Queue is full! Cannot send without timeout");
                 return false;
             }
 
             /* Queue not full? mq_send is not supposed to block here. */
-            if (mq_send(pQueue->xQueue, pvItemToQueue, unItemSize, 0) != 0) {
+            if (mq_send(pQueue->xQueue, pvItemToQueue, unItemSize, 0) != 0)
+            {
                 LOGE(TAG, "mq_send failed (errno: %d)", errno);
                 return false;
             }
         }
-        else {
+        else
+        {
             LOGE(TAG, "mq_getattr failed");
             return false;
         }
-    } else {
+    }
+    else
+    {
         /* If there is a timeout, then the semantic follow the
            behaviour of mq_timesend */
         if (!rstime_waitusec(&ts, xTimeOutUS))
             return false;
 
-        if (mq_timedsend(pQueue->xQueue, pvItemToQueue, unItemSize, 0, &ts) != 0) {
+        if (mq_timedsend(pQueue->xQueue, pvItemToQueue, unItemSize, 0, &ts) != 0)
+        {
             LOGE(TAG, "mq_timedsend failed (errno: %d)", errno);
             return false;
         }
@@ -131,12 +142,20 @@ bool_t xRsQueueReceive(RsQueue_t *pQueue, void *pvBuffer, const size_t unBufferS
     if (!rstime_waitusec(&ts, xTimeOutUS))
         return false;
 
-    if (mq_timedreceive(pQueue->xQueue, pvBuffer, unBufferSz, 0, &ts) < 0) {
+    if (mq_receive(pQueue->xQueue, pvBuffer, unBufferSz, 0) < 0)
+    {
         if (errno != ETIMEDOUT)
             LOGE(TAG, "mq_timedreceive error: %d", errno);
 
         return false;
     }
+    /*if (mq_timedreceive(pQueue->xQueue, pvBuffer, unBufferSz, 0, &ts) < 0)
+    {
+        if (errno != ETIMEDOUT)
+            LOGE(TAG, "mq_timedreceive error: %d", errno);
+
+        return false;
+    }*/
 
     return true;
 }

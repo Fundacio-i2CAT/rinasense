@@ -16,27 +16,27 @@
 #define SIZE_SDU_QUEUE (200)
 
 /************ SHIM DIF CONFIGURATION **************/
-#define ESP_WIFI_SSID "Overside"	  //"WS02"
-#define ESP_WIFI_PASS "theoneelectronic" //"Esdla2025"
+#define ESP_WIFI_SSID "WiFiTerminet" //"WS02"
+#define ESP_WIFI_PASS "20TrmnT22"    //"Esdla2025"
 
 /*********** NORMAL CONFIGURATION ****************/
 
-#define NORMAL_PROCESS_NAME "ue1.mobile"
+#define NORMAL_PROCESS_NAME "st4.slice1"
 #define NORMAL_PROCESS_INSTANCE "1"
 #define NORMAL_ENTITY_NAME ""
 #define NORMAL_ENTITY_INSTANCE ""
 
-#define NORMAL_DIF_NAME "mobile.DIF"
+#define NORMAL_DIF_NAME "slice1.DIF"
 
 /*********** NORMAL IPCP CONFIGURATION ****************/
 /**** Known IPCProcess Address *****/
-#define LOCAL_ADDRESS (1)
+#define LOCAL_ADDRESS (4)
 #define LOCAL_ADDRESS_AP_INSTANCE "1"
-#define LOCAL_ADDRESS_AP_NAME "ue1.mobile"
+#define LOCAL_ADDRESS_AP_NAME "st4.slice1"
 
-#define REMOTE_ADDRESS (3)
+#define REMOTE_ADDRESS (11)
 #define REMOTE_ADDRESS_AP_INSTANCE "1"
-#define REMOTE_ADDRESS_AP_NAME "ar1.mobile" // ar1.mobile
+#define REMOTE_ADDRESS_AP_NAME "gw1.slice1" // ar1.mobile
 
 /**** QoS CUBES ****/
 #define QoS_CUBE_NAME "unreliable"
@@ -55,13 +55,13 @@
 /* Linux NetworkInterface options. */
 
 /* Decides if the TAP NetworkInterface will create the tap device itself. */
-#define LINUX_TAP_CREATE       false
+#define LINUX_TAP_CREATE false
 
 /* Decides if the TAP NetworkInterface will put UP, or DOWN, the
  * virtual device. */
-#define LINUX_TAP_MANAGE       false
+#define LINUX_TAP_MANAGE false
 
 /* */
-#define LINUX_TAP_DEVICE       "rina00"
+#define LINUX_TAP_DEVICE "rina00"
 
 #endif
