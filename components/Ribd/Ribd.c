@@ -173,7 +173,7 @@ messageCdap_t *prvRibMessageCdapInit(void)
     pxMessage->pxObjValue = NULL;
     pxMessage->result = 0;
 
-    pxMessage->pxDestinationInfo->pcEntityInstance = NULL;
+    pxMessage->pxDestinationInfo->pcEntityInstance = "";
     pxMessage->pxDestinationInfo->pcEntityName = MANAGEMENT_AE;
     pxMessage->pxDestinationInfo->pcProcessInstance = NULL;
     pxMessage->pxDestinationInfo->pcProcessName = NULL;
@@ -252,8 +252,8 @@ messageCdap_t *prvRibdFillDecodeMessage(rina_messages_CDAPMessage message)
         if (message.authPolicy.has_name)
         {
             pxMessageCdap->pxAuthPolicy->pcName = strdup(message.authPolicy.name);
-        }
-        pxMessageCdap->pxAuthPolicy->pcVersion = strdup(message.authPolicy.versions[0]);
+           }
+        pxMessageCdap->pxAuthPolicy->pcVersion = strdup(message.authPolicy.versions);
     }
 
     if (message.has_objClass)
@@ -415,7 +415,7 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
     LOGD(TAG_RIB, "Encoding an CDAP message...");
     LOGD(TAG_RIB, "Encoding a %s message", opcodeNamesTable[pxMessageCdap->eOpCode]);
     BaseType_t status;
-    uint8_t *pucBuffer[512];
+    uint8_t *pucBuffer[128];
     size_t xMessageLength;
 
     /*Create a stream that will write to the buffer*/
@@ -426,9 +426,6 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
 
     message.version = pxMessageCdap->version;
     message.has_version = true;
-
-    LOGE(TAG_RIB, "Version: %lld", pxMessageCdap->version);
-    LOGE(TAG_RIB, "Version: %lld", message.version);
 
     message.opCode = pxMessageCdap->eOpCode;
 
@@ -498,7 +495,7 @@ NetworkBufferDescriptor_t *prvRibdEncodeCDAP(messageCdap_t *pxMessageCdap)
         message.has_authPolicy = true;
         message.authPolicy.versions_count = 1;
 
-        strcpy(message.authPolicy.versions[0], pxMessageCdap->pxAuthPolicy->pcVersion);
+        strcpy(message.authPolicy.versions, pxMessageCdap->pxAuthPolicy->pcVersion);
         message.authPolicy.has_name = true;
     }
 
@@ -771,8 +768,8 @@ xRibdConnectToIpcp(struct ipcpInstanceData_t *pxIpcpData, name_t *pxSource, name
     pxMessageEncode->pxAuthPolicy->pcName = strdup(pxAuth->pcName);
     pxMessageEncode->pxAuthPolicy->pcVersion = strdup(pxAuth->pcVersion);
 
-    // printf("ENCODE\n");
-    // vRibdPrintCdapMessage(pxMessageEncode);
+    printf("ENCODE\n");
+    vRibdPrintCdapMessage(pxMessageEncode);
 
     /*Fill the appConnection structure*/
     pxAppConnectionTmp = prvRibCreateConnection(pxSource, pxDestInfo);
@@ -787,8 +784,9 @@ xRibdConnectToIpcp(struct ipcpInstanceData_t *pxIpcpData, name_t *pxSource, name
     }
 
     /*Testing*/
-    pxMessageDecode = prvRibdDecodeCDAP(pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength);
-    vRibdPrintCdapMessage(pxMessageDecode);
+    // pxMessageDecode = prvRibdDecodeCDAP(pxNetworkBuffer->pucEthernetBuffer, pxNetworkBuffer->xDataLength);
+    //  pxMessageDecode = prvRibdDecodeCDAP(pxMessageDecode);
+    // vRibdPrintCdapMessage(pxMessageDecode);
 
     vRibdSentCdapMsg(pxNetworkBuffer, xN1flowPortId);
 
@@ -797,14 +795,17 @@ xRibdConnectToIpcp(struct ipcpInstanceData_t *pxIpcpData, name_t *pxSource, name
 
 void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
 {
-    LOGE(TAG_RIB, "DECODE");
+    LOGE(TAG_RIB, "CDAP MESSAGE");
     LOGE(TAG_RIB, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
     LOGE(TAG_RIB, "Invoke Id: %d ", pxDecodeCdap->invokeID);
     LOGE(TAG_RIB, "Version: %lld", pxDecodeCdap->version);
     if (pxDecodeCdap->pxAuthPolicy->pcName != NULL)
     {
         LOGE(TAG_RIB, "AuthPolicy Name: %s", pxDecodeCdap->pxAuthPolicy->pcName);
-        LOGE(TAG_RIB, "AuthPolicy Version: %s", pxDecodeCdap->pxAuthPolicy->pcVersion);
+    }
+    if (pxDecodeCdap->pxAuthPolicy->pcVersion != NULL)
+    {
+        LOGE(TAG_RIB, "AuthPolicy version: %s", pxDecodeCdap->pxAuthPolicy->pcVersion);
     }
 
     LOGE(TAG_RIB, "Source AEI: %s", pxDecodeCdap->pxSourceInfo->pcEntityInstance);
@@ -827,7 +828,7 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
     {
         LOGE(TAG_RIB, "ObjectInstance:%d", (int)pxDecodeCdap->objInst);
     }
-    if (!pxDecodeCdap->pcObjClass)
+    if (pxDecodeCdap->pcObjClass != NULL)
     {
         LOGE(TAG_RIB, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
     }

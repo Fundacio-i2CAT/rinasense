@@ -118,7 +118,7 @@ bool_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 	NetworkBufferDescriptor_t *pxNewBuffer;
 	uint8_t *pucDataPtr;
 	size_t xBufferSize;
-	pci_t * pxPciTmp;
+	pci_t *pxPciTmp;
 
 	uxPciLen = (size_t)(14); /* PCI defined static for this initial stage = 14Bytes*/
 
@@ -139,8 +139,7 @@ bool_t xDuEncap(struct du_t *pxDu, pduType_t xType)
 	memcpy(pucDataPtr, pxDu->pxNetworkBuffer->pucEthernetBuffer,
 		   pxDu->pxNetworkBuffer->xDataLength);
 
-	// ESP_LOGE(TAG_DTP, "Releasing Buffer after encap PDU");
-	// vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
+	vReleaseNetworkBufferAndDescriptor(pxDu->pxNetworkBuffer);
 
 	pxNewBuffer->xDataLength = xBufferSize;
 
