@@ -88,11 +88,11 @@ void *xEnrollmentInboundProcess(void *pvArg) {
 
         /* Send a STOP request on the enrollment object, expect a reply
          * within a certain delay */
-        if (ERR_CHK(xRibSTOP_QUERY(pxObjData->pxRibd,
-                                   &xEnrollmentRibObject,
-                                   pxObjData->unPort,
-                                   pxStopObjVal,
-                                   &unStop)))
+        if (ERR_CHK(xRibSTOP_QUERY_SYNC(pxObjData->pxRibd,
+                                        &xEnrollmentRibObject,
+                                        pxObjData->unPort,
+                                        pxStopObjVal,
+                                        &unStop)))
             goto fail;
 
         /* Wait for a reply to the stop command. */

@@ -160,13 +160,15 @@ rsErr_t prvEnrollmentObjectStop(ribObject_t *pxThis,
 rsErr_t prvEnrollmentObjectStopReply(ribObject_t *pxThis,
                                      appConnection_t *pxAppCon,
                                      messageCdap_t *pxMsg,
-                                     void *ppxResp)
+                                     void **ppxResp)
 {
     neighborInfo_t *pxNeighborInfo;
     Enrollment_t *pxEnrollment;
     enrollmentObjectData_t *pxObjData;
 
-    *(int *)ppxResp = 1;
+    /* There is enough space here to cram an int but that's bad
+     * bad... */
+    *((int *)ppxResp) = 1;
 
     return SUCCESS;
 }

@@ -3,6 +3,7 @@
 #include "portability/port.h"
 #include "common/rina_name.h"
 
+#include "private/Ribd_internal.h"
 #include "Ribd_connections.h"
 #include "Ribd_defs.h"
 
@@ -16,7 +17,7 @@ rsMemErr_t xRibConnectionAdd(Ribd_t *pxRibd, rname_t *pxSrc, rname_t *pxDst, por
     RsAssert(pxSrc);
     RsAssert(pxDst);
 
-    pthread_mutex_lock(&pxRibd->xMutex);
+    vRibLock(pxRibd);
 
     for (x = 0; x < APP_CONNECTION_TABLE_SIZE; x++) {
         if (pxRibd->xAppConnections[x].xStatus == CONNECTION_RELEASED) {
@@ -37,7 +38,7 @@ rsMemErr_t xRibConnectionAdd(Ribd_t *pxRibd, rname_t *pxSrc, rname_t *pxDst, por
 
             LOGI(TAG_RIB, "Added connection entry at: %p, port: %d", pxAppCon, unPort);
 
-            pthread_mutex_unlock(&pxRibd->xMutex);
+            vRibUnlock(pxRibd);
             return SUCCESS;
         }
     }
@@ -45,7 +46,7 @@ rsMemErr_t xRibConnectionAdd(Ribd_t *pxRibd, rname_t *pxSrc, rname_t *pxDst, por
     return ERR_RIB_TOO_MANY_CONNECTIONS;
 
     fail:
-    pthread_mutex_unlock(&pxRibd->xMutex);
+    vRibUnlock(pxRibd);
 
     return FAIL;
 }

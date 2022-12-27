@@ -15,7 +15,7 @@ extern "C" {
  * callback. The content of 'pxRes' depends on the type of response. */
 typedef rsErr_t (*ribResponseCb)(struct xRIBD *pxRibd,
                                  struct xRIBOBJ *pxRibObj,
-                                 void *pxRes);
+                                 void *pxResp);
 
 typedef enum {
     /* Sets an invoke ID and a callback. The RIB calls the callback

@@ -27,11 +27,27 @@ extern "C" {
 #define RESPONSE_HANDLER_TABLE_SIZE (10)
 #define RIB_TABLE_SIZE (10)
 
+typedef rsErr_t (*RibIncoming)(struct xRIBD *pxRibd,
+                               messageCdap_t *pxDecodeCdap,
+                               portId_t unPort);
+
+typedef rsErr_t (*RibOutgoing)(struct xRIBD *pxRibd,
+                               messageCdap_t *pxOutgoingCdap,
+                               portId_t unPort);
+
 typedef struct xRIBD
 {
     MessageSerDes_t xMsgSD;
 
     ADataSerDes_t xADataSD;
+
+    /* RIB Input/Output */
+    RibIncoming fnRibInput;
+    RibOutgoing fnRibOutput;
+
+    /* This is true if locking the RIB is needed. This is set at
+     * initialization depending on if the RIB is normal or loopback */
+    bool_t xDoLock;
 
     /* Pool for messageCdap_t objects */
     rsrcPoolP_t xMsgPool;

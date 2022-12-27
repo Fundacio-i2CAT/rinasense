@@ -409,7 +409,7 @@ bool_t xNormalMgmtDuPost(struct ipcpInstance_t *pxIpcp, portId_t xPortId, du_t *
     RsAssert(pxDu);
 
     /* Send to the RIB Daemon */
-    if (!xRibProcessLayerManagementPDU(pxIpcp->pxData, xPortId, pxDu)) {
+    if (ERR_CHK(xRibIncoming(&pxIpcp->pxData->xRibd, pxDu, xPortId))) {
         LOGI(TAG_IPCPNORMAL, "Failed to preocess management PDU");
         return false;
     }
@@ -754,7 +754,7 @@ struct ipcpInstance_t *pxNormalCreate(ipcProcessId_t unIpcpId)
     }
 
     /* Initialize the RIB */
-    if (ERR_CHK(xRibInit(&pxData->xRibd)))
+    if (ERR_CHK(xRibNormalInit(&pxData->xRibd)))
         goto fail;
 
     /* Initialise Enrollment component */

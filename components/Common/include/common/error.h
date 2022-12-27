@@ -95,7 +95,7 @@ static inline bool_t _err_chk_mem(rsErr_t xErr)
 
 /* Set any error but evalutes to NULL */
 #define ERR_SET(x)                              \
-    xErrorSet(__FILE__, __LINE__, x, NULL)
+    xErrorSet(__FILE__, __LINE__, x, xErrorGetMsg(x))
 
 #define ERR_SETF(x, ...)                                            \
     xErrorSetf(__FILE__, __LINE__, x, xErrorGetMsg(x), __VA_ARGS__)
@@ -111,7 +111,7 @@ static inline bool_t _err_chk_mem(rsErr_t xErr)
 
 /* Set any error but evaluates to NULL */
 #define ERR_SET_NULL(x)                                             \
-    ERR_CHK(xErrorSet(__FILE__, __LINE__, x, NULL)) ? NULL : NULL;
+    ERR_CHK(xErrorSet(__FILE__, __LINE__, x, xErrorGetMsg(x))) ? NULL : NULL;
 
 /* Set an out-of-memory error */
 #define ERR_SET_OOM                                         \

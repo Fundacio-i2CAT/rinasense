@@ -25,7 +25,7 @@ extern "C" {
         struct xRIBOBJ *pxThis,                 \
         appConnection_t *pxAppCon,              \
         messageCdap_t *pxMsg,                   \
-        void *ppxResp
+        void **ppxResp
 
 #define RIB_INIT_METHOD_ARGS                    \
         struct xRIBD *pxRibd,                   \

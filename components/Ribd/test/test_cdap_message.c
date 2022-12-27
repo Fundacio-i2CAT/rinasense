@@ -18,7 +18,7 @@ Ribd_t xRibd;
 #define OBJNAME  "bcde"
 
 RS_TEST_CASE_SETUP(test_cdap_message) {
-    xRibInit(&xRibd);
+    xRibLoopbackInit(&xRibd);
 }
 
 RS_TEST_CASE_TEARDOWN(test_cdap_message) {}
