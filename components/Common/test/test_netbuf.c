@@ -73,7 +73,7 @@ RS_TEST_CASE(NetBufSplit, "[netbuf]")
 
     TEST_ASSERT((nb1 = pxNetBufNew(xPool, NB_UNKNOWN, buf, sz1, &vTestFreeNormal)));
     TEST_ASSERT(nb1->unSz == 20);
-    TEST_ASSERT((xNetBufSplit(nb1, NB_UNKNOWN, sz2)));
+    TEST_ASSERT(!ERR_CHK((xNetBufSplit(nb1, NB_UNKNOWN, sz2))));
     nb2 = pxNetBufNext(nb1);
 
     TEST_ASSERT(nb1->pxBufStart == nb2->pxBufStart);
@@ -114,7 +114,7 @@ RS_TEST_CASE(NetBufSplit2, "[netbuf]")
 
     TEST_ASSERT((nb1 = pxNetBufNew(xPool, NB_UNKNOWN, buf, sz1, &vTestFreeNormal)));
     TEST_ASSERT(nb1->unSz == 20);
-    TEST_ASSERT((xNetBufSplit(nb1, NB_UNKNOWN, sz2)));
+    TEST_ASSERT(!ERR_CHK((xNetBufSplit(nb1, NB_UNKNOWN, sz2))));
     nb2 = pxNetBufNext(nb1);
 
     vNetBufFreeAll(nb2);

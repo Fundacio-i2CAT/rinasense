@@ -1,4 +1,8 @@
+#include <pthread.h>
+
+#include "common/rinasense_errors.h"
 #include "portability/port.h"
+#include "common/error.h"
 #include "common/rsrc.h"
 #include "common/macros.h"
 
@@ -11,19 +15,29 @@
 
 #define TAG_SD_ENROLLMENT "[SD-ENROLLMENT]"
 
-bool_t xSerDesEnrollmentInit(EnrollmentSerDes_t *pxSD)
+rsMemErr_t xSerDesEnrollmentInit(EnrollmentSerDes_t *pxSD)
 {
     size_t unSz;
+    int n;
 
     unSz = ENROLLMENT_MSG_SIZE + sizeof(serObjectValue_t);
     if (!(pxSD->xPoolEnc = pxRsrcNewPool("Enrollment SerDes Encoding", unSz, 1, 1, 0)))
-        return false;
+        return ERR_SET_OOM;
 
     unSz = member_size(rina_messages_enrollmentInformation_t, token) + sizeof(enrollmentMessage_t);
     if (!(pxSD->xPoolDec = pxRsrcNewPool("Enrollment SerDes Decoding", unSz, 1, 1, 0)))
-        return false;
+        return ERR_SET_OOM;
 
-    return true;
+    if ((n = pthread_mutex_init(&pxSD->xPoolDecMutex, NULL) != 0))
+        return ERR_SET_PTHREAD(n);
+
+    if ((n = pthread_mutex_init(&pxSD->xPoolEncMutex, NULL) != 0))
+        return ERR_SET_PTHREAD(n);
+
+    vRsrcSetMutex(pxSD->xPoolEnc, &pxSD->xPoolEncMutex);
+    vRsrcSetMutex(pxSD->xPoolDec, &pxSD->xPoolDecMutex);
+
+    return SUCCESS;
 }
 
 /**
@@ -55,10 +69,8 @@ serObjectValue_t *pxSerDesEnrollmentEncode(EnrollmentSerDes_t *pxSD, enrollmentM
 
     /* FIXME: Not handling supporting DIFs for now. */
 
-    if (!(pxSerVal = pxRsrcAlloc(pxSD->xPoolEnc, "Enrollment Encoding"))) {
-        LOGE(TAG_SD_ENROLLMENT, "Failed to allocate memory for enrollment message encoding");
-        return NULL;
-    }
+    if (!(pxSerVal = pxRsrcAlloc(pxSD->xPoolEnc, "Enrollment Encoding")))
+        return ERR_SET_OOM_NULL;
 
     pxSerVal->pvSerBuffer = pxSerVal + sizeof(serObjectValue_t);
 
@@ -70,9 +82,8 @@ serObjectValue_t *pxSerDesEnrollmentEncode(EnrollmentSerDes_t *pxSD, enrollmentM
 
     /* Check for errors... */
     if (!xStatus) {
-        LOGE(TAG_SD_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&xStream));
         vRsrcFree(pxSerVal);
-        return NULL;
+        return ERR_SET_MSGF_NULL(ERR_SERDES_ENCODING_FAIL, "Encoding failed: %s", PB_GET_ERROR(&xStream));
     }
 
     pxSerVal->xSerLength = xStream.bytes_written;
@@ -93,15 +104,11 @@ enrollmentMessage_t *pxSerDesEnrollmentDecode(EnrollmentSerDes_t *pxSD,
 
     xStatus = pb_decode(&xStream, rina_messages_enrollmentInformation_t_fields, &xMessage);
 
-    if (!xStatus) {
-        LOGE(TAG_SD_ENROLLMENT, "Decoding failed: %s", PB_GET_ERROR(&xStream));
-        return NULL;
-    }
+    if (!xStatus)
+        return ERR_SET_MSGF_NULL(ERR_SERDES_DECODING_FAIL, "Decoding failed: %s", PB_GET_ERROR(&xStream));
 
-    if (!(pxMsg = pxRsrcAlloc(pxSD->xPoolDec, "Enrollment Decoding"))) {
-        LOGE(TAG_SD_ENROLLMENT, "Failed to allocate memory for enrollment message decoding");
-        return NULL;
-    }
+    if (!(pxMsg = pxRsrcAlloc(pxSD->xPoolDec, "Enrollment Decoding")))
+        return ERR_SET_OOM_NULL;
 
     pxMsg->pcToken = (void *)pxMsg + sizeof(enrollmentMessage_t);
 

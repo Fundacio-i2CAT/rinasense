@@ -72,7 +72,7 @@ rsrcPoolP_t xNetBufNewPool(const char *pcPoolName);
  * buffer passed as parameter. */
 netbuf_t *pxNetBufNew(rsrcPoolP_t xPool, eNetBufType_t eType, buffer_t pxBuf, size_t unSz, freemethod_t pfnFree);
 
-bool_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz);
+rsErr_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz);
 
 #if 0
 /* Strip 'unSz' bytes from the start of a netbuf chain or a single

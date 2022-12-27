@@ -10,6 +10,7 @@
 #include <stdlib.h>				// abort
 #include <stddef.h>				// offsetof
 #include <string.h>				// memset
+#include <pthread.h>
 #ifdef HAS_VALGRIND
 #include <valgrind.h>
 #endif
@@ -91,7 +92,7 @@ static size_t privuxRsrcAlignUp (size_t uxSize)
  * are returned immediately to the heap upon being freed.
  */
 rsrcPoolP_t pxRsrcNewPool (const char *pcName, size_t xRsrcSize,
-				  unsigned int uiInitalloc, unsigned int uiIncrement, unsigned int uiMaxNumRes)
+                           unsigned int uiInitalloc, unsigned int uiIncrement, unsigned int uiMaxNumRes)
 {
 	rsrcPoolP_t pxPool;
 	
@@ -163,8 +164,8 @@ rsrcPoolP_t pxRsrcNewDynPool (const char *pcName, size_t xSizeEach, unsigned int
  * @return [out]  Number of resources allocated initially (may be zero). Does not fail.
  */
 static int prviRsrcInitPool (rsrcPoolP_t pxPool, const char *pcName, size_t xRsrcSize,
-				  unsigned int uiInitAlloc, unsigned int uiIncrement, unsigned int uiMaxNumRes)
-{	
+                             unsigned int uiInitAlloc, unsigned int uiIncrement, unsigned int uiMaxNumRes)
+{
 	listADD (&rsrcPools, &pxPool->xPools);	// link into the global list of pools
 	listINIT_HEAD (&pxPool->xActive);
 	pxPool->uxSizeEach = xRsrcSize; // resource size, struct rsrc overhead accounted for elsewhere
@@ -179,6 +180,7 @@ static int prviRsrcInitPool (rsrcPoolP_t pxPool, const char *pcName, size_t xRsr
 	pxPool->uiMaxNumRes = uiMaxNumRes;
 	pxPool->uiLowWater = uiInitAlloc;
 	pxPool->uiHiWater = 0;
+    pxPool->pxMutex = NULL;
 	DEBUGPRINTF(TAG, "New pool '%s' added, sizeeach %zu, #init %d, #inc %d, at 0x%p",
 				pxPool->pcName, pxPool->uxSizeEach, uiInitAlloc, uiIncrement, pxPool);
 	if (uiInitAlloc) {
@@ -215,17 +217,26 @@ void *pxRsrcVarAlloc (rsrcPoolP_t pxPool, const char *pcRequestor, size_t xPaylo
     }
 #endif
 
-	if (!pxPool
-		|| !pcRequestor
+    if (!pxPool) return (NULL);
+
+    if (pxPool->pxMutex)
+        pthread_mutex_lock(pxPool->pxMutex);
+
+    if (!pcRequestor
 		|| xPayloadLen == 0
 		|| (pxPool->uiMaxNumRes && pxPool->uiNumInUse + pxPool->uiNumFree >= pxPool->uiMaxNumRes)
 		|| (pxPool->uxSizeEach && xPayloadLen != pxPool->uxSizeEach)) {
+        if (pxPool->pxMutex)
+            pthread_mutex_unlock(pxPool->pxMutex);
 		return (NULL);
 	}
 	if (pxPool->pxFreelist == 0) {
 		size_t rsrcsize = privuxRsrcAlignUp(sizeof(struct rsrc) + xPayloadLen);
 
 		if (prviRsrcAdd2Pool (pxPool, pxPool->uiIncrement, rsrcsize) <= 0) {
+            if (pxPool->pxMutex)
+                pthread_mutex_unlock(pxPool->pxMutex);
+
 			return (NULL);
 		}
 	}
@@ -248,7 +259,11 @@ void *pxRsrcVarAlloc (rsrcPoolP_t pxPool, const char *pcRequestor, size_t xPaylo
 	if (pxPool->pxAllocHelper) {
 		pxPool->pxAllocHelper (pxPool, &pxRsrc->ucPayload);
 	}
-	return (&pxRsrc->ucPayload);
+
+    if (pxPool->pxMutex)
+        pthread_mutex_unlock(pxPool->pxMutex);
+
+    return (&pxRsrc->ucPayload);
 }
 /** ----------------------------------------------------------------------------------
  * @brief Allocate a resource from a pool
@@ -314,6 +329,8 @@ void vRsrcFree (void *pvResPayload)
 	struct rsrc *pxRsrc = RESADDR(pvResPayload);
 	struct rsrcPool *pxPool = pxRsrc->pxPool;
 
+    if (pxPool->pxMutex) pthread_mutex_lock(pxPool->pxMutex);
+
 	if (pxRsrc->pvFlag == RESFREE_MAGIC) {
 		logPrintf(TAG, "freeRsrc: double-free attempt on object at %p, trying to print:",
 				  pvResPayload);
@@ -334,6 +351,8 @@ void vRsrcFree (void *pvResPayload)
 	} else {
 		prvvFreeResTail (pxPool, pxRsrc, 1);
 	}
+
+    if (pxPool->pxMutex) pthread_mutex_unlock(pxPool->pxMutex);
 }
 
 /** ----------------------------------------------------------------------------------
@@ -623,4 +642,9 @@ void vRsrcSetFreeHelper (rsrcPoolP_t pxPool, rsrcFreeHelper_t *pxHelper)
 void vRsrcSetPrintHelper (rsrcPoolP_t pvPool, rsrcPrintHelper_t *pxHelper)
 {
 	((struct rsrcPool *)(pvPool))->pxPrintHelper = pxHelper;
+}
+
+void vRsrcSetMutex(rsrcPoolP_t pvPool, pthread_mutex_t *pxMutex)
+{
+    ((struct rsrcPool *)(pvPool))->pxMutex = pxMutex;
 }

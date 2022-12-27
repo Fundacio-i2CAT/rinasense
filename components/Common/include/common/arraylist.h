@@ -5,6 +5,7 @@
 
 #include "portability/port.h"
 #include "common/rsrc.h"
+#include "common/error.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,12 +24,12 @@ typedef struct {
 
 } arraylist_t;
 
-bool_t xArrayListInit(arraylist_t *pxLst,
+rsMemErr_t xArrayListInit(arraylist_t *pxLst,
                       size_t unItemSz,
                       size_t unInitialMaxItemCount,
                       rsrcPoolP_t xVarPool);
 
-bool_t xArrayListAdd(arraylist_t *pxLst, void *pvItem);
+rsMemErr_t xArrayListAdd(arraylist_t *pxLst, void *pvItem);
 
 void vArrayListRemove(arraylist_t *pxLst, size_t unIdx);
 

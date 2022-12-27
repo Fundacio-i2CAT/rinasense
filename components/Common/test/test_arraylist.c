@@ -1,8 +1,10 @@
 #include <string.h>
 
+#include "portability/port.h"
+
 #include "common/arraylist.h"
 #include "common/rsrc.h"
-#include "portability/port.h"
+#include "common/error.h"
 
 #include "unity.h"
 #include "common/unity_fixups.h"
@@ -15,11 +17,11 @@ void AddIntegersAndCheck(arraylist_t *pxLst)
     int i1 = 1, i2 = 2, i3 = 3;
 
     TEST_ASSERT(unArrayListCount(pxLst) == 0);
-    TEST_ASSERT(xArrayListAdd(pxLst, &i1));
+    TEST_ASSERT(!ERR_CHK_MEM(xArrayListAdd(pxLst, &i1)));
     TEST_ASSERT(unArrayListCount(pxLst) == 1);
-    TEST_ASSERT(xArrayListAdd(pxLst, &i2));
+    TEST_ASSERT(!ERR_CHK_MEM(xArrayListAdd(pxLst, &i2)));
     TEST_ASSERT(unArrayListCount(pxLst) == 2);
-    TEST_ASSERT(xArrayListAdd(pxLst, &i3));
+    TEST_ASSERT(!ERR_CHK_MEM(xArrayListAdd(pxLst, &i3)));
     TEST_ASSERT(unArrayListCount(pxLst) == 3);
 
     TEST_ASSERT(*(int *)pvArrayListGet(pxLst, 0) == 1);
@@ -35,7 +37,7 @@ RS_TEST_CASE(ArrayListSimple, "[arraylist]")
     arraylist_t xLst;
     int i1 = 1, i2 = 2, i3 = 3;
 
-    TEST_ASSERT(xArrayListInit(&xLst, sizeof(int), 10, NULL));
+    TEST_ASSERT(!ERR_CHK_MEM(xArrayListInit(&xLst, sizeof(int), 10, NULL)));
     AddIntegersAndCheck(&xLst);
 }
 
@@ -44,7 +46,7 @@ RS_TEST_CASE(ArrayListResize, "[arraylist]")
     arraylist_t xLst;
     int i1 = 1, i2 = 2, i3 = 3;
 
-    TEST_ASSERT(xArrayListInit(&xLst, sizeof(int), 1, NULL));
+    TEST_ASSERT(!ERR_CHK_MEM(xArrayListInit(&xLst, sizeof(int), 1, NULL)));
     AddIntegersAndCheck(&xLst);
 }
 
@@ -55,7 +57,7 @@ RS_TEST_CASE(ArrayListResizePool, "[arraylist]")
     rsrcPoolP_t xPool;
 
     TEST_ASSERT((xPool = pxRsrcNewVarPool("ArrayListResizePool", 0)));
-    TEST_ASSERT(xArrayListInit(&xLst, sizeof(int), 1, xPool));
+    TEST_ASSERT(!ERR_CHK_MEM(xArrayListInit(&xLst, sizeof(int), 1, xPool)));
     AddIntegersAndCheck(&xLst);
 }
 
@@ -63,7 +65,7 @@ RS_TEST_CASE(ArrayListRemove, "[arraylist]")
 {
     arraylist_t xLst;
 
-    TEST_ASSERT(xArrayListInit(&xLst, sizeof(int), 10, NULL));
+    TEST_ASSERT(!ERR_CHK_MEM(xArrayListInit(&xLst, sizeof(int), 10, NULL)));
     AddIntegersAndCheck(&xLst);
 
     vArrayListRemove(&xLst, 1);
@@ -85,9 +87,9 @@ RS_TEST_CASE(ArrayListPointers, "[arraylist]")
     const string_t hw1 = "hello, world";
     const string_t hw2 = "world, hello";
 
-    TEST_ASSERT(xArrayListInit(&xLst, sizeof(char *), 10, NULL));
-    xArrayListAdd(&xLst, (void *)&hw1);
-    xArrayListAdd(&xLst, (void *)&hw2);
+    TEST_ASSERT(!ERR_CHK_MEM(xArrayListInit(&xLst, sizeof(char *), 10, NULL)));
+    TEST_ASSERT(!ERR_CHK_MEM(xArrayListAdd(&xLst, (void *)&hw1)));
+    TEST_ASSERT(!ERR_CHK_MEM(xArrayListAdd(&xLst, (void *)&hw2)));
 
     TEST_ASSERT(*(char **)pvArrayListGet(&xLst, 0) == hw1);
     TEST_ASSERT(*(char **)pvArrayListGet(&xLst, 1) == hw2);

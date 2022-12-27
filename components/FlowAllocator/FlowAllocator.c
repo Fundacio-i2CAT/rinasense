@@ -5,8 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "FlowAllocator_obj.h"
 #include "portability/port.h"
+#include "common/error.h"
 #include "common/rina_ids.h"
 #include "common/rina_name.h"
 #include "common/rsrc.h"
@@ -24,8 +24,7 @@
 #include "FlowAllocator_api.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
-#include "Rib.h"
-#include "Ribd.h"
+#include "Ribd_defs.h"
 #include "Ribd_api.h"
 #include "rina_common_port.h"
 #include "RINA_API_flows.h"
@@ -155,12 +154,12 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 
     // ESP_LOGI(TAG_FA, "DEst:%s", strdup(pxFlowRequest->pxRemote));
 
-    if (!xNameAssignDup(&pxFlow->xSourceInfo, &pxFlowRequest->xLocal)) {
+    if (ERR_CHK(xNameAssignDup(&pxFlow->xSourceInfo, &pxFlowRequest->xLocal))) {
         LOGE(TAG_FA, "Failed to allocate memory for source name in flow");
         goto fail;
     }
 
-    if (!xNameAssignDup(&pxFlow->xDestInfo, &pxFlowRequest->xRemote)) {
+    if (ERR_CHK(xNameAssignDup(&pxFlow->xDestInfo, &pxFlowRequest->xRemote))) {
         LOGE(TAG_FA, "Failed to allocate memory for destination name in flow");
         goto fail;
     }
@@ -291,15 +290,10 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
 
     pxFlowRibObj->ucObjClass = "Flow";
     pxFlowRibObj->ucObjName = flowObj;
-    pxFlowRibObj->fnCreate = NULL;
     pxFlowRibObj->fnDelete = &xFlowAllocatorHandleDelete;
-    pxFlowRibObj->fnRead = NULL;
-    pxFlowRibObj->fnWrite = NULL;
-    pxFlowRibObj->fnStart = NULL;
-    pxFlowRibObj->fnStop = NULL;
     pxFlowRibObj->fnFree = &prvFlowAllocatorFreeFlowRibObject;
 
-    if (xRibAddObjectEntry(pxFA->pxRib, pxFlowRibObj)) {
+    if (ERR_CHK(xRibObjectAdd(pxFA->pxRib, pxFA, pxFlowRibObj))) {
         LOGE(TAG_FA, "Failed to add RIB object for flow");
     }
 
@@ -376,13 +370,9 @@ bool_t xFlowAllocatorHandleDeleteR(struct ipcpInstanceData_t *pxData, ribObject_
     return false;
 }
 
-bool_t xFlowAllocatorHandleDelete(struct ipcpInstanceData_t *pxData,
-                                  ribObject_t *pxThis,
-                                  serObjectValue_t *pxObjValue,
-                                  rname_t *pxRemoteName,
-                                  rname_t *pxLocalName,
-                                  invokeId_t nInvokeId,
-                                  portId_t unPort)
+rsErr_t xFlowAllocatorHandleDelete(ribObject_t *pxThis,
+                                   appConnection_t *pxAppCon,
+                                   messageCdap_t *pxMsg)
 {
     LOGD(TAG_FA, "Calling: %s", __func__);
 
@@ -391,7 +381,7 @@ bool_t xFlowAllocatorHandleDelete(struct ipcpInstanceData_t *pxData,
     // change portId to NO ALLOCATED,
     // Send message to User with close,
 
-    return false;
+    return FAIL;
 }
 
 void vFlowAllocatorDeallocate(portId_t xAppPortId)

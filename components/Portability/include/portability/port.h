@@ -11,5 +11,6 @@
 #include "rsposix.h"
 #include "rstime.h"
 #include "rsutils.h"
+#include "rserr.h"
 
 #endif // _PORT_PORT_H

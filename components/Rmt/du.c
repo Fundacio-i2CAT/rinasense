@@ -20,7 +20,7 @@
 bool_t xDuDecap(size_t unSz, du_t *pxDu)
 {
     RsAssert(eNetBufType(pxDu) == NB_RINA_PCI);
-    return xNetBufSplit(pxDu, NB_RINA_DATA, unSz);
+    return !ERR_CHK(xNetBufSplit(pxDu, NB_RINA_DATA, unSz));
 }
 
 du_t *xDuEncap(void *pvPci, size_t unSz, du_t *pxDu)

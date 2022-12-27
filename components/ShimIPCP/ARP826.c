@@ -116,14 +116,14 @@ static bool_t prvARPExtractRequestData(ARPStaticHeader_t *const pxARPHdr, ARPPac
     if ((pxARPData->pxTha = pxCreateGHA(MAC_ADDR_802_3, (MACAddress_t *)pxARPData->ucTha)) == NULL)
         goto fail;
     else
-        if (!xGPAShrink(pxARPData->pxSpa, 0x00))
+        if (ERR_CHK(xGPAShrink(pxARPData->pxSpa, 0x00)))
             goto fail;
 
     if (pxARPData->ucTpa) {
         if ((pxARPData->pxTpa = pxCreateGPA(pxARPData->ucTpa, nPlen)) == NULL)
             goto fail;
         else
-            if (!xGPAShrink(pxARPData->pxTpa, 0x00))
+            if (ERR_CHK(xGPAShrink(pxARPData->pxTpa, 0x00)))
                 goto fail;
     }
 
@@ -280,12 +280,12 @@ bool_t vARPSendRequest(ARP_t *pxArp, const gpa_t *pxTpa, const gpa_t *pxSpa, con
         goto err;
     }
 
-	if (!xGPAGrow(pxGrownSpa, xMaxLen, 0x00)) {
+	if (ERR_CHK(xGPAGrow(pxGrownSpa, xMaxLen, 0x00))) {
 		LOGE(TAG_ARP, "Failed to grow SPA");
         goto err;
 	}
 
-	if (!xGPAGrow(pxGrownTpa, xMaxLen, 0x00)) {
+	if (ERR_CHK(xGPAGrow(pxGrownTpa, xMaxLen, 0x00))) {
 		LOGE(TAG_ARP, "Failed to grow TPA");
 		goto err;
 	}

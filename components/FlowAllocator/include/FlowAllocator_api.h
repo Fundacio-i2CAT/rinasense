@@ -21,13 +21,9 @@ bool_t xFlowAllocatorInit(flowAllocator_t *pxFA, Enrollment_t *pxEnrollment, Rib
 
 /* Handlers */
 
-bool_t xFlowAllocatorHandleDelete(struct ipcpInstanceData_t *pxData,
-                                  ribObject_t *pxThis,
-                                  serObjectValue_t *pxObjValue,
-                                  rname_t *pxRemoteName,
-                                  rname_t *pxLocalName,
-                                  invokeId_t nInvokeId,
-                                  portId_t unPort);
+rsErr_t xFlowAllocatorHandleDelete(ribObject_t *pxThis,
+                                   appConnection_t *pxAppCon,
+                                   messageCdap_t *pxMsg);
 
 bool_t xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData,
                                    serObjectValue_t *pxSerObjValue,
@@ -42,7 +38,6 @@ bool_t xFlowAllocatorHandleDeleteR(struct ipcpInstanceData_t *pxData,
 void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
                                portId_t xAppPortId,
                                flowAllocateHandle_t *pxFlowRequest);
-
 
 void vFlowAllocatorDeallocate(portId_t xAppPortId);
 

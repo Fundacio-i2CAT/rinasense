@@ -1,8 +1,15 @@
-#include "Ribd.h"
+#include "portability/port.h"
+
+#include "common/error.h"
+#include "common/rina_name.h"
+
+#include "configRINA.h"
+#include "configSensor.h"
+
 #include "CdapMessage.h"
+#include "Ribd_defs.h"
 #include "Ribd_msg.h"
 #include "SerDes.h"
-#include "common/rina_name.h"
 
 char *opcodeNamesTable[] = {
     [M_CONNECT] = "M_CONNECT",
@@ -74,15 +81,15 @@ size_t prvCountCommonItems(string_t pcObjClass, string_t pcObjName, serObjectVal
     return unSz;
 }
 
-messageCdap_t *pxRibdCdapMsgCreateResponse(Ribd_t *pxRibd,
-                                           string_t pcObjClass,
-                                           string_t pcObjName,
-                                           long nObjInst,
-                                           opCode_t eOpCode,
-                                           serObjectValue_t *pxObjValue,
-                                           int nResultCode,
-                                           string_t pcResultReason,
-                                           int nInvokeId)
+messageCdap_t *pxRibCdapMsgCreateResponse(Ribd_t *pxRibd,
+                                          string_t pcObjClass,
+                                          string_t pcObjName,
+                                          long nObjInst,
+                                          opCode_t eOpCode,
+                                          serObjectValue_t *pxObjValue,
+                                          int nResultCode,
+                                          string_t pcResultReason,
+                                          int nInvokeId)
 {
     messageCdap_t *pxMsg;
     size_t unSz, unSzObjName = 0, unSzObjClass = 0, unSzResultReason = 0;
@@ -98,8 +105,8 @@ messageCdap_t *pxRibdCdapMsgCreateResponse(Ribd_t *pxRibd,
 
     /* Allocate the memory we need */
 
-    if (!(pxMsg = pxRibdCdapMsgCreate(pxRibd, sizeof(messageCdap_t) + unSz)))
-        return NULL;
+    if (!(pxMsg = pxRibCdapMsgCreate(pxRibd, sizeof(messageCdap_t) + unSz)))
+        return ERR_SET_OOM_NULL;
 
     pxMsg->nInvokeID = nInvokeId;
     pxMsg->eOpCode = eOpCode;
@@ -117,12 +124,12 @@ messageCdap_t *pxRibdCdapMsgCreateResponse(Ribd_t *pxRibd,
     return pxMsg;
 }
 
-messageCdap_t *pxRibdCdapMsgCreateRequest(Ribd_t *pxRibd,
-                                          string_t pcObjClass,
-                                          string_t pcObjName,
-                                          long objInst,
-                                          opCode_t eOpCode,
-                                          serObjectValue_t *pxObjValue)
+messageCdap_t *pxRibCdapMsgCreateRequest(Ribd_t *pxRibd,
+                                         string_t pcObjClass,
+                                         string_t pcObjName,
+                                         long objInst,
+                                         opCode_t eOpCode,
+                                         serObjectValue_t *pxObjValue)
 {
     messageCdap_t *pxMsg;
     size_t unSz, unSzObjName = 0, unSzObjClass = 0;
@@ -137,7 +144,7 @@ messageCdap_t *pxRibdCdapMsgCreateRequest(Ribd_t *pxRibd,
 
     /* Allocate the memory we need */
 
-    if (!(pxMsg = pxRibdCdapMsgCreate(pxRibd, unSz)))
+    if (!(pxMsg = pxRibCdapMsgCreate(pxRibd, unSz)))
         return NULL;
 
     pxMsg->nInvokeID = get_next_invoke_id();
@@ -152,7 +159,7 @@ messageCdap_t *pxRibdCdapMsgCreateRequest(Ribd_t *pxRibd,
     return pxMsg;
 }
 
-messageCdap_t *pxRibdCdapMsgCreate(Ribd_t *pxRibd, size_t unSz)
+messageCdap_t *pxRibCdapMsgCreate(Ribd_t *pxRibd, size_t unSz)
 {
     messageCdap_t *pxMsg = NULL;
     authPolicy_t *pxAuthPolicy;
@@ -175,10 +182,10 @@ messageCdap_t *pxRibdCdapMsgCreate(Ribd_t *pxRibd, size_t unSz)
     pxMsg->pxObjValue = NULL;
     pxMsg->result = 0;
 
-    if (!xNameAssignFromPartsDup(&pxMsg->xDestinationInfo, "", MANAGEMENT_AE, "", ""))
+    if (ERR_CHK(xNameAssignFromPartsDup(&pxMsg->xDestinationInfo, "", MANAGEMENT_AE, "", "")))
         goto fail;
 
-    if (!xNameAssignFromPartsDup(&pxMsg->xSourceInfo, "", MANAGEMENT_AE, "", ""))
+    if (ERR_CHK(xNameAssignFromPartsDup(&pxMsg->xSourceInfo, "", MANAGEMENT_AE, "", "")))
         goto fail;
 
     pxMsg->xAuthPolicy.pcName = NULL;
@@ -194,7 +201,7 @@ messageCdap_t *pxRibdCdapMsgCreate(Ribd_t *pxRibd, size_t unSz)
     return NULL;
 }
 
-void vRibdCdapMsgFree(messageCdap_t *pxMsg)
+void vRibCdapMsgFree(messageCdap_t *pxMsg)
 {
     vNameFree(&pxMsg->xDestinationInfo);
     vNameFree(&pxMsg->xSourceInfo);

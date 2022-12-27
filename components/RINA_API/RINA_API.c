@@ -12,9 +12,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "portability/port.h"
 #include "common/netbuf.h"
 #include "common/rsrc.h"
-#include "portability/port.h"
 #include "common/num_mgr.h"
 #include "common/list.h"
 #include "common/rina_ids.h"
@@ -199,17 +199,17 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
 
     pxFlowAllocateRequest->nEventBits = 0;
 
-    if (!xNameAssignFromString(&pxFlowAllocateRequest->xDifName, pcNameDIF)) {
+    if (ERR_CHK(xNameAssignFromString(&pxFlowAllocateRequest->xDifName, pcNameDIF))) {
         LOGE(TAG_RINA, "Invalid DIF name");
         goto err;
     }
 
-    if (!xNameAssignFromString(&pxFlowAllocateRequest->xLocal, pcLocalApp)) {
+    if (ERR_CHK(xNameAssignFromString(&pxFlowAllocateRequest->xLocal, pcLocalApp))) {
         LOGE(TAG_RINA, "Invalid local name");
         goto err;
     }
 
-    if (!xNameAssignFromString(&pxFlowAllocateRequest->xRemote, pcRemoteApp)) {
+    if (ERR_CHK(xNameAssignFromString(&pxFlowAllocateRequest->xRemote, pcRemoteApp))) {
         LOGE(TAG_RINA, "Invalid remote name");
         goto err;
     }

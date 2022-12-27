@@ -3,6 +3,8 @@
 #include <limits.h> // For INT_MAX
 
 #include "portability/port.h"
+
+#include "IPCP.h"
 #include "configSensor.h"
 #include "rina_common_port.h"
 

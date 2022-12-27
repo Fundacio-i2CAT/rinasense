@@ -24,7 +24,7 @@ void xMakeBullshitNeighbor(neighborMessage_t *pxNbMsg)
 
 RS_TEST_CASE_SETUP(test_SerDesNeighbor)
 {
-    TEST_ASSERT(xSerDesNeighborInit(&xNeighborSD));
+    TEST_ASSERT(!ERR_CHK_MEM(xSerDesNeighborInit(&xNeighborSD)));
 }
 
 RS_TEST_CASE_TEARDOWN(test_SerDesNeighbor)

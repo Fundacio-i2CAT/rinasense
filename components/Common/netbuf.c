@@ -1,6 +1,10 @@
 #include <string.h>
 
+#include "portability/port.h"
+
+#include "common/error.h"
 #include "common/list.h"
+#include "common/rinasense_errors.h"
 #include "common/rsrc.h"
 #include "common/netbuf.h"
 
@@ -42,7 +46,7 @@ netbuf_t *pxNetBufNew(rsrcPoolP_t xPool,
     RsAssert(unSz);
 
     if (!(pxNewBuf = pxRsrcAlloc(xPool, "pxNetBufNew")))
-        return NULL;
+        return ERR_SET_OOM_NULL;
 
     pxNewBuf->eType = eType;
     pxNewBuf->pxNext = NULL;
@@ -59,7 +63,7 @@ netbuf_t *pxNetBufNew(rsrcPoolP_t xPool,
 
 /* This ensures that the netbuf chain has a cut at 'unSz' bytes. If
  * it doesn't, it will be created. */
-bool_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
+rsErr_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
 {
     netbuf_t *pxNewBuf;
 
@@ -72,11 +76,11 @@ bool_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
         }
         /* There is already a cut! */
         else if (pxNbIter->unSz == unSz) {
-            return true;
+            return SUCCESS;
         }
         else {
             if (!(pxNewBuf = pxRsrcAlloc(pxNb->xPool, "xNetBufSplit")))
-                return false;
+                return ERR_SET_OOM;
 
             pxNewBuf->eType = eType;
             pxNewBuf->pxNext = pxNbIter->pxNext;
@@ -91,11 +95,11 @@ bool_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
             pxNbIter->unSz = unSz;
             pxNbIter->pxNext = pxNewBuf;
 
-            return true;
+            return SUCCESS;
         }
     }
 
-    return false;
+    return ERR_SET(ERR_NETBUF_SPLIT_FAIL);
 }
 
 void vNetBufFreeAll(netbuf_t *pxNb)
@@ -157,7 +161,6 @@ void vNetBufLink(netbuf_t *pxNbFirst, ...)
 
 size_t unNetBufTotalSize(netbuf_t *pxNb)
 {
-    netbuf_t *pxNbIter;
     size_t unSz = 0;
 
     FOREACH_NETBUF(pxNb, pxNbIter) {

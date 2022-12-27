@@ -12,4 +12,5 @@ rs_component(Portability
   SRCS     ${Portability_SOURCES}
   INCLUDES ${Portability_INCLUDES}
   TEST_DIR ${CMAKE_CURRENT_LIST_DIR}/../test
+  REQUIRES Common
 )

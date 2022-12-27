@@ -1,3 +1,7 @@
+#include "portability/port.h"
+
+#include "common/error.h"
+#include "common/rinasense_errors.h"
 #include "common/rsrc.h"
 
 #include "SerDesFlow.h"
@@ -65,21 +69,21 @@ static flow_t *prvSerdesMsgDecodeFlow(rina_messages_Flow message)
     if (message.has_destinationAddress)
         pxMessage->xRemoteAddress = message.destinationAddress;
 
-    if (xNameAssignFromPartsDup(&pxMessage->xDestInfo,
-                                message.destinationNamingInfo.applicationProcessName,
-                                message.destinationNamingInfo.applicationProcessInstance,
-                                message.destinationNamingInfo.applicationEntityName,
-                                message.destinationNamingInfo.applicationEntityInstance)) {
-        LOGE(TAG_ENROLLMENT, "Failed to allocate memory for destination name");
+    if (ERR_CHK(xNameAssignFromPartsDup(&pxMessage->xDestInfo,
+                                        message.destinationNamingInfo.applicationProcessName,
+                                        message.destinationNamingInfo.applicationProcessInstance,
+                                        message.destinationNamingInfo.applicationEntityName,
+                                        message.destinationNamingInfo.applicationEntityInstance))) {
+        LOGE(TAG_SD_FLOW, "Failed to allocate memory for destination name");
         return NULL;
     }
 
-    if (xNameAssignFromPartsDup(&pxMessage->xSourceInfo,
-                                message.sourceNamingInfo.applicationProcessName,
-                                message.sourceNamingInfo.applicationProcessInstance,
-                                message.sourceNamingInfo.applicationEntityName,
-                                message.sourceNamingInfo.applicationEntityInstance)) {
-        LOGE(TAG_ENROLLMENT, "Failed to allocate memory for source name");
+    if (ERR_CHK(xNameAssignFromPartsDup(&pxMessage->xSourceInfo,
+                                        message.sourceNamingInfo.applicationProcessName,
+                                        message.sourceNamingInfo.applicationProcessInstance,
+                                        message.sourceNamingInfo.applicationEntityName,
+                                        message.sourceNamingInfo.applicationEntityInstance))) {
+        LOGE(TAG_SD_FLOW, "Failed to allocate memory for source name");
         return NULL;
     }
 
@@ -99,15 +103,16 @@ static flow_t *prvSerdesMsgDecodeFlow(rina_messages_Flow message)
     return pxMessage;
 }
 
-bool_t xSerDesFlowInit(SerDesFlow_t *pxSD)
+rsErr_t xSerDesFlowInit(SerDesFlow_t *pxSD)
 {
     size_t unSz;
+    int n;
 
     unSz = sizeof(rina_messages_Flow) + sizeof(serObjectValue_t);
     if (!(pxSD->xPool = pxRsrcNewPool("Flow SerDes", unSz, 1, 1, 0)))
-        return false;
+        return ERR_OOM;
 
-    return true;
+    return SUCCESS;
 }
 
 serObjectValue_t *pxSerDesFlowEncode(SerDesFlow_t *pxSD, flow_t *pxMsg)
@@ -168,10 +173,8 @@ serObjectValue_t *pxSerDesFlowEncode(SerDesFlow_t *pxSD, flow_t *pxMsg)
     msg.dtpConfig.dtcpPresent = pxMsg->xDtpConfig.xDtcpPresent;
     msg.dtpConfig.has_dtcpPresent = true;
 
-    if (!(pxSerValue = pxRsrcAlloc(pxSD->xPool, "Flow Encoding"))) {
-        LOGE(TAG_ENROLLMENT, "Failed to allocate memory for flow message encoding");
-        return NULL;
-    }
+    if (!(pxSerValue = pxRsrcAlloc(pxSD->xPool, "Flow Encoding")))
+        return ERR_SET_OOM_NULL;
 
     pxSerValue->pvSerBuffer = pxSerValue + sizeof(serObjectValue_t);
 
@@ -183,10 +186,8 @@ serObjectValue_t *pxSerDesFlowEncode(SerDesFlow_t *pxSD, flow_t *pxMsg)
     xStatus = pb_encode(&xStream, rina_messages_Flow_fields, &msg);
 
     // Check for errors...
-    if (!xStatus) {
-        LOGE(TAG_ENROLLMENT, "Encoding failed: %s\n", PB_GET_ERROR(&xStream));
-        return NULL;
-    }
+    if (!xStatus)
+        return ERR_SET_NULL(ERR_SERDES_ENCODING_FAIL);
 
     pxSerValue->xSerLength = xStream.bytes_written;
 
@@ -205,10 +206,8 @@ flow_t *pxSerDesFlowDecode(SerDesFlow_t *pxSD, uint8_t *pucBuffer, size_t xMessa
 
     status = pb_decode(&stream, rina_messages_Flow_fields, &message);
 
-    if (!status) {
-        LOGE(TAG_RINA, "Decoding failed: %s", PB_GET_ERROR(&stream));
-        return NULL;
-    }
+    if (!status)
+        return ERR_SET_NULL(ERR_SERDES_DECODING_FAIL);
 
     prvPrintDecodeFlow(message);
 

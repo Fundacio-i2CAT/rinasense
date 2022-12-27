@@ -1,7 +1,8 @@
-#include "Ribd_msg.h"
+#include "portability/port.h"
+
+#include "common/error.h"
 #include "common/rina_name.h"
 #include "common/rsrc.h"
-#include "portability/port.h"
 
 #include "SerDes.h"
 #include "SerDesMessage.h"
@@ -72,7 +73,7 @@ static void IsBullshitMsgOkay(messageCdap_t *pxMsgA, messageCdap_t *pxMsgB)
 RS_TEST_CASE_SETUP(test_SerDesMessage)
 {
     TEST_ASSERT(xSerDesMessageInit(&xMsgSD));
-    TEST_ASSERT(xSerDesEnrollmentInit(&xEnrollmentSD));
+    TEST_ASSERT(!ERR_CHK_MEM(xSerDesEnrollmentInit(&xEnrollmentSD)));
 }
 
 RS_TEST_CASE_TEARDOWN(test_SerDesMessage)

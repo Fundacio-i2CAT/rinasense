@@ -1,9 +1,9 @@
 #ifndef _FLOWALLOCATOR_OBJ_H_INCLUDED
 #define _FLOWALLOCATOR_OBJ_H_INCLUDED
 
-#include "Ribd_obj.h"
 #include "Enrollment_obj.h"
 #include "SerDesFlow.h"
+#include "Ribd_defs.h"
 
 #ifdef __cplusplus
 extern "C" {

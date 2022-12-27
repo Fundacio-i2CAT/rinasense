@@ -368,7 +368,7 @@ bool_t RINA_IPCPInit()
 
     /* Attempt to create the queue used to communicate with the IPCP task. */
     xNetworkEventQueue = pxRsQueueCreate("IPCPQueue",
-                                         EVENT_QUEUE_LENGTH,
+                                         10,
                                          sizeof(RINAStackEvent_t));
     RsAssert(xNetworkEventQueue != NULL);
 

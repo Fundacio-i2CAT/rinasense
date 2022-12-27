@@ -3,6 +3,7 @@
 
 #include "portability/port.h"
 
+#include "common/error.h"
 #include "common/rina_name.h"
 
 #include "configSensor.h"
@@ -72,7 +73,7 @@ rname_t *pxNameNewFromString(const string_t pcNmStr)
     /* Allocate enough memory for the whole string past the
        structure */
     if (!(pxDst = pvRsMemAlloc(sizeof(rname_t) + len + 1)))
-        return NULL;
+        return ERR_SET_OOM_NULL;
 
     /* Keep track of how much memory we have past it */
     pxDst->unPostLn = len;
@@ -87,7 +88,7 @@ rname_t *pxNameNewFromString(const string_t pcNmStr)
          * not usable. */
         bzero(pxDst, sizeof(rname_t));
         vRsMemFree(pxDst);
-        return NULL;
+        return ERR_SET_OOM_NULL;
     }
     else return pxDst;
 }
@@ -109,7 +110,7 @@ rname_t *pxNameNewFromParts(string_t pcProcessName,
 
     /* Allocate the structure + memory past it */
     if (!(pxDst = pvRsMemAlloc(sizeof(rname_t) + len + 4)))
-        return false;
+        return ERR_SET_OOM_NULL;
 
     /* Keep track of how much memory we have past it */
     pxDst->unPostLn = len;
@@ -147,11 +148,11 @@ void vNameAssignFromPartsStatic(rname_t *pxDst,
     pxDst->unPostLn = 0;
 }
 
-bool_t xNameAssignFromPartsDup(rname_t *pxDst,
-                               string_t pcProcessName,
-                               string_t pcProcessInstance,
-                               string_t pcEntityName,
-                               string_t pcEntityInstance)
+rsMemErr_t xNameAssignFromPartsDup(rname_t *pxDst,
+                                   string_t pcProcessName,
+                                   string_t pcProcessInstance,
+                                   string_t pcEntityName,
+                                   string_t pcEntityInstance)
 {
     size_t len;
 
@@ -162,7 +163,7 @@ bool_t xNameAssignFromPartsDup(rname_t *pxDst,
         + (pcEntityInstance  ? strlen(pcEntityInstance)  : 1);
 
     if (!(pxDst->pxFree = pvRsMemAlloc(len + 4 + 1)))
-        return false;
+        return ERR_SET_OOM;
 
     prvNameCopyAssignParts(pxDst, pxDst->pxFree,
                            (pcProcessName     ? pcProcessName     : ""),
@@ -173,10 +174,10 @@ bool_t xNameAssignFromPartsDup(rname_t *pxDst,
     /* No memory reserved after the struct */
     pxDst->unPostLn = 0;
 
-    return true;
+    return SUCCESS;
 }
 
-bool_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr)
+rsErr_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr)
 {
     string_t pxNewStr;
     size_t unStrSz;
@@ -187,7 +188,7 @@ bool_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr)
 
     /* Allocate enough memory for the string */
     if (!(pxDst->pxFree = pvRsMemAlloc(unStrSz + 1)))
-        return false;
+        return ERR_SET_OOM;
 
     /* Copy */
     strcpy(pxDst->pxFree, pxNmStr);
@@ -200,9 +201,9 @@ bool_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr)
          * not usable. */
         bzero(pxDst, sizeof(rname_t));
         vRsMemFree(pxDst->pxFree);
-        return false;
+        return ERR_SET_OOM;
     }
-    else return true;
+    else return SUCCESS;
 }
 
 /**
@@ -218,7 +219,7 @@ void vNameAssignStatic(rname_t *pxDst, const rname_t *pxSrc)
 /**
  * Make pxDst the same as pxSrc, copying pxSrc content.
  */
-bool_t xNameAssignDup(rname_t *pxDst, const rname_t *pxSrc)
+rsMemErr_t xNameAssignDup(rname_t *pxDst, const rname_t *pxSrc)
 {
     return xNameAssignFromPartsDup(pxDst,
                                    pxSrc->pcProcessName, pxSrc->pcProcessInstance,
@@ -280,7 +281,7 @@ string_t pcNameToString(const rname_t *pxDst)
         unDestLn += 4; /* 3 '/' characters ++ NUL */
 
         if (!(pcDest = pvRsMemAlloc(unDestLn)))
-            return NULL;
+            return ERR_SET_OOM_NULL;
 
         vNameToStringBuf(pxDst, pcDest, unDestLn);
     }
@@ -291,7 +292,7 @@ string_t pcNameToString(const rname_t *pxDst)
         unDestLn = pxDst->unPostLn + 1;
 
         if (!(pcDest = pvRsMemAlloc(unDestLn)))
-            return NULL;
+            return ERR_SET_OOM_NULL;
 
         memcpy(pcDest, pxDst->pcProcessName, unDestLn);
 

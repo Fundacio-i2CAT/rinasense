@@ -1,8 +1,11 @@
 #include <string.h>
 
+#include "common/rinasense_errors.h"
+#include "portability/port.h"
+
+#include "common/error.h"
 #include "common/mac.h"
 #include "common/rina_gpha.h"
-#include "portability/port.h"
 
 /* No used check if this is necessary */
 char *xGPAAddressToString(const gpa_t *pxGpa)
@@ -10,11 +13,7 @@ char *xGPAAddressToString(const gpa_t *pxGpa)
 	char *tmp, *p;
 
 	if (!xIsGPAOK(pxGpa))
-	{
-		LOGE(TAG_ARP, "Bad input parameter, "
-             "cannot get a meaningful address from GPA");
 		return NULL;
-	}
 
 	tmp = pvRsMemAlloc(pxGpa->uxLength + 1);
 	if (!tmp)
@@ -35,16 +34,13 @@ gpa_t *pxNameToGPA(const rname_t *pxName)
 
     RsAssert(pxName);
 
-	if (!(pcTmp = pcNameToString(pxName))) {
-		LOGI(TAG_SHIM, "Failed to convert name to string");
+	if (!(pcTmp = pcNameToString(pxName)))
 		return NULL;
-	}
 
 	// Convert the IPCPAddress Concatenated to bits
 	pxGpa = pxCreateGPA((buffer_t)pcTmp, strlen(pcTmp) + 1);
 
 	if (!pxGpa)	{
-		LOGI(TAG_SHIM, "GPA was not created correct");
 		vRsMemFree(pcTmp);
 		return NULL;
 	}
@@ -73,57 +69,50 @@ gpa_t *pxCreateGPA(const buffer_t pucAddress, size_t uxLength)
 {
 	gpa_t *pxGPA;
 
-	if (!pucAddress || uxLength == 0) {
-		LOGI(TAG_SHIM, "Bad input parameters, cannot create GPA");
-		return NULL;
-	}
+	if (!pucAddress || uxLength == 0)
+		return ERR_SET_NULL(ERR_BAD_ARG);
 
-	pxGPA = pvRsMemAlloc(sizeof(*pxGPA));
-
-	if (!pxGPA)
-		return NULL;
+	if (!(pxGPA = pvRsMemAlloc(sizeof(*pxGPA))))
+		return ERR_SET_OOM_NULL;
 
 	pxGPA->uxLength = uxLength;
 	pxGPA->pucAddress = pucCreateAddress(uxLength + 1);
 
 	if (!pxGPA->pucAddress)	{
 		vRsMemFree(pxGPA);
-		return NULL;
+		return ERR_SET_OOM_NULL;
 	}
 
 	memcpy(pxGPA->pucAddress, pucAddress, pxGPA->uxLength);
 
-    if (xIsGPAOK(pxGPA))
-        LOGD(TAG_SHIM, "CREATE GPA address: %s, size: %zu", pxGPA->pucAddress, pxGPA->uxLength);
-    else {
+    if (!xIsGPAOK(pxGPA)) {
         vRsMemFree(pxGPA);
-        return NULL;
+        return ERR_SET_OOM_NULL;
     }
 
 	return pxGPA;
 }
 
-bool_t xGPAShrink(gpa_t *pxGpa, uint8_t ucFiller)
+rsErr_t xGPAShrink(gpa_t *pxGpa, uint8_t ucFiller)
 {
     buffer_t pucNewAddress;
     buffer_t pucPosition;
     size_t uxLength;
 
     if (!xIsGPAOK(pxGpa))
-        return false;
+        return ERR_SET(ERR_GPA_INVALID);
 
     /* Look for the filler character in the address */
     pucPosition = memchr(pxGpa->pucAddress, ucFiller, pxGpa->uxLength);
 
     /* Check if there is any needs to shrink */
     if (pucPosition == NULL || pucPosition >= pxGpa->pucAddress + pxGpa->uxLength)
-        return true;
+        return SUCCESS;
 
     uxLength = pucPosition - pxGpa->pucAddress;
 
-    pucNewAddress = pvRsMemAlloc(uxLength);
-    if (!pucNewAddress)
-        return false;
+    if (!(pucNewAddress = pvRsMemAlloc(uxLength)))
+        return ERR_SET_OOM;
 
     memcpy(pucNewAddress, pxGpa->pucAddress, uxLength);
 
@@ -131,27 +120,26 @@ bool_t xGPAShrink(gpa_t *pxGpa, uint8_t ucFiller)
     pxGpa->pucAddress = pucNewAddress;
     pxGpa->uxLength = uxLength;
 
-    return true;
+    return SUCCESS;
 }
 
-bool_t xGPAGrow(gpa_t *pxGpa, size_t uxLength, uint8_t ucFiller)
+rsErr_t xGPAGrow(gpa_t *pxGpa, size_t uxLength, uint8_t ucFiller)
 {
     buffer_t new_address;
 
     if (!xIsGPAOK(pxGpa))
-        return false;
+        return ERR_SET(ERR_GPA_INVALID);
 
     if (uxLength == 0 || uxLength < pxGpa->uxLength)
-               return false;
+        return ERR_SET(ERR_BAD_ARG);
 
     if (pxGpa->uxLength == uxLength)
-        return true;
+        return SUCCESS;
 
     RsAssert(uxLength > pxGpa->uxLength);
 
-    new_address = pvRsMemAlloc(uxLength);
-    if (!new_address)
-        return false;
+    if (!(new_address = pvRsMemAlloc(uxLength)))
+        return ERR_SET_OOM;
 
     memcpy(new_address, pxGpa->pucAddress, pxGpa->uxLength);
     memset(new_address + pxGpa->uxLength, ucFiller, uxLength - pxGpa->uxLength);
@@ -159,7 +147,7 @@ bool_t xGPAGrow(gpa_t *pxGpa, size_t uxLength, uint8_t ucFiller)
     pxGpa->pucAddress = new_address;
     pxGpa->uxLength = uxLength;
 
-    return true;
+    return SUCCESS;
 }
 
 gpa_t *pxDupGPA(const gpa_t *pxSourcePa, bool_t nDoShrink, uint8_t ucFiller)
@@ -170,10 +158,10 @@ gpa_t *pxDupGPA(const gpa_t *pxSourcePa, bool_t nDoShrink, uint8_t ucFiller)
     RsAssert(pxSourcePa);
 
     if (!xIsGPAOK(pxSourcePa))
-        return NULL;
+        return ERR_SET_NULL(ERR_GPA_INVALID);
 
     if (!(pxTargetPa = pvRsMemAlloc(sizeof(gpa_t))))
-        return NULL;
+        return ERR_SET_NULL(ERR_GPA_INVALID);
 
     if (nDoShrink) {
         pxTargetPa->uxLength = pxSourcePa->uxLength;
@@ -182,10 +170,9 @@ gpa_t *pxDupGPA(const gpa_t *pxSourcePa, bool_t nDoShrink, uint8_t ucFiller)
     } else
         pxTargetPa->uxLength = pxSourcePa->uxLength;
 
-    pxTargetPa->pucAddress = pvRsMemAlloc(pxSourcePa->uxLength);
-    if (!pxTargetPa->pucAddress) {
+    if (!(pxTargetPa->pucAddress = pvRsMemAlloc(pxSourcePa->uxLength))) {
         vRsMemFree(pxTargetPa);
-        return NULL;
+        return ERR_SET_OOM_NULL;
     }
 
     memcpy(pxTargetPa->pucAddress, pxSourcePa->pucAddress, pxTargetPa->uxLength);
@@ -193,19 +180,15 @@ gpa_t *pxDupGPA(const gpa_t *pxSourcePa, bool_t nDoShrink, uint8_t ucFiller)
     return pxTargetPa;
 }
 
-gha_t *pxCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress) // Changes to uint8_t
+gha_t *pxCreateGHA(eGHAType_t xType, const MACAddress_t *pxAddress)
 {
 	gha_t *pxGha;
 
 	if (xType != MAC_ADDR_802_3)
-	{
-		LOGE(TAG_SHIM, "Wrong input parameters, cannot create GHA");
-		return NULL;
-	}
+        return ERR_SET_NULL(ERR_GHA_INVALID);
 
-    pxGha = pvRsMemAlloc(sizeof(*pxGha));
-	if (!pxGha)
-		return NULL;
+    if (!(pxGha = pvRsMemAlloc(sizeof(*pxGha))))
+		return ERR_SET_OOM_NULL;
 
 	pxGha->xType = xType;
 	memcpy(pxGha->xAddress.ucBytes, pxAddress->ucBytes, sizeof(pxGha->xAddress));
@@ -220,13 +203,15 @@ gha_t *pxDupGHA(const gha_t *pxSourceHa)
 
     RsAssert(pxSourceHa);
 
-    if (!xIsGHAOK(pxSourceHa))
+    if (!xIsGHAOK(pxSourceHa)) {
+        ERR_SET(ERR_GHA_INVALID);
         return NULL;
+    }
 
     RsAssert(pxSourceHa->xType == MAC_ADDR_802_3);
 
     if ((pxTargetHa = pvRsMemAlloc(sizeof(gha_t))) == NULL)
-        return NULL;
+        return ERR_SET_OOM_NULL;
 
     memcpy(&pxTargetHa->xAddress, &pxSourceHa->xAddress, sizeof(MACAddress_t));
     pxTargetHa->xType = pxSourceHa->xType;
@@ -237,37 +222,24 @@ gha_t *pxDupGHA(const gha_t *pxSourceHa)
 bool_t xIsGPAOK(const gpa_t *pxGpa)
 {
 	if (!pxGpa)
-	{
-		LOGI(TAG_SHIM, " !Gpa");
 		return false;
-	}
 
 	if (pxGpa->pucAddress == NULL)
-	{
-		LOGI(TAG_SHIM, "xIsGPAOK Address is NULL");
 		return false;
-	}
 
 	if (pxGpa->uxLength == 0)
-	{
-		LOGI(TAG_SHIM, "Length = 0");
 		return false;
-	}
+
 	return true;
 }
 
 bool_t xIsGHAOK(const gha_t *pxGha)
 {
 	if (!pxGha)
-	{
-		LOGI(TAG_SHIM, "No Valid GHA");
 		return false;
-	}
 
 	if (pxGha->xType != MAC_ADDR_802_3)
-	{
 		return false;
-	}
 
     return true;
 }
@@ -276,7 +248,7 @@ bool_t xGHACmp(const gha_t *pxHa1, const gha_t *pxHa2)
 {
     if (!pxHa1 || !pxHa2)
         return false;
-    
+
     return memcmp(pxHa1->xAddress.ucBytes, pxHa2->xAddress.ucBytes, sizeof(MACAddress_t)) == 0;
 }
 

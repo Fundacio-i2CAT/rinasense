@@ -12,10 +12,15 @@ extern "C" {
 
 #define MAC2STR_MIN_BUFSZ 18
 
+#define ETH_P_RINA     0xD1F0
+#define ETH_P_RINA_ARP 0x4305
+
+#define MAC_ADDRESS_LENGTH_BYTES 6
+
 //Structure MAC ADDRESS
 typedef struct xMAC_ADDRESS
 {
-	uint8_t ucBytes[ MAC_ADDRESS_LENGTH_BYTES ]; /**< Byte array of the MAC address */
+	uint8_t ucBytes[MAC_ADDRESS_LENGTH_BYTES]; /**< Byte array of the MAC address */
 } MACAddress_t;
 
 //enum MAC Address

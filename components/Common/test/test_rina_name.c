@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "portability/port.h"
 #include "common/rina_name.h"
 
 #include "unity.h"
@@ -87,7 +88,7 @@ RS_TEST_CASE(RinaNameToString, "[rina_name]")
     vRsMemFree(s);
     vNameFree(n1);
 
-    TEST_ASSERT(xNameAssignFromPartsDup(&n2, "ue1.mobile.DIF", "1", "", ""));
+    TEST_ASSERT(!ERR_CHK(xNameAssignFromPartsDup(&n2, "ue1.mobile.DIF", "1", "", "")));
     TEST_ASSERT(s = pcNameToString(&n2));
     TEST_ASSERT((sz = strlen(s)) == 18);
     TEST_ASSERT(strcmp(s, "ue1.mobile.DIF/1//") == 0);

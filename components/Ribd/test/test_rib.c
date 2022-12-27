@@ -3,22 +3,62 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "Rib.h"
+#include "portability/port.h"
+
+#include "Ribd_api.h"
+#include "Ribd_defs.h"
 #include "RibObject.h"
-#include "Ribd.h"
 
 #include "unity.h"
 #include "common/unity_fixups.h"
 
 Ribd_t xRibd;
-ribObject_t obj;
+
+rsErr_t dummyStart(RIB_REQUEST_METHOD_ARGS);
+
+rsErr_t dummyStop(RIB_REQUEST_METHOD_ARGS);
+
+ribObject_t emptyObj;
+ribObject_t dummyObj = {
+    .ucObjName = "/dummy",
+    .ucObjClass = "Dummy",
+    .ulObjInst = 0,
+
+    .fnStart = &dummyStart,
+    .fnStop = &dummyStop,
+    .fnCreate = NULL,
+    .fnDelete = NULL,
+    .fnWrite = NULL,
+    .fnRead = NULL,
+
+    .fnStartReply = NULL,
+    .fnStopReply = NULL,
+    .fnCreateReply = NULL,
+    .fnDeleteReply = NULL,
+    .fnWriteReply = NULL,
+    .fnReadReply = NULL,
+
+    .fnShow = NULL,
+
+    .fnFree = NULL
+};
+
+rsErr_t dummyStart(RIB_REQUEST_METHOD_ARGS)
+{
+    return SUCCESS;
+}
+
+rsErr_t dummyStop(RIB_REQUEST_METHOD_ARGS)
+{
+    return SUCCESS;
+}
 
 RS_TEST_CASE_SETUP(test_rib) {
-    xRibdInit(&xRibd);
+    xRibInit(&xRibd);
 
-    bzero(&obj, sizeof(ribObject_t));
-    obj.ucObjClass = "test",
-    obj.ucObjName = "/difm/test";
+    bzero(&emptyObj, sizeof(ribObject_t));
+    emptyObj.ucObjClass = "test",
+    emptyObj.ucObjName = "/difm/test";
 }
 
 RS_TEST_CASE_TEARDOWN(test_rib) {}
@@ -26,16 +66,16 @@ RS_TEST_CASE_TEARDOWN(test_rib) {}
 RS_TEST_CASE(RibAddObject, "[rib]")
 {
     RS_TEST_CASE_BEGIN(test_rib);
-    TEST_ASSERT(xRibAddObjectEntry(&xRibd, &obj));
+    TEST_ASSERT(!ERR_CHK(xRibObjectAdd(&xRibd, NULL, &emptyObj)));
     RS_TEST_CASE_END(test_rib);
 }
 
 RS_TEST_CASE(RibFindObject, "[rib]")
 {
     RS_TEST_CASE_BEGIN(test_rib);
-    TEST_ASSERT(xRibAddObjectEntry(&xRibd, &obj));
-    TEST_ASSERT(pxRibFindObject(&xRibd, "/difm/test") != NULL);
-    TEST_ASSERT(pxRibFindObject(&xRibd, "blarg") == NULL);
+    TEST_ASSERT(!ERR_CHK(xRibObjectAdd(&xRibd, NULL, &emptyObj)));
+    TEST_ASSERT(pxRibObjectFind(&xRibd, "/difm/test") != NULL);
+    TEST_ASSERT(pxRibObjectFind(&xRibd, "blarg") == NULL);
     RS_TEST_CASE_END(test_rib);
 }
 

@@ -18,6 +18,7 @@
 #include "configRINA.h"
 #include "configSensor.h"
 
+#include "IPCP.h"
 #include "IPCP_normal_api.h"
 #include "IPCP_normal_defs.h"
 #include "rina_common_port.h"

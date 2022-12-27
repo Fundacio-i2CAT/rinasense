@@ -3,6 +3,7 @@
 
 #include "portability/port.h"
 #include "common/rsrc.h"
+#include "common/error.h"
 
 #include "SerDes.h"
 
@@ -14,6 +15,10 @@ typedef struct
 {
     rsrcPoolP_t xPoolEnc;
     rsrcPoolP_t xPoolDec;
+
+    pthread_mutex_t xPoolEncMutex;
+
+    pthread_mutex_t xPoolDecMutex;
 
 } EnrollmentSerDes_t;
 
@@ -30,7 +35,7 @@ typedef struct
 
 } enrollmentMessage_t;
 
-bool_t xSerDesEnrollmentInit(EnrollmentSerDes_t *pxSD);
+rsMemErr_t xSerDesEnrollmentInit(EnrollmentSerDes_t *pxSD);
 
 serObjectValue_t *pxSerDesEnrollmentEncode(EnrollmentSerDes_t *pxSD, enrollmentMessage_t *pxMsg);
 

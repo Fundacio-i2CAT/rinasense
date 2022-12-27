@@ -70,9 +70,12 @@ typedef struct
     rsrcPoolP_t xEncPool;
     rsrcPoolP_t xDecPool;
 
+    pthread_mutex_t xEncPoolMutex;
+    pthread_mutex_t xDecPoolMutex;
+
 } NeighborSerDes_t;
 
-bool_t xSerDesNeighborInit(NeighborSerDes_t *pxSD);
+rsErr_t xSerDesNeighborInit(NeighborSerDes_t *pxSD);
 
 serObjectValue_t *pxSerDesNeighborEncode(NeighborSerDes_t *pxSD, neighborMessage_t *pxMsg);
 

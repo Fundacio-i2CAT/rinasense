@@ -1,6 +1,7 @@
 #ifndef COMMON_RINA_NAME_H
 #define COMMON_RINA_NAME_H
 
+#include "common/error.h"
 #include "portability/port.h"
 
 #ifdef __cplusplus
@@ -34,17 +35,17 @@ void vNameAssignFromPartsStatic(rname_t *pxDst,
                                 string_t pcEntityName,
                                 string_t pcEntityInstance);
 
-bool_t xNameAssignFromPartsDup(rname_t *pxDst,
-                               string_t pcProcessName,
-                               string_t pcProcessInstance,
-                               string_t pcEntityName,
-                               string_t pcEntityInstance);
+rsMemErr_t xNameAssignFromPartsDup(rname_t *pxDst,
+                                   string_t pcProcessName,
+                                   string_t pcProcessInstance,
+                                   string_t pcEntityName,
+                                   string_t pcEntityInstance);
 
-bool_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr);
+rsMemErr_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr);
 
 void vNameAssignStatic(rname_t *pxDst, const rname_t *pxSrc);
 
-bool_t xNameAssignDup(rname_t *pxDst, const rname_t *pxSrc);
+rsMemErr_t xNameAssignDup(rname_t *pxDst, const rname_t *pxSrc);
 
 string_t pcNameToString(const rname_t *pxDst);
 

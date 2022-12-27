@@ -585,7 +585,7 @@ bool_t xShimApplicationRegister(struct ipcpInstance_t *pxSelf,
 
     pthread_mutex_lock(&pxData->xLock);
 
-    if (!xNameAssignDup(&pxSelf->pxData->xAppName, pxAppName)) {
+    if (ERR_CHK(xNameAssignDup(&pxSelf->pxData->xAppName, pxAppName))) {
 		LOGE(TAG_SHIM, "Failed to create application name for shim");
         goto err;
     }
@@ -601,7 +601,7 @@ bool_t xShimApplicationRegister(struct ipcpInstance_t *pxSelf,
     }
 
 	//pxData->pxDafName = pxRstrNameDup(pxDafName);
-    if (!xNameAssignDup(&pxSelf->pxData->xDafName, pxDafName)) {
+    if (ERR_CHK(xNameAssignDup(&pxSelf->pxData->xDafName, pxDafName))) {
 		LOGE(TAG_SHIM, "Failed to create DAF name for shim");
 		goto err;
     }
@@ -777,7 +777,7 @@ void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf, netbuf_t *pxNbFram
     ASSERT_INSTANCE_DATA(pxSelf->pxData, IPCP_INSTANCE_DATA_ETHERNET_SHIM);
 
     /* Carve out the ethernet header from the frame */
-    if (!xNetBufSplit(pxNbFrame, NB_RINA_PCI, sizeof(EthernetHeader_t))) {
+    if (ERR_CHK(xNetBufSplit(pxNbFrame, NB_RINA_PCI, sizeof(EthernetHeader_t)))) {
         LOGE(TAG_WIFI, "Failed to allocate netbuf for ethernet header, rejecting packet");
         eReturned = eReleaseBuffer;
     }

@@ -1,12 +1,3 @@
-
-/*Application Level Configurations?
- * Shim_wifi name
- * Shim_wifi type (AP-STA)
- * Shim_wifi address
- */
-
-// Include FreeRTOS
-
 #ifndef SHIM_IPCP_H__INCLUDED
 #define SHIM_IPCP_H__INCLUDED
 

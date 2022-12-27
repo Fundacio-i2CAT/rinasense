@@ -20,7 +20,7 @@
 #include "configRINA.h"
 #include "IpcManager.h"
 #include "FlowAllocator_defs.h"
-#include "Ribd.h"
+#include "Ribd_defs.h"
 #include "Ribd_api.h"
 #include "IPCP.h"
 #include "IPCP_api.h"
@@ -409,7 +409,7 @@ bool_t xNormalMgmtDuPost(struct ipcpInstance_t *pxIpcp, portId_t xPortId, du_t *
     RsAssert(pxDu);
 
     /* Send to the RIB Daemon */
-    if (!xRibdProcessLayerManagementPDU(pxIpcp->pxData, xPortId, pxDu)) {
+    if (!xRibProcessLayerManagementPDU(pxIpcp->pxData, xPortId, pxDu)) {
         LOGI(TAG_IPCPNORMAL, "Failed to preocess management PDU");
         return false;
     }
@@ -754,16 +754,12 @@ struct ipcpInstance_t *pxNormalCreate(ipcProcessId_t unIpcpId)
     }
 
     /* Initialize the RIB */
-    if (!xRibdInit(&pxData->xRibd)) {
-        LOGE(TAG_IPCPNORMAL, "Failed initialisation of RIB");
+    if (ERR_CHK(xRibInit(&pxData->xRibd)))
         goto fail;
-    }
 
     /* Initialise Enrollment component */
-    if (!xEnrollmentInit(&pxData->xEnrollment, &pxData->xRibd)) {
-        LOGE(TAG_IPCPNORMAL, "Failed initialisation of Enrollment component");
+    if (ERR_CHK(xEnrollmentInit(&pxData->xEnrollment, &pxData->xRibd)))
         goto fail;
-    }
 
     /* Initialize flow allocator */
     if (!xFlowAllocatorInit(&pxData->xFA, &pxData->xEnrollment, &pxData->xRibd)) {

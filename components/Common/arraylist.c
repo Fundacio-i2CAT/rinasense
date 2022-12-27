@@ -2,13 +2,14 @@
 #include <string.h>
 
 #include "portability/port.h"
+#include "common/error.h"
 #include "common/rsrc.h"
 #include "common/arraylist.h"
 
-bool_t xArrayListInit(arraylist_t *pxLst,
-                      size_t unItemSz,
-                      size_t unInitialMaxItemCount,
-                      rsrcPoolP_t xVarPool)
+rsMemErr_t xArrayListInit(arraylist_t *pxLst,
+                         size_t unItemSz,
+                         size_t unInitialMaxItemCount,
+                         rsrcPoolP_t xVarPool)
 {
     size_t unTotalInitSz;
 
@@ -16,20 +17,20 @@ bool_t xArrayListInit(arraylist_t *pxLst,
 
     if (xVarPool) {
         if (!(pxLst->pvArray = pxRsrcVarAlloc(xVarPool, "Array List", unTotalInitSz)))
-            return false;
+            return ERR_SET_OOM;
     } else
         if (!(pxLst->pvArray = pvRsMemAlloc(unTotalInitSz)))
-            return false;
+            return ERR_SET_OOM;
 
     pxLst->xPool = xVarPool;
     pxLst->unMaxItemCount = unInitialMaxItemCount;
     pxLst->unItemSz = unItemSz;
     pxLst->unFreeIdx = 0;
 
-    return true;
+    return SUCCESS;
 }
 
-bool_t xArrayListAdd(arraylist_t *pxLst, void *pvItem)
+rsMemErr_t xArrayListAdd(arraylist_t *pxLst, void *pvItem)
 {
     /* Resize if needed */
     if (pxLst->unFreeIdx == pxLst->unMaxItemCount) {
@@ -45,7 +46,7 @@ bool_t xArrayListAdd(arraylist_t *pxLst, void *pvItem)
             void *pvNewBuf;
 
             if (!(pvNewBuf = pxRsrcVarAlloc(pxLst->xPool, "Array List", unNewSz)))
-                return false;
+                return ERR_SET_OOM;
 
             memcpy(pvNewBuf, pxLst->pvArray, pxLst->unMaxItemCount * pxLst->unItemSz);
 
@@ -56,14 +57,14 @@ bool_t xArrayListAdd(arraylist_t *pxLst, void *pvItem)
         /* Heap memory is resizable with realloc. */
         else {
             if (!(pxLst->pvArray = pvRsMemRealloc(pxLst->pvArray, unNewSz)))
-                return false;
+                return ERR_SET_OOM;
 
             pxLst->unMaxItemCount = unNewMaxItemCount;
         }
     }
 
     memcpy(pxLst->pvArray + (pxLst->unFreeIdx++ * pxLst->unItemSz), pvItem, pxLst->unItemSz);
-    return true;
+    return SUCCESS;
 }
 
 void vArrayListRemove(arraylist_t *pxLst, size_t unIdx)

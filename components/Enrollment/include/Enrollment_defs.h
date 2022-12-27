@@ -8,7 +8,6 @@
 #ifndef ENROLLMENT_H_INCLUDED
 #define ENROLLMENT_H_INCLUDED
 
-#include "Rib.h"
 #include "IPCP_normal_defs.h"
 
 #include "SerDesNeighbor.h"

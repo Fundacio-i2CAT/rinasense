@@ -15,7 +15,7 @@ typedef struct
     rsrcPoolP_t xPool;
 } SerDesFlow_t;
 
-bool_t xSerDesFlowInit(SerDesFlow_t *pxSD);
+rsErr_t xSerDesFlowInit(SerDesFlow_t *pxSD);
 
 serObjectValue_t *pxSerDesFlowEncode(SerDesFlow_t *pxSD, flow_t *pxFlow);
 

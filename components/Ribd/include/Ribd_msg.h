@@ -33,6 +33,8 @@ typedef enum
     M_STOP_R,
 } opCode_t;
 
+#define MAX_CDAP_OPCODE M_STOP_R
+
 extern char *opcodeNamesTable[];
 
 typedef struct

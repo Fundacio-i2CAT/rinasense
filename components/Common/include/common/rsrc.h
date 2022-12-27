@@ -10,6 +10,8 @@
 #define _RSRC_H_
 
 #include <stdint.h>
+#include <pthread.h>
+
 #include "common/private/iot_doubly_linked_list.h"				// Amazon FreeRTOS library
 
 #ifdef __cplusplus
@@ -75,7 +77,10 @@ struct rsrcPool {
 	uint16_t	uiNumInUse;
 	uint16_t	uiNumFree;
 	uint16_t	uiLowWater;			// lowest value in freelist (after containing > 0)
-	uint16_t	uiHiWater;			// largest number ever in active list
+	uint16_t	uiHiWater;			// largest number ever in active
+                                    // list
+    pthread_mutex_t *pxMutex;       // Optional mutex used to protect
+                                    // the pool data structure.
 };
 
 /**
@@ -150,6 +155,8 @@ void vRsrcPrintResInHexHelper (rsrcPoolP_t, void *);
  */
 enum rsrcClearOnAllocSetting_t {rsrcNOCLEAR, rsrcCLEAR_ON_ALLOC, rsrcCLEAR_ON_BOTH};
 extern enum rsrcClearOnAllocSetting_t eRsrcClearResOnAlloc;
+
+void vRsrcSetMutex(rsrcPoolP_t pvPool, pthread_mutex_t *pxMutex);
 
 #ifdef __cplusplus
 }

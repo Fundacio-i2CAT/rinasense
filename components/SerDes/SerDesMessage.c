@@ -1,50 +1,52 @@
-#include "SerDes.h"
-#include "common/rina_name.h"
-#include "common/rsrc.h"
 #include "portability/port.h"
+#include "common/error.h"
+#include "common/rina_name.h"
+#include "common/rinasense_errors.h"
+#include "common/rsrc.h"
 
+#include "SerDes.h"
 #include "SerDesMessage.h"
 #include "CDAP.pb.h"
 #include "pb.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
-#include "Ribd.h"
+#include "Ribd_defs.h"
 
 #define TAG_SD_MSG "[SD-MSG]"
 
-void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
+void vRibPrintCdapMessage(const string_t pcTag, const string_t pcTitle, messageCdap_t *pxDecodeCdap)
 {
-    LOGD(TAG_SD_MSG, "DECODE");
-    LOGD(TAG_SD_MSG, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
-    LOGD(TAG_SD_MSG, "Invoke Id: %d ", pxDecodeCdap->nInvokeID);
-    LOGD(TAG_SD_MSG, "Version: %jd", pxDecodeCdap->version);
+    LOGD(pcTag, "---- %s ----", pcTitle);
+    LOGD(pcTag, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
+    LOGD(pcTag, "Invoke Id: %d ", pxDecodeCdap->nInvokeID);
+    LOGD(pcTag, "Version: %jd", pxDecodeCdap->version);
 
     if (pxDecodeCdap->xAuthPolicy.pcName != NULL) {
-        LOGD(TAG_SD_MSG, "AuthPolicy Name: %s", pxDecodeCdap->xAuthPolicy.pcName);
-        LOGD(TAG_SD_MSG, "AuthPolicy Version: %s", pxDecodeCdap->xAuthPolicy.pcVersion);
+        LOGD(pcTag, "AuthPolicy Name: %s", pxDecodeCdap->xAuthPolicy.pcName);
+        LOGD(pcTag, "AuthPolicy Version: %s", pxDecodeCdap->xAuthPolicy.pcVersion);
     }
 
-    LOGD(TAG_SD_MSG, "Source AEI: %s", pxDecodeCdap->xSourceInfo.pcEntityInstance);
-    LOGD(TAG_SD_MSG, "Source AEN: %s", pxDecodeCdap->xSourceInfo.pcEntityName);
-    LOGD(TAG_SD_MSG, "Source API: %s", pxDecodeCdap->xSourceInfo.pcProcessInstance);
-    LOGD(TAG_SD_MSG, "Source APN: %s", pxDecodeCdap->xSourceInfo.pcProcessName);
-    LOGD(TAG_SD_MSG, "Dest AEI: %s", pxDecodeCdap->xDestinationInfo.pcEntityInstance);
-    LOGD(TAG_SD_MSG, "Dest AEN: %s", pxDecodeCdap->xDestinationInfo.pcEntityName);
-    LOGD(TAG_SD_MSG, "Dest API: %s", pxDecodeCdap->xDestinationInfo.pcProcessInstance);
-    LOGD(TAG_SD_MSG, "Dest APN: %s", pxDecodeCdap->xDestinationInfo.pcProcessName);
-    LOGD(TAG_SD_MSG, "Result: %d", pxDecodeCdap->result);
+    LOGD(pcTag, "Source AEI: %s", pxDecodeCdap->xSourceInfo.pcEntityInstance);
+    LOGD(pcTag, "Source AEN: %s", pxDecodeCdap->xSourceInfo.pcEntityName);
+    LOGD(pcTag, "Source API: %s", pxDecodeCdap->xSourceInfo.pcProcessInstance);
+    LOGD(pcTag, "Source APN: %s", pxDecodeCdap->xSourceInfo.pcProcessName);
+    LOGD(pcTag, "Dest AEI: %s", pxDecodeCdap->xDestinationInfo.pcEntityInstance);
+    LOGD(pcTag, "Dest AEN: %s", pxDecodeCdap->xDestinationInfo.pcEntityName);
+    LOGD(pcTag, "Dest API: %s", pxDecodeCdap->xDestinationInfo.pcProcessInstance);
+    LOGD(pcTag, "Dest APN: %s", pxDecodeCdap->xDestinationInfo.pcProcessName);
+    LOGD(pcTag, "Result: %d", pxDecodeCdap->result);
 
     if (pxDecodeCdap->pcObjName)
-        LOGD(TAG_SD_MSG, "ObjectName:%s", pxDecodeCdap->pcObjName);
+        LOGD(pcTag, "ObjectName:%s", pxDecodeCdap->pcObjName);
 
     if (pxDecodeCdap->objInst)
-        LOGD(TAG_SD_MSG, "ObjectInstance:%d", (int)pxDecodeCdap->objInst);
+        LOGD(pcTag, "ObjectInstance:%d", (int)pxDecodeCdap->objInst);
 
     if (pxDecodeCdap->pcObjClass)
-        LOGD(TAG_SD_MSG, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
+        LOGD(pcTag, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
 
     if (pxDecodeCdap->pxObjValue)
-        LOGD(TAG_SD_MSG, "ObjectValue:%zu byte(s)", pxDecodeCdap->pxObjValue->xSerLength);
+        LOGD(pcTag, "ObjectValue:%zu byte(s)", pxDecodeCdap->pxObjValue->xSerLength);
 }
 
 bool_t xSerDesMessageInit(MessageSerDes_t *pxSD)
@@ -148,10 +150,8 @@ serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *px
         xMsg.objValue.has_byteval = true;
     }
 
-    if (!(pxSerValue = pxRsrcAlloc(pxSD->xEncPool, "CDAP message encoding"))) {
-        LOGE(TAG_SD_MSG, "Failed to allocate memory for CDAP message encoding");
-        return NULL;
-    }
+    if (!(pxSerValue = pxRsrcAlloc(pxSD->xEncPool, "CDAP message encoding")))
+        return ERR_SET_OOM_NULL;
 
     pxSerValue->pvSerBuffer = pxSerValue + sizeof(serObjectValue_t);
 
@@ -162,10 +162,8 @@ serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *px
     xStatus = pb_encode(&xStream, rina_messages_CDAPMessage_fields, &xMsg);
     pxSerValue->xSerLength = xStream.bytes_written;
 
-    if (!xStatus) {
-        LOGE(TAG_RIB, "Encoding failed: %s", PB_GET_ERROR(&xStream));
-        return NULL;
-    }
+    if (!xStatus)
+        return ERR_SET_NULL(ERR_SERDES_ENCODING_FAIL);
 
     LOGI(TAG_RIB, "Message CDAP with length: %zu encoded sucessfully ", pxSerValue->xSerLength);
 
@@ -185,28 +183,24 @@ messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD, uint8_t *pucBuffer, 
 
     xStatus = pb_decode(&xStream, rina_messages_CDAPMessage_fields, &message);
 
-    if (!xStatus) {
-        LOGE(TAG_RIB, "Decoding failed: %s", PB_GET_ERROR(&xStream));
-        return NULL;
-    }
+    if (!xStatus)
+        return ERR_SET_NULL(ERR_SERDES_DECODING_FAIL);
 
-    if (!(pxMsg = pxRsrcAlloc(pxSD->xDecPool, "CDAP Message Decoding"))) {
-        LOGE(TAG_SD_MSG, "Failed to allocate memory for CDAM message decoding");
-        return NULL;
-    }
+    if (!(pxMsg = pxRsrcAlloc(pxSD->xDecPool, "CDAP Message Decoding")))
+        return ERR_SET_OOM_NULL;
 
     memset(pxMsg, 0, sizeof(messageCdap_t));
 
-    if (!(xNameAssignFromPartsDup(&pxMsg->xDestinationInfo,
-                                  message.destApName, message.destApInst,
-                                  message.destAEName, message.destAEInst))) {
+    if (ERR_CHK(xNameAssignFromPartsDup(&pxMsg->xDestinationInfo,
+                                        message.destApName, message.destApInst,
+                                        message.destAEName, message.destAEInst))) {
         LOGE(TAG_SD_MSG, "Failed to assign destination RINA name");
         return NULL;
     }
 
-    if (!(xNameAssignFromPartsDup(&pxMsg->xSourceInfo,
-                                  message.srcApName, message.srcApInst,
-                                  message.srcAEName, message.srcAEInst))) {
+    if (ERR_CHK(xNameAssignFromPartsDup(&pxMsg->xSourceInfo,
+                                        message.srcApName, message.srcApInst,
+                                        message.srcAEName, message.srcAEInst))) {
         LOGE(TAG_SD_MSG, "Failed to assigne source RINA name");
         return NULL;
     }

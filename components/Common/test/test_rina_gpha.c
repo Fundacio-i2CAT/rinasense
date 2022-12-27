@@ -46,9 +46,6 @@ RS_TEST_CASE(GPAConversion, "[gpa][gpha]")
     TEST_ASSERT(xIsGPAOK(gpa1) == true);
     TEST_ASSERT((nm2 = xGPAAddressToString(gpa1)) != NULL);
 
-    LOGD(TAG_RINA, "nm1: %s", nm1);
-    LOGD(TAG_RINA, "nm2: %s", nm2);
-
     vNameFree(n1);
     vGPADestroy(gpa1);
     vRsMemFree(nm2);
@@ -132,11 +129,11 @@ RS_TEST_CASE(GPAShrink, "[gpa][gpha]") {
     gpa2 = pxDupGPA(gpa1, false, 0);
     TEST_ASSERT(xGPACmp(gpa1, gpa2));
     TEST_ASSERT(gpa1->uxLength == 4);
-    TEST_ASSERT(xGPAShrink(gpa1, 0));
+    TEST_ASSERT(!ERR_CHK(xGPAShrink(gpa1, 0)));
     TEST_ASSERT(xGPACmp(gpa1, gpa2));
     TEST_ASSERT(gpa1->uxLength == 1);
     gpa3 = pxCreateGPA((buffer_t)addr2, strlen(addr1));
-    TEST_ASSERT(xGPAShrink(gpa3, 0));
+    TEST_ASSERT(!ERR_CHK(xGPAShrink(gpa3, 0)));
 
     vGPADestroy(gpa1);
     vGPADestroy(gpa2);

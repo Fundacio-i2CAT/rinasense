@@ -4,6 +4,7 @@
 /* Code for a RINA/ARP cache that aims to be independent of the
  * hardware protocol. */
 
+#include "ARP826.h"
 #include "ARP826_cache_defs.h"
 #include "ARP826_cache_api.h"
 

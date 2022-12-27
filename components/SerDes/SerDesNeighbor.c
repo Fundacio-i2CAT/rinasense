@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "common/arraylist.h"
+#include "common/error.h"
 #include "common/rsrc.h"
 #include "common/macros.h"
 #include "common/datapacker.h"
@@ -46,19 +47,29 @@ typedef struct {
 
 } NeighborListDecodeCbState_t;
 
-bool_t xSerDesNeighborInit(NeighborSerDes_t *pxSD)
+rsErr_t xSerDesNeighborInit(NeighborSerDes_t *pxSD)
 {
     size_t unSz;
+    int n;
 
     unSz = ENROLLMENT_MSG_SIZE + sizeof(serObjectValue_t);
 
     if (!(pxSD->xEncPool = pxRsrcNewPool("Neighbor SerDes Encoding", unSz, 1, 1, 0)))
-        return false;
+        return ERR_SET_OOM;
 
     if (!(pxSD->xDecPool = pxRsrcNewVarPool("Neighbor SerDes Decoding", 0)))
-        return false;
+        return ERR_SET_OOM;
 
-    return true;
+    if ((n = pthread_mutex_init(&pxSD->xDecPoolMutex, NULL)))
+        return ERR_SET_PTHREAD(n);
+
+    if ((n = pthread_mutex_init(&pxSD->xEncPoolMutex, NULL)))
+        return ERR_SET_PTHREAD(n);
+
+    vRsrcSetMutex(pxSD->xEncPool, &pxSD->xEncPoolMutex);
+    vRsrcSetMutex(pxSD->xDecPool, &pxSD->xDecPoolMutex);
+
+    return SUCCESS;
 }
 
 /* Return the amount of space required by the dynamic-sized items of a
@@ -174,7 +185,7 @@ static bool_t prvSerDesNeighborDecodeCb(pb_istream_t *stream, const pb_field_ite
 
         pcSupDif[unSupDifSz] = '\0';
 
-        if (!xArrayListAdd(&pxState->xSupDifLst, &pcSupDif))
+        if (ERR_CHK_MEM(xArrayListAdd(&pxState->xSupDifLst, &pcSupDif)))
             return false;
     }
 
@@ -215,7 +226,7 @@ static bool_t prvSerDesNeighborListDecodeCb(pb_istream_t *stream,
     pxSD = pxListState->pxSD;
     xState.pxSD = pxSD;
 
-    if (!xArrayListInit(&xState.xSupDifLst, sizeof(char *), 10, pxSD->xDecPool))
+    if (ERR_CHK_MEM(xArrayListInit(&xState.xSupDifLst, sizeof(char *), 10, pxSD->xDecPool)))
         return false;
 
     xNbMsg.supportingDifs.funcs.decode = prvSerDesNeighborDecodeCb;
@@ -239,7 +250,7 @@ static bool_t prvSerDesNeighborListDecodeCb(pb_istream_t *stream,
         /* Convert the nanopb message to something palatable. */
         prvSerDesRinaNeighborToNeighborMessage(pxNbMsg, &xNbMsg, unSz);
 
-        if (!xArrayListAdd(&pxListState->xNbLst, &pxNbMsg))
+        if (ERR_CHK_MEM(xArrayListAdd(&pxListState->xNbLst, &pxNbMsg)))
             goto cleanup;
     }
 
@@ -291,7 +302,7 @@ neighborMessage_t *pxSerDesNeighborDecode(NeighborSerDes_t *pxSD, uint8_t *pucBu
 
     xState.pxSD = pxSD;
 
-    if (!xArrayListInit(&xState.xSupDifLst, sizeof(buffer_t), 10, pxSD->xDecPool))
+    if (ERR_CHK_MEM(xArrayListInit(&xState.xSupDifLst, sizeof(buffer_t), 10, pxSD->xDecPool)))
         return NULL;
 
     message.supportingDifs.funcs.decode = prvSerDesNeighborDecodeCb;
@@ -392,7 +403,7 @@ neighborsMessage_t *pxSerDesNeighborListDecode(NeighborSerDes_t *pxSD,
     message.neighbor.funcs.decode = prvSerDesNeighborListDecodeCb;
     message.neighbor.arg = &xState;
 
-    if (!xArrayListInit(&xState.xNbLst, sizeof(neighborMessage_t *), 10, pxSD->xDecPool))
+    if (ERR_CHK_MEM(xArrayListInit(&xState.xNbLst, sizeof(neighborMessage_t *), 10, pxSD->xDecPool)))
         return NULL;
 
     /* Create a stream that will read from the buffer */

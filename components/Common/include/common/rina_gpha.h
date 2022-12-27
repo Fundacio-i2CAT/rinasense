@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "error.h"
 #include "rina_name.h"
 #include "mac.h"
 #include "configSensor.h"
@@ -35,9 +36,9 @@ gpa_t *pxDupGPA(const gpa_t *pxSourcePa, bool_t nDoShrink, uint8_t ucFiller);
 
 gha_t *pxDupGHA(const gha_t *pxSourceHa);
 
-bool_t xGPAShrink(gpa_t *pxGpa, uint8_t ucFiller);
+rsErr_t xGPAShrink(gpa_t *pxGpa, uint8_t ucFiller);
 
-bool_t xGPAGrow(gpa_t *pxGpa, size_t uxLength, uint8_t ucFiller);
+rsErr_t xGPAGrow(gpa_t *pxGpa, size_t uxLength, uint8_t ucFiller);
 
 /* @brief Check if a generic protocol Address was created correctly*/
 bool_t xIsGPAOK(const gpa_t *pxGpa);

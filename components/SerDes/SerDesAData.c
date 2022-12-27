@@ -1,4 +1,5 @@
 #include <string.h>
+#include <pthread.h>
 
 #include "common/rsrc.h"
 #include "portability/port.h"
@@ -17,6 +18,13 @@ bool_t xSerDesADataInit(ADataSerDes_t *pxSD)
         LOGE(TAG_SD_ADATA, "Failed to allocate memory pool for AData decoding");
         return false;
     }
+
+    if (pthread_mutex_init(&pxSD->xMutex, NULL) != 0) {
+        LOGE(TAG_SD_ADATA, "Failed to initialise mutex for AData SerDes");
+        return false;
+    }
+
+    vRsrcSetMutex(pxSD->xPool, &pxSD->xMutex);
 
     return true;
 }
