@@ -1,6 +1,7 @@
 #ifndef _PORTABILITY_RS_LOG_H
 #define _PORTABILITY_RS_LOG_H
 
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -10,6 +11,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern pthread_mutex_t xLogMutex;
 
 #ifndef RS_LOG_LOCAL_LEVEL
 #define RS_LOG_LOCAL_LEVEL  200 //CONFIG_LOG_MAXIMUM_LEVEL
@@ -81,6 +84,9 @@ void vRsLogWrite(RsLogLevel_t, const char *sTag, const char *sFmt, ...) __attrib
 void vRsLogWritev(RsLogLevel_t, const char *sTag, const char *sFmt, va_list args);
 
 /* Public interface to use */
+
+#define LOG_LOCK()   pthread_mutex_lock(&xLogMutex)
+#define LOG_UNLOCK() pthread_mutex_unlock(&xLogMutex)
 
 #define LOGE(tag, format, ...) _RS_LOG_LEVEL_LOCAL(LOG_ERROR,   tag, format, ##__VA_ARGS__)
 #define LOGW(tag, format, ...) _RS_LOG_LEVEL_LOCAL(LOG_WARN,    tag, format, ##__VA_ARGS__)

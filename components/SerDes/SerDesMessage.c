@@ -16,6 +16,8 @@
 
 void vRibPrintCdapMessage(const string_t pcTag, const string_t pcTitle, messageCdap_t *pxDecodeCdap)
 {
+    LOG_LOCK();
+
     LOGD(pcTag, "---- %s ----", pcTitle);
     LOGD(pcTag, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
     LOGD(pcTag, "Invoke Id: %d ", pxDecodeCdap->nInvokeID);
@@ -47,6 +49,8 @@ void vRibPrintCdapMessage(const string_t pcTag, const string_t pcTitle, messageC
 
     if (pxDecodeCdap->pxObjValue)
         LOGD(pcTag, "ObjectValue:%zu byte(s)", pxDecodeCdap->pxObjValue->xSerLength);
+
+    LOG_UNLOCK();
 }
 
 bool_t xSerDesMessageInit(MessageSerDes_t *pxSD)
