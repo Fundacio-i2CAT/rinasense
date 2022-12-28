@@ -11,6 +11,7 @@
 #include "Enrollment_obj.h"
 #include "Ribd_api.h"
 #include "linux_rsmem.h"
+#include "portability/rstime.h"
 #include "private/Enrollment_Object.h"
 #include <time.h>
 
@@ -81,7 +82,7 @@ void *xEnrollmentInboundProcess(void *pvArg) {
     { /* STOP request on enrollment object */
         serObjectValue_t *pxStopObjVal;
         enrollmentMessage_t xEnrollStop;
-        struct timespec xTimeout;
+        struct timespec xTimeout = {0};
         rsErr_t xStatus;
         int nStopReply;
 
@@ -98,8 +99,9 @@ void *xEnrollmentInboundProcess(void *pvArg) {
                                         &unStop)))
             goto fail;
 
-        xTimeout.tv_nsec = 0;
-        xTimeout.tv_sec = 2;
+
+        if (!rstime_waitsec(&xTimeout, 5))
+            goto fail;
 
         /* Wait for a reply to the stop command. */
         xStatus = xRibObjectWaitReply(pxObjData->pxRibd, unStop, &xTimeout, (void *)&nStopReply);
