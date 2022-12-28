@@ -424,7 +424,6 @@ eFrameProcessingResult_t eARPProcessPacket(ARP_t *pxARP, netbuf_t *pxNbEth)
 
 bool_t xARPResolveGPA(ARP_t *pxARP, const gpa_t *pxTpa, const gpa_t *pxSpa, const gha_t *pxSha)
 {
-
 	if (!xIsGPAOK(pxTpa) || !xIsGHAOK(pxSha) || !xIsGPAOK(pxSpa)) {
 		LOGE(TAG_ARP, "Parameters are not correct, won't resolve GPA");
 		return false;

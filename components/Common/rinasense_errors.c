@@ -37,10 +37,10 @@ string_t EnrollmentErrorMessages[] = {
 };
 
 string_t *ErrorMessages[] = {
-    /* 0x01 */ GenericErrorMessages,
-    /* 0x02 */ GpaErrorMessages,
-    /* 0x03 */ NetBufsMessages,
-    /* 0x04 */ SerDesMessages,
-    /* 0x05 */ RibErrorMessages
+    /* 0x00 */ GenericErrorMessages,
+    /* 0x01 */ GpaErrorMessages,
+    /* 0x02 */ NetBufsMessages,
+    /* 0x03 */ SerDesMessages,
+    /* 0x04 */ RibErrorMessages
 };
 

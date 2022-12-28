@@ -151,7 +151,7 @@ string_t xErrorGetMsg(rsErr_t xErr)
     unLevel1 = xErr.c >> 24;
     unLevel2 = xErr.c & 0xFF;
 
-    return ErrorMessages[unLevel1][unLevel2];
+    return ErrorMessages[unLevel1][unLevel2 - 1];
 }
 
 void vErrorLog(const string_t pcTag, const string_t pcTitle)
