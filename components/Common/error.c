@@ -70,7 +70,7 @@ static void prvErrorSetNew_v(string_t pcFile, uint32_t unLine, rsErr_t unErrCode
         vsnprintf(pxErrInfo->pcErrMsg, member_size(rsErrInfo_t, pcErrMsg), pcFmt, xParams);
 }
 
-static void prvErrorClear()
+static void prvErrorClearLocked()
 {
     rsErrInfo_t *px, *pxNext;
 
@@ -85,7 +85,7 @@ static void prvErrorClear()
 void vErrorClear() {
     pthread_mutex_lock(&xPoolMutex);
 
-    prvErrorClear();
+    prvErrorClearLocked();
 
     pthread_mutex_unlock(&xPoolMutex);
 }
@@ -108,7 +108,7 @@ rsErr_t xErrorSet(string_t pcFile, uint32_t unLine, rsErr_t unErrCode, string_t 
 
     /* Clear the error if there is one. */
     if (_errGetPtr())
-        vErrorClear();
+        prvErrorClearLocked();
 
     prvErrorCheckPool();
     prvErrorSetNew_s(pcFile, unLine, unErrCode, pcMsg, NULL);
@@ -126,7 +126,7 @@ rsErr_t xErrorSetf(string_t pcFile, uint32_t unLine, rsErr_t unErrCode, const st
 
     /* Clear the error if there is one. */
     if (_errGetPtr())
-        vErrorClear();
+        prvErrorClearLocked();
 
     prvErrorCheckPool();
 
