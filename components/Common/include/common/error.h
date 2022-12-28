@@ -82,6 +82,9 @@ static inline bool_t _err_chk_mem(rsErr_t xErr)
 #define ERR_CHK(x) \
     (x.c)
 
+#define ERR_IS(x, t) \
+    (x.c == t.c)
+
 /* Fail an assertion in case an allocation fails. Use this in
  * situations where it would be impossible or difficult to recover,
  * like during initialization process. */

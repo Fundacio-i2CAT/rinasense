@@ -121,6 +121,7 @@ RS_TEST_CASE(RibRequestSync, "[rib]")
     ribObject_t *pxRibObj;
     invokeId_t nId;
     int *n = NULL;
+    struct timespec xTimeout = {0};
 
     RS_TEST_CASE_BEGIN(test_rib);
 
@@ -130,7 +131,7 @@ RS_TEST_CASE(RibRequestSync, "[rib]")
     TEST_ASSERT(nId != 0);
     TEST_ASSERT(xDummyStartReplyCalled);
     TEST_ASSERT(xDummyStartReplyCalled);
-    TEST_ASSERT(!ERR_CHK(xRibObjectWaitReply(&xRibd, nId, (void **)&n)));
+    TEST_ASSERT(!ERR_CHK(xRibObjectWaitReply(&xRibd, nId, &xTimeout, (void **)&n)));
     TEST_ASSERT(*n == 99);
 
     vRsMemFree(n);

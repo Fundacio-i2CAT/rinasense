@@ -12,6 +12,7 @@
 #include "Ribd_api.h"
 #include "linux_rsmem.h"
 #include "private/Enrollment_Object.h"
+#include <time.h>
 
 void *xEnrollmentInboundProcess(void *pvArg) {
     ribObject_t *pxThis;
@@ -58,7 +59,7 @@ void *xEnrollmentInboundProcess(void *pvArg) {
         pxNeighMsgs[0]->pcAeInstance = "";
         pxNeighMsgs[0]->ullAddress = LOCAL_ADDRESS;
         pxNeighMsgs[0]->unSupportingDifCount = 1;
-        pxNeighMsgs[0]->pcSupportingDifs[0] = "irati";
+        pxNeighMsgs[0]->pcSupportingDifs[0] = SHIM_DIF_NAME;
 
         pxNeighObj = pxSerDesNeighborListEncode(&pxObjData->pxEnrollment->xNeighborSD, 1, pxNeighMsgs);
 
@@ -80,6 +81,8 @@ void *xEnrollmentInboundProcess(void *pvArg) {
     { /* STOP request on enrollment object */
         serObjectValue_t *pxStopObjVal;
         enrollmentMessage_t xEnrollStop;
+        struct timespec xTimeout;
+        rsErr_t xStatus;
         int nStopReply;
 
         xEnrollStop.xStartEarly = 0;
@@ -95,8 +98,18 @@ void *xEnrollmentInboundProcess(void *pvArg) {
                                         &unStop)))
             goto fail;
 
+        xTimeout.tv_nsec = 0;
+        xTimeout.tv_sec = 2;
+
         /* Wait for a reply to the stop command. */
-        xRibObjectWaitReply(pxObjData->pxRibd, unStop, (void *)&nStopReply);
+        xStatus = xRibObjectWaitReply(pxObjData->pxRibd, unStop, &xTimeout, (void *)&nStopReply);
+
+        /* Check for timeout. */
+        if (ERR_IS(xStatus, ERR_RIB_TIMEOUT)) {
+            LOGW(TAG_ENROLLMENT, "Timeout");
+            ERR_SET(ERR_ENROLLMENT_INBOUND_FAIL);
+            goto fail;
+        }
 
         if (nStopReply != 1) {
             LOGW(TAG_ENROLLMENT, "Unexpected reply to STOP: %d", nStopReply);

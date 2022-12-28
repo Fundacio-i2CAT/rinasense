@@ -1,3 +1,6 @@
+#include <errno.h>
+
+#include "common/rinasense_errors.h"
 #include "portability/port.h"
 
 #include "private/Ribd_internal.h"
@@ -163,11 +166,16 @@ rsErr_t xRibObjectReply(Ribd_t *pxRibd,
     return xStatus;
 }
 
-rsErr_t xRibObjectWaitReply(Ribd_t *pxRibd, invokeId_t unInvokeId, void **pxResp)
+rsErr_t xRibObjectWaitReply(Ribd_t *pxRibd,
+                            invokeId_t unInvokeId,
+                            const struct timespec *pxTimeout,
+                            void **pxResp)
 {
     ribPendingReq_t *pxPendingReq;
+    int n;
 
     RsAssert(pxResp);
+    RsAssert(pxTimeout);
 
     if (!(pxPendingReq = xRibFindPendingResponse(pxRibd, unInvokeId)))
         return ERR_RIB_NOT_PENDING;
@@ -180,9 +188,13 @@ rsErr_t xRibObjectWaitReply(Ribd_t *pxRibd, invokeId_t unInvokeId, void **pxResp
 
     /* Wait for the answer to arrive */
 
-    /* FIXME: Add a timeout here */
     pthread_mutex_lock(&pxPendingReq->xMutex);
-    pthread_cond_wait(&pxPendingReq->xWaitCond, &pxPendingReq->xMutex);
+
+    n = pthread_cond_timedwait(&pxPendingReq->xWaitCond, &pxPendingReq->xMutex, pxTimeout);
+
+    if (n == ETIMEDOUT)
+        return ERR_SET(ERR_RIB_TIMEOUT);
+
     pthread_mutex_unlock(&pxPendingReq->xMutex);
 
     *pxResp = pxPendingReq->pxResp;

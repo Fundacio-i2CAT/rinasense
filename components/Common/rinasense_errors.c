@@ -30,6 +30,7 @@ string_t RibErrorMessages[] = {
      /* 0x07 */ "Unsupported method %s on RIB object '%s'"
      /* 0x08 */ "Invalid connection state"
      /* 0x09 */ "Connection already exists"
+     /* 0x10 */ "Timed out"
 };
 
 string_t EnrollmentErrorMessages[] = {

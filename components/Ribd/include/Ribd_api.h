@@ -48,7 +48,10 @@ rsErr_t xRibObjectReply(Ribd_t *pxRibd,
                         string_t pcResultReason,
                         serObjectValue_t *pxObjVal);
 
-rsErr_t xRibObjectWaitReply(Ribd_t *pxRibd, invokeId_t unInvokeId, void **pxResp);
+rsErr_t xRibObjectWaitReply(Ribd_t *pxRibd,
+                            invokeId_t unInvokeId,
+                            const struct timespec *pxTimeout,
+                            void **pxResp);
 
 /* CONNECT */
 #define xRibCONNECT_REPLY(rib, obj, port, id, val)                  \
