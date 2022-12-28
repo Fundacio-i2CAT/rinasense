@@ -24,6 +24,7 @@
 
 #include "IpcManager.h"
 #include "RINA_API_flows.h"
+#include "portability/rslog.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
 #include "IPCP.h"
@@ -309,6 +310,8 @@ bool_t prvConnect(flowAllocator_t *pxFA, flowAllocateHandle_t *pxFlowAllocateReq
  */
 void RINA_Init()
 {
+    vRsLogInit();
+
     RsAssert(xIpcManagerInit(&xIpcManager));
 
     RINA_IPCPInit();
