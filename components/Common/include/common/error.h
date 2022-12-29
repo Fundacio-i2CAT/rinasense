@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "portability/port.h"
 
@@ -35,7 +36,13 @@ typedef struct xERR_INFO {
 
 } rsErrInfo_t;
 
-#define _MK_ERR(x) ((rsErr_t){ .c = x })
+#define _MK_CAT(cat) (cat << 24)
+
+#define _MK_ERR(cat, err) ((rsErr_t){ .c = cat | err })
+
+#define ERR_CAT(x) (x.c >> 24)
+
+#define ERR_CODE(x) (x.c & 0x000000FF)
 
 /* Clear all the error messages in the current thread. */
 void vErrorClear();
@@ -45,6 +52,8 @@ void vErrorClear();
 rsErr_t xErrorSet(string_t pcFile, uint32_t unLine, rsErr_t errNo, string_t pcMsg);
 
 rsErr_t xErrorSetf(string_t pcFile, uint32_t unLine, rsErr_t errNo, const string_t pcFmt, ...);
+
+rsErr_t xErrorSetErrno(string_t pcFile, uint32_t unLine, int _errno);
 
 /* Add to the error currently saved for the current thread, attaching
  * the previously saved error to the new one. */
@@ -56,11 +65,6 @@ rsErrInfo_t *xErrorGet();
 
 /*  */
 string_t xErrorGetMsg();
-
-/* System error, errno should be be set */
-#define ERR_SYS
-
-#define ERR_NO
 
 static inline bool_t _err_chk_mem(rsErr_t xErr)
 {
@@ -129,6 +133,6 @@ static inline bool_t _err_chk_mem(rsErr_t xErr)
 
 /* Pthread returns an error code directly */
 #define ERR_SET_PTHREAD(x) \
-    ERR_SET(_MK_ERR(ERR_PTHREAD.c | (x << 8)))
+    ERR_SET(_MK_ERR(ERR_PTHREAD.c, (x << 16)))
 
 #endif /* _COMMON_ERROR_H_INCLUDED */

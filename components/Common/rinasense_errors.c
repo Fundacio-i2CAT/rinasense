@@ -4,6 +4,10 @@ string_t GenericErrorMessages[] = {
     /* 0x01 */ "Unknown error",
     /* 0x02 */ "Out of memory",
     /* 0x03 */ "Bad arguments"
+    /* 0x04 */ "pthread error: %d",
+    /* 0x05 */ "System error: %d"
+    /* 0x06 */ "Overflow",
+    /* 0x07 */ "Underflow"
 };
 
 string_t GpaErrorMessages[] = {
@@ -42,6 +46,7 @@ string_t *ErrorMessages[] = {
     /* 0x01 */ GpaErrorMessages,
     /* 0x02 */ NetBufsMessages,
     /* 0x03 */ SerDesMessages,
-    /* 0x04 */ RibErrorMessages
+    /* 0x04 */ RibErrorMessages,
+    /* 0x05 */ EnrollmentErrorMessages
 };
 
