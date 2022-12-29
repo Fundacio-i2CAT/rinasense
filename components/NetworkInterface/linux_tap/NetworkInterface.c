@@ -7,6 +7,7 @@
 
 #include <pthread.h>
 #include <bits/pthreadtypes.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <poll.h>
 #include <stdio.h>
@@ -15,8 +16,8 @@
 #include <string.h>
 #include <signal.h>
 
-#include "linux_rsmem.h"
 #include "portability/port.h"
+
 #include "common/netbuf.h"
 #include "common/mac.h"
 #include "common/rsrc.h"

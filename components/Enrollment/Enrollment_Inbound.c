@@ -82,7 +82,6 @@ void *xEnrollmentInboundProcess(void *pvArg) {
     { /* STOP request on enrollment object */
         serObjectValue_t *pxStopObjVal;
         enrollmentMessage_t xEnrollStop;
-        struct timespec xTimeout = {0};
         rsErr_t xStatus;
         int nStopReply;
 
@@ -100,11 +99,8 @@ void *xEnrollmentInboundProcess(void *pvArg) {
             goto fail;
 
 
-        if (!rstime_waitsec(&xTimeout, 5))
-            goto fail;
-
         /* Wait for a reply to the stop command. */
-        xStatus = xRibObjectWaitReply(pxObjData->pxRibd, unStop, &xTimeout, (void *)&nStopReply);
+        xStatus = xRibObjectWaitReply(pxObjData->pxRibd, unStop, 5 * 1000000, (void *)&nStopReply);
 
         /* Check for timeout. */
         if (ERR_IS(xStatus, ERR_RIB_TIMEOUT)) {

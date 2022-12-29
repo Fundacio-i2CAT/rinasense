@@ -143,7 +143,7 @@ bool_t xRINA_bind(flowAllocateHandle_t *pxFlowRequest)
     xBindEvent.eEventType = eFlowBindEvent;
     xBindEvent.xData.PV = (void *)pxFlowRequest;
 
-    if (xSendEventStructToIPCPTask(&xBindEvent, 0) == false)
+    if (ERR_CHK(xSendEventStructToIPCPTask(&xBindEvent, 0)))
         /* Failed to wake-up the IPCP-task, no use to wait for it */
         return false;
     else {
@@ -296,7 +296,7 @@ bool_t prvConnect(flowAllocator_t *pxFA, flowAllocateHandle_t *pxFlowAllocateReq
 
         pxFlowAllocateRequest->usTimeout = 1U;
 
-        if (xSendEventToIPCPTask(eFATimerEvent) != true) {
+        if (ERR_CHK(xSendEventToIPCPTask(eFATimerEvent))) {
             LOGE(TAG_RINA, "Error sending timer event to IPCP");
             xResult = false;
         }
@@ -437,7 +437,7 @@ size_t RINA_flow_write(portId_t unPort, void *pvBuffer, size_t uxTotalDataLength
         xTxEvent.xData.UN = unPort;
         xTxEvent.xData2.PV = pxNb;
 
-        if (xSendEventStructToIPCPTask(&xTxEvent, xTimeToWait))
+        if (ERR_CHK(xSendEventStructToIPCPTask(&xTxEvent, xTimeToWait)))
             return uxTotalDataLength;
         else {
             vNetBufFree(pxNb);
@@ -463,7 +463,7 @@ bool_t RINA_close(portId_t xAppPortId)
     if (!is_port_id_ok(xAppPortId))
         xResult = false;
     else {
-        if (!xSendEventStructToIPCPTask(&xDeallocateEvent, 0)) {
+        if (ERR_CHK(xSendEventStructToIPCPTask(&xDeallocateEvent, 0))) {
             LOGI(TAG_RINA, "RINA Deallocate Flow: failed");
             xResult = false;
         }

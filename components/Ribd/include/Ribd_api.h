@@ -12,8 +12,6 @@ ribObject_t *pxRibObjectFind(Ribd_t *pxRibd, string_t ucRibObjectName);
 
 rsErr_t xRibObjectAdd(Ribd_t *pxRibd, void *pvOwner, ribObject_t *pxRibObject);
 
-rsErr_t xRibObjectReqWait(Ribd_t *pxRibd, invokeId_t unInvokeId, void **pxResp);
-
 rsErr_t xRibNormalInit(Ribd_t *pxRibd);
 
 rsErr_t xRibLoopbackInit(Ribd_t *pxRibd);
@@ -50,7 +48,7 @@ rsErr_t xRibObjectReply(Ribd_t *pxRibd,
 
 rsErr_t xRibObjectWaitReply(Ribd_t *pxRibd,
                             invokeId_t unInvokeId,
-                            const struct timespec *pxTimeout,
+                            useconds_t pxTimeout,
                             void **pxResp);
 
 /* CONNECT */

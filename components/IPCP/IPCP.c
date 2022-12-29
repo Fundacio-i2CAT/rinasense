@@ -8,8 +8,12 @@
 #include "freertos/FreeRTOS.h"
 #endif
 
-#include "common/rina_ids.h"
 #include "portability/port.h"
+
+#include "common/error.h"
+#include "common/queue.h"
+#include "common/simple_queue.h"
+#include "common/rina_ids.h"
 
 #include "ARP826.h"
 #include "ARP826_defs.h"
@@ -29,7 +33,7 @@
 #include "RINA_API.h"
 
 /** @brief The queue used to pass events into the IPCP-task for processing. */
-RsQueue_t *xNetworkEventQueue = NULL;
+RsQueue_t xNetworkEventQueue;
 
 /** @brief Set to pdTRUE when the IPCP task is ready to start processing packets. */
 static bool_t xIPCPTaskInitialised = false;
@@ -73,8 +77,6 @@ static IPCPTimer_t xFATimer;
 void RINA_NetworkDown(void);
 
 eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer);
-
-bool_t xSendEventToIPCPTask(eRINAEvent_t eEvent);
 
 EthernetHeader_t *vCastPointerTo_EthernetPacket_t(const void *pvArgument);
 
@@ -167,12 +169,9 @@ static void *prvIPCPTask(void *pvParameters)
     xIpcManagerRunEnable();
 
     /* Loop, processing IP events. */
-    for (;;)
-    {
+    for (;;) {
         // ipconfigWATCHDOG_TIMER();
 
-        /* Check the ARP, DHCP and TCP timers to see if there is any periodic
-         * or timeout processing to perform. */
         prvCheckNetworkTimers();
 
         /* Calculate the acceptable maximum sleep time. */
@@ -181,14 +180,11 @@ static void *prvIPCPTask(void *pvParameters)
         /* Wait until there is something to do. If the following call exits
          * due to a time out rather than a message being received, set a
          * 'NoEvent' value. */
-        if (xRsQueueReceive(xNetworkEventQueue, (void *)&xEv, sizeof(RINAStackEvent_t), xSleepTimeUS) == false)
+        if (ERR_CHK(xQueueReceiveTimed(&xNetworkEventQueue, (void *)&xEv, xSleepTimeUS)))
             xEv.eEventType = eNoEvent;
 
         switch (xEv.eEventType)
         {
-        case eRinaTxEvent:{
-        }
-
         case eRinaRxEvent: {
             struct ipcpInstance_t *pxInstance;
             du_t *pxDu;
@@ -342,11 +338,20 @@ static void *prvIPCPTask(void *pvParameters)
  * @return pdPASS if the task was successfully created and added to a ready
  * list, otherwise an error code defined in the file projdefs.h
  */
-bool_t RINA_IPCPInit()
+rsErr_t RINA_IPCPInit()
 {
-    bool_t xReturn = false;
+    int n;
+    pthread_attr_t attr;
+
+    RsQueueParams_t xIpcpQueueParams = {
+        .unMaxItemCount = 255,
+        .xNoBlock = false,
+        .unItemSz = sizeof(RINAStackEvent_t)
+    };
 
     LOGI(TAG_IPCPMANAGER, "************* INIT RINA ***********");
+
+    /* ***************************************************** */
 
     /* FIXME: TEMPORARY. THIS NEEDS TO BE REPLACED BY A CONFIGURATION
      * API. */
@@ -362,39 +367,30 @@ bool_t RINA_IPCPInit()
     vIpcManagerAdd(&xIpcManager, pxNormalIpcp);
     vIpcManagerAdd(&xIpcManager, pxShimIpcp);
 
+    /* ***************************************************** */
+
     /* This function should only be called once. */
     RsAssert(xIPCPIsNetworkTaskReady() == false);
-    RsAssert(xNetworkEventQueue == NULL);
 
-    /* Attempt to create the queue used to communicate with the IPCP task. */
-    xNetworkEventQueue = pxRsQueueCreate("IPCPQueue",
-                                         10,
-                                         sizeof(RINAStackEvent_t));
-    RsAssert(xNetworkEventQueue != NULL);
+    if (ERR_CHK(xQueueInit("IPCPQueue", &xNetworkEventQueue, &xIpcpQueueParams))) {
+        vErrorLog(TAG_IPCPMANAGER, "IPCP Queue Initialization");
+        abort();
+    }
 
     /* Tell the IPC to start. */
     xIpcManagerRunStart();
 
-    if (xNetworkEventQueue != NULL) {
-        pthread_attr_t attr;
+    if ((n = pthread_attr_init(&attr) != 0))
+        return ERR_SET_PTHREAD(n);
 
-        if (pthread_attr_init(&attr) != 0)
-            return false;
+    pthread_attr_setstacksize(&attr, IPCP_TASK_STACK_SIZE);
 
-        pthread_attr_setstacksize(&attr, IPCP_TASK_STACK_SIZE);
+    if ((n = pthread_create(&xIPCPThread, &attr, prvIPCPTask, NULL)) != 0)
+        return ERR_SET_PTHREAD(n);
 
-        if (pthread_create(&xIPCPThread, &attr, prvIPCPTask, NULL) != 0) {
-            LOGE(TAG_IPCPMANAGER, "RINAInit: failed to start IPC process");
-            xReturn = false;
-        }
-        else
-            xReturn = true;
+    pthread_attr_destroy(&attr);
 
-        pthread_attr_destroy(&attr);
-    }
-    else LOGE(TAG_IPCPMANAGER, "RINAInit: Network event queue could not be created\n");
-
-    return xReturn;
+    return SUCCESS;
 }
 /*----------------------------------------------------------*/
 /**
@@ -427,7 +423,7 @@ bool_t xIsCallingFromIPCPTask(void)
  *
  * @return pdPASS if the event was sent (or the desired effect was achieved). Else, pdFAIL.
  */
-bool_t xSendEventToIPCPTask(eRINAEvent_t eEvent)
+rsErr_t xSendEventToIPCPTask(eRINAEvent_t eEvent)
 {
     RINAStackEvent_t xEventMessage;
 
@@ -445,9 +441,9 @@ bool_t xSendEventToIPCPTask(eRINAEvent_t eEvent)
  *
  * @return pdPASS if the event was sent (or the desired effect was achieved). Else, pdFAIL.
  */
-bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t xTimeOutUS)
+rsErr_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t xTimeOutUS)
 {
-    bool_t xReturn, xSendMessage;
+    rsErr_t xStatus;
     useconds_t xCalculatedTimeOutUS;
 
     if (!xIPCPTaskReady() && (pxEvent->eEventType != eNetworkDownEvent))
@@ -456,35 +452,24 @@ bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t xT
 
         /* Only allow eNetworkDownEvent events if the IP task is not ready
          * yet.  Not going to attempt to send the message so the send failed. */
-        xReturn = false;
+        xStatus = FAIL;
     }
     else
     {
-        xSendMessage = true;
-
-        if (xSendMessage)
-        {
-            /* The IP task cannot block itself while waiting for
-             * itself to respond. */
-            if (xIsCallingFromIPCPTask())
-                xCalculatedTimeOutUS = 0;
-            else
-                xCalculatedTimeOutUS = xTimeOutUS;
-
-            xReturn = xRsQueueSendToBack(xNetworkEventQueue, pxEvent, sizeof(RINAStackEvent_t), xCalculatedTimeOutUS);
-
-            if (!xReturn)
-                LOGE(TAG_IPCPMANAGER, "Failed to add message to IPCP queue");
-        }
+        /* The IP task cannot block itself while waiting for
+         * itself to respond. */
+        if (xIsCallingFromIPCPTask())
+            xCalculatedTimeOutUS = 0;
         else
-        {
-            /* It was not necessary to send the message to process the event so
-             * even though the message was not sent the call was successful. */
-            xReturn = true;
-        }
+            xCalculatedTimeOutUS = xTimeOutUS;
+
+        xStatus = xQueueSendToBackTimed(&xNetworkEventQueue, (void *)pxEvent, xCalculatedTimeOutUS);
+
+        if (ERR_CHK(xStatus))
+            LOGE(TAG_IPCPMANAGER, "Failed to add message to IPCP queue");
     }
 
-    return xReturn;
+    return xStatus;
 }
 
 /*-----------------------------------------------------------*/

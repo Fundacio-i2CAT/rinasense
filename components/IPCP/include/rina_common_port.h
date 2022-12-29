@@ -10,6 +10,7 @@
 #include "portability/port.h"
 #include "common/rina_ids.h"
 #include "common/list.h"
+#include "common/queue.h"
 
 #ifdef __cplusplus
 extern "C" {

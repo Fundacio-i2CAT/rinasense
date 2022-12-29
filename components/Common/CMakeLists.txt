@@ -8,6 +8,7 @@ idf_component_register(
   "mac.c"
   "list.c"
   "simple_queue.c"
+  "queue.c"
   "netbuf.c"
   "datapacker.c"
   "arraylist.c"
