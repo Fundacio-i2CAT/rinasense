@@ -102,23 +102,23 @@ static inline bool_t _err_chk_mem(rsErr_t xErr)
 
 /* Set any error but evalutes to NULL */
 #define ERR_SET(x)                              \
-    xErrorSet(__FILE__, __LINE__, x, xErrorGetMsg(x))
+    (!x.c ? SUCCESS : xErrorSet(__FILE__, __LINE__, x, xErrorGetMsg(x)))
 
 #define ERR_SETF(x, ...)                                            \
-    xErrorSetf(__FILE__, __LINE__, x, xErrorGetMsg(x), __VA_ARGS__)
+    (!x.c ? SUCCESS : xErrorSetf(__FILE__, __LINE__, x, xErrorGetMsg(x), __VA_ARGS__))
 
 #define ERR_SET_MSG(x, m)                       \
-    xErrorSet(__FILE__, __LINE__, x, m)
+    (!x.c ? SUCCESS : xErrorSet(__FILE__, __LINE__, x, m))
 
 #define ERR_SET_MSGF(x, msg, ...)                   \
-    xErrorSetf(__FILE__, __LINE__, x, __VA_ARGS__)
+    (!x.c ? SUCCESS : xErrorSetf(__FILE__, __LINE__, x, __VA_ARGS__))
 
 #define ERR_SET_MSGF_NULL(x, msg, ...)                              \
-    ERR_CHK(xErrorSetf(__FILE__, __LINE__, x, NULL)) ? NULL : NULL;
+    (!x.c ? NULL : (ERR_CHK(xErrorSetf(__FILE__, __LINE__, x, NULL)) ? NULL : NULL))
 
 /* Set any error but evaluates to NULL */
 #define ERR_SET_NULL(x)                                             \
-    ERR_CHK(xErrorSet(__FILE__, __LINE__, x, xErrorGetMsg(x))) ? NULL : NULL;
+    (!x.c ? NULL : (ERR_CHK(xErrorSet(__FILE__, __LINE__, x, xErrorGetMsg(x))) ? NULL : NULL))
 
 /* Set an out-of-memory error */
 #define ERR_SET_OOM                                         \
