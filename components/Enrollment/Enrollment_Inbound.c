@@ -95,9 +95,12 @@ void *xEnrollmentInboundProcess(void *pvArg) {
                                         &xEnrollmentRibObject,
                                         pxObjData->unPort,
                                         pxStopObjVal,
-                                        &unStop)))
+                                        &unStop))) {
+            vRsrcFree(pxStopObjVal);
             goto fail;
+        }
 
+        vRsrcFree(pxStopObjVal);
 
         /* Wait for a reply to the stop command. */
         xStatus = xRibObjectWaitReply(pxObjData->pxRibd, unStop, 5 * 1000000, (void *)&nStopReply);
