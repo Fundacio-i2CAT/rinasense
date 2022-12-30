@@ -387,6 +387,14 @@ RS_TEST_CASE(NetBufReplace1, "[netbuf]")
 
     vNetBufAppend(nb1, nb3);
 
+    vNetBufPrint("nb1", nb1);
+
+    /* Should be nb1 -> nb2 (freed) -> nb3 */
+    TEST_ASSERT(nb1->pxNext == nb2);
+    TEST_ASSERT(nb2->pxNext == nb3);
+    TEST_ASSERT(nb2->xFreed);
+    TEST_ASSERT(!nb3->pxNext);
+
     TEST_ASSERT(unNetBufTotalSize(nb1) == sz1 + sz3);
     TEST_ASSERT(unNetBufTotalSize(nb3) == sz1 + sz3);
     TEST_ASSERT(pxNetBufNext(nb1) == nb3);
@@ -416,11 +424,26 @@ RS_TEST_CASE(NetBufReplace2, "[netbuf]")
 
     vNetBufLink(nb1, nb2, 0);
 
-    TEST_ASSERT(unNetBufTotalSize(nb1) == sz1 + sz2);
+    TEST_ASSERT(nb1->pxNext == nb2);
+    TEST_ASSERT(!nb2->pxNext);
 
+    size_t sz = unNetBufTotalSize(nb1);
+    TEST_ASSERT(sz == sz1 + sz2);
+
+    /* Since nb2 is still live in the netbuf chain, the 'nb1' netbuf
+     * chunk will be marked as freed but won't be freed until all the
+     * parts of the netbuf will be free. */
     vNetBufFree(nb1);
 
     vNetBufAppend(nb3, nb2);
+
+    /* Should be nb3 -> nb1 (freed) -> nb2 */
+    TEST_ASSERT(nb3->pxNext == nb1);
+    TEST_ASSERT(nb1->pxNext == nb2);
+
+    vNetBufPrint("nb1", nb1);
+    vNetBufPrint("nb2", nb2);
+    vNetBufPrint("nb3", nb3);
 
     TEST_ASSERT(unNetBufTotalSize(nb2) == sz2 + sz3);
     TEST_ASSERT(unNetBufTotalSize(nb3) == sz2 + sz3);
@@ -446,6 +469,5 @@ int main() {
     RS_RUN_TEST(NetBufRead2);
     RS_RUN_TEST(NetBufReplace1);
     RS_RUN_TEST(NetBufReplace2);
-    RS_SUITE_END();
 }
 #endif

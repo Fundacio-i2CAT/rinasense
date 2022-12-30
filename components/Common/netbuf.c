@@ -1,3 +1,4 @@
+
 #include <string.h>
 
 #include "portability/port.h"
@@ -7,6 +8,9 @@
 #include "common/rinasense_errors.h"
 #include "common/rsrc.h"
 #include "common/netbuf.h"
+
+/* Set this if you want netbuf_t structs to be allocated on a pool. */
+#define CONFIG_NETBUF_USES_POOLS
 
 void vNetBufFreeNormal(netbuf_t *pxNb)
 {
@@ -31,7 +35,7 @@ void vNetBufFreeButDont(netbuf_t *pxNb)
 
 rsrcPoolP_t xNetBufNewPool(const char *pcPoolName)
 {
-    return pxRsrcNewPool(pcPoolName, sizeof(netbuf_t), 5, 1, 0);
+    return pxRsrcNewPool(pcPoolName, sizeof(netbuf_t), 0, 1, 0);
 }
 
 netbuf_t *pxNetBufNew(rsrcPoolP_t xPool,
@@ -45,8 +49,13 @@ netbuf_t *pxNetBufNew(rsrcPoolP_t xPool,
     RsAssert(xPool);
     RsAssert(unSz);
 
+#ifdef CONFIG_NETBUF_USES_POOLS
     if (!(pxNewBuf = pxRsrcAlloc(xPool, "pxNetBufNew")))
         return ERR_SET_OOM_NULL;
+#else
+    if (!(pxNewBuf = pvRsMemAlloc(sizeof(netbuf_t))))
+        return ERR_SET_OOM_NULL;
+#endif
 
     pxNewBuf->eType = eType;
     pxNewBuf->pxNext = NULL;
@@ -79,8 +88,13 @@ rsErr_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
             return SUCCESS;
         }
         else {
+#ifdef CONFIG_NETBUF_USES_POOLS
             if (!(pxNewBuf = pxRsrcAlloc(pxNb->xPool, "xNetBufSplit")))
                 return ERR_SET_OOM;
+#else
+            if (!(pxNewBuf = pvRsMemAlloc(sizeof(netbuf_t))))
+                return ERR_SET_OOM;
+#endif
 
             pxNewBuf->eType = eType;
             pxNewBuf->pxNext = pxNbIter->pxNext;
@@ -140,7 +154,11 @@ void vNetBufFree(netbuf_t *pxNb)
             if (pxNbIter->freemethod)
                 pxNbIter->freemethod(pxNbIter);
 
+#ifdef CONFIG_NETBUF_USES_POOLS
             vRsrcFree(pxNbIter);
+#else
+            vRsMemFree(pxNbIter);
+#endif
         }
     }
 }
@@ -252,19 +270,27 @@ size_t unNetBufRead(netbuf_t *pxNb, void *pvBuffer, size_t unRdOff, size_t unSzB
 
 void vNetBufAppend(netbuf_t *pxNbLeft, netbuf_t *pxNbRight)
 {
-    netbuf_t *pxNbIter;
+    netbuf_t *pxNbLeftLast = NULL, *pxNbPrev;
 
     RsAssert(!pxNbLeft->xFreed);
 
-    /* Loop until we find the next netbuf in the chain that hasn't *
-     * been freed */
+    /* Find the last buffer in the pxNbLeft chain */
+    FOREACH_ALL_NETBUF(pxNbLeft, pxNbIter) {
+        if (!pxNbIter->pxNext) {
+            pxNbLeftLast = pxNbIter;
+            break;
+        }
+    }
 
-    pxNbIter = pxNbLeft;
-    while (pxNbIter->pxNext != NULL && !pxNbIter->xFreed)
-        pxNbIter = pxNbLeft->pxNext;
+    /* Append the first item of the pxNbRight chain to the last item
+     * of the pxNbLeft chain. */
+    pxNbLeftLast->pxNext = pxNbRight->pxFirst;
 
-    pxNbIter->pxNext = pxNbRight;
-    pxNbRight->pxFirst = pxNbLeft->pxFirst;
+    /* Scan through the netbufs attached to pxNbRight and set them to
+     * point at the start of the pxNbLeft chain. */
+    FOREACH_NETBUF_FROM(pxNbRight, pxNbIter) {
+        pxNbIter->pxFirst = pxNbLeft->pxFirst;
+    }
 }
 
 netbuf_t *pxNetBufNext(netbuf_t *pxNb)
@@ -281,4 +307,23 @@ netbuf_t *pxNetBufNext(netbuf_t *pxNb)
 
     /* Should not happen */
     return NULL;
+}
+
+void vNetBufPrint(const string_t pcNbName, netbuf_t *pxNb)
+{
+    int i = 1;
+    const string_t pcTag = "[netbuf]";
+
+    LOG_LOCK();
+
+    LOGD(pcTag, "---- netbuf: %s ----", pcNbName);
+
+    FOREACH_ALL_NETBUF_SAFE(pxNb, pxNbIter) {
+        LOG_LOCK();
+        LOGD(pcTag, "** Idx: %d", i++);
+        LOGD(pcTag, "Ptr: %p", pxNbIter);
+        LOGD(pcTag, "Buf: %p", pxNbIter->pxBufStart);
+        LOGD(pcTag, "Siz: %zu", pxNbIter->unSz);
+        LOGD(pcTag, "Freed: %d, Type: %d", pxNbIter->xFreed, pxNbIter->eType);
+    }
 }
