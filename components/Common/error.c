@@ -208,7 +208,7 @@ void vErrorLog(const string_t pcTag, const string_t pcTitle)
     }
 
     while (pxErrInfo) {
-        LOGE(pcTag, "Error code: 0x%0xd", pxErrInfo->unErrCode.c);
+        LOGE(pcTag, "Error code: 0x%08X", pxErrInfo->unErrCode.c);
         LOGE(pcTag, "File: %s:%d", pxErrInfo->pcFile, pxErrInfo->unLine);
         LOGE(pcTag, "Message: %s", pxErrInfo->pcErrMsg);
 
