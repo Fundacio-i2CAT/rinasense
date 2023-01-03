@@ -92,6 +92,8 @@ static void prvErrorClearLocked()
         vRsrcFree(px);
         px = pxNext;
     }
+
+    _errSetPtr(NULL);
 }
 
 void vErrorClear() {
