@@ -84,8 +84,6 @@ serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *px
     rina_messages_CDAPMessage xMsg = rina_messages_CDAPMessage_init_zero;
     serObjectValue_t *pxSerValue;
 
-    LOGI(TAG_RIB, "Encoding a %s CDAP message", opcodeNamesTable[pxMsgCdap->eOpCode]);
-
     /*Create a stream that will write to the buffer*/
     xStream = pb_ostream_from_buffer((pb_byte_t *)pucBuffer, sizeof(pucBuffer));
 
@@ -262,4 +260,12 @@ messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD, uint8_t *pucBuffer, 
     }
 
     return pxMsg;
+}
+
+void vSerDesMessageFree(messageCdap_t *pxMsg)
+{
+    vNameFree(&pxMsg->xDestinationInfo);
+    vNameFree(&pxMsg->xSourceInfo);
+
+    vRsrcFree(pxMsg);
 }

@@ -361,8 +361,6 @@ rsErr_t xRibNormalIncoming(Ribd_t *pxRibd,
         return SUCCESS;
     }
 
-    LOGI(TAG_RIB, "Handling CDAP Message: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
-
     /* Looking for an App Connection using the N-1 Flow Port */
     pxAppCon = pxRibConnectionFind(pxRibd, unPort);
 
@@ -428,7 +426,7 @@ rsErr_t prvRibNormalOutgoing(Ribd_t *pxRibd,
     LOGI(TAG_RIB, "Sending the CDAP Message to the RMT");
 
 #ifndef NDEBUG
-    vRibPrintCdapMessage(TAG_RIB, "ENCODE", pxOutgoingCdap);
+    vRibPrintCdapMessage(TAG_RIB, "OUTGOING CDAP", pxOutgoingCdap);
 #endif
 
     if (!(pxSerVal = pxSerDesMessageEncode(&pxRibd->xMsgSD, pxOutgoingCdap)))
@@ -444,12 +442,10 @@ rsErr_t prvRibNormalOutgoing(Ribd_t *pxRibd,
     xEv.xData.UN = unPort;
     xEv.xData2.DU = pxDu;
 
-    if (!xSendEventStructToIPCPTask(&xEv, 1000)) {
+    if (ERR_CHK(xSendEventStructToIPCPTask(&xEv, 1000))) {
         LOGE(TAG_RIB, "Failed to send management PDU to IPCP");
         goto fail;
     }
-
-    vRsrcFree(pxSerVal);
 
     return SUCCESS;
 
@@ -482,13 +478,13 @@ rsErr_t xRibIncoming(Ribd_t *pxRibd, du_t *pxDu, portId_t unPort)
         return FAIL;
     }
 
-    xStatus = pxRibd->fnRibInput(pxRibd, pxIncomingCdap, unPort);
-
 #ifndef NDEBUG
-    vRibPrintCdapMessage(TAG_RIB, "DECODE", pxIncomingCdap);
+    vRibPrintCdapMessage(TAG_RIB, "INCOMING CDAP", pxIncomingCdap);
 #endif
 
-    vRsrcFree(pxIncomingCdap);
+    xStatus = pxRibd->fnRibInput(pxRibd, pxIncomingCdap, unPort);
+
+    vSerDesMessageFree(pxIncomingCdap);
 
     return xStatus;
 }

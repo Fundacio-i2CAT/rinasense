@@ -27,6 +27,8 @@ messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD, uint8_t *pucBuffer, 
 
 void vRibPrintCdapMessage(const string_t pcTag, const string_t pcTitle, messageCdap_t *pxDecodeCdap);
 
+void vSerDesMessageFree(messageCdap_t *pxMsg);
+
 #ifdef __cplusplus
 }
 #endif
