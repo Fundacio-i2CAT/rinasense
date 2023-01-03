@@ -63,6 +63,7 @@ static void prvErrorSetNew_s(string_t pcFile, uint32_t unLine, rsErr_t unErrCode
         strncpy(pxErrInfo->pcErrMsg, pcMsg, sizeof(pxErrInfo->pcErrMsg));
         pxErrInfo->pcErrMsg[sizeof(pxErrInfo->pcErrMsg) - 1] = '\0';
     }
+    else strcpy(pxErrInfo->pcErrMsg, "");
 }
 
 /* Set the message using a variable number of arguments, for
@@ -78,6 +79,7 @@ static void prvErrorSetNew_v(string_t pcFile, uint32_t unLine, rsErr_t unErrCode
         vsnprintf(pxErrInfo->pcErrMsg, member_size(rsErrInfo_t, pcErrMsg), pcFmt, xParams);
         pxErrInfo->pcErrMsg[sizeof(pxErrInfo->pcErrMsg) - 1] = '\0';
     }
+    else strcpy(pxErrInfo->pcErrMsg, "");
 }
 
 static void prvErrorClearLocked()
