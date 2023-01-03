@@ -150,6 +150,8 @@ rsErr_t xErrorSetErrno(string_t pcFile, uint32_t unLine, int _errno)
     else
         prvErrorSetNew(pcFile, unLine, unErrCode, NULL);
 
+    pthread_mutex_unlock(&xPoolMutex);
+
     return unErrCode;
 }
 
