@@ -7,16 +7,8 @@
 
 #include "portability/port.h"
 
+#include "error_defs.h"
 #include "rinasense_errors.h"
-
-/* Generic error type. */
-typedef struct xRS_ERR { uint32_t c; } rsErr_t;
-
-/* Functions returning 'memErr_t' are expected to only fail in case of
- * memory problems */
-typedef rsErr_t rsMemErr_t;
-
-struct xERR_INFO;
 
 typedef struct xERR_INFO {
     /* Somewhat arbitrary size for the filename */
@@ -87,7 +79,7 @@ static inline bool_t _err_chk_mem(rsErr_t xErr)
     (x.c)
 
 #define ERR_IS(x, t) \
-    (x.c == t.c)
+    (ERR_CHK(x) && xErrorGet() != NULL && xErrorGet()->unErrCode.c == t.c)
 
 /* Fail an assertion in case an allocation fails. Use this in
  * situations where it would be impossible or difficult to recover,

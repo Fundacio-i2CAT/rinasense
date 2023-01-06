@@ -3,13 +3,11 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "linux_rsdefs.h"
 #include "portability/port.h"
 
 #include "common/error.h"
 #include "common/rsrc.h"
 #include "common/macros.h"
-#include "portability/rserr.h"
 
 #define TAG_ERR "[Error]"
 

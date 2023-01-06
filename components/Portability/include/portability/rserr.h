@@ -5,11 +5,11 @@
 extern "C" {
 #endif
 
-#include "common/error.h"
+#include "common/error_defs.h"
 
-void _errSetPtr(rsErrInfo_t *pxErr);
+void _errSetPtr(struct xERR_INFO *pxErr);
 
-rsErrInfo_t *_errGetPtr();
+struct xERR_INFO *_errGetPtr();
 
 #ifdef __cplusplus
 }

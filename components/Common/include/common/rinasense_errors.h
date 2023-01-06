@@ -19,7 +19,7 @@
 #define ERR_ERRNO         _MK_ERR(EC_BASE, 0x05) /* errno */
 #define ERR_OVERFLOW      _MK_ERR(EC_BASE, 0x06) /* Target resource full */
 #define ERR_UNDERFLOW     _MK_ERR(EC_BASE, 0x07) /* Target res. empty */
-#define ERR_TIMEOUT       _MK_ERR(EC_BASE, 0x08) /* Generic timeout */
+#define ERR_TIMEDOUT      _MK_ERR(EC_BASE, 0x08) /* Generic timeout */
 
 /* GPA/GHA specific errors */
 #define EC_GPA            _MK_CAT(0x01)

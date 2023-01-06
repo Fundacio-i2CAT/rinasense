@@ -3,11 +3,12 @@
 string_t GenericErrorMessages[] = {
     /* 0x01 */ "Unknown error",
     /* 0x02 */ "Out of memory",
-    /* 0x03 */ "Bad arguments"
+    /* 0x03 */ "Bad arguments",
     /* 0x04 */ "pthread error: %d",
-    /* 0x05 */ "System error: %d"
+    /* 0x05 */ "System error: %d",
     /* 0x06 */ "Overflow",
-    /* 0x07 */ "Underflow"
+    /* 0x07 */ "Underflow",
+    /* 0x08 */ "Timeout"
 };
 
 string_t GpaErrorMessages[] = {
@@ -31,9 +32,9 @@ string_t RibErrorMessages[] = {
      /* 0x04 */ "Too many active connections"
      /* 0x05 */ "No such connection",
      /* 0x06 */ "Unsupported RIB object: '%s'",
-     /* 0x07 */ "Unsupported method %s on RIB object '%s'"
-     /* 0x08 */ "Invalid connection state"
-     /* 0x09 */ "Connection already exists"
+     /* 0x07 */ "Unsupported method %s on RIB object '%s'",
+     /* 0x08 */ "Invalid connection state",
+     /* 0x09 */ "Connection already exists",
      /* 0x10 */ "Timed out"
 };
 
