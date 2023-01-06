@@ -134,6 +134,8 @@ void vNetBufFreeButDont(netbuf_t *pxNb);
 
 size_t unNetBufRead(netbuf_t *pxNb, void *pvBuffer, size_t unRdOff, size_t unSzBuf);
 
+void vNetBufPrint(const string_t pcNbName, netbuf_t *pxNb);
+
 #ifdef __cplusplus
 }
 #endif
