@@ -6,5 +6,7 @@
 #include "linux_rsmem.h"
 #include "linux_rsnet.h"
 
+#include "posix_rssem.h"
+
 #endif // _PORT_LINUX_PORT_H
 

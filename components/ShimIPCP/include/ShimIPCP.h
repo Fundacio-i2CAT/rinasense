@@ -56,8 +56,6 @@ typedef struct xSHIM_WIFI_FLOW
 
 bool_t xShimEnrollToDIF(struct ipcpInstanceData_t *pxData);
 
-bool_t xShimWiFiInit(struct ipcpInstance_t *pxShimWiFiInstance);
-
 struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId);
 
 bool_t xShimSDURead(struct ipcpInstanceData_t *pxData,

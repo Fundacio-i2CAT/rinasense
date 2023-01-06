@@ -1,6 +1,5 @@
-#include "Enrollment_api.h"
-#include "SerDes.h"
-#include "SerDesEnrollment.h"
+#include "portability/port.h"
+
 #include "common/error.h"
 #include "common/rina_ids.h"
 
@@ -8,12 +7,12 @@
 #include "configRINA.h"
 #include "configSensor.h"
 
+#include "Enrollment_api.h"
 #include "Enrollment_obj.h"
+#include "SerDes.h"
+#include "SerDesEnrollment.h"
 #include "Ribd_api.h"
-#include "linux_rsmem.h"
-#include "portability/rstime.h"
 #include "private/Enrollment_Object.h"
-#include <time.h>
 
 void *xEnrollmentInboundProcess(void *pvArg) {
     ribObject_t *pxThis;

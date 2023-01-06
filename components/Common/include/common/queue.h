@@ -1,8 +1,6 @@
 #ifndef _COMMON_BLOCKING_QUEUE_H_INCLUDED
 #define _COMMON_BLOCKING_QUEUE_H_INCLUDED
 
-#include <semaphore.h>
-
 #include "portability/port.h"
 #include "common/rsrc.h"
 #include "common/list.h"
@@ -16,9 +14,9 @@ typedef struct {
      * contain. */
     size_t unMaxItemCount;
 
-    /* Set this to true if you want the queue to return null instead
+    /* Set this to false if you want the queue to return nulls instead
      * of blocking */
-    bool_t xNoBlock;
+    bool_t xBlock;
 
     /* Size of the items stored in the list */
     size_t unItemSz;
@@ -31,37 +29,37 @@ typedef struct xRSQUEUE_T {
     rsrcPoolP_t xPool;
 
     /* Semaphore for items in the queue */
-    sem_t xSemItems;
+    RsSem_t xSemItems;
 
     /* Semaphore for places left in the queue. */
-    sem_t xSemPlaces;
+    RsSem_t xSemPlaces;
 
     pthread_mutex_t xMutex;
 
-    RsQueueParams_t xParams;
+    const RsQueueParams_t xParams;
 } RsQueue_t;
 
-rsErr_t xQueueInit(const char *sQueueName, RsQueue_t *pxQueue, RsQueueParams_t *pxQueueParams);
+rsErr_t xRsQueueInit(const char *sQueueName, RsQueue_t *pxQueue, RsQueueParams_t *pxQueueParams);
 
-void xQueueFini(RsQueue_t *pxQueue);
+void xRsQueueFini(RsQueue_t *pxQueue);
 
-rsErr_t xQueueSendToBack(RsQueue_t *pxQueue, void *pxItem);
+rsErr_t xRsQueueSendToBack(RsQueue_t *pxQueue, void *pxItem);
 
-rsErr_t xQueueReceive(RsQueue_t *pxQueue, void *pxItem);
+rsErr_t xRsQueueReceive(RsQueue_t *pxQueue, void *pxItem);
 
-bool_t xQueueCanPush(RsQueue_t *pxQueue);
+bool_t xRsQueueCanPush(RsQueue_t *pxQueue);
 
 /* Blocks forever if the queue as reached its maximum size. */
-rsErr_t xQueueSendToBackWait(RsQueue_t *pxQueue, void *pxItem);
+rsErr_t xRsQueueSendToBackWait(RsQueue_t *pxQueue, void *pxItem);
 
 /* Blocks for 'pxTimeout' */
-rsErr_t xQueueSendToBackTimed(RsQueue_t *pxQueue, void *pxItem, useconds_t pxTimeout);
+rsErr_t xRsQueueSendToBackTimed(RsQueue_t *pxQueue, void *pxItem, useconds_t pxTimeout);
 
 /* Blocks forever */
-rsErr_t xQueueReceiveWait(RsQueue_t *pxQueue, void *pxItem);
+rsErr_t xRsQueueReceiveWait(RsQueue_t *pxQueue, void *pxItem);
 
 /* Blocks for 'pxTimeout' */
-rsErr_t xQueueReceiveTimed(RsQueue_t *pxQueue, void *pxItem, useconds_t pxTimeout);
+rsErr_t xRsQueueReceiveTimed(RsQueue_t *pxQueue, void *pxItem, useconds_t pxTimeout);
 
 #ifdef __cplusplus
 }

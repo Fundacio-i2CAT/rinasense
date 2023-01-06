@@ -1,10 +1,11 @@
 #include <string.h>
 
+#include "common/rsrc.h"
+#include "common/error.h"
+
 #include "SerDes.h"
 #include "SerDesNeighbor.h"
 
-#include "common/rsrc.h"
-#include "linux_rsmem.h"
 #include "unity.h"
 #include "common/unity_fixups.h"
 

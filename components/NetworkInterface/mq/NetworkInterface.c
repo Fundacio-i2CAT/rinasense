@@ -1,17 +1,24 @@
+#include "common/rsrc.h"
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <pthread.h>
 #include <signal.h>
+#ifdef ESP_PLATFORM
+#include "freertos/FreeRTOS.h"
+#include "FreeRTOS_POSIX/mqueue.h"
+#else
+#include <mqueue.h>
+#endif
+#include <pthread.h>
 
-#include "ShimIPCP.h"
-#include "common/netbuf.h"
-#include "configSensor.h"
 #include "portability/port.h"
+
+#include "common/netbuf.h"
 #include "common/rina_gpha.h"
 
 #include "IPCP_api.h"
 #include "IPCP_events.h"
+#include "ShimIPCP.h"
 #include "ShimIPCP_instance.h"
 #include "NetworkInterface.h"
 #include "NetworkInterface_mq.h"
@@ -175,10 +182,13 @@ static void event_handler(union sigval sv)
 
 bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev)
 {
+    RsAssert(pxS);
+
     pxSelf = pxS;
 
     /* Save the MAC address to use as queue names. */
-    mac2str(pxPhyDev, sMac, sizeof(sMac));
+    if (pxPhyDev)
+        mac2str(pxPhyDev, sMac, sizeof(sMac));
 
     return true;
 }

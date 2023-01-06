@@ -22,16 +22,16 @@ RS_TEST_CASE(BasicQueue, "[queue]")
     RS_TEST_CASE_BEGIN(test_queue);
 
     xQueueParams.unMaxItemCount = 0;
-    xQueueParams.xNoBlock = true;
+    xQueueParams.xBlock = false;
     xQueueParams.unItemSz = sizeof(int);
 
-    TEST_ASSERT(!ERR_CHK(xQueueInit("Basic Queue Test", &xQueue, &xQueueParams)));
-    TEST_ASSERT(!ERR_CHK(xQueueSendToBack(&xQueue, &i1)));
-    TEST_ASSERT(!ERR_CHK(xQueueSendToBack(&xQueue, &i2)));
-    TEST_ASSERT(!ERR_CHK(xQueueSendToBack(&xQueue, &i3)));
-    TEST_ASSERT(!ERR_CHK(xQueueReceive(&xQueue, (void **)&ii1)));
-    TEST_ASSERT(!ERR_CHK(xQueueReceive(&xQueue, (void **)&ii2)));
-    TEST_ASSERT(!ERR_CHK(xQueueReceive(&xQueue, (void **)&ii3)));
+    TEST_ASSERT(!ERR_CHK(xRsQueueInit("Basic Queue Test", &xQueue, &xQueueParams)));
+    TEST_ASSERT(!ERR_CHK(xRsQueueSendToBack(&xQueue, &i1)));
+    TEST_ASSERT(!ERR_CHK(xRsQueueSendToBack(&xQueue, &i2)));
+    TEST_ASSERT(!ERR_CHK(xRsQueueSendToBack(&xQueue, &i3)));
+    TEST_ASSERT(!ERR_CHK(xRsQueueReceive(&xQueue, (void **)&ii1)));
+    TEST_ASSERT(!ERR_CHK(xRsQueueReceive(&xQueue, (void **)&ii2)));
+    TEST_ASSERT(!ERR_CHK(xRsQueueReceive(&xQueue, (void **)&ii3)));
 
     TEST_ASSERT(ii1 == i1);
     TEST_ASSERT(ii2 == i2);
@@ -50,14 +50,15 @@ RS_TEST_CASE(BoundedQueue, "[queue]")
     RS_TEST_CASE_BEGIN(test_queue);
 
     xQueueParams.unMaxItemCount = 1;
-    xQueueParams.xNoBlock = true;
+    xQueueParams.xBlock = false;
     xQueueParams.unItemSz = sizeof(int);
 
-    TEST_ASSERT(!ERR_CHK(xQueueInit("Bounded Queue Test", &xQueue, &xQueueParams)));
-    TEST_ASSERT(!ERR_CHK(xQueueSendToBack(&xQueue, &i1)));
-    TEST_ASSERT(ERR_IS(xQueueSendToBack(&xQueue, &i2), ERR_OVERFLOW));
-    TEST_ASSERT(!ERR_CHK(xQueueReceive(&xQueue, (void *)&pi1)));
-    TEST_ASSERT(ERR_IS(xQueueReceive(&xQueue, (void *)&pi2), ERR_UNDERFLOW));
+    TEST_ASSERT(!ERR_CHK(xRsQueueInit("Bounded Queue Test", &xQueue, &xQueueParams)));
+    TEST_ASSERT(!ERR_CHK(xRsQueueSendToBack(&xQueue, &i1)));
+    rsErr_t xStatus = xRsQueueSendToBack(&xQueue, &i2);
+    TEST_ASSERT(ERR_IS(xStatus, ERR_OVERFLOW));
+    TEST_ASSERT(!ERR_CHK(xRsQueueReceive(&xQueue, (void *)&pi1)));
+    TEST_ASSERT(ERR_IS(xRsQueueReceive(&xQueue, (void *)&pi2), ERR_UNDERFLOW));
 
     RS_TEST_CASE_END(test_queue);
 }
@@ -72,17 +73,19 @@ RS_TEST_CASE(BlockingQueue, "[queue]")
     RS_TEST_CASE_BEGIN(test_queue);
 
     xQueueParams.unMaxItemCount = 1;
-    xQueueParams.xNoBlock = false;
+    xQueueParams.xBlock = true;
     xQueueParams.unItemSz = sizeof(int);
 
-    TEST_ASSERT(!ERR_CHK(xQueueInit("Blocking Queue Test", &xQueue, &xQueueParams)));
-    TEST_ASSERT(!ERR_CHK(xQueueSendToBack(&xQueue, &i1)));
+    TEST_ASSERT(!ERR_CHK(xRsQueueInit("Blocking Queue Test", &xQueue, &xQueueParams)));
+    TEST_ASSERT(!ERR_CHK(xRsQueueSendToBack(&xQueue, &i1)));
 
     /* Will not block since there is one item in the queue */
-    TEST_ASSERT(!ERR_CHK(xQueueReceiveTimed(&xQueue, &pi1, 100000)));
+    TEST_ASSERT(!ERR_IS(xRsQueueReceiveTimed(&xQueue, &pi1, 100000), ERR_TIMEDOUT));
 
-    /* Should block */
-    TEST_ASSERT(ERR_IS(xQueueReceiveTimed(&xQueue, &pi1, 1000000), ERR_TIMEOUT));
+    /* Should block and return underflow */
+    rsErr_t xStatus = xRsQueueReceiveTimed(&xQueue, &pi1, 1000000);
+    vErrorLog("[test]", "Blocking Queue Test");
+    TEST_ASSERT(ERR_IS(xStatus, ERR_TIMEDOUT));
 
     RS_TEST_CASE_END(test_queue);
 }

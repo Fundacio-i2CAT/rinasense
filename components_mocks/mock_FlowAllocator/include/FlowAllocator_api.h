@@ -24,15 +24,15 @@ flowAllocateHandle_t *mock_FlowAllocator_pxFAFindFlowHandle(portId_t xPortId);
 
 bool_t mock_FlowAllocator_xFlowAllocatorDuPost(flowAllocator_t *pxFA,
                                                portId_t xAppPortId,
-                                               struct du_t *pxDu);
+                                               du_t *pxDu);
 
 bool_t mock_FlowAllocator_xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData,
                                                       serObjectValue_t *pxSerObjValue,
                                                       int result);
 
-bool_t mock_FlowAllocator_xFlowAllocatorHandleDelete(struct ipcpInstanceData_t *pxData,
-                                                     struct ribObject_t *pxRibObject,
-                                                     int invoke_id);
+bool_t mock_FlowAllocator_xFlowAllocatorHandleDelete(ribObject_t *pxThis,
+                                                     appConnection_t *pxAppCon,
+                                                     messageCdap_t *pxMsg);
 
 flowAllocator_t *mock_FlowAllocator_pxFlowAllocatorCreate(struct ipcpInstance_t *pxNormalIpcp);
 
@@ -48,9 +48,13 @@ bool_t xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData,
 
 flowAllocateHandle_t *pxFAFindFlowHandle(portId_t xPortId);
 
-bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu);
+bool_t xFlowAllocatorDuPost(flowAllocator_t *pxFA,
+                            portId_t xAppPortId,
+                            du_t *pxDu);
 
-bool_t xFlowAllocatorHandleDelete(ribObject_t *pxRibObject, int invoke_id);
+bool_t xFlowAllocatorHandleDelete(ribObject_t *pxThis,
+                                  appConnection_t *pxAppCon,
+                                  messageCdap_t *pxMsg);
 
 flowAllocator_t *pxFlowAllocatorCreate(struct ipcpInstance_t *pxNormalIpcp);
 

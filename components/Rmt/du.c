@@ -11,6 +11,8 @@
 
 #include "common/netbuf.h"
 #include "common/rsrc.h"
+#include "common/error.h"
+
 #include "rmt.h"
 #include "du.h"
 #include "pci.h"

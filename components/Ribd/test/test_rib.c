@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "linux_rsmem.h"
 #include "portability/port.h"
 
 #include "Ribd_api.h"

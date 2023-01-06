@@ -180,7 +180,7 @@ static void *prvIPCPTask(void *pvParameters)
         /* Wait until there is something to do. If the following call exits
          * due to a time out rather than a message being received, set a
          * 'NoEvent' value. */
-        if (ERR_CHK(xQueueReceiveTimed(&xNetworkEventQueue, (void *)&xEv, xSleepTimeUS)))
+        if (ERR_CHK(xRsQueueReceiveTimed(&xNetworkEventQueue, (void *)&xEv, xSleepTimeUS)))
             xEv.eEventType = eNoEvent;
 
         switch (xEv.eEventType)
@@ -345,7 +345,7 @@ rsErr_t RINA_IPCPInit()
 
     RsQueueParams_t xIpcpQueueParams = {
         .unMaxItemCount = 255,
-        .xNoBlock = false,
+        .xBlock = true,
         .unItemSz = sizeof(RINAStackEvent_t)
     };
 
@@ -372,7 +372,7 @@ rsErr_t RINA_IPCPInit()
     /* This function should only be called once. */
     RsAssert(xIPCPIsNetworkTaskReady() == false);
 
-    if (ERR_CHK(xQueueInit("IPCPQueue", &xNetworkEventQueue, &xIpcpQueueParams))) {
+    if (ERR_CHK(xRsQueueInit("IPCPQueue", &xNetworkEventQueue, &xIpcpQueueParams))) {
         vErrorLog(TAG_IPCPMANAGER, "IPCP Queue Initialization");
         abort();
     }
@@ -463,7 +463,7 @@ rsErr_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent, useconds_t x
         else
             xCalculatedTimeOutUS = xTimeOutUS;
 
-        xStatus = xQueueSendToBackTimed(&xNetworkEventQueue, (void *)pxEvent, xCalculatedTimeOutUS);
+        xStatus = xRsQueueSendToBackTimed(&xNetworkEventQueue, (void *)pxEvent, xCalculatedTimeOutUS);
 
         if (ERR_CHK(xStatus))
             LOGE(TAG_IPCPMANAGER, "Failed to add message to IPCP queue");

@@ -164,7 +164,6 @@ else()
       "components/Portability/include/portability/rsmem.h"
       "components/Portability/include/portability/rsnet.h"
       "components/Portability/include/portability/rsposix.h"
-      "components/Portability/include/portability/rsqueue.h"
       "components/Portability/include/portability/rstime.h"
       "components/Common/include/common/rina_gpha.h"
       "components/Common/include/common/rina_name.h")

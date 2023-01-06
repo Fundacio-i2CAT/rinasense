@@ -1,7 +1,6 @@
 #ifndef SERDES_ADATA_H_INCLUDED
 #define SERDES_ADATA_H_INCLUDED
 
-#include <bits/pthreadtypes.h>
 #include <stdint.h>
 
 #include "SerDes.h"

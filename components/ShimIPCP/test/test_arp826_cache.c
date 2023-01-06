@@ -11,11 +11,11 @@
 
 struct ARPCache *pxCache;
 
-const MACAddress_t mac1 = {
+const MACAddress_t testArp826Cache_mac1 = {
     {1, 2, 3, 4, 5, 6}
 };
 
-const MACAddress_t mac2 = {
+const MACAddress_t testArp826Cache_mac2 = {
     {2, 3, 4, 5, 6, 7}
 };
 
@@ -38,7 +38,7 @@ RS_TEST_CASE(ARPCacheAddRemove, "[arp]")
 
     /* Make sure we can lookup a GPA in the cache. */
     TEST_ASSERT((gpa1 = pxCreateGPA((buffer_t)addr1, strlen(addr1))) != NULL);
-    TEST_ASSERT((gha1 = pxCreateGHA(MAC_ADDR_802_3, &mac1)) != NULL);
+    TEST_ASSERT((gha1 = pxCreateGHA(MAC_ADDR_802_3, &testArp826Cache_mac1)) != NULL);
     vARPPrintCache(pxCache);
     TEST_ASSERT(xARPCacheAdd(pxCache, gpa1, gha1) != ARP_CACHE_INVALID_HANDLE);
     vARPPrintCache(pxCache);

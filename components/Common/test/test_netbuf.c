@@ -1,9 +1,10 @@
 #include <string.h>
 
-#include "common/rsrc.h"
-#include "linux_rsmem.h"
 #include "portability/port.h"
+
+#include "common/rsrc.h"
 #include "common/netbuf.h"
+#include "common/error.h"
 
 #include "unity.h"
 #include "common/unity_fixups.h"

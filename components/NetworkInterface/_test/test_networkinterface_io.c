@@ -6,6 +6,8 @@
 
 #include "NetworkInterface.h"
 #include "NetworkInterface_mq.h"
+#include "common/netbuf.h"
+#include "common/rsrc.h"
 #include "portability/port.h"
 #include "IPCP_frames.h"
 #include "IPCP_api.h"
@@ -18,11 +20,14 @@ const MACAddress_t mac = {
     {1, 2, 3, 4, 5, 6}
 };
 
+
+
 RS_TEST_CASE_SETUP(test_networkinterface_io) {
     TEST_ASSERT(xMockIPCPInit());
-    TEST_ASSERT(xNetworkBuffersInitialise());
-    TEST_ASSERT(xNetworkInterfaceInitialise(&mac));
+    TEST_ASSERT(xNetworkInterfaceInitialise(NULL, NULL));
     TEST_ASSERT(xNetworkInterfaceConnect());
+
+    TEST_ASSERT((xPool = xNetBufNewPool("test_networkinterface_io")));
 
     sleep(1);
 }
@@ -52,7 +57,7 @@ RS_TEST_CASE(MqInterfaceRead, "[mq]")
  * output. */
 RS_TEST_CASE(MqInterfaceWrite, "[mq]")
 {
-    NetworkBufferDescriptor_t *netbuf;
+    netbuf_t *pxNb;
     string_t dataIn = "12345";
     char dataOut[1500];
 
@@ -60,9 +65,8 @@ RS_TEST_CASE(MqInterfaceWrite, "[mq]")
 
     xMqNetworkInterfaceOutputDiscard();
 
-    TEST_ASSERT((netbuf = pxGetNetworkBufferWithDescriptor(5, 0)) != NULL);
-    memcpy(netbuf->pucEthernetBuffer, dataIn, strlen(dataIn));
-    TEST_ASSERT(xNetworkInterfaceOutput(netbuf, false));
+    TEST_ASSERT((pxNb = pxNetBufNew(xPool, NB_UNKNOWN, (buffer_t)dataIn, sizeof(dataIn), NETBUF_FREE_DONT)));
+    TEST_ASSERT(xNetworkInterfaceOutput(pxNb))
     TEST_ASSERT(xMqNetworkInterfaceReadOutput(dataOut, sizeof(dataOut), NULL) > 0);
     TEST_ASSERT(dataOut[3] == dataIn[3]);
 
