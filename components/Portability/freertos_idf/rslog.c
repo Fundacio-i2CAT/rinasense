@@ -34,7 +34,9 @@ void vRsLogWrite(RsLogLevel_t level, const char* tag, const char* format, ...)
 
 void vRsLogWritev(RsLogLevel_t level, const char* tag, const char* format, va_list args)
 {
+    LOG_LOCK();
     esp_log_writev(level, tag, format, args);
+    LOG_UNLOCK();
 }
 
 uint32_t ulRsLogTimestamp(void)
