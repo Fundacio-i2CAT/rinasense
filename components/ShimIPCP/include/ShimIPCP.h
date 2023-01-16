@@ -60,7 +60,7 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId);
 
 bool_t xShimSDURead(struct ipcpInstanceData_t *pxData,
                     portId_t xId,
-                    struct du_t *pxDu);
+                    du_t *pxDu);
 
 void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf,
                                netbuf_t *pxNb);
