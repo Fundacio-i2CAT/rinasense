@@ -415,7 +415,7 @@ bool_t xShimFlowAllocateRequest(struct ipcpInstance_t *pxSelf,
 								portId_t unPort)
 {
 	shimFlow_t *pxFlow;
-    stringbuf_t pcNameBuf[128];
+    stringbuf_t pcNameBuf[64];
 
     RsAssert(pxSelf);
     RsAssert(pxSourceInfo);
