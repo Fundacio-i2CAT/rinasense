@@ -197,6 +197,8 @@ int sem_timedwait( sem_t * sem,
         {
             iStatus = 0;
         }
+
+        Atomic_Increment_u32( ( uint32_t * ) &pxSem->value );
     }
 
     return iStatus;
