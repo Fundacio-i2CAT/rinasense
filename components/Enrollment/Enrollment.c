@@ -179,7 +179,8 @@ rsErr_t prvEnrollmentHandleOperationalStart(ribObject_t *pxThis,
 {
     neighborMessage_t *pxNeighborMsg;
     neighborInfo_t *pxNeighborInfo;
-    serObjectValue_t *pxSerObjValue;
+    NeighborSerDes_t *pxNeighborSD;
+    serObjectValue_t xSerObjValue;
     bool_t xStatus;
 
     LOGE(TAG_ENROLLMENT, "Handling OperationalStart");
@@ -198,7 +199,10 @@ rsErr_t prvEnrollmentHandleOperationalStart(ribObject_t *pxThis,
     pxNeighborMsg->pcAeName = MANAGEMENT_AE;
     pxNeighborMsg->pcAeInstance = pxNeighborInfo->pcToken;
 
-    pxSerObjValue = pxSerDesNeighborEncode(&((Enrollment_t *)pxThis->pvOwner)->xNeighborSD, pxNeighborMsg);
+    pxNeighborSD = &((Enrollment_t *)pxThis->pvOwner)->xNeighborSD;
+
+    if (ERR_CHK(xSerDesNeighborEncode(pxNeighborSD, pxNeighborMsg, &xSerObjValue)))
+        return FAIL;
 
     return xRibObjectReply(pxThis->pxRibd, pxThis, M_START_R, pxAppCon->unPort, pxMsg->nInvokeID, 0, NULL, NULL);
 }

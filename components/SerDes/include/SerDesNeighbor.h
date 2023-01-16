@@ -77,13 +77,16 @@ typedef struct
 
 rsErr_t xSerDesNeighborInit(NeighborSerDes_t *pxSD);
 
-serObjectValue_t *pxSerDesNeighborEncode(NeighborSerDes_t *pxSD, neighborMessage_t *pxMsg);
+rsErr_t xSerDesNeighborEncode(NeighborSerDes_t *pxSD,
+                              neighborMessage_t *pxMsg,
+                              serObjectValue_t *pxSerValue);
 
 neighborMessage_t *pxSerDesNeighborDecode(NeighborSerDes_t *pxSD, uint8_t *pucBuffer, size_t xMessageLength);
 
-serObjectValue_t *pxSerDesNeighborListEncode(NeighborSerDes_t *pxSD,
-                                             size_t unNeighCount,
-                                             neighborMessage_t **pxNeighbors);
+rsErr_t pxSerDesNeighborListEncode(NeighborSerDes_t *pxSD,
+                                   size_t unNeighCount,
+                                   neighborMessage_t **pxNeighbors,
+                                   serObjectValue_t *pxSerVal);
 
 neighborsMessage_t *pxSerDesNeighborListDecode(NeighborSerDes_t *pxSD,
                                                uint8_t *pucBuffer,

@@ -68,24 +68,18 @@ bool_t xSerDesMessageInit(MessageSerDes_t *pxSD)
     if (!(pxSD->xDecPool = pxRsrcNewPool("CDAP Message SerDes Decoding", unSz, 1, 1, 0)))
         return false;
 
-    unSz = sizeof(rina_messages_CDAPMessage) + sizeof(serObjectValue_t);
+    unSz = sizeof(rina_messages_CDAPMessage);
     if (!(pxSD->xEncPool = pxRsrcNewPool("CDAP Message SerDes Encoding", unSz, 1, 1, 0)))
         return false;
 
     return true;
 }
 
-serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *pxMsgCdap)
+rsErr_t xSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *pxMsgCdap, serObjectValue_t *pxSerValue)
 {
     bool_t xStatus;
-    uint8_t *pucBuffer[128];
-    size_t unMessageLength;
     pb_ostream_t xStream;
     rina_messages_CDAPMessage xMsg = rina_messages_CDAPMessage_init_zero;
-    serObjectValue_t *pxSerValue;
-
-    /*Create a stream that will write to the buffer*/
-    xStream = pb_ostream_from_buffer((pb_byte_t *)pucBuffer, sizeof(pucBuffer));
 
     /*Fill the message properly*/
     xMsg.version = pxMsgCdap->version;
@@ -152,10 +146,8 @@ serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *px
         xMsg.objValue.has_byteval = true;
     }
 
-    if (!(pxSerValue = pxRsrcAlloc(pxSD->xEncPool, "CDAP message encoding")))
-        return ERR_SET_OOM_NULL;
-
-    pxSerValue->pvSerBuffer = pxSerValue + sizeof(serObjectValue_t);
+    if (!(pxSerValue->pvSerBuffer = pxRsrcAlloc(pxSD->xEncPool, "CDAP message encoding")))
+        return ERR_SET_OOM;
 
     xStream = pb_ostream_from_buffer((pb_byte_t *)pxSerValue->pvSerBuffer,
                                      sizeof(rina_messages_CDAPMessage));
@@ -165,11 +157,11 @@ serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *px
     pxSerValue->xSerLength = xStream.bytes_written;
 
     if (!xStatus)
-        return ERR_SET_NULL(ERR_SERDES_ENCODING_FAIL);
+        return ERR_SET(ERR_SERDES_ENCODING_FAIL);
 
     LOGI(TAG_RIB, "Message CDAP with length: %zu encoded sucessfully ", pxSerValue->xSerLength);
 
-    return pxSerValue;
+    return SUCCESS;
 }
 
 messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD, uint8_t *pucBuffer, size_t xMessageLength)

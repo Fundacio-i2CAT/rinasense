@@ -1,7 +1,9 @@
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "common/arraylist.h"
 #include "common/error.h"
+#include "common/rinasense_errors.h"
 #include "common/rsrc.h"
 #include "common/macros.h"
 #include "common/datapacker.h"
@@ -141,9 +143,9 @@ static void prvSerDesRinaNeighborToNeighborMessage(neighborMessage_t *pxMsg,
     }
 }
 
-static bool_t prvSerDesNeighborEncodeCb(pb_ostream_t *stream,
-                                        const pb_field_iter_t *field,
-                                        void * const *arg)
+static bool prvSerDesNeighborEncodeCb(pb_ostream_t *stream,
+                                      const pb_field_iter_t *field,
+                                      void * const *arg)
 {
     NeighborEncodeCbState_t *pxState;
     buffer_t pcSupDif;
@@ -165,7 +167,7 @@ static bool_t prvSerDesNeighborEncodeCb(pb_ostream_t *stream,
     return true;
 }
 
-static bool_t prvSerDesNeighborDecodeCb(pb_istream_t *stream, const pb_field_iter_t *field, void **arg)
+static bool prvSerDesNeighborDecodeCb(pb_istream_t *stream, const pb_field_iter_t *field, void **arg)
 {
     buffer_t pcSupDif;
     NeighborDecodeCbState_t *pxState;
@@ -209,7 +211,7 @@ static void pxSerDesNeighborEncodePrepare(NeighborSerDes_t *pxSD,
     _SERDES_FIELD_COPY((*pxRinaMsg), apname, pxMsg->pcApName);
 }
 
-static bool_t prvSerDesNeighborListDecodeCb(pb_istream_t *stream,
+static bool prvSerDesNeighborListDecodeCb(pb_istream_t *stream,
                                           const pb_field_iter_t *field,
                                           void **arg)
 {
@@ -233,10 +235,6 @@ static bool_t prvSerDesNeighborListDecodeCb(pb_istream_t *stream,
     xNbMsg.supportingDifs.arg = &xState;
 
     while (stream->bytes_left) {
-        pb_wire_type_t wire_type;
-        uint32_t tag;
-        bool_t eof;
-
         if (!pb_decode(stream, rina_messages_neighbor_t_fields, &xNbMsg))
             goto cleanup;
 
@@ -339,10 +337,11 @@ neighborMessage_t *pxSerDesNeighborDecode(NeighborSerDes_t *pxSD, uint8_t *pucBu
     return pxMsgToRet;
 }
 
-serObjectValue_t *pxSerDesNeighborEncode(NeighborSerDes_t *pxSD, neighborMessage_t *pxMessage)
+rsErr_t xSerDesNeighborEncode(NeighborSerDes_t *pxSD,
+                              neighborMessage_t *pxMessage,
+                              serObjectValue_t *pxSer)
 {
     bool_t xStatus;
-    serObjectValue_t *pxSer;
     pb_ostream_t xStream;
     rina_messages_neighbor_t message = rina_messages_neighbor_t_init_zero;
     NeighborEncodeCbState_t xState;
@@ -359,12 +358,8 @@ serObjectValue_t *pxSerDesNeighborEncode(NeighborSerDes_t *pxSD, neighborMessage
     _SERDES_FIELD_COPY(message, apname, pxMessage->pcApName);
 
     /* Allocate space on the stack to store the message data. */
-    if (!(pxSer = pxRsrcAlloc(pxSD->xEncPool, "Neighbor Encoding"))) {
-        LOGE(TAG_SD_NEIGHBOR, "Failed to allocate memory for neighbor message encoding");
-        return NULL;
-    }
-
-    pxSer->pvSerBuffer = pxSer + sizeof(serObjectValue_t);
+    if (!(pxSer->pvSerBuffer = pxRsrcAlloc(pxSD->xEncPool, "Neighbor Encoding")))
+        return ERR_SET_OOM;
 
     /* Create a stream that writes to our buffer. */
     xStream = pb_ostream_from_buffer(pxSer->pvSerBuffer, ENROLLMENT_MSG_SIZE);
@@ -373,14 +368,12 @@ serObjectValue_t *pxSerDesNeighborEncode(NeighborSerDes_t *pxSD, neighborMessage
     xStatus = pb_encode(&xStream, rina_messages_neighbor_t_fields, &message);
 
     /* Check for errors... */
-    if (!xStatus) {
-        LOGE(TAG_SD_NEIGHBOR, "Encoding failed: %s\n", PB_GET_ERROR(&xStream));
-        return NULL;
-    }
+    if (!xStatus)
+        return ERR_SET(ERR_SERDES_ENCODING_FAIL);
 
     pxSer->xSerLength = xStream.bytes_written;
 
-    return pxSer;
+    return SUCCESS;
 }
 
 neighborsMessage_t *pxSerDesNeighborListDecode(NeighborSerDes_t *pxSD,
@@ -393,7 +386,6 @@ neighborsMessage_t *pxSerDesNeighborListDecode(NeighborSerDes_t *pxSD,
     size_t unNbCount,
         unNbAllocSz = 0,
         unNbListSz = 0,
-        unNbSz = 0,
         unArraySz = 0;
     rina_messages_neighbors_t message = rina_messages_neighbors_t_init_zero;
     NeighborListDecodeCbState_t xState = {
@@ -448,31 +440,26 @@ neighborsMessage_t *pxSerDesNeighborListDecode(NeighborSerDes_t *pxSD,
     return pxRet;
 }
 
-serObjectValue_t *pxSerDesNeighborListEncode(NeighborSerDes_t *pxSD,
-                                             size_t unNeighCount,
-                                             neighborMessage_t **pxNeighbors)
+rsErr_t pxSerDesNeighborListEncode(NeighborSerDes_t *pxSD,
+                                   size_t unNeighCount,
+                                   neighborMessage_t **pxNeighbors,
+                                   serObjectValue_t *pxSer)
 {
     rina_messages_neighbors_t message = rina_messages_neighbors_t_init_zero;
     bool_t xStatus;
-    serObjectValue_t *pxSer;
     pb_ostream_t xStream;
     NeighborListEncodeCbState_t xState = {
         .pxSD = pxSD,
         .unNeighCount = unNeighCount,
         .pxNeighbors = pxNeighbors
     };
-    size_t unSz;
 
     message.neighbor.funcs.encode = prvSerDesNeighborListEncodeCb;
     message.neighbor.arg = &xState;
 
     /* Allocate space on the heap to store the message data. */
-    if (!(pxSer = pxRsrcAlloc(pxSD->xEncPool, "Neighbor List Encoding"))) {
-        LOGE(TAG_SD_NEIGHBOR, "Failed to allocate memory for neighbor message encoding");
-        return NULL;
-    }
-
-    pxSer->pvSerBuffer = pxSer + sizeof(serObjectValue_t);
+    if (!(pxSer->pvSerBuffer = pxRsrcAlloc(pxSD->xEncPool, "Neighbor List Encoding")))
+        return ERR_SET_OOM;
 
     /* Create a stream that writes to our buffer. */
     xStream = pb_ostream_from_buffer(pxSer->pvSerBuffer, ENROLLMENT_MSG_SIZE);
@@ -481,12 +468,10 @@ serObjectValue_t *pxSerDesNeighborListEncode(NeighborSerDes_t *pxSD,
     xStatus = pb_encode(&xStream, rina_messages_neighbors_t_fields, &message);
 
     /* Check for errors... */
-    if (!xStatus) {
-        LOGE(TAG_SD_NEIGHBOR, "Encoding failed: %s\n", PB_GET_ERROR(&xStream));
-        return NULL;
-    }
+    if (!xStatus)
+        return ERR_SET(ERR_SERDES_ENCODING_FAIL);
 
     pxSer->xSerLength = xStream.bytes_written;
 
-    return pxSer;
+    return SUCCESS;
 }

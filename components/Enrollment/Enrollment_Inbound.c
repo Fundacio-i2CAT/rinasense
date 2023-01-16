@@ -48,7 +48,7 @@ void *xEnrollmentInboundProcess(void *pvArg) {
 
     { /* CREATE on remote neighbor object */
         neighborMessage_t *pxNeighMsgs[1];
-        serObjectValue_t *pxNeighObj;
+        serObjectValue_t xNeighObj;
 
         if (!(pxNeighMsgs[0] = pvRsMemAlloc(sizeof(neighborMessage_t) + sizeof(char *))))
             return false;
@@ -61,7 +61,11 @@ void *xEnrollmentInboundProcess(void *pvArg) {
         pxNeighMsgs[0]->unSupportingDifCount = 1;
         pxNeighMsgs[0]->pcSupportingDifs[0] = SHIM_DIF_NAME;
 
-        pxNeighObj = pxSerDesNeighborListEncode(&pxObjData->pxEnrollment->xNeighborSD, 1, pxNeighMsgs);
+        if (ERR_CHK(pxSerDesNeighborListEncode(&pxObjData->pxEnrollment->xNeighborSD,
+                                               1,
+                                               pxNeighMsgs,
+                                               &xNeighObj)))
+            vRsrcFree(xNeighObj.pvSerBuffer);
 
         vRsMemFree(pxNeighMsgs[0]);
 
@@ -70,12 +74,12 @@ void *xEnrollmentInboundProcess(void *pvArg) {
         if (ERR_CHK(xRibCREATE_CMD(pxObjData->pxRibd,
                                    &xEnrollmentNeighborsObject,
                                    pxObjData->unPort,
-                                   pxNeighObj))) {
-            vRsrcFree(pxNeighObj);
+                                   &xNeighObj))) {
+            vRsrcFree(xNeighObj.pvSerBuffer);
             goto fail;
         }
 
-        vRsrcFree(pxNeighObj);
+        vRsrcFree(xNeighObj.pvSerBuffer);
     }
 
     { /* STOP request on enrollment object */

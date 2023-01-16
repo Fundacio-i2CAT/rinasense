@@ -35,7 +35,7 @@ RS_TEST_CASE_TEARDOWN(test_SerDesNeighbor)
 RS_TEST_CASE(EncDecNeighbor, "[SerDes]")
 {
     neighborMessage_t *pxNbMsgEnc, *pxNbMsgDec;
-    serObjectValue_t *pxNbVal;
+    serObjectValue_t xNbVal;
 
     RS_TEST_CASE_BEGIN(test_SerDesNeighbor);
 
@@ -43,10 +43,10 @@ RS_TEST_CASE(EncDecNeighbor, "[SerDes]")
 
     xMakeBullshitNeighbor(pxNbMsgEnc);
 
-    TEST_ASSERT(pxNbVal = pxSerDesNeighborEncode(&xNeighborSD, pxNbMsgEnc));
+    TEST_ASSERT(!ERR_CHK(xSerDesNeighborEncode(&xNeighborSD, pxNbMsgEnc, &xNbVal)));
     TEST_ASSERT(pxNbMsgDec = pxSerDesNeighborDecode(&xNeighborSD,
-                                                    pxNbVal->pvSerBuffer,
-                                                    pxNbVal->xSerLength));
+                                                    xNbVal.pvSerBuffer,
+                                                    xNbVal.xSerLength));
 
     TEST_ASSERT(strcmp(pxNbMsgDec->pcApName, pxNbMsgEnc->pcApName) == 0);
     TEST_ASSERT(strcmp(pxNbMsgDec->pcApInstance, pxNbMsgEnc->pcApInstance) == 0);
@@ -57,7 +57,7 @@ RS_TEST_CASE(EncDecNeighbor, "[SerDes]")
 
     vRsMemFree(pxNbMsgEnc);
     vRsrcFree(pxNbMsgDec);
-    vRsrcFree(pxNbVal);
+    vRsrcFree(xNbVal.pvSerBuffer);
 
     RS_TEST_CASE_END(test_SerDesNeighbor);
 }
@@ -66,7 +66,7 @@ RS_TEST_CASE(EncDecNeighbors, "[SerDes]")
 {
     neighborMessage_t *pxNbMsg[3];
     neighborsMessage_t *pxNbListMsg;
-    serObjectValue_t *pxNbVal;
+    serObjectValue_t xNbVal;
 
     RS_TEST_CASE_BEGIN(test_SerDesNeighbor);
 
@@ -75,8 +75,8 @@ RS_TEST_CASE(EncDecNeighbors, "[SerDes]")
         xMakeBullshitNeighbor(pxNbMsg[i]);
     }
 
-    TEST_ASSERT(pxNbVal = pxSerDesNeighborListEncode(&xNeighborSD, 3, pxNbMsg));
-    TEST_ASSERT(pxNbListMsg = pxSerDesNeighborListDecode(&xNeighborSD, pxNbVal->pvSerBuffer, pxNbVal->xSerLength));
+    TEST_ASSERT(!ERR_CHK(pxSerDesNeighborListEncode(&xNeighborSD, 3, pxNbMsg, &xNbVal)));
+    TEST_ASSERT(pxNbListMsg = pxSerDesNeighborListDecode(&xNeighborSD, xNbVal.pvSerBuffer, xNbVal.xSerLength));
     TEST_ASSERT(pxNbListMsg->unNb == 3);
     TEST_ASSERT(strcmp(pxNbListMsg->pxNeighsMsg[0]->pcApName, pxNbMsg[0]->pcApName) == 0);
     TEST_ASSERT(strcmp(pxNbListMsg->pxNeighsMsg[1]->pcApInstance, pxNbMsg[1]->pcApInstance) == 0);
@@ -92,7 +92,7 @@ RS_TEST_CASE(EncDecNeighbors, "[SerDes]")
     }
 
     vRsrcFree(pxNbListMsg);
-    vRsrcFree(pxNbVal);
+    vRsrcFree(xNbVal.pvSerBuffer);
 
     RS_TEST_CASE_END(test_SerDesNeighbor);
 }

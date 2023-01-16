@@ -250,10 +250,10 @@ static rsErr_t prvRibHandleRelease(Ribd_t *pxRibd,
     if (pxMsg->nInvokeID != 0)
         return xRibRELEASE_REPLY(pxRibd, &xRibConnectObject, unPort, pxMsg->nInvokeID);
     else {
+        LOGI(TAG_RIB, "Connection to %s was released", pxAppCon->xDestinationInfo.pcProcessName);
+
         /* Otherwise just release */
         vRibConnectionRelease(pxRibd, pxAppCon);
-
-        LOGI(TAG_RIB, "Connection to %s was released", pxAppCon->xDestinationInfo.pcProcessName);
     }
 
     return SUCCESS;
@@ -418,7 +418,7 @@ rsErr_t prvRibNormalOutgoing(Ribd_t *pxRibd,
                              messageCdap_t *pxOutgoingCdap,
                              portId_t unPort)
 {
-    serObjectValue_t *pxSerVal;
+    serObjectValue_t xSerVal = {0};
     RINAStackEvent_t xEv;
     rsErr_t xStatus;
     du_t *pxDu;
@@ -429,11 +429,13 @@ rsErr_t prvRibNormalOutgoing(Ribd_t *pxRibd,
     vRibPrintCdapMessage(TAG_RIB, "OUTGOING CDAP", pxOutgoingCdap);
 #endif
 
-    if (!(pxSerVal = pxSerDesMessageEncode(&pxRibd->xMsgSD, pxOutgoingCdap)))
+    /* This encoded CDAP message content becomes "owned" by the
+     * netbuf */
+    if (ERR_CHK(xSerDesMessageEncode(&pxRibd->xMsgSD, pxOutgoingCdap, &xSerVal)))
         return FAIL;
 
     pxDu = pxNetBufNew(pxRibd->xDuPool, NB_RINA_DATA,
-                       pxSerVal->pvSerBuffer, pxSerVal->xSerLength,
+                       xSerVal.pvSerBuffer, xSerVal.xSerLength,
                        NETBUF_FREE_POOL);
     if (!pxDu)
         goto fail;
@@ -450,8 +452,8 @@ rsErr_t prvRibNormalOutgoing(Ribd_t *pxRibd,
     return SUCCESS;
 
     fail:
-    if (pxSerVal)
-        vRsrcFree(pxSerVal);
+    if (xSerVal.pvSerBuffer)
+        vRsrcFree(xSerVal.pvSerBuffer);
     if (pxDu)
         vNetBufFree(pxDu);
 

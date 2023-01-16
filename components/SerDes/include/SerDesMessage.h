@@ -21,9 +21,13 @@ typedef struct
 
 bool_t xSerDesMessageInit(MessageSerDes_t *pxSD);
 
-serObjectValue_t *pxSerDesMessageEncode(MessageSerDes_t *pxSD, messageCdap_t *pxMsg);
+rsErr_t xSerDesMessageEncode(MessageSerDes_t *pxSD,
+                             messageCdap_t *pxMsg,
+                             serObjectValue_t *pxSerValue);
 
-messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD, uint8_t *pucBuffer, size_t xMessageLength);
+messageCdap_t *pxSerDesMessageDecode(MessageSerDes_t *pxSD,
+                                     uint8_t *pucBuffer,
+                                     size_t xMessageLength);
 
 void vRibPrintCdapMessage(const string_t pcTag, const string_t pcTitle, messageCdap_t *pxDecodeCdap);
 

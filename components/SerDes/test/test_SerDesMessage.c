@@ -83,7 +83,7 @@ RS_TEST_CASE_TEARDOWN(test_SerDesMessage)
 RS_TEST_CASE(Encode, "[SerDes]")
 {
     messageCdap_t xMsg;
-    serObjectValue_t *pxObjVal;
+    serObjectValue_t xObjVal;
 
     RS_TEST_CASE_BEGIN(test_SerDesMessage);
 
@@ -91,11 +91,11 @@ RS_TEST_CASE(Encode, "[SerDes]")
 
     BullshitMsg(&xMsg);
 
-    TEST_ASSERT((pxObjVal = pxSerDesMessageEncode(&xMsgSD, &xMsg)));
-    TEST_ASSERT(pxObjVal->xSerLength > 0);
-    TEST_ASSERT(pxObjVal->pvSerBuffer);
+    TEST_ASSERT(!ERR_CHK(xSerDesMessageEncode(&xMsgSD, &xMsg, &xObjVal)));
+    TEST_ASSERT(xObjVal.xSerLength > 0);
+    TEST_ASSERT(xObjVal.pvSerBuffer);
 
-    vRsrcFree(pxObjVal);
+    vRsrcFree(xObjVal.pvSerBuffer);
 
     RS_TEST_CASE_END(test_SerDesMessage);
 }
@@ -103,7 +103,7 @@ RS_TEST_CASE(Encode, "[SerDes]")
 RS_TEST_CASE(EncDec1, "[SerDes]")
 {
     messageCdap_t xMsg, *pxMsgDec;
-    serObjectValue_t *pxObjVal;
+    serObjectValue_t xObjVal;
 
     RS_TEST_CASE_BEGIN(test_SerDesMessage);
 
@@ -111,8 +111,8 @@ RS_TEST_CASE(EncDec1, "[SerDes]")
 
     BullshitMsg(&xMsg);
 
-    TEST_ASSERT((pxObjVal = pxSerDesMessageEncode(&xMsgSD, &xMsg)));
-    TEST_ASSERT((pxMsgDec = pxSerDesMessageDecode(&xMsgSD, pxObjVal->pvSerBuffer, pxObjVal->xSerLength)));
+    TEST_ASSERT(!ERR_CHK(xSerDesMessageEncode(&xMsgSD, &xMsg, &xObjVal)));
+    TEST_ASSERT((pxMsgDec = pxSerDesMessageDecode(&xMsgSD, xObjVal.pvSerBuffer, xObjVal.xSerLength)));
 
     IsBullshitMsgOkay(&xMsg, pxMsgDec);
 
@@ -122,7 +122,7 @@ RS_TEST_CASE(EncDec1, "[SerDes]")
 RS_TEST_CASE(EncDec2, "[SerDes]")
 {
     messageCdap_t xMsg, *pxMsgDec;
-    serObjectValue_t *pxObjVal, *pxErVal;
+    serObjectValue_t xObjVal, *pxErVal;
     enrollmentMessage_t xEnMsg;
 
     RS_TEST_CASE_BEGIN(test_SerDesMessage);
@@ -140,8 +140,8 @@ RS_TEST_CASE(EncDec2, "[SerDes]")
 
     xMsg.pxObjValue = pxErVal;
 
-    TEST_ASSERT((pxObjVal = pxSerDesMessageEncode(&xMsgSD, &xMsg)));
-    TEST_ASSERT((pxMsgDec = pxSerDesMessageDecode(&xMsgSD, pxObjVal->pvSerBuffer, pxObjVal->xSerLength)));
+    TEST_ASSERT(!ERR_CHK(xSerDesMessageEncode(&xMsgSD, &xMsg, &xObjVal)));
+    TEST_ASSERT((pxMsgDec = pxSerDesMessageDecode(&xMsgSD, xObjVal.pvSerBuffer, xObjVal.xSerLength)));
 
     IsBullshitMsgOkay(&xMsg, pxMsgDec);
 

@@ -144,8 +144,7 @@ rsErr_t xRibObjectReply(Ribd_t *pxRibd,
                         serObjectValue_t *pxObjVal)
 {
     messageCdap_t *pxMsgCdap = NULL;
-    serObjectValue_t *pxSerVal;
-    rsErr_t xStatus;
+    rsErr_t xStatus = FAIL;
 
     vRibLock(pxRibd);
 
