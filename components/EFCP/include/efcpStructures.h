@@ -99,22 +99,6 @@ typedef struct
 
 typedef struct
 {
-    struct dtp_t *pxParent;
-
-    /*
-     * NOTE: The DTCP State Vector can be discarded during long periods of
-     *       no traffic
-     */
-    dtcpSv_t *pxSv; /* The state-vector */
-
-    struct dtcpConfig_t *pxCfg;
-    struct rmt_t *pxRmt;
-    // struct timer_list 	   rendezvous_rcv;
-
-} dtcp_t;
-
-typedef struct
-{
     struct efcp_t *pxEfcp;
 
     /*
@@ -128,6 +112,22 @@ typedef struct
     struct rmt_t *pxRmt;
 
 } dtp_t;
+
+typedef struct
+{
+    dtp_t *pxParent;
+
+    /*
+     * NOTE: The DTCP State Vector can be discarded during long periods of
+     *       no traffic
+     */
+    dtcpSv_t *pxSv; /* The state-vector */
+
+    dtcpConfig_t *pxCfg;
+    struct rmt_t *pxRmt;
+    // struct timer_list 	   rendezvous_rcv;
+
+} dtcp_t;
 
 /* Retransmission Queue RTXQ used to buffer those PDUs
  * that may require retransmission */

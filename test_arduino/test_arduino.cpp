@@ -16,8 +16,9 @@ void setup()
     nvs_flash_init();
     vRsLogInit();
     esp_log_level_set("*", ESP_LOG_VERBOSE);
-    RINA_IPCPInit();
+    RINA_Init();
     sleep(10);
 }
 
-void loop() {}
+void loop() {
+}
