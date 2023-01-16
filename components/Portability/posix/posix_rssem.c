@@ -45,7 +45,6 @@ rsErr_t xRsSemTimedWait(RsSem_t *pxSem, useconds_t unTimeout)
         return ERR_SET_ERRNO;
 
     if ((n = sem_timedwait(&pxSem->xSem, &xTs)) != 0) {
-        LOGD("[debug]", "sem_timedwait returns: %d, errno: %d", n, errno);
         if (errno == ETIMEDOUT)
             return ERR_SET(ERR_TIMEDOUT);
         else
@@ -53,4 +52,12 @@ rsErr_t xRsSemTimedWait(RsSem_t *pxSem, useconds_t unTimeout)
     }
 
     return SUCCESS;
+}
+
+void vRsSemDebug(const char *pcTag, const char *pcName, RsSem_t *pxSem)
+{
+    int n;
+
+    sem_getvalue(&pxSem->xSem, &n);
+    LOGD("[debug]", "Semaphore %s, value: %d", pcName, n);
 }
