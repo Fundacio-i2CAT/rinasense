@@ -66,6 +66,9 @@ static struct ReadThreadParams xTapReadTreadParams;
 /* Reading thread. */
 static pthread_t xReadThread;
 
+/* Interface monitoring thread */
+static pthread_t xMonitorThread;
+
 static bool_t xIsInterfaceConnected = false;
 
 /* Mutex used to protecte access to nCurrentIffFlags. */
@@ -441,7 +444,7 @@ bool_t prvLinuxTapStartMonitorThread()
     if (pthread_attr_setdetachstate(&xAttr, PTHREAD_CREATE_DETACHED) != 0)
         bStatus = false;
 
-    if (pthread_create(&xReadThread, &xAttr, prvLinuxTapMonitorThread, NULL) != 0)
+    if (pthread_create(&xMonitorThread, &xAttr, prvLinuxTapMonitorThread, NULL) != 0)
         bStatus = false;
 
     pthread_attr_destroy(&xAttr);
