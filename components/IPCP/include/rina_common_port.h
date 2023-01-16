@@ -29,7 +29,6 @@ typedef struct xQUEUE_FIFO
 
 struct ipcpInstance_t;
 struct ipcpInstanceData_t;
-struct du_t;
 
 typedef struct
 {
