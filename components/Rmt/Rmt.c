@@ -223,7 +223,6 @@ bool_t xRmtPduIsAddressedToMe(struct rmt_t *pxRmt, address_t xAddress)
 static bool_t xRmtProcessMgmtPdu(portId_t unPort, du_t *pxDu)
 {
     struct ipcpInstance_t *pxNormalInstance;
-    bool_t xStatus;
 
     RsAssert((pxNormalInstance = pxIpcManagerFindByType(&xIpcManager, eNormal)));
 
@@ -231,6 +230,8 @@ static bool_t xRmtProcessMgmtPdu(portId_t unPort, du_t *pxDu)
         LOGE(TAG_RMT, "Failed posting management PDU to normal IPCP");
         return false;
     }
+
+    vNetBufFree(pxDu);
 
     return true;
 }

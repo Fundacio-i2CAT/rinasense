@@ -91,7 +91,6 @@ bool_t prvLinuxGetMac(string_t sTapName, MACAddress_t *pxMac)
     string_t sIfaceMacFmt = "/sys/class/net/%s/address";
     stringbuf_t sIfaceMacPath[PATH_MAX];
     stringbuf_t sMac[18];
-    string_t psMac;
     int n;
 
     snprintf(sIfaceMacPath, PATH_MAX, sIfaceMacFmt, sTapName);
@@ -464,7 +463,6 @@ static inline void prvGenRandomEth(uint8_t *pAddr)
 struct iovec *prvNetBufToIovec(netbuf_t *pxNb) {
     size_t i = 0, n;
     struct iovec *iovecs;
-    netbuf_t *pxNbIter;
 
     n = unNetBufCount(pxNb);
 
@@ -597,7 +595,6 @@ bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
     LOGD(TAG_WIFI, "Wrote %zu bytes to the network", unNetBufTotalSize(pxNbFrame));
 
     vRsMemFree(iovecs);
-    vNetBufFreeAll(pxNbFrame);
 
     return true;
 }
@@ -646,12 +643,6 @@ bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 
     end:
     vRsMemFree(pvBuf);
-
-    netbuf_t *nb1, *nb2;
-    nb1 = pxNbFrame;
-    nb2 = pxNetBufNext(nb1);
-    vNetBufFree(nb2);
-    vNetBufFree(nb1);
 
     return xStatus;
 }

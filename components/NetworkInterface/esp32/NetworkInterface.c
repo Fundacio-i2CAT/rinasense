@@ -11,6 +11,8 @@
 #include "freertos/semphr.h"
 #include "freertos/event_groups.h"
 
+#include  "common/mac.h"
+
 /* RINA Components includes. */
 //#include "ARP826.h"
 #include "ShimIPCP.h"
@@ -65,9 +67,6 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb);
  * it to the shim when we receive packets. */
 struct ipcpInstance_t *pxSelf;
 
-/* MAC address */
-const MACAddress_t *pxMacAddr;
-
 // NetworkBufferDescriptor_t * pxNetworkBuffer;
 
 static void event_handler(void *arg, esp_event_base_t event_base,
@@ -119,12 +118,15 @@ static void event_handler(void *arg, esp_event_base_t event_base,
  * */
 BaseType_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev)
 {
-	LOGI(TAG_WIFI, "Initializing the network interface");
-	uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES];
-
     pxSelf = pxS;
+    stringbuf_t pcMac[MAC2STR_MIN_BUFSZ];
 
-	esp_efuse_mac_get_default(ucMACAddress);
+    /* This is supposed to only returns an error if the argument is an
+     * invalid address. */
+	RsAssert(esp_efuse_mac_get_default(pxPhyDev->ucBytes) == ESP_OK);
+    mac2str((const MACAddress_t *)&pxPhyDev, pcMac, sizeof(pcMac));
+
+	LOGI(TAG_WIFI, "Initialized the network interface, MAC address: %s", pcMac);
 
     /* FIXME: The previous calls reads the MAC address to use, but
      * as of the commit carrying this comment, I've not looked into
@@ -293,7 +295,7 @@ BaseType_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 		}
 	}
 
-    vNetBufFreeAll(pxNbFrame);
+    //vNetBufFreeAll(pxNbFrame);
 
 	return ret == ESP_OK ? pdTRUE : pdFALSE;
 }
@@ -310,34 +312,42 @@ BaseType_t xNetworkInterfaceDisconnect(void)
 	return ret == ESP_OK ? pdTRUE : pdFALSE;
 }
 
+void vNetBufFreeESP32(netbuf_t *pxNb)
+{
+    if (pxNb->pxBufStart) {
+        RsAssert(pxNb->pvExtra);
+
+        LOGD("[debug]", "FREEING RX BUFFER %p", pxNb->pvExtra);
+
+        esp_wifi_internal_free_rx_buffer(pxNb->pvExtra);
+
+        pxNb->pxBufStart = NULL;
+    }
+}
+
 /* Called by the tap read thread to advertises that an ethernet
  * frame has arrived. */
 esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
     EthernetHeader_t *pxEthernetHeader;
     size_t unSzFrData;
-    buffer_t pvFrame;
     netbuf_t *pxNbFrame;
 
     /* Shortcut the frame processing if we do not have to deal with
      * the packet type. */
-	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
-		return true;
-
-    /* Copy the frame in a buffer of the right size instead of
-     * manipulating a whole MTU. */
-    if (!(pvFrame = pvRsMemAlloc(len))) {
-        LOGE(TAG_WIFI, "Failed to allocate memory for frame content");
-        return false;
+	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer) {
+        esp_wifi_internal_free_rx_buffer(eb);
+        return ESP_OK;
     }
 
-    memcpy(pvFrame, buffer, len);
-
-    if (!(pxNbFrame = pxNetBufNew(pxSelf->pxData->pxNbPool, NB_ETH_HDR, pvFrame, len, NETBUF_FREE_NORMAL))) {
+    if (!(pxNbFrame = pxNetBufNew(pxSelf->pxData->pxNbPool, NB_ETH_HDR, buffer, len, &vNetBufFreeESP32))) {
         LOGE(TAG_WIFI, "Failed to allocate netbuf for incoming message");
-        vRsMemFree(pvFrame);
-        return false;
+        return ESP_OK;
     }
+
+    LOGD("[debug]", "SETTING RX BUFFER %p", eb);
+
+    vNetBufSetExtra(pxNbFrame, eb);
 
     /* We need to look into the frame data. */
     pxEthernetHeader = (EthernetHeader_t *)pvNetBufPtr(pxNbFrame);;
@@ -347,28 +357,30 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
      * deal with this. */
     if (xIsBroadcastMac(&pxEthernetHeader->xDestinationAddress)) {
         LOGD(TAG_WIFI, "Handling broadcasted ethernet packet.");
-        memcpy(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t));
+        memcpy(&pxEthernetHeader->xDestinationAddress, pxSelf->pxData->xPhyDev.ucBytes, sizeof(MACAddress_t));
 
     } else {
         /* Make sure this is actually meant from us. */
-        if (memcmp(&pxEthernetHeader->xDestinationAddress, pxMacAddr->ucBytes, sizeof(MACAddress_t)) != 0) {
+        if (memcmp(&pxEthernetHeader->xDestinationAddress,
+                   pxSelf->pxData->xPhyDev.ucBytes, sizeof(MACAddress_t)) != 0) {
 #ifndef NDEBUG
             {
                 stringbuf_t ucMac[MAC2STR_MIN_BUFSZ];
                 mac2str(&pxEthernetHeader->xDestinationAddress, ucMac, MAC2STR_MIN_BUFSZ);
                 LOGW(TAG_WIFI, "Dropping packet with destination %s, not for us", ucMac);
+                return ESP_OK;
             }
 #else
-            LOGW(TAG_WIFI, "Dropping ethernet packet not destined for us")
+            LOGW(TAG_WIFI, "Dropping ethernet packet not destined for us");
+            return ESP_OK;
 #endif
-                return false;
         }
     }
 
     /* Copy the packet data. */
     vShimHandleEthernetPacket(pxSelf, pxNbFrame);
 
-    return true;
+    return ESP_OK;
 }
 
 void vNetworkNotifyIFDown()

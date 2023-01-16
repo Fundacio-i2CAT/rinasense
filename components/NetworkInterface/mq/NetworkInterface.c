@@ -297,8 +297,6 @@ bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 
     LOGI(TAG_WIFI, "Wrote %zu bytes to network interface", unNetBufTotalSize(pxNbFrame));
 
-    vNetBufFreeAll(pxNbFrame);
-
     return true;
 }
 

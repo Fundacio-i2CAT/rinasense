@@ -324,8 +324,6 @@ bool_t vARPSendRequest(ARP_t *pxArp, const gpa_t *pxTpa, const gpa_t *pxSpa, con
         vGPADestroy(pxGrownSpa);
     if (pxGrownTpa)
         vGPADestroy(pxGrownTpa);
-    if (pxNbEth)
-        vNetBufFreeAll(pxNbEth);
 
     return false;
 }

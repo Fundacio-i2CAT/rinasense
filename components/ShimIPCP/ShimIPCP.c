@@ -697,11 +697,12 @@ bool_t xShimApplicationUnregister(struct ipcpInstance_t *pxSelf, const rname_t *
 bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t unPort, du_t *pxDu, bool_t uxBlocking)
 {
 	shimFlow_t *pxFlow;
-	netbuf_t *pxNbFrame;
 	gha_t *pxSrcHw;
 	size_t uxHeadLen, uxLength;
     buffer_t pxBufEthHdr;
     EthernetHeader_t *pxEthHdr;
+	netbuf_t *pxNbFrame = NULL;
+    bool_t xStatus = false;
 
     RsAssert(pxSelf);
     RsAssert(pxDu);
@@ -734,21 +735,21 @@ bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t unPort, du_t *pxDu,
 
 	if (!pxFlow->pxDestHa) {
 		LOGE(TAG_SHIM, "Destination HW address is unknown");
-		return false;
+        goto fail;
 	}
 
 	LOGI(TAG_SHIM, "SDUWrite: Encapsulating packet into Ethernet Frame");
 
     if (!(pxBufEthHdr = pxRsrcAlloc(pxSelf->pxData->pxEthPool, "xShimSDUWrite"))) {
         LOGE(TAG_SHIM, "Failed to allocate memory for ethernet header");
-        return false;
+        goto fail;
     }
 
     /* Generate an ethernet header */
     if (!(pxNbFrame = pxNetBufNew(pxSelf->pxData->pxNbPool, NB_ETH_HDR, pxBufEthHdr,
                                 sizeof(EthernetHeader_t), NETBUF_FREE_POOL))) {
         LOGE(TAG_SHIM, "Failed to allocate memory for netbuf");
-        return false;
+        goto fail;
     }
 
     vNetBufAppend(pxNbFrame, pxDu);
@@ -762,7 +763,15 @@ bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t unPort, du_t *pxDu,
            pxFlow->pxDestHa->xAddress.ucBytes, sizeof(pxFlow->pxDestHa->xAddress));
 
     /* Send the packet back. No need to go through the IPCP */
-    return xNetworkInterfaceOutput(pxNbFrame);
+    xStatus = xNetworkInterfaceOutput(pxNbFrame);
+
+    fail:
+    if (pxSrcHw)
+        vGHADestroy(pxSrcHw);
+    if (pxNbFrame)
+        vNetBufFreeAll(pxNbFrame);
+
+    return xStatus;
 }
 
 void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf, netbuf_t *pxNbFrame)
@@ -770,7 +779,6 @@ void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf, netbuf_t *pxNbFram
     const EthernetHeader_t *pxEthHdr;
     eFrameProcessingResult_t eReturned = eFrameConsumed;
     uint16_t usFrameType;
-    struct ipcpInstanceData_t *pxData;
 
     RsAssert(pxNbFrame != NULL);
 
@@ -805,26 +813,29 @@ void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf, netbuf_t *pxNbFram
 
     /* Perform any actions that resulted from processing the Ethernet frame. */
     switch (eReturned) {
-    case eReturnEthernetFrame:
-        /* The Ethernet frame will have been updated (maybe it was an
-         * ARP request) and should be sent back to its source. */
-        prvReturnEthernetFrame(pxNbFrame);
-        break;
-
     case eFrameConsumed:
         /* The frame is in use somewhere, don't release the buffer
          * yet. */
         LOGI(TAG_SHIM, "Frame Consumed");
         break;
 
+    case eReturnEthernetFrame:
+        /* The Ethernet frame will have been updated (maybe it was an
+         * ARP request) and should be sent back to its source. */
+        prvReturnEthernetFrame(pxNbFrame);
+
+        /* Fall through! */
     case eReleaseBuffer:
         if (pxNbFrame)
-            vNetBufFree(pxNbFrame);
+            vNetBufFreeAll(pxNbFrame);
         break;
 
     case eProcessBuffer:
-
+        /* Not sure what to do here ! */
+        if (pxNbFrame)
+            vNetBufFreeAll(pxNbFrame);
         break;
+
     default:
 
         /* The frame is not being used anywhere, and the

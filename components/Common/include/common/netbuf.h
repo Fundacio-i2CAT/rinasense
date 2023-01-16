@@ -57,6 +57,10 @@ typedef struct xNETBUF_T {
 
 	freemethod_t freemethod;
 
+    /* Void extra info pointer for convenience. Might be used to pass
+     * extra information to the free callback */
+    void *pvExtra;
+
     rsrcPoolP_t xPool;
 } netbuf_t;
 
@@ -104,6 +108,11 @@ static inline void *pvNetBufPtr(netbuf_t *pxNb)
 {
     RsAssert(!pxNb->xFreed);
     return pxNb->pxBuf;
+}
+
+static inline void vNetBufSetExtra(netbuf_t *pxNb, void *pvEx) {
+    RsAssert(pvEx);
+    pxNb->pvExtra = pvEx;
 }
 
 netbuf_t *pxNetBufNext(netbuf_t *pxNb);

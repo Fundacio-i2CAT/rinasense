@@ -9,23 +9,25 @@
 #include "common/rsrc.h"
 #include "common/netbuf.h"
 
+#define TAG_NETBUF "[netbuf]"
+
 /* Set this if you want netbuf_t structs to be allocated on a pool. */
-#define CONFIG_NETBUF_USES_POOLS
+//#define CONFIG_NETBUF_USES_POOLS
 
 void vNetBufFreeNormal(netbuf_t *pxNb)
 {
-    if (pxNb->pxBufStart) {
-        vRsMemFree(pxNb->pxBufStart);
-        pxNb->pxBufStart = NULL;
-    }
+    LOGD(TAG_NETBUF, "Freeing underyling buffer %p of netbuf %p", pxNb->pxBufStart, pxNb);
+
+    vRsMemFree(pxNb->pxBufStart);
+    pxNb->pxBufStart = NULL;
 }
 
 void vNetBufFreePool(netbuf_t *pxNb)
 {
-    if (pxNb->pxBufStart) {
-        vRsrcFree(pxNb->pxBufStart);
-        pxNb->pxBufStart = NULL;
-    }
+    LOGD(TAG_NETBUF, "Freeing underyling buffer %p of netbuf %p", pxNb->pxBufStart, pxNb);
+
+    vRsrcFree(pxNb->pxBufStart);
+    pxNb->pxBufStart = NULL;
 }
 
 void vNetBufFreeButDont(netbuf_t *pxNb)
@@ -67,6 +69,8 @@ netbuf_t *pxNetBufNew(rsrcPoolP_t xPool,
     pxNewBuf->freemethod = pfnFree;
     pxNewBuf->xPool = xPool;
 
+    LOGD(TAG_NETBUF, "New netbuf %p - Base buffer: %p - Size: %zu", pxNewBuf, pxBuf, unSz);
+
     return pxNewBuf;
 }
 
@@ -96,6 +100,8 @@ rsErr_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
                 return ERR_SET_OOM;
 #endif
 
+            LOGD(TAG_NETBUF, "Split %p, New netbuf: %p - Size: %zu", pxNb, pxNewBuf, unSz);
+
             pxNewBuf->eType = eType;
             pxNewBuf->pxNext = pxNbIter->pxNext;
             pxNewBuf->pxFirst = pxNbIter->pxFirst;
@@ -105,6 +111,7 @@ rsErr_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
             pxNewBuf->xFreed = false;
             pxNewBuf->freemethod = pxNbIter->freemethod;
             pxNewBuf->xPool = pxNbIter->xPool;
+            pxNewBuf->pvExtra = pxNbIter->pvExtra;
 
             pxNbIter->unSz = unSz;
             pxNbIter->pxNext = pxNewBuf;
@@ -118,6 +125,8 @@ rsErr_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
 
 void vNetBufFreeAll(netbuf_t *pxNb)
 {
+    LOGD(TAG_NETBUF, "Free All: %p", pxNb);
+
     FOREACH_ALL_NETBUF_SAFE(pxNb, pxNbIter) {
         vNetBufFree(pxNbIter);
     }
@@ -127,6 +136,9 @@ void vNetBufFree(netbuf_t *pxNb)
 {
     int unCnt = 0;
     bool_t xFullyFreed;
+
+    if (!pxNb->xFreed)
+        LOGD(TAG_NETBUF, "Marking %p as freed", pxNb);
 
     /* Mark the target netbuf as freed and not to be used as part of
      * the total buffer. */
@@ -150,8 +162,10 @@ void vNetBufFree(netbuf_t *pxNb)
             pxNb->freemethod(pxNb);
 
     if (xFullyFreed) {
+        LOGD(TAG_NETBUF, "Freeing ALL netbuf from %p", pxNb->pxFirst);
+
         FOREACH_ALL_NETBUF_SAFE(pxNb, pxNbIter) {
-            if (pxNbIter->freemethod)
+            if (pxNbIter->freemethod && pxNbIter->pxBufStart)
                 pxNbIter->freemethod(pxNbIter);
 
 #ifdef CONFIG_NETBUF_USES_POOLS
