@@ -65,6 +65,11 @@ static rsErr_t prvQueueSendToBack(RsQueue_t *pxQueue, void *pxItem, useconds_t u
 {
     struct queueItem *pxQueueItem;
 
+#if 0
+    vRsSemDebug("[Queue-SendToBack]", "Places", &pxQueue->xSemPlaces);
+    vRsSemDebug("[Queue-SendToBack]", "Items", &pxQueue->xSemItems);
+#endif
+
     if (pxQueue->xParams.unMaxItemCount > 0) {
 
         /* Wait for a free space if needed */
@@ -96,7 +101,7 @@ static rsErr_t prvQueueSendToBack(RsQueue_t *pxQueue, void *pxItem, useconds_t u
 
     /* Notify that there is an item available through the semaphore */
     if (pxQueue->xParams.xBlock)
-        if (ERR_CHK(xRsSemPost(&pxQueue->xSemPlaces)))
+        if (ERR_CHK(xRsSemPost(&pxQueue->xSemItems)))
             return FAIL;
 
     return SUCCESS;
@@ -107,13 +112,18 @@ static rsErr_t prvQueueReceive(RsQueue_t *pxQueue, void *pxItem, useconds_t unTi
     RsListItem_t *pxListItem;
     struct queueItem *pxQueueItem;
 
+#if 0
+    vRsSemDebug("[Queue-Receive]", "Places", &pxQueue->xSemPlaces);
+    vRsSemDebug("[Queue-Receive]", "Items", &pxQueue->xSemItems);
+#endif
+
     /* Wait for a free item */
     if (pxQueue->xParams.xBlock) {
         if (!unTimeout) {
-            if (ERR_CHK(xRsSemWait(&pxQueue->xSemPlaces)))
+            if (ERR_CHK(xRsSemWait(&pxQueue->xSemItems)))
                 return FAIL;
         } else {
-            if (ERR_CHK(xRsSemTimedWait(&pxQueue->xSemPlaces, unTimeout)))
+            if (ERR_CHK(xRsSemTimedWait(&pxQueue->xSemItems, unTimeout)))
                 return FAIL;
         }
     }
@@ -127,15 +137,18 @@ static rsErr_t prvQueueReceive(RsQueue_t *pxQueue, void *pxItem, useconds_t unTi
         memcpy(pxItem, pxQueueItem->xItemBuf, pxQueue->xParams.unItemSz);
     }
     /* Returns an underflow if the list is empty */
-    else return ERR_SET(ERR_UNDERFLOW);
-
-    pthread_mutex_unlock(&pxQueue->xMutex);
+    else {
+        pthread_mutex_unlock(&pxQueue->xMutex);
+        return ERR_SET(ERR_UNDERFLOW);
+    }
 
     vRsListRemove(pxListItem);
 
+    pthread_mutex_unlock(&pxQueue->xMutex);
+
     /* Notify that there is an extra place available */
     if (pxQueue->xParams.xBlock)
-        if (ERR_CHK(xRsSemPost(&pxQueue->xSemItems)))
+        if (ERR_CHK(xRsSemPost(&pxQueue->xSemPlaces)))
             return FAIL;
 
     vRsrcFree(pxQueueItem);
