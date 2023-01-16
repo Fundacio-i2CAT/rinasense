@@ -133,21 +133,31 @@ rsErr_t prvEnrollmentObjectInit(Ribd_t *pxRibd, void *pvOwner, ribObject_t *pxTh
 
 rsErr_t prvEnrollmentObjectStart(ribObject_t *pxThis, appConnection_t *pxAppCon, messageCdap_t *pxMsg)
 {
+    int n;
+    pthread_attr_t xAttr;
     enrollmentObjectData_t *pxEnrollmentData;
+    rsErr_t xStatus = SUCCESS;
 
     pxEnrollmentData = (enrollmentObjectData_t *)pxThis->pvPriv;
 
     pxEnrollmentData->unPort = pxAppCon->unPort;
     pxEnrollmentData->unStartInvokeId = pxMsg->nInvokeID;
 
-    if (pthread_create(&pxEnrollmentData->xEnrollmentThread,
-                       NULL,
-                       &xEnrollmentInboundProcess,
-                       pxThis) != 0) {
-        return FAIL;
-    }
+    if ((n = pthread_attr_init(&xAttr) != 0))
+        return ERR_SET_PTHREAD(n);
 
-    return SUCCESS;
+    if ((n = pthread_attr_setstacksize(&xAttr, IPCP_TASK_STACK_SIZE) != 0))
+        xStatus = ERR_SET_PTHREAD(n);
+
+    if ((n = pthread_create(&pxEnrollmentData->xEnrollmentThread,
+                            &xAttr,
+                            &xEnrollmentInboundProcess,
+                            pxThis)) != 0)
+        xStatus = ERR_SET_PTHREAD(n);
+
+    pthread_attr_destroy(&xAttr);
+
+    return xStatus;
 }
 
 rsErr_t prvEnrollmentObjectStop(ribObject_t *pxThis,
