@@ -14,7 +14,6 @@
 #include "common/rina_ids.h"
 
 #include "configRINA.h"
-#include "configSensor.h"
 
 #include "ARP826_defs.h"
 #include "ARP826.h"
@@ -354,7 +353,7 @@ bool_t xShimEnable(struct ipcpInstance_t *pxSelf)
 {
     /* Connect to remote point (WiFi AP) */
     if (xNetworkInterfaceConnect()) {
-        LOGI(TAG_SHIM, "Enrolled to pshim DIF %s", SHIM_DIF_NAME);
+        LOGI(TAG_SHIM, "Enrolled to shim DIF %s", CFG_SHIM_DIF_NAME);
 
         RINAStackEvent_t xEnrollEvent = {
             .eEventType = eShimEnrolledEvent,
@@ -363,7 +362,7 @@ bool_t xShimEnable(struct ipcpInstance_t *pxSelf)
         xSendEventStructToIPCPTask(&xEnrollEvent, 50 * 1000);
 
     } else {
-        LOGE(TAG_SHIM, "Failed to enroll to shim DIF %s", SHIM_DIF_NAME);
+        LOGE(TAG_SHIM, "Failed to enroll to shim DIF %s", CFG_SHIM_DIF_NAME);
         return false;
     }
 
@@ -905,7 +904,7 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 	struct ipcpInstance_t *pxInst;
 	struct ipcpInstanceData_t *pxInstData = NULL;
 	flowSpec_t *pxFspec;
-	string_t pcInterfaceName = SHIM_INTERFACE;
+	string_t pcInterfaceName = CFG_SHIM_INTERFACE;
     rname_t xName;
 
     /* Create an instance */
@@ -916,12 +915,14 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
     if (!(pxInstData = pvRsMemCAlloc(1, sizeof(struct ipcpInstanceData_t))))
         goto err;
 
-    /* FIXME: ARBITRARY NUMBERS HERE, PUT IN CONFIGURATION SOMEWHERE. */
     if (!(pxInstData->pxNbPool = xNetBufNewPool("Ethernet shim netbuf pool")))
         goto err;
 
     if (!(pxInstData->pxEthPool = pxRsrcNewPool("Ethernet shim header pool",
-                                                sizeof(EthernetHeader_t), 5, 1, 0)))
+                                                sizeof(EthernetHeader_t),
+                                                CFG_SHIM_ETH_POOL_INIT_ALLOC,
+                                                CFG_SHIM_ETH_POOL_INCR_ALLOC,
+                                                CFG_SHIM_ETH_POOL_MAX_RES)))
         goto err;
 
     if (pthread_mutex_init(&pxInstData->xLock, NULL))
@@ -931,10 +932,10 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 
     /* Create Dif Name and Daf Name */
 
-	pxInstData->xName.pcProcessName = SHIM_PROCESS_NAME;
-	pxInstData->xName.pcEntityName = SHIM_ENTITY_NAME;
-	pxInstData->xName.pcProcessInstance = SHIM_PROCESS_INSTANCE;
-	pxInstData->xName.pcEntityInstance = SHIM_ENTITY_INSTANCE;
+	pxInstData->xName.pcProcessName = CFG_SHIM_PROCESS_NAME;
+	pxInstData->xName.pcEntityName = CFG_SHIM_ENTITY_NAME;
+	pxInstData->xName.pcProcessInstance = CFG_SHIM_PROCESS_INSTANCE;
+	pxInstData->xName.pcEntityInstance = CFG_SHIM_ENTITY_INSTANCE;
 
 	pxInst->xType = eShimWiFi;
 	pxInst->xId = xIpcpId;

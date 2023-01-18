@@ -17,6 +17,8 @@
 #include "NeighborMessage.pb.h"
 #include "NeighborArrayMessage.pb.h"
 
+#include "configRINA.h"
+
 #define TAG_SD_NEIGHBOR "[SD-NEIGHBOR]"
 
 typedef struct {
@@ -56,10 +58,15 @@ rsErr_t xSerDesNeighborInit(NeighborSerDes_t *pxSD)
 
     unSz = ENROLLMENT_MSG_SIZE + sizeof(serObjectValue_t);
 
-    if (!(pxSD->xEncPool = pxRsrcNewPool("Neighbor SerDes Encoding", unSz, 1, 1, 0)))
+    if (!(pxSD->xEncPool = pxRsrcNewPool("Neighbor SerDes Encoding",
+                                         unSz,
+                                         CFG_SD_NEIGHBOR_ENC_POOL_INIT_ALLOC,
+                                         CFG_SD_NEIGHBOR_ENC_POOL_INCR_ALLOC,
+                                         CFG_SD_NEIGHBOR_ENC_POOL_MAX_RES)))
         return ERR_SET_OOM;
 
-    if (!(pxSD->xDecPool = pxRsrcNewVarPool("Neighbor SerDes Decoding", 0)))
+    if (!(pxSD->xDecPool = pxRsrcNewVarPool("Neighbor SerDes Decoding",
+                                            CFG_SD_NEIGHBOR_DEC_POOL_MAX_RES)))
         return ERR_SET_OOM;
 
     if ((n = pthread_mutex_init(&pxSD->xDecPoolMutex, NULL)))

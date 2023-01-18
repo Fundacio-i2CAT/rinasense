@@ -1,7 +1,7 @@
 #include <pthread.h>
 
-#include "common/rinasense_errors.h"
 #include "portability/port.h"
+#include "common/rinasense_errors.h"
 #include "common/error.h"
 #include "common/rsrc.h"
 #include "common/macros.h"
@@ -12,6 +12,7 @@
 #include "pb_decode.h"
 #include "SerDes.h"
 #include "SerDesEnrollment.h"
+#include "configRINA.h"
 
 #define TAG_SD_ENROLLMENT "[SD-ENROLLMENT]"
 
@@ -21,11 +22,19 @@ rsMemErr_t xSerDesEnrollmentInit(EnrollmentSerDes_t *pxSD)
     int n;
 
     unSz = ENROLLMENT_MSG_SIZE + sizeof(serObjectValue_t);
-    if (!(pxSD->xPoolEnc = pxRsrcNewPool("Enrollment SerDes Encoding", unSz, 1, 1, 0)))
+    if (!(pxSD->xPoolEnc = pxRsrcNewPool("Enrollment SerDes Encoding",
+                                         unSz,
+                                         CFG_SD_ENROLLMENT_ENC_POOL_INIT_ALLOC,
+                                         CFG_SD_ENROLLMENT_ENC_POOL_INCR_ALLOC,
+                                         CFG_SD_ENROLLMENT_ENC_POOL_MAX_RES)))
         return ERR_SET_OOM;
 
     unSz = member_size(rina_messages_enrollmentInformation_t, token) + sizeof(enrollmentMessage_t);
-    if (!(pxSD->xPoolDec = pxRsrcNewPool("Enrollment SerDes Decoding", unSz, 1, 1, 0)))
+    if (!(pxSD->xPoolDec = pxRsrcNewPool("Enrollment SerDes Decoding",
+                                         unSz,
+                                         CFG_SD_ENROLLMENT_DEC_POOL_INIT_ALLOC,
+                                         CFG_SD_ENROLLMENT_DEC_POOL_INCR_ALLOC,
+                                         CFG_SD_ENROLLMENT_DEC_POOL_MAX_RES)))
         return ERR_SET_OOM;
 
     if ((n = pthread_mutex_init(&pxSD->xPoolDecMutex, NULL) != 0))

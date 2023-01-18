@@ -22,8 +22,11 @@
 /**
  * @brief Platform debug/print routines. DEBUGPRINTF normally nulled out.  logPrintf normally prints to stderr or equivalent.
  */
-#define DEBUGPRINTF					LOGI
-//#define DEBUGPRINTF(f,x...)
+#ifdef CFG_RSRC_TRACE
+#define DEBUGPRINTF					LOGD
+#else
+#define DEBUGPRINTF(f,x...)
+#endif
 #define logPrintf						LOGI
 
 #define RESFREE_MAGIC	((void *) 0xdeadbeef)	// impossible value (detect double-free)

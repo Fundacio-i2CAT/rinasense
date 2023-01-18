@@ -4,7 +4,6 @@
 #include "common/rina_name.h"
 
 #include "configRINA.h"
-#include "configSensor.h"
 
 #include "CdapMessage.h"
 #include "Ribd_defs.h"
@@ -182,10 +181,10 @@ messageCdap_t *pxRibCdapMsgCreate(Ribd_t *pxRibd, size_t unSz)
     pxMsg->pxObjValue = NULL;
     pxMsg->result = 0;
 
-    if (ERR_CHK(xNameAssignFromPartsDup(&pxMsg->xDestinationInfo, "", MANAGEMENT_AE, "", "")))
+    if (ERR_CHK(xNameAssignFromPartsDup(&pxMsg->xDestinationInfo, "", CFG_MANAGEMENT_AE, "", "")))
         goto fail;
 
-    if (ERR_CHK(xNameAssignFromPartsDup(&pxMsg->xSourceInfo, "", MANAGEMENT_AE, "", "")))
+    if (ERR_CHK(xNameAssignFromPartsDup(&pxMsg->xSourceInfo, "", CFG_MANAGEMENT_AE, "", "")))
         goto fail;
 
     pxMsg->xAuthPolicy.pcName = NULL;

@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#include "configSensor.h"
 #include "portability/port.h"
+#include "configRINA.h"
 
 #ifdef __cplusplus
 extern "C" {

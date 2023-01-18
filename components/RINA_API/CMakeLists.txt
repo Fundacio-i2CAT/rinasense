@@ -1,5 +1,4 @@
 set(RINA_API_REQUIRES
-  configSensor
   IPCP
   FlowAllocator)
 

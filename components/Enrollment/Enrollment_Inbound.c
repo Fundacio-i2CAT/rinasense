@@ -5,7 +5,6 @@
 
 #include "common/rinasense_errors.h"
 #include "configRINA.h"
-#include "configSensor.h"
 
 #include "Enrollment_api.h"
 #include "Enrollment_obj.h"
@@ -28,7 +27,7 @@ void *xEnrollmentInboundProcess(void *pvArg) {
         serObjectValue_t *pxStartReplyVal;
         enrollmentMessage_t xEnrollStartReply = {0};
 
-        xEnrollStartReply.ullAddress = LOCAL_ADDRESS;
+        xEnrollStartReply.ullAddress = CFG_LOCAL_ADDRESS;
 
         pxStartReplyVal = pxSerDesEnrollmentEncode(&pxObjData->pxEnrollment->xEnrollmentSD,
                                                    &xEnrollStartReply);
@@ -53,13 +52,13 @@ void *xEnrollmentInboundProcess(void *pvArg) {
         if (!(pxNeighMsgs[0] = pvRsMemAlloc(sizeof(neighborMessage_t) + sizeof(char *))))
             return false;
 
-        pxNeighMsgs[0]->pcApName = LOCAL_ADDRESS_AP_NAME;
-        pxNeighMsgs[0]->pcApInstance = "";
-        pxNeighMsgs[0]->pcAeName = "";
-        pxNeighMsgs[0]->pcAeInstance = "";
-        pxNeighMsgs[0]->ullAddress = LOCAL_ADDRESS;
+        pxNeighMsgs[0]->pcApName = CFG_LOCAL_ADDRESS_AP_NAME;
+        pxNeighMsgs[0]->pcApInstance = CFG_LOCAL_ADDRESS_AP_INSTANCE;
+        pxNeighMsgs[0]->pcAeName = CFG_LOCAL_ADDRESS_AE_NAME;
+        pxNeighMsgs[0]->pcAeInstance = CFG_LOCAL_ADDRESS_AE_INSTANCE;
+        pxNeighMsgs[0]->ullAddress = CFG_LOCAL_ADDRESS;
         pxNeighMsgs[0]->unSupportingDifCount = 1;
-        pxNeighMsgs[0]->pcSupportingDifs[0] = SHIM_DIF_NAME;
+        pxNeighMsgs[0]->pcSupportingDifs[0] = CFG_SHIM_DIF_NAME;
 
         if (ERR_CHK(pxSerDesNeighborListEncode(&pxObjData->pxEnrollment->xNeighborSD,
                                                1,

@@ -9,7 +9,6 @@
 #include <stdio.h>
 
 #include "rmt.h"
-#include "configSensor.h"
 #include "du.h"
 
 #include "efcpStructures.h"

@@ -3,7 +3,7 @@
 
 #include "common/num_mgr.h"
 
-#include "configSensor.h"
+#include "configRINA.h"
 #include "IPCP_instance.h"
 #include "EFCP.h"
 
@@ -24,7 +24,7 @@ typedef struct xINSTANCE_TABLE_ROW
 typedef struct xIPC_MANAGER
 {
     /* Table to store instances created */
-    ipcpTableRow_t xIpcpTable[INSTANCES_IPCP_ENTRIES];
+    ipcpTableRow_t xIpcpTable[CFG_INSTANCES_IPCP_ENTRIES];
 
 	/* port Id manager */
 	NumMgr_t *pxPidm;

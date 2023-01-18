@@ -9,6 +9,8 @@
 #include "common/rsrc.h"
 #include "common/macros.h"
 
+#include "configRINA.h"
+
 #define TAG_ERR "[Error]"
 
 rsrcPoolP_t xErrPool = NULL;
@@ -20,7 +22,11 @@ static void prvErrorCheckPool()
 {
     if (xErrPool) return;
 
-    if (!(xErrPool = pxRsrcNewPool("Thread Error Pool", sizeof(rsErrInfo_t), 1, 1, 0))) {
+    if (!(xErrPool = pxRsrcNewPool("Thread Error Pool",
+                                   sizeof(rsErrInfo_t),
+                                   CFG_ERR_POOL_INIT_ALLOC,
+                                   CFG_ERR_POOL_INCR_ALLOC,
+                                   CFG_ERR_POOL_MAX_RES))) {
         LOGE(TAG_ERR, "Out of memory for managing errors");
         abort();
     }

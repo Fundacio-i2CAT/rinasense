@@ -301,7 +301,7 @@ void vARPCacheRefresh(struct ARPCache *pxCache, const gpa_t *pxPa, const gha_t *
                  * packet As this is by far the most common path the
                  * coding standard is relaxed in this case and a
                  * return is permitted as an optimisation. */
-                pxCache->pxRows[x].ucAge = MAX_ARP_AGE;
+                pxCache->pxRows[x].ucAge = CFG_MAX_ARP_AGE;
                 pxCache->pxRows[x].ucValid = true;
                 return;
             }
@@ -375,11 +375,11 @@ void vARPCacheRefresh(struct ARPCache *pxCache, const gpa_t *pxPa, const gha_t *
         pxCache->pxRows[xUseEntry].pxHa = pxNewHa;
 
         /* And this entry does not need immediate attention */
-        pxCache->pxRows[xUseEntry].ucAge = (uint8_t)MAX_ARP_AGE;
+        pxCache->pxRows[xUseEntry].ucAge = (uint8_t)CFG_MAX_ARP_AGE;
         pxCache->pxRows[xUseEntry].ucValid = (uint8_t) true;
     }
     else if (xIpcpEntry < 0) {
-        pxCache->pxRows[xUseEntry].ucAge = (uint8_t)MAX_ARP_RETRANSMISSIONS;
+        pxCache->pxRows[xUseEntry].ucAge = (uint8_t)CFG_MAX_ARP_RETRANSMISSIONS;
         pxCache->pxRows[xUseEntry].ucValid = (uint8_t) false;
     }
 

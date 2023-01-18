@@ -7,7 +7,6 @@
 #include "ARP826.h"
 #include "NetworkInterface_mq.h"
 #include "NetworkInterface.h"
-#include "configSensor.h"
 #include "IPCP_api.h"
 
 #include "unity.h"
