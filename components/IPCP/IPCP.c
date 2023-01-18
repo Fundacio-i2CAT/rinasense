@@ -17,7 +17,6 @@
 
 #include "ARP826.h"
 #include "ARP826_defs.h"
-#include "configSensor.h"
 #include "configRINA.h"
 #include "IpcManager.h"
 #include "IPCP.h"
@@ -212,7 +211,7 @@ static void *prvIPCPTask(void *pvParameters)
 
         case eNetworkDownEvent:
         {
-            struct timespec ts = {INITIALISATION_RETRY_DELAY_SEC, 0};
+            struct timespec ts = {CFG_INITIALISATION_RETRY_DELAY_SEC, 0};
 
             /* FIXME: THIS IS ENTIRELY BROKEN AND UNTESTED AND IN NEED
              * OF SOME OR MANY LOVING. */
@@ -383,7 +382,7 @@ rsErr_t RINA_IPCPInit()
     if ((n = pthread_attr_init(&attr) != 0))
         return ERR_SET_PTHREAD(n);
 
-    pthread_attr_setstacksize(&attr, IPCP_TASK_STACK_SIZE);
+    pthread_attr_setstacksize(&attr, CFG_IPCP_TASK_STACK_SIZE);
 
     if ((n = pthread_create(&xIPCPThread, &attr, prvIPCPTask, NULL)) != 0)
         return ERR_SET_PTHREAD(n);
@@ -515,7 +514,7 @@ static long prvCalculateSleepTimeUS()
 
     /* Start with the maximum sleep time, then check this against the remaining
      * time in any other timers that are active. */
-    xMaximumSleepTimeUS = MAX_IPCP_TASK_SLEEP_TIME_US;
+    xMaximumSleepTimeUS = CFG_MAX_IPCP_TASK_SLEEP_TIME_US;
 
     if (xARPTimer.bActive && xARPTimer.ulRemainingTimeUS < xMaximumSleepTimeUS)
         xMaximumSleepTimeUS = xARPTimer.ulRemainingTimeUS;
@@ -558,10 +557,10 @@ static void prvProcessNetworkDownEvent(void)
         /* Ideally the network interface initialisation function will only
          * return when the network is available.  In case this is not the case,
          * wait a while before retrying the initialisation. */
-        vTaskDelay(INITIALISATION_RETRY_DELAY);
+        vTaskDelay(CFG_INITIALISATION_RETRY_DELAY);
         RINA_NetworkDown();
     }
-    vTaskDelay(INITIALISATION_RETRY_DELAY);
+    vTaskDelay(CFG_INITIALISATION_RETRY_DELAY);
 #endif
 }
 /*-----------------------------------------------------------*/

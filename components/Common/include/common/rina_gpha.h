@@ -6,7 +6,7 @@
 #include "error.h"
 #include "rina_name.h"
 #include "mac.h"
-#include "configSensor.h"
+#include "configRINA.h"
 
 #ifdef __cplusplus
 extern "C" {

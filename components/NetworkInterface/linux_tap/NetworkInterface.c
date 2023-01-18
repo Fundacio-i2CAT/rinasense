@@ -23,7 +23,6 @@
 #include "common/rsrc.h"
 #include "common/rina_gpha.h"
 
-#include "configSensor.h"
 #include "configRINA.h"
 
 #include "ARP826_defs.h"
@@ -250,7 +249,7 @@ void *prvLinuxTapReadThread(void *pvParams)
     pfds[1].fd = pxParams->nPipe;
     pfds[1].events = POLLIN | POLLERR;
 
-    LOGI(TAG_WIFI, "Read thread on device %s STARTED", LINUX_TAP_DEVICE);
+    LOGI(TAG_WIFI, "Read thread on device %s STARTED", CFG_LINUX_TAP_DEVICE);
 
     while (1) {
         nPoll = poll(pfds, 2, 0);
@@ -268,12 +267,12 @@ void *prvLinuxTapReadThread(void *pvParams)
         else if (pfds[1].revents & POLLIN) {
             /* The interface is down, just leave. The management
              * functions will deal with restarting the thread. */
-            LOGD(TAG_WIFI, "Read thread found device %s is DOWN", LINUX_TAP_DEVICE);
+            LOGD(TAG_WIFI, "Read thread found device %s is DOWN", CFG_LINUX_TAP_DEVICE);
             return NULL;
         }
     }
 
-    LOGE(TAG_WIFI, "Read thread on device %s EXITED! (This is not normal!)", LINUX_TAP_DEVICE);
+    LOGE(TAG_WIFI, "Read thread on device %s EXITED! (This is not normal!)", CFG_LINUX_TAP_DEVICE);
     return NULL;
 }
 
@@ -311,7 +310,7 @@ void prvLinuxTapParseNewLinkMsg(struct nlmsghdr *pxNewLinkMsg)
 
     /* We obviously only care about the interface we were
        configured to work with. */
-    if (strcmp(cIfNam, LINUX_TAP_DEVICE) == 0) {
+    if (strcmp(cIfNam, CFG_LINUX_TAP_DEVICE) == 0) {
         pthread_mutex_lock(&xIffDataMutex);
 
         /* Check if we have a status transition */
@@ -484,25 +483,25 @@ bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxP
 {
     pxSelf = pxS;
 
-#if LINUX_TAP_CREATE == true
+#ifdef CFG_LINUX_TAP_CREATE
     /* If we're in create mode, return an error if the TAP device
      * we're asked to create already exists. */
 
-    if (prvLinuxTapGetFlags(LINUX_TAP_DEVICE, NULL, NULL)) {
-        LOGE(TAG_WIFI, "Device %s already exists but we were asked to create it", LINUX_TAP_DEVICE);
+    if (prvLinuxTapGetFlags(CFG_LINUX_TAP_DEVICE, NULL, NULL)) {
+        LOGE(TAG_WIFI, "Device %s already exists but we were asked to create it", CFG_LINUX_TAP_DEVICE);
         return false;
     }
 #endif
 
     /* Otherwise, just open it. */
-    if (!prvLinuxTapOpen(LINUX_TAP_DEVICE, &nTapFD)) {
-        LOGE(TAG_WIFI, "Failed to open TAP device %s", LINUX_TAP_DEVICE);
+    if (!prvLinuxTapOpen(CFG_LINUX_TAP_DEVICE, &nTapFD)) {
+        LOGE(TAG_WIFI, "Failed to open TAP device %s", CFG_LINUX_TAP_DEVICE);
         return false;
     }
 
     /* Capture the flags on the device before starting the monitoring
      * thread. */
-    prvLinuxTapGetFlags(LINUX_TAP_DEVICE, NULL, &nCurrentIffFlags);
+    prvLinuxTapGetFlags(CFG_LINUX_TAP_DEVICE, NULL, &nCurrentIffFlags);
 
     /* Generate a random ethernet address for the outgoing packets. */
     prvGenRandomEth(pxPhyDev->ucBytes);
@@ -518,27 +517,27 @@ bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxP
 bool_t xNetworkInterfaceConnect(void)
 {
     /* Put UP the device if management is enabled. */
-#if LINUX_TAP_MANAGE == true
-    if (!prvLinuxTapUp(TAP_DEVICE)) {
-        LOGE(TAG_WIFI, "Failed to bring device %s UP", LINUX_TAP_DEVICE);
+#ifdef CFG_LINUX_TAP_MANAGE
+    if (!prvLinuxTapUp(CFG_LINUX_TAP_DEVICE)) {
+        LOGE(TAG_WIFI, "Failed to bring device %s UP", CFG_LINUX_TAP_DEVICE);
         return false;
     }
-    else LOGI(TAG_WIFI, "Device %s is now UP", LINUX_TAP_DEVICE);
+    else LOGI(TAG_WIFI, "Device %s is now UP", CFG_LINUX_TAP_DEVICE);
 #endif
 
     /* Start the read thread only if the device is up. */
-    if (prvLinuxTapCheckFlags(LINUX_TAP_DEVICE, IFF_UP)) {
+    if (prvLinuxTapCheckFlags(CFG_LINUX_TAP_DEVICE, IFF_UP)) {
 
         /* Spin up the thread that will do the blocking read for packets on
          * the TAP device. */
         if (!prvLinuxTapStartReadThread(&nTapFD)) {
-            LOGE(TAG_WIFI, "Failed to spin up read thread on device %s", LINUX_TAP_DEVICE);
+            LOGE(TAG_WIFI, "Failed to spin up read thread on device %s", CFG_LINUX_TAP_DEVICE);
             return false;
         }
-        else LOGI(TAG_WIFI, "Thread reading on device %s is running", LINUX_TAP_DEVICE);
+        else LOGI(TAG_WIFI, "Thread reading on device %s is running", CFG_LINUX_TAP_DEVICE);
     }
     else
-        LOGW(TAG_WIFI, "Device %s is DOWN, not starting read thread.", LINUX_TAP_DEVICE);
+        LOGW(TAG_WIFI, "Device %s is DOWN, not starting read thread.", CFG_LINUX_TAP_DEVICE);
 
     xIsInterfaceConnected = true;
 
@@ -549,12 +548,12 @@ bool_t xNetworkInterfaceDisconnect(void)
 {
     /* Take down and dispose of the tap device if we were configured
      * to do so automatically. */
-#if LINUX_TAP_MANAGE == true
-    if (!prvLinuxTapDown(TAP_DEVICE)) {
-        LOGE(TAG_WIFI, "Failed to take device %s DOWN", LINUX_TAP_DEVICE);
+#ifdef CFG_LINUX_TAP_MANAGE
+    if (!prvLinuxTapDown(CFG_LINUX_TAP_DEVICE)) {
+        LOGE(TAG_WIFI, "Failed to take device %s DOWN", CFG_LINUX_TAP_DEVICE);
         return false;
     }
-    else LOGI(TAG_WIFI, "Device %s is now DOWN", LINUX_TAP_DEVICE);
+    else LOGI(TAG_WIFI, "Device %s is now DOWN", CFG_LINUX_TAP_DEVICE);
 #endif
 
     xIsInterfaceConnected = false;
@@ -562,7 +561,7 @@ bool_t xNetworkInterfaceDisconnect(void)
     return true;
 }
 
-#ifdef NETWORK_INTERFACE_USE_IOVEC
+#ifdef CFG_LINUX_TAP_USE_IOVEC
 bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 {
     /* Write the packet on the device. */
@@ -571,9 +570,9 @@ bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
     size_t unLastWriteSz = 0;
     struct iovec *iovecs;
 
-    if (!prvLinuxTapCheckFlags(LINUX_TAP_DEVICE, IFF_UP)) {
+    if (!prvLinuxTapCheckFlags(CFG_LINUX_TAP_DEVICE, IFF_UP)) {
         LOGE(TAG_WIFI, "Writing %zu bytes on interface %s failed, interface is DOWN",
-             unWriteSzLeft, LINUX_TAP_DEVICE);
+             unWriteSzLeft, CFG_LINUX_TAP_DEVICE);
         return false;
     }
 
@@ -609,9 +608,9 @@ bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 
     unTotalSz = unNetBufTotalSize(pxNbFrame);
 
-    if (!prvLinuxTapCheckFlags(LINUX_TAP_DEVICE, IFF_UP)) {
+    if (!prvLinuxTapCheckFlags(CFG_LINUX_TAP_DEVICE, IFF_UP)) {
         LOGE(TAG_WIFI, "Writing %zu bytes on interface %s failed, interface is DOWN",
-             unNetBufTotalSize(pxNbFrame), LINUX_TAP_DEVICE);
+             unNetBufTotalSize(pxNbFrame), CFG_LINUX_TAP_DEVICE);
         return false;
     }
 
@@ -713,7 +712,7 @@ void vNetworkNotifyIFDown()
 {
     char n = 99; /* Random crap to wake up the read thread. */
 
-    LOGW(TAG_WIFI, "Interface %s is now DOWN", LINUX_TAP_DEVICE);
+    LOGW(TAG_WIFI, "Interface %s is now DOWN", CFG_LINUX_TAP_DEVICE);
 
     if (xIsInterfaceConnected)
         write(nTapThreadFD, &n, 1);
@@ -721,7 +720,7 @@ void vNetworkNotifyIFDown()
 
 void vNetworkNotifyIFUp()
 {
-    LOGW(TAG_WIFI, "Interface %s is now UP", LINUX_TAP_DEVICE);
+    LOGW(TAG_WIFI, "Interface %s is now UP", CFG_LINUX_TAP_DEVICE);
 
     if (xIsInterfaceConnected)
         prvLinuxTapStartReadThread(&nTapFD);

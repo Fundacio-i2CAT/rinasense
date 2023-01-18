@@ -19,7 +19,6 @@
 #include "ShimIPCP_instance.h"
 #include "NetworkInterface.h"
 #include "configRINA.h"
-#include "configSensor.h"
 
 #include "IPCP.h" //temporal
 #include "IPCP_api.h"
@@ -178,8 +177,8 @@ BaseType_t xNetworkInterfaceConnect(void)
 
 	wifi_config_t wifi_config = {
 		.sta = {
-			.ssid = ESP_WIFI_SSID,
-			.password = ESP_WIFI_PASS,
+			.ssid = CFG_ESP_WIFI_SSID,
+			.password = CFG_ESP_WIFI_PASS,
 			.threshold.authmode = WIFI_AUTH_WPA2_PSK,
 			.pmf_cfg = {
 				.capable = true,
@@ -214,14 +213,14 @@ BaseType_t xNetworkInterfaceConnect(void)
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		LOGI(TAG_WIFI, "OK");
 		LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s",
-             ESP_WIFI_SSID, ESP_WIFI_PASS);
+             CFG_ESP_WIFI_SSID, CFG_ESP_WIFI_PASS);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		xInterfaceState = INTERFACE_UP;
 	}
 	else if (bits & WIFI_FAIL_BIT)
 	{
 		LOGI(TAG_WIFI, "Failed to connect to SSID:%s, password:%s",
-             ESP_WIFI_SSID, ESP_WIFI_PASS);
+             CFG_ESP_WIFI_SSID, CFG_ESP_WIFI_PASS);
 		xInterfaceState = INTERFACE_DOWN;
 	}
 	else

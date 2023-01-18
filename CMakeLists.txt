@@ -47,7 +47,6 @@ else()
     CdapProto
     Common
     configRINA
-    configSensor
     EFCP
     Enrollment
     FlowAllocator

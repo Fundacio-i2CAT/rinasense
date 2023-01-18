@@ -12,7 +12,6 @@
 #include "common/rina_name.h"
 
 #include "configRINA.h"
-#include "configSensor.h"
 
 #include "ARP826_defs.h"
 #include "CdapMessage.h"

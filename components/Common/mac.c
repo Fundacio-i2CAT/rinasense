@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "configSensor.h"
 #include "portability/port.h"
+
+#include "configRINA.h"
 #include "common/mac.h"
 
 void mac2str(const MACAddress_t *pxMac, string_t psMac, const size_t p) {

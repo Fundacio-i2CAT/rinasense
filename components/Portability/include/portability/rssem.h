@@ -22,6 +22,8 @@ rsErr_t xRsSemWait(RsSem_t *pxSem);
 
 rsErr_t xRsSemTimedWait(RsSem_t *pxSem, useconds_t unTimeout);
 
+void vRsSemDebug(const char *pcTag, const char *pcName, RsSem_t *pxSem);
+
 #ifdef __cplusplus
 }
 #endif

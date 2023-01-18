@@ -10,8 +10,6 @@
 #include "common/rsrc.h"
 #include "portability/port.h"
 
-#include "configSensor.h"
-
 #include "EFCP.h"
 #include "rmt.h"
 #include "pci.h"
@@ -55,7 +53,7 @@ bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCep
 
 /** @brief The IMAP table.
  * Array of imap Rows. The type fcpImapRow_t has been set at efcpStructures.h */
-static efcpImapRow_t xEfcpImapTable[EFCP_IMAP_ENTRIES];
+static efcpImapRow_t xEfcpImapTable[CFG_EFCP_IMAP_ENTRIES];
 
 bool_t xEfcpImapCreate();
 
@@ -574,7 +572,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         pxConnection->xQosId = xQosId;
         pxConnection->xSourceCepId = xSrcCepId;
         pxConnection->xDestinationCepId = xDstCepId;
-        pxConnection->xSourceAddress = LOCAL_ADDRESS;
+        pxConnection->xSourceAddress = CFG_LOCAL_ADDRESS;
 
         LOGE(TAG_EFCP, "xEfcpConnectionCreate: EfcpCreate");
         pxEfcp = pxEfcpCreate();
@@ -766,7 +764,7 @@ bool_t xEfcpImapCreate(void)
         xNullImapRow.ucValid = 0;
 
         int i;
-        for (i = 0; i < EFCP_IMAP_ENTRIES; i++)
+        for (i = 0; i < CFG_EFCP_IMAP_ENTRIES; i++)
         {
                 xEfcpImapTable[i] = xNullImapRow;
         }
@@ -789,7 +787,7 @@ struct efcp_t *pxEfcpImapFind(cepId_t xCepIdKey)
 
         xEfcpFounded = pvRsMemAlloc(sizeof(struct efcp_t *));
 
-        for (x = 0; x < EFCP_IMAP_ENTRIES; x++) // lookup in the MAP for the EFCP Instance based on cepIdKey
+        for (x = 0; x < CFG_EFCP_IMAP_ENTRIES; x++) // lookup in the MAP for the EFCP Instance based on cepIdKey
         {
 
                 if (xEfcpImapTable[x].xCepIdKey == xCepIdKey)
@@ -818,7 +816,7 @@ bool_t xEfcpImapAdd(cepId_t xCepId, struct efcp_t *pxEfcp)
         xImapEntry.xCepIdKey = xCepId;
         xImapEntry.xEfcpValue = pxEfcp;
 
-        for (x = 0; x < EFCP_IMAP_ENTRIES; x++)
+        for (x = 0; x < CFG_EFCP_IMAP_ENTRIES; x++)
         {
                 xEfcpImapTable[x].xCepIdKey = xImapEntry.xCepIdKey;
                 xEfcpImapTable[x].xEfcpValue = xImapEntry.xEfcpValue;
@@ -833,7 +831,7 @@ bool_t xEfcpImapAdd(cepId_t xCepId, struct efcp_t *pxEfcp)
 bool_t xEfcpImapRemove(cepId_t xCepId)
 {
         int x;
-        for (x = 0; x < EFCP_IMAP_ENTRIES; x++)
+        for (x = 0; x < CFG_EFCP_IMAP_ENTRIES; x++)
         {
                 if (xEfcpImapTable[x].xCepIdKey == xCepId)
                 {

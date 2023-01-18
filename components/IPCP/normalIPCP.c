@@ -8,8 +8,6 @@
 #include "common/rina_name.h"
 #include "common/rsrc.h"
 
-#include "configSensor.h"
-
 #include "FlowAllocator_api.h"
 #include "EFCP.h"
 #include "efcpStructures.h"
@@ -370,7 +368,7 @@ bool_t xNormalMgmtDuWrite(struct ipcpInstance_t *pxIpcp, portId_t xPortId, du_t 
     PCI_SET(pxDu, PCI_TYPE, PDU_TYPE_MGMT);
     PCI_SET(pxDu, PCI_SEQ_NO, 0);
     PCI_SET(pxDu, PCI_PDU_LEN, sz + sizeof(pci_t));
-    PCI_SET(pxDu, PCI_ADDR_SRC, LOCAL_ADDRESS);
+    PCI_SET(pxDu, PCI_ADDR_SRC, CFG_LOCAL_ADDRESS);
 
     // vPciPrint(pxDu->pxPci);
 
@@ -748,7 +746,11 @@ struct ipcpInstance_t *pxNormalCreate(ipcProcessId_t unIpcpId)
         goto fail;
 
     /* Memory pool for PCI objects. */
-    if (!(pxData->xPciPool = pxRsrcNewPool("PCI pool", sizeof(pci_t), 1, 1, 0))) {
+    if (!(pxData->xPciPool = pxRsrcNewPool("PCI pool",
+                                           sizeof(pci_t),
+                                           CFG_SHIM_PCI_POOL_INIT_ALLOC,
+                                           CFG_SHIM_PCI_POOL_INCR_ALLOC,
+                                           CFG_SHIM_PCI_POOL_MAX_RES))) {
         LOGE(TAG_IPCPNORMAL, "Failed to allocate PCI object pool");
         goto fail;
     }
@@ -780,18 +782,18 @@ struct ipcpInstance_t *pxNormalCreate(ipcProcessId_t unIpcpId)
     }
 
     vNameAssignFromPartsStatic(&pxData->xName,
-                               NORMAL_PROCESS_NAME, NORMAL_PROCESS_INSTANCE,
-                               NORMAL_ENTITY_NAME, NORMAL_ENTITY_INSTANCE);
+                               CFG_NORMAL_PROCESS_NAME, CFG_NORMAL_PROCESS_INSTANCE,
+                               CFG_NORMAL_ENTITY_NAME, CFG_NORMAL_ENTITY_INSTANCE);
 
     /* FIXME: THIS IS A TEMPORARY SUBSTITUTE FOR DIF ASSIGNATION. */
     vNameAssignFromPartsStatic(&pxData->xDifName,
-                               NORMAL_DIF_NAME, "",
+                               CFG_NORMAL_DIF_NAME, "",
                                "", "");
 
 #ifndef NDEBUG
     pxData->unInstanceDataType = IPCP_INSTANCE_DATA_NORMAL;
 #endif
-    pxData->xAddress = LOCAL_ADDRESS;
+    pxData->xAddress = CFG_LOCAL_ADDRESS;
     pxData->pxIpcp = pxIpcp;
 
     /*Initialialise flows list*/

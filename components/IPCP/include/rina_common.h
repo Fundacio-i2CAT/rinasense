@@ -8,7 +8,6 @@
 #ifndef COMPONENTS_IPCP_INCLUDE_COMMON_H_
 #define COMPONENTS_IPCP_INCLUDE_COMMON_H_
 
-#include "configSensor.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"

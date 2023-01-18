@@ -12,6 +12,8 @@
 #include "pb_decode.h"
 #include "Ribd_defs.h"
 
+#include "configRINA.h"
+
 #define TAG_SD_MSG "[SD-MSG]"
 
 void vRibPrintCdapMessage(const string_t pcTag, const string_t pcTitle, messageCdap_t *pxDecodeCdap)
@@ -65,11 +67,19 @@ bool_t xSerDesMessageInit(MessageSerDes_t *pxSD)
         + sizeof(rina_messages_objVal_t_byteval_t)
         + sizeof(messageCdap_t)
         + sizeof(serObjectValue_t);
-    if (!(pxSD->xDecPool = pxRsrcNewPool("CDAP Message SerDes Decoding", unSz, 1, 1, 0)))
+    if (!(pxSD->xDecPool = pxRsrcNewPool("CDAP Message SerDes Decoding",
+                                         unSz,
+                                         CFG_SD_MESSAGE_DEC_POOL_INIT_ALLOC,
+                                         CFG_SD_MESSAGE_DEC_POOL_INCR_ALLOC,
+                                         CFG_SD_MESSAGE_DEC_POOL_MAX_RES)))
         return false;
 
     unSz = sizeof(rina_messages_CDAPMessage);
-    if (!(pxSD->xEncPool = pxRsrcNewPool("CDAP Message SerDes Encoding", unSz, 1, 1, 0)))
+    if (!(pxSD->xEncPool = pxRsrcNewPool("CDAP Message SerDes Encoding",
+                                         unSz,
+                                         CFG_SD_MESSAGE_ENC_POOL_INIT_ALLOC,
+                                         CFG_SD_MESSAGE_ENC_POOL_INCR_ALLOC,
+                                         CFG_SD_MESSAGE_ENC_POOL_MAX_RES)))
         return false;
 
     return true;

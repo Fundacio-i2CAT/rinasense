@@ -7,5 +7,5 @@ idf_component_register(
   "Ribd_connections.c"
   "CdapMessage.c"
   INCLUDE_DIRS "include"
-  REQUIRES FlowAllocator ShimIPCP configSensor IPCP CdapProto Enrollment RINA_API)
+  REQUIRES FlowAllocator ShimIPCP IPCP CdapProto Enrollment RINA_API)
 

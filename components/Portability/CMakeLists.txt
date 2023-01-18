@@ -7,7 +7,7 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
 
   idf_component_register(
     SRCS
-    "freertos_idf/rserr.c"
+    "gcc/rserr.c"
     "freertos_idf/rsmem.c"
     "freertos_idf/rslog.c"
     "posix/posix_rstime.c"

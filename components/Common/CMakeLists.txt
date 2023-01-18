@@ -15,4 +15,4 @@ idf_component_register(
   "error.c"
   "rinasense_errors.c"
   INCLUDE_DIRS "include"
-  REQUIRES Portability configSensor)
+  REQUIRES Portability configRINA)

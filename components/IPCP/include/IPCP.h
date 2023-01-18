@@ -3,7 +3,6 @@
 
 #include <stdlib.h>
 
-#include "configSensor.h"
 #include "common/rina_name.h"
 
 #ifdef __cplusplus
