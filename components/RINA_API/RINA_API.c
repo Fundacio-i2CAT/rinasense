@@ -20,11 +20,8 @@
 #include "common/rina_ids.h"
 #include "common/rina_name.h"
 
-#include "configSensor.h"
-
 #include "IpcManager.h"
 #include "RINA_API_flows.h"
-#include "portability/rslog.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
 #include "IPCP.h"
@@ -222,8 +219,8 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
 
     /*Struct Data to sent attached into the event*/
 
-    pxFlowAllocateRequest->xReceiveBlockTime = FLOW_DEFAULT_RECEIVE_BLOCK_TIME;
-    pxFlowAllocateRequest->xSendBlockTime = FLOW_DEFAULT_SEND_BLOCK_TIME;
+    pxFlowAllocateRequest->xReceiveBlockTime = CFG_FLOW_DEFAULT_RECEIVE_BLOCK_TIME;
+    pxFlowAllocateRequest->xSendBlockTime = CFG_FLOW_DEFAULT_SEND_BLOCK_TIME;
     pxFlowAllocateRequest->xPortId = xPortId;
 
     vRsListInit(&pxFlowAllocateRequest->xListWaitingPackets);
@@ -413,7 +410,7 @@ size_t RINA_flow_write(portId_t unPort, void *pvBuffer, size_t uxTotalDataLength
     /* Check that DataLength is not longer than MAX_SDU_SIZE. We
      * don't know yet WHAT to do if this is not true so make sure we
      * don't fail silently in case this happens. */
-    RsAssert(uxTotalDataLength <= MAX_SDU_SIZE);
+    RsAssert(uxTotalDataLength <= CFG_MAX_SDU_SIZE);
 
     /*Check if the Flow is active*/
     xTimeToWait = 250 * 1000;
