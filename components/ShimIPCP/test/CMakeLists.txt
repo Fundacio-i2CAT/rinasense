@@ -21,9 +21,19 @@ else()
     mock_IPCP
   )
 
+  add_test(
+    NAME test_shim_ipcp
+    COMMAND "./test_shim_ipcp"
+  )
+
   add_executable(test_arp826 "${CMAKE_CURRENT_LIST_DIR}/test_arp826.c")
   target_include_directories(test_shim_ipcp BEFORE PRIVATE
     ${mock_NetworkInterface_INCLUDES}
+  )
+
+  add_test(
+    NAME test_arp826
+    COMMAND "./test_arp826"
   )
 
   target_link_libraries(test_arp826
@@ -50,5 +60,10 @@ else()
     pthread
     Common
     rt
+  )
+
+  add_test(
+    NAME test_arp826_cache
+    COMMAND "./test_arp826_cache"
   )
 endif()
