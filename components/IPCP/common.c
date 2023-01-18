@@ -5,7 +5,6 @@
 #include "portability/port.h"
 
 #include "IPCP.h"
-#include "configSensor.h"
 #include "rina_common_port.h"
 
 void memcheck(void)

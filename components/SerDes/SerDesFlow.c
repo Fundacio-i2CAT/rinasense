@@ -9,6 +9,8 @@
 #include "pb_encode.h"
 #include "pb_decode.h"
 
+#include "configRINA.h"
+
 #define TAG_SD_FLOW "[SD-FLOW]"
 
 #ifdef __LONG_WIDTH__
@@ -109,7 +111,11 @@ rsErr_t xSerDesFlowInit(SerDesFlow_t *pxSD)
     int n;
 
     unSz = sizeof(rina_messages_Flow) + sizeof(serObjectValue_t);
-    if (!(pxSD->xPool = pxRsrcNewPool("Flow SerDes", unSz, 1, 1, 0)))
+    if (!(pxSD->xPool = pxRsrcNewPool("Flow SerDes",
+                                      unSz,
+                                      CFG_SD_FLOW_POOL_INIT_ALLOC,
+                                      CFG_SD_FLOW_POOL_INCR_ALLOC,
+                                      CFG_SD_FLOW_POOL_MAX_RES)))
         return ERR_OOM;
 
     return SUCCESS;

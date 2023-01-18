@@ -7,7 +7,6 @@
 #include "common/eth.h"
 #include "common/rina_gpha.h"
 #include "common/rsrc.h"
-#include "configSensor.h"
 
 #ifdef __cplusplus
 extern "C" {

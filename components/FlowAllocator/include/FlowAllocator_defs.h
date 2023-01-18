@@ -10,8 +10,6 @@
 
 #include "common/rina_ids.h"
 
-#include "configSensor.h"
-
 #include "RINA_API_flows.h"
 #include "efcpStructures.h"
 

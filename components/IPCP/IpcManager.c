@@ -16,7 +16,6 @@
 #include "common/num_mgr.h"
 
 #include "configRINA.h"
-#include "configSensor.h"
 
 #include "IPCP.h"
 #include "IPCP_normal_api.h"
@@ -34,7 +33,7 @@ ipcManager_t xIpcManager;
 #define DEFINE_IPC_MANAGER_LIFECYCLE_FUNCTION(nm, fn)                    \
     bool_t xIpcManagerRun##nm() {                                       \
     num_t x = 0;                                                        \
-    for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++) {                      \
+    for (x = 0; x < CFG_INSTANCES_IPCP_ENTRIES; x++) {                  \
         if (xIpcManager.xIpcpTable[x].xActive) {                        \
             struct ipcpInstance_t *pxIpcp = xIpcManager.xIpcpTable[x].pxIpcpInstance; \
             if (pxIpcp->pxOps && pxIpcp->pxOps->fn) {                   \
@@ -84,7 +83,7 @@ void vIpcManagerAdd(ipcManager_t *pxIpcManager, struct ipcpInstance_t *pxIpcp)
 {
     num_t x = 0;
 
-    for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++) {
+    for (x = 0; x < CFG_INSTANCES_IPCP_ENTRIES; x++) {
         if (pxIpcManager->xIpcpTable[x].xActive == false) {
             pxIpcManager->xIpcpTable[x].pxIpcpInstance = pxIpcp;
             pxIpcManager->xIpcpTable[x].xActive = true;
@@ -98,7 +97,7 @@ struct ipcpInstance_t *pxIpcManagerFindById(ipcManager_t *pxIpcManager,
 {
     num_t x = 0;
 
-    for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++) {
+    for (x = 0; x < CFG_INSTANCES_IPCP_ENTRIES; x++) {
         if (pxIpcManager->xIpcpTable[x].xActive == true) {
             if (pxIpcManager->xIpcpTable[x].pxIpcpInstance->xId == xIpcpId)
                 return pxIpcManager->xIpcpTable[x].pxIpcpInstance;
@@ -119,7 +118,7 @@ struct ipcpInstance_t *pxIpcManagerFindByType(ipcManager_t *pxIpcManager,
 {
     num_t x = 0;
 
-    for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++) {
+    for (x = 0; x < CFG_INSTANCES_IPCP_ENTRIES; x++) {
         if (pxIpcManager->xIpcpTable[x].xActive == true) {
             if (pxIpcManager->xIpcpTable[x].pxIpcpInstance->xType == xType)
                 return pxIpcManager->xIpcpTable[x].pxIpcpInstance;

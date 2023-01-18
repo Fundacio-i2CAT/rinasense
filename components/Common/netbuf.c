@@ -9,10 +9,9 @@
 #include "common/rsrc.h"
 #include "common/netbuf.h"
 
-#define TAG_NETBUF "[netbuf]"
+#include "configRINA.h"
 
-/* Set this if you want netbuf_t structs to be allocated on a pool. */
-//#define CONFIG_NETBUF_USES_POOLS
+#define TAG_NETBUF "[netbuf]"
 
 void vNetBufFreeNormal(netbuf_t *pxNb)
 {
@@ -37,7 +36,11 @@ void vNetBufFreeButDont(netbuf_t *pxNb)
 
 rsrcPoolP_t xNetBufNewPool(const char *pcPoolName)
 {
-    return pxRsrcNewPool(pcPoolName, sizeof(netbuf_t), 0, 1, 0);
+    return pxRsrcNewPool(pcPoolName,
+                         sizeof(netbuf_t),
+                         CFG_NETBUF_POOL_INIT_ALLOC,
+                         CFG_NETBUF_POOL_INCR_ALLOC,
+                         CFG_NETBUF_POOL_MAX_RES);
 }
 
 netbuf_t *pxNetBufNew(rsrcPoolP_t xPool,
@@ -92,7 +95,7 @@ rsErr_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
             return SUCCESS;
         }
         else {
-#ifdef CONFIG_NETBUF_USES_POOLS
+#ifdef CFG_NETBUF_USES_POOLS
             if (!(pxNewBuf = pxRsrcAlloc(pxNb->xPool, "xNetBufSplit")))
                 return ERR_SET_OOM;
 #else
@@ -125,7 +128,9 @@ rsErr_t xNetBufSplit(netbuf_t *pxNb, eNetBufType_t eType, size_t unSz)
 
 void vNetBufFreeAll(netbuf_t *pxNb)
 {
+#ifdef CFG_NETBUF_TRACE
     LOGD(TAG_NETBUF, "Free All: %p", pxNb);
+#endif
 
     FOREACH_ALL_NETBUF_SAFE(pxNb, pxNbIter) {
         vNetBufFree(pxNbIter);
@@ -137,8 +142,10 @@ void vNetBufFree(netbuf_t *pxNb)
     int unCnt = 0;
     bool_t xFullyFreed;
 
+#ifdef CFG_NETBUF_TRACE
     if (!pxNb->xFreed)
         LOGD(TAG_NETBUF, "Marking %p as freed", pxNb);
+#endif
 
     /* Mark the target netbuf as freed and not to be used as part of
      * the total buffer. */
@@ -168,7 +175,7 @@ void vNetBufFree(netbuf_t *pxNb)
             if (pxNbIter->freemethod && pxNbIter->pxBufStart)
                 pxNbIter->freemethod(pxNbIter);
 
-#ifdef CONFIG_NETBUF_USES_POOLS
+#ifdef CFG_NETBUF_USES_POOLS
             vRsrcFree(pxNbIter);
 #else
             vRsMemFree(pxNbIter);
@@ -333,11 +340,12 @@ void vNetBufPrint(const string_t pcNbName, netbuf_t *pxNb)
     LOGD(pcTag, "---- netbuf: %s ----", pcNbName);
 
     FOREACH_ALL_NETBUF_SAFE(pxNb, pxNbIter) {
-        LOG_LOCK();
         LOGD(pcTag, "** Idx: %d", i++);
         LOGD(pcTag, "Ptr: %p", pxNbIter);
         LOGD(pcTag, "Buf: %p", pxNbIter->pxBufStart);
         LOGD(pcTag, "Siz: %zu", pxNbIter->unSz);
         LOGD(pcTag, "Freed: %d, Type: %d", pxNbIter->xFreed, pxNbIter->eType);
     }
+
+    LOG_UNLOCK();
 }

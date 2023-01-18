@@ -19,7 +19,7 @@
 #include "ARP826_cache_defs.h"
 #include "ARP826_cache_api.h"
 #include "NetworkInterface.h"
-#include "configSensor.h"
+#include "configRINA.h"
 #include "IPCP_api.h"
 #include "IPCP_frames.h"
 #include "private/eth.h"
@@ -28,18 +28,23 @@ bool_t xARPInit(ARP_t *pxARP)
 {
     memset(pxARP, 0, sizeof(ARP_t));
 
-    if (!(pxARP->pxCache = pxARPCacheCreate(MAC_ADDR_802_3, ARP_CACHE_ENTRIES))) {
+    if (!(pxARP->pxCache = pxARPCacheCreate(MAC_ADDR_802_3, CFG_ARP_CACHE_ENTRIES))) {
         LOGE(TAG_ARP, "Failed to create ARP cache zone");
         return false;
     }
 
     /* Memory pools for ARP packets and ethernet headers */
-    if (!(pxARP->xArpPool = pxRsrcNewVarPool("ARP packets memory pool", 0))) {
+    if (!(pxARP->xArpPool = pxRsrcNewVarPool("ARP packets memory pool",
+                                             CFG_ARP_POOL_MAX_RES))) {
         LOGE(TAG_ARP, "Failed to create ARP packets memory pool");
         return false;
     }
 
-    if (!(pxARP->xEthPool = pxRsrcNewPool("ARP ethernet headers pool", sizeof(EthernetHeader_t), 1, 1, 0))) {
+    if (!(pxARP->xEthPool = pxRsrcNewPool("ARP ethernet headers pool",
+                                          sizeof(EthernetHeader_t),
+                                          CFG_ARP_ETH_POOL_INIT_ALLOC,
+                                          CFG_ARP_ETH_POOL_INCR_ALLOC,
+                                          CFG_ARP_ETH_POOL_MAX_RES))) {
         LOGE(TAG_ARP, "Failed to create ARP ethernet headers memory pool");
         return false;
     }
@@ -410,7 +415,10 @@ eFrameProcessingResult_t eARPProcessPacket(ARP_t *pxARP, netbuf_t *pxNbEth)
 
         xARPCacheAdd(pxARP->pxCache, xARPPacketData.pxTpa, xARPPacketData.pxTha);
 
-		eReturn = eProcessBuffer;
+        /* There is some work to be done here handling pending ARP
+         * replies. */
+
+		eReturn = eReleaseBuffer;
 
 		break;
 	}

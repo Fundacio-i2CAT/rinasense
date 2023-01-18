@@ -5,6 +5,8 @@
 #include "SerDesFlow.h"
 #include "Ribd_defs.h"
 
+#include "configRINA.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,7 +47,7 @@ typedef struct
     /* List of FAI*/
     RsList_t xFlowAllocatorInstances;
 
-    struct FlowRequestRow xFlowRequestTable[FLOWS_REQUEST];
+    struct FlowRequestRow xFlowRequestTable[CFG_FLOWS_REQUEST];
 
     pthread_mutex_t xMux;
 

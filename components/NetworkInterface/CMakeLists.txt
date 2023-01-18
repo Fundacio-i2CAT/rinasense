@@ -7,7 +7,7 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
 
   idf_component_register(SRCS "${NETWORKINTERFACE_MODULE}/NetworkInterface.c"
     INCLUDE_DIRS "include" "mq/include"
-    REQUIRES Common ShimIPCP configSensor FreeRTOS-Plus-POSIX)
+    REQUIRES Common ShimIPCP FreeRTOS-Plus-POSIX)
 else()
   rs_include_component(NetworkInterface
     DIR       "${CMAKE_SOURCE_DIR}/components/NetworkInterface")
@@ -21,7 +21,7 @@ else()
       "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
 
       REQUIRES
-      Common configRINA IPCP configSensor Rmt ShimIPCP
+      Common configRINA IPCP Rmt ShimIPCP
       EFCP Portability RINA_API)
 
     rs_component(NetworkInterface_MQ
@@ -36,7 +36,7 @@ else()
       # "${CMAKE_SOURCE_DIR}/components/NetworkInterface/test"
 
       REQUIRES
-      Common configRINA IPCP configSensor Rmt
+      Common configRINA IPCP Rmt
       ShimIPCP EFCP Portability RINA_API)
 
   elseif("${TARGET_TYPE}" STREQUAL "arduino_esp32")
@@ -48,7 +48,7 @@ else()
       "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
 
       REQUIRES
-      Common configRINA IPCP configSensor Rmt
+      Common configRINA IPCP Rmt
       ShimIPCP EFCP Portability RINA_API)
   endif()
 endif()

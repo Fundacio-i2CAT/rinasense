@@ -11,7 +11,6 @@
 #include "common/rina_name.h"
 #include "portability/port.h"
 #include "rina_common_port.h"
-#include "configSensor.h"
 #include "configRINA.h"
 #include "Ribd.h"
 #include "Ribd_api.h"

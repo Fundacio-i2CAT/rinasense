@@ -11,7 +11,6 @@
 #include "common/rsrc.h"
 #include "common/rina_name.h"
 
-#include "configSensor.h"
 #include "configRINA.h"
 
 #include "rina_common_port.h"
@@ -146,7 +145,7 @@ rsErr_t prvEnrollmentObjectStart(ribObject_t *pxThis, appConnection_t *pxAppCon,
     if ((n = pthread_attr_init(&xAttr) != 0))
         return ERR_SET_PTHREAD(n);
 
-    if ((n = pthread_attr_setstacksize(&xAttr, IPCP_TASK_STACK_SIZE) != 0))
+    if ((n = pthread_attr_setstacksize(&xAttr, CFG_IPCP_TASK_STACK_SIZE) != 0))
         xStatus = ERR_SET_PTHREAD(n);
 
     if ((n = pthread_create(&pxEnrollmentData->xEnrollmentThread,
@@ -204,9 +203,9 @@ rsErr_t prvEnrollmentHandleOperationalStart(ribObject_t *pxThis,
     /* FIXME: NOT FREED */
     pxNeighborMsg = pvRsMemAlloc(sizeof(*pxNeighborMsg));
 
-    pxNeighborMsg->pcApName = NORMAL_PROCESS_NAME;
-    pxNeighborMsg->pcApInstance = NORMAL_PROCESS_INSTANCE;
-    pxNeighborMsg->pcAeName = MANAGEMENT_AE;
+    pxNeighborMsg->pcApName = CFG_NORMAL_PROCESS_NAME;
+    pxNeighborMsg->pcApInstance = CFG_NORMAL_PROCESS_INSTANCE;
+    pxNeighborMsg->pcAeName = CFG_MANAGEMENT_AE;
     pxNeighborMsg->pcAeInstance = pxNeighborInfo->pcToken;
 
     pxNeighborSD = &((Enrollment_t *)pxThis->pvOwner)->xNeighborSD;

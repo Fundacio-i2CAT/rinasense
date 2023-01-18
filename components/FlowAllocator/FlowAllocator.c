@@ -11,7 +11,6 @@
 #include "common/rina_name.h"
 #include "common/rsrc.h"
 
-#include "configSensor.h"
 #include "configRINA.h"
 
 #include "efcpStructures.h"
@@ -64,7 +63,7 @@ void prvAddFlowRequestEntry(flowAllocator_t *pxFA, flowAllocatorInstance_t *pxFA
 {
     num_t x = 0;
 
-    for (x = 0; x < FLOWS_REQUEST; x++) {
+    for (x = 0; x < CFG_FLOWS_REQUEST; x++) {
         if (pxFA->xFlowRequestTable[x].xValid == false) {
             pxFA->xFlowRequestTable[x].pxFAI = pxFAI;
             pxFA->xFlowRequestTable[x].xValid = true;
@@ -79,7 +78,7 @@ flowAllocatorInstance_t *pxFAFindInstance(flowAllocator_t *pxFA, portId_t xPortI
     num_t x = 0;
     flowAllocatorInstance_t *pxFAI;
 
-    for (x = 0; x < FLOWS_REQUEST; x++) {
+    for (x = 0; x < CFG_FLOWS_REQUEST; x++) {
         if (pxFA->xFlowRequestTable[x].xValid == true) {
 
             pxFAI = pxFA->xFlowRequestTable->pxFAI;
@@ -96,7 +95,7 @@ flowAllocateHandle_t *pxFAFindFlowHandle(flowAllocator_t *pxFA, portId_t xPortId
     flowAllocatorInstance_t *pxFAI;
     flowAllocateHandle_t *pxFlowAllocateRequest;
 
-    for (x = 0; x < FLOWS_REQUEST; x++) {
+    for (x = 0; x < CFG_FLOWS_REQUEST; x++) {
         if (pxFA->xFlowRequestTable[x].xValid == true) {
             pxFAI = pxFA->xFlowRequestTable->pxFAI;
             if (pxFAI->xPortId == xPortId)
@@ -112,7 +111,7 @@ flowAllocateHandle_t *prvGetPendingFlowRequest(flowAllocator_t *pxFA, portId_t x
     flowAllocateHandle_t *pxFlowAllocateRequest;
     flowAllocatorInstance_t *pxFAI;
 
-    for (x = 0; x < FLOWS_REQUEST; x++) {
+    for (x = 0; x < CFG_FLOWS_REQUEST; x++) {
         if (pxFA->xFlowRequestTable[x].xValid == true) {
             pxFAI = pxFA->xFlowRequestTable->pxFAI;
             if (pxFAI->xPortId == xPortId) {
@@ -128,11 +127,11 @@ static qosSpec_t *prvFlowAllocatorSelectQoSCube(qosSpec_t *pxQosSpec)
 {
     /* TODO: Found the most suitable QoScube for the pxFlowRequest->pxFspec
      * Now, it use a default cube to test */
-    pxQosSpec->xQosId = QoS_CUBE_ID;
-    pxQosSpec->pcQosName = QoS_CUBE_NAME;
+    pxQosSpec->xQosId = CFG_QoS_CUBE_ID;
+    pxQosSpec->pcQosName = CFG_QoS_CUBE_NAME;
 
-    pxQosSpec->xFlowSpec.xPartialDelivery = QoS_CUBE_PARTIAL_DELIVERY;
-    pxQosSpec->xFlowSpec.xOrderedDelivery = QoS_CUBE_ORDERED_DELIVERY;
+    pxQosSpec->xFlowSpec.xPartialDelivery = CFG_QoS_CUBE_PARTIAL_DELIVERY;
+    pxQosSpec->xFlowSpec.xOrderedDelivery = CFG_QoS_CUBE_ORDERED_DELIVERY;
 
     return pxQosSpec;
 }
@@ -167,7 +166,7 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
     pxFlow->ulHopCount = 4;
     pxFlow->ulMaxCreateFlowRetries = 1;
     pxFlow->eState = eFA_ALLOCATION_IN_PROGRESS;
-    pxFlow->xSourceAddress = LOCAL_ADDRESS;
+    pxFlow->xSourceAddress = CFG_LOCAL_ADDRESS;
     pxFlow->ulCurrentConnectionId = 0;
 
     /* Select QoS Cube based on the FlowSpec Required */
@@ -175,10 +174,10 @@ static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 
     /* Fulfill the DTP_config and the DTCP_config based on the QoSCube*/
 
-    pxFlow->xDtpConfig.xInitialATimer = DTP_INITIAL_A_TIMER;
+    pxFlow->xDtpConfig.xInitialATimer = CFG_DTP_INITIAL_A_TIMER;
 
-    pxFlow->xDtpConfig.xDtpPolicySet.pcPolicyName = DTP_POLICY_SET_NAME;
-    pxFlow->xDtpConfig.xDtpPolicySet.pcPolicyVersion = DTP_POLICY_SET_VERSION;
+    pxFlow->xDtpConfig.xDtpPolicySet.pcPolicyName = CFG_DTP_POLICY_SET_NAME;
+    pxFlow->xDtpConfig.xDtpPolicySet.pcPolicyVersion = CFG_DTP_POLICY_SET_VERSION;
 
     // By the moment the DTCP is not implemented yet so we are using DTP_DTCP_PRESENT = pdFALSE
 
@@ -232,7 +231,7 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
 
     /* FIXME: Harcoded REMOTE_ADDRESS_AP_NAME in
        vFlowAllocatorFlowRequest */
-    pcNeighbor = REMOTE_ADDRESS_AP_NAME; // "ar1.mobile"; // Hardcode for testing
+    pcNeighbor = CFG_REMOTE_ADDRESS_AP_NAME; // "ar1.mobile"; // Hardcode for testing
     LOGD(TAG_FA, "Getting Neighbor");
 
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
@@ -254,7 +253,7 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
     if ((xCepSourceId = xNormalConnectionCreateRequest(pxIpcpData->pxIpcp,
                                                        pxEfcpc,
                                                        xAppPortId,
-                                                       LOCAL_ADDRESS,
+                                                       CFG_LOCAL_ADDRESS,
                                                        pxFlow->xRemoteAddress,
                                                        pxFlow->xQosSpec.xQosId,
                                                        &pxFlow->xDtpConfig,

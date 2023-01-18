@@ -6,7 +6,7 @@
 #include "common/error.h"
 #include "common/rina_name.h"
 
-#include "configSensor.h"
+#include "configRINA.h"
 
 void prvNameCopyAssignParts(rname_t *pxDst,
                             string_t pxData,
@@ -33,25 +33,25 @@ bool_t prvBreakdownNameString(rname_t *pxDst, string_t pxStr)
 
     pxDst->pcProcessName = pxStr;
 
-    for (c = pxStr; *c != DELIMITER && *c != 0; c++);
+    for (c = pxStr; *c != CFG_DELIMITER && *c != 0; c++);
     if (*c == 0) return false; /* Bad string */
-    if (*c == DELIMITER) *c = 0;
+    if (*c == CFG_DELIMITER) *c = 0;
 
     pxDst->pcProcessInstance = c + 1;
 
-    for (c++; *c != DELIMITER && *c != 0; c++);
+    for (c++; *c != CFG_DELIMITER && *c != 0; c++);
     if (*c == 0) return false; /* Bad string */
-    if (*c == DELIMITER) *c = 0;
+    if (*c == CFG_DELIMITER) *c = 0;
 
     pxDst->pcEntityName = c + 1;
 
-    for (c++; *c != DELIMITER && *c != 0; c++);
+    for (c++; *c != CFG_DELIMITER && *c != 0; c++);
 
     /* We're taking into account the possibility of a missing last
      * delimiter here. If the last character we went over isn't the
      * delimiter, we presume the string continues past it. Otherwise,
      * we just point EntityInstance at the 0. */
-    if (*c == DELIMITER) {
+    if (*c == CFG_DELIMITER) {
         *c = 0;
         pxDst->pcEntityInstance = c + 1;
     }
@@ -253,7 +253,7 @@ void vNameToStringBuf(const rname_t *pxDst, string_t pcBuf, size_t unSzBuf)
         px += unSzCopy + 1;
 
         if (i < 3)
-            *(px - 1) = DELIMITER;
+            *(px - 1) = CFG_DELIMITER;
 
         unSzMax -= unSzCopy;
 
@@ -297,7 +297,7 @@ string_t pcNameToString(const rname_t *pxDst)
         memcpy(pcDest, pxDst->pcProcessName, unDestLn);
 
         for (c = pcDest; c < pcDest + unDestLn - 1; c++)
-            if (*c == 0) *c = DELIMITER;
+            if (*c == 0) *c = CFG_DELIMITER;
     }
 
     return pcDest;
