@@ -56,9 +56,6 @@ static int nTapFD = -1;
 /* File descriptor to use to talk to the TAP read thread. */
 static int nTapThreadFD = -1;
 
-/* File descriptor for monitoring the network interface. */
-static int nMonitorFD = -1;
-
 /* Params passed to the TAP read thread. */
 static struct ReadThreadParams xTapReadTreadParams;
 
@@ -240,8 +237,6 @@ void *prvLinuxTapReadThread(void *pvParams)
     struct pollfd pfds[2];
     uint8_t buffer[TAP_MTU + sizeof(EthernetHeader_t)];
     int nPoll;
-    size_t sz;
-    rsrcPoolP_t xPool;
 
     pxParams = (struct ReadThreadParams *)pvParams;
 
@@ -255,6 +250,11 @@ void *prvLinuxTapReadThread(void *pvParams)
 
     while (1) {
         nPoll = poll(pfds, 2, 0);
+
+        if (nPoll < 0) {
+            LOGE(TAG_WIFI, "Read thread poll() call failed: %d", errno);
+            break;
+        }
 
         if (pfds[0].revents & POLLIN) {
             ssize_t count = read(nTapFD, buffer, sizeof(buffer));
@@ -270,7 +270,7 @@ void *prvLinuxTapReadThread(void *pvParams)
             /* The interface is down, just leave. The management
              * functions will deal with restarting the thread. */
             LOGD(TAG_WIFI, "Read thread found device %s is DOWN", CFG_LINUX_TAP_DEVICE);
-            return NULL;
+            break;
         }
     }
 
@@ -333,19 +333,11 @@ void prvLinuxTapParseNewLinkMsg(struct nlmsghdr *pxNewLinkMsg)
 
 void *prvLinuxTapMonitorThread(void *pNothing)
 {
-    struct nlmsghdr *nlh;
     int nMonitorFD;
     char buf[4096 * 2];
-    struct msghdr msg;
     struct sockaddr_nl xLocalAddr;
-    struct iovec xIov;
     struct nlmsghdr *pxMsg;
     ssize_t nRecv = 0;
-
-    msg.msg_name = &xLocalAddr;
-    msg.msg_namelen = sizeof(struct sockaddr_nl);
-    msg.msg_iov = &xIov;
-    msg.msg_iovlen = 1;
 
     bzero(&xLocalAddr, sizeof(struct sockaddr_nl));
     xLocalAddr.nl_family = AF_NETLINK;
@@ -654,7 +646,6 @@ bool_t xNetworkInterfaceOutput(netbuf_t *pxNbFrame)
 bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
     EthernetHeader_t *pxEthernetHeader;
-    size_t unSzFrData;
     buffer_t pvFrame;
     netbuf_t *pxNbFrame;
 

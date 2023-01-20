@@ -171,10 +171,6 @@ rsErr_t prvEnrollmentObjectStopReply(ribObject_t *pxThis,
                                      messageCdap_t *pxMsg,
                                      void **ppxResp)
 {
-    neighborInfo_t *pxNeighborInfo;
-    Enrollment_t *pxEnrollment;
-    enrollmentObjectData_t *pxObjData;
-
     /* There is enough space here to cram an int but that's bad
      * bad... */
     *((int *)ppxResp) = 1;
@@ -190,7 +186,6 @@ rsErr_t prvEnrollmentHandleOperationalStart(ribObject_t *pxThis,
     neighborInfo_t *pxNeighborInfo;
     NeighborSerDes_t *pxNeighborSD;
     serObjectValue_t xSerObjValue;
-    bool_t xStatus;
 
     LOGE(TAG_ENROLLMENT, "Handling OperationalStart");
 

@@ -46,8 +46,6 @@ struct ARPCache {
 
 struct ARPCache *pxARPCacheCreate(eGHAType_t eType, num_t nEntries)
 {
-    rsrcPoolP_t xPool;
-    struct ARPCacheRow *pxRows;
     struct ARPCache *pxCache;
     size_t unMem;
 
@@ -169,8 +167,6 @@ bool_t xARPCacheRemove(struct ARPCache *pxCache, const gpa_t *pxPa)
 
 bool_t xARPCacheRemoveHandle(struct ARPCache *pxCache, ARPCacheHandle nCacheHndl)
 {
-    num_t i = 0;
-
     if (nCacheHndl < pxCache->nEntries)
         prvARPCacheFreeRow(&pxCache->pxRows[nCacheHndl]);
 

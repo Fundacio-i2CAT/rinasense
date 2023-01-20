@@ -207,8 +207,6 @@ static eFrameProcessingResult_t prvShimHandleARPFrame(struct ipcpInstance_t *pxS
 
 static eFrameProcessingResult_t prvShimHandleRinaFrame(struct ipcpInstance_t *pxSelf, netbuf_t *pxNbFrame)
 {
-    uint8_t *ptr;
-    size_t uxRinaLength;
     shimFlow_t *pxFlow;
     EthernetHeader_t *eth;
     gha_t *pxSrcHa;
@@ -495,7 +493,6 @@ bool_t xShimFlowAllocateResponse(struct ipcpInstance_t *pxSelf, portId_t unPort)
         .xData.PV = NULL
     };
 	shimFlow_t *pxFlow;
-	struct ipcpInstance_t *pxShimIpcp;
 
     RsAssert(pxSelf);
     RsAssert(is_port_id_ok(unPort));
@@ -697,7 +694,7 @@ bool_t xShimSDUWrite(struct ipcpInstance_t *pxSelf, portId_t unPort, du_t *pxDu,
 {
 	shimFlow_t *pxFlow;
 	gha_t *pxSrcHw;
-	size_t uxHeadLen, uxLength;
+	size_t uxLength;
     buffer_t pxBufEthHdr;
     EthernetHeader_t *pxEthHdr;
 	netbuf_t *pxNbFrame = NULL;
@@ -903,9 +900,7 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 {
 	struct ipcpInstance_t *pxInst;
 	struct ipcpInstanceData_t *pxInstData = NULL;
-	flowSpec_t *pxFspec;
 	string_t pcInterfaceName = CFG_SHIM_INTERFACE;
-    rname_t xName;
 
     /* Create an instance */
     if (!(pxInst = pvRsMemCAlloc(1, sizeof(struct ipcpInstance_t))))

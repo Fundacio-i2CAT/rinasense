@@ -266,14 +266,10 @@ static netbuf_t *prvARPGetResponse(ARP_t *pxArp,
 bool_t vARPSendRequest(ARP_t *pxArp, const gpa_t *pxTpa, const gpa_t *pxSpa, const gha_t *pxSha)
 {
 	size_t xMaxLen;
-	size_t xBufferSize;
     gpa_t *pxGrownSpa = NULL, *pxGrownTpa = NULL;
-    RINAStackEvent_t xSendEvent;
     netbuf_t *pxNbEth = NULL, *pxNbArp = NULL;
-    const gha_t *pxTha = &xBroadcastHa;
 
 	xMaxLen = MAX(pxSpa->uxLength, pxTpa->uxLength);
-    xBufferSize = sizeof(ARPStaticHeader_t) + (xMaxLen + sizeof(pxSha->xAddress)) * 2;
 
     if (!(pxGrownSpa = pxDupGPA(pxSpa, false, 0))) {
         LOGE(TAG_ARP, "Failed to duplicate SPA");
@@ -337,12 +333,9 @@ eFrameProcessingResult_t eARPProcessPacket(ARP_t *pxARP, netbuf_t *pxNbEth)
 {
 	eFrameProcessingResult_t eReturn = eReleaseBuffer;
 	ARPStaticHeader_t *pxARPHdr;
-	struct rinarpHandle_t *pxHandle;
     ARPPacketData_t xARPPacketData;
     netbuf_t *pxNbArpPkt, *pxNbArpRes;
     const gha_t *pxLookupResult; /* Do not free! */
-    const gha_t *pxSourceAddr;
-    EthernetHeader_t *pxEthHdr;
 
     /* We really want 2 linked netbufs at this point. */
     RsAssert(pxNetBufNext(pxNbEth));
@@ -352,7 +345,6 @@ eFrameProcessingResult_t eARPProcessPacket(ARP_t *pxARP, netbuf_t *pxNbEth)
 
     /* Allow access to the ethernet and ARP headers */
     pxARPHdr = (ARPStaticHeader_t *)pvNetBufPtr(pxNbArpPkt);
-    pxEthHdr = (EthernetHeader_t *)pvNetBufPtr(pxNbEth);
 
     /* Sanity checks on the only address type we deal with: Ethernet */
 	if (pxARPHdr->usHType != RsHtoNS(ARP_HARDWARE_TYPE_ETHERNET)) {

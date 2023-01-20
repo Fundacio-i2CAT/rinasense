@@ -44,7 +44,7 @@ RS_TEST_CASE(BoundedQueue, "[queue]")
 {
     RsQueue_t xQueue;
     RsQueueParams_t xQueueParams = {0};
-    int i1 = 1, i2 = 2, i3 = 4;
+    int i1 = 1, i2 = 2;
     int pi1, pi2;
 
     RS_TEST_CASE_BEGIN(test_queue);
@@ -67,7 +67,7 @@ RS_TEST_CASE(BlockingQueue, "[queue]")
 {
     RsQueue_t xQueue;
     RsQueueParams_t xQueueParams = {0};
-    int i1 = 1, i2 = 2, i3 = 4;
+    int i1 = 1;
     int pi1;
 
     RS_TEST_CASE_BEGIN(test_queue);

@@ -60,13 +60,10 @@ else()
 
   # Common warnings and options.
   add_compile_options(
-    -Wall -Werror -Wextra
+    -Wall -Wextra
 
     # Disable some warnings while development is active. It drowns the
     # other more important warnings.
-    -Wno-unused-but-set-variable
-    -Wno-unused-function
-    -Wno-unused-variable
     -Wno-unused-parameter
 
     # Debugging information

@@ -161,7 +161,6 @@ messageCdap_t *pxRibCdapMsgCreateRequest(Ribd_t *pxRibd,
 messageCdap_t *pxRibCdapMsgCreate(Ribd_t *pxRibd, size_t unSz)
 {
     messageCdap_t *pxMsg = NULL;
-    authPolicy_t *pxAuthPolicy;
 
     if (!(pxMsg = pxRsrcVarAlloc(pxRibd->xMsgPool, "CDAP Message", unSz))) {
         LOGE(TAG_RIB, "Failed to allocate memory for CDAP message");

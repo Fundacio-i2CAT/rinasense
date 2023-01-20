@@ -93,7 +93,6 @@ flowAllocateHandle_t *pxFAFindFlowHandle(flowAllocator_t *pxFA, portId_t xPortId
 {
     num_t x = 0;
     flowAllocatorInstance_t *pxFAI;
-    flowAllocateHandle_t *pxFlowAllocateRequest;
 
     for (x = 0; x < CFG_FLOWS_REQUEST; x++) {
         if (pxFA->xFlowRequestTable[x].xValid == true) {
@@ -140,8 +139,6 @@ static qosSpec_t *prvFlowAllocatorSelectQoSCube(qosSpec_t *pxQosSpec)
 static flow_t *prvFlowAllocatorNewFlow(flowAllocateHandle_t *pxFlowRequest)
 {
     flow_t *pxFlow;
-    dtpConfig_t *pxDtpConfig;
-    policy_t *pxDtpPolicySet;
 
     if (!(pxFlow = pvRsMemAlloc(sizeof(*pxFlow)))) {
         LOGE(TAG_FA, "Failed to allocate memory for flow object");
@@ -202,7 +199,6 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
     neighborInfo_t *pxNeighbor;
     cepId_t xCepSourceId;
     flowAllocatorInstance_t *pxFlowAllocatorInstance;
-    connectionId_t *pxConnectionId;
     string_t pcNeighbor;
     struct efcpContainer_t *pxEfcpc;
     struct ipcpInstanceData_t *pxIpcpData;
@@ -304,10 +300,8 @@ void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
 
 bool_t xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData, serObjectValue_t *pxSerObjValue, int result)
 {
-    portId_t xAppPortId;
     flowAllocatorInstance_t *pxFAI;
     flow_t *pxFlow;
-    bool_t xStatus;
 
     RsAssert(pxData);
     RsAssert(pxSerObjValue);

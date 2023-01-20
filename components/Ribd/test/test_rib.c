@@ -140,8 +140,6 @@ RS_TEST_CASE(RibRequestSync, "[rib]")
 RS_TEST_CASE(RibRequestAsync, "[rib]")
 {
     ribObject_t *pxRibObj;
-    invokeId_t nId;
-    int n;
 
     RS_TEST_CASE_BEGIN(test_rib);
 

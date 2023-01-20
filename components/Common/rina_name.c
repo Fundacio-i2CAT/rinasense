@@ -179,9 +179,7 @@ rsMemErr_t xNameAssignFromPartsDup(rname_t *pxDst,
 
 rsErr_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr)
 {
-    string_t pxNewStr;
     size_t unStrSz;
-    char *c;
 
     /* Get the amount of memory we need */
     unStrSz = strlen(pxNmStr);

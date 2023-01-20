@@ -54,7 +54,6 @@ rsErr_t xRibObjectErr(Ribd_t *pxRibd,
                       string_t pcResultReason)
 {
     messageCdap_t *pxMsgCdap = NULL;
-    serObjectValue_t *pxSerVal;
     rsErr_t xStatus;
 
     vRibLock(pxRibd);
@@ -86,7 +85,6 @@ rsErr_t xRibObjectQuery(Ribd_t *pxRibd,
                         ribQueryTypeInfo_t xRibQueryTypeInfo)
 {
     messageCdap_t *pxMsgCdap = NULL;
-    serObjectValue_t *pxSerVal;
     ribResponseCb fnCb;
     rsErr_t xStatus;
 

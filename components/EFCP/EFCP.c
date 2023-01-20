@@ -539,7 +539,6 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         struct efcp_t *pxEfcp;
         connection_t *pxConnection = NULL;
         cepId_t xCepId;
-        struct dtcp_t *pxDtcp;
         // struct cwq *        cwq;
         // struct rtxq *       rtxq;
         // uint_t              mfps, mfss;
@@ -646,7 +645,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                 return CEP_ID_WRONG;
         }
 
-        pxDtcp = NULL;
+        /*pxDtcp = NULL;*/
 
 #if 0
         rcu_read_lock();

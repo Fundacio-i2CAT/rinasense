@@ -11,10 +11,8 @@ RS_TEST_CASE(TimeOut, "[time]")
 {
     struct RsTimeOut xTimeOut;
     useconds_t xTimeLeft;
-    bool_t xTimeDone;
 
     xTimeLeft = 100;
-    xTimeDone = false;
     RS_TEST_CASE_BEGIN(test_time);
 
     TEST_ASSERT(xRsTimeSetTimeOut(&xTimeOut));

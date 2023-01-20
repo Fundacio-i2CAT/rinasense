@@ -108,7 +108,6 @@ static flow_t *prvSerdesMsgDecodeFlow(rina_messages_Flow message)
 rsErr_t xSerDesFlowInit(SerDesFlow_t *pxSD)
 {
     size_t unSz;
-    int n;
 
     unSz = sizeof(rina_messages_Flow) + sizeof(serObjectValue_t);
     if (!(pxSD->xPool = pxRsrcNewPool("Flow SerDes",

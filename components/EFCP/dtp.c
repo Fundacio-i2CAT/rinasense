@@ -58,7 +58,6 @@ bool_t xDtpPduSend(dtp_t *pxDtp, struct rmt_t *pxRmt, du_t *pxDu)
 
 bool_t xDtpWrite(dtp_t *pxDtp, du_t *pxDu)
 {
-    struct dtp_ps *ps;
     seqNum_t xCsn;
     buffer_t xPci;
     size_t sz;
@@ -143,8 +142,6 @@ dtp_t *pxDtpCreate(struct efcp_t *pxEfcp,
                    dtpConfig_t *pxDtpCfg)
 {
     dtp_t *pxDtp;
-    string_t *psName;
-    dtpSv_t *pxDtpSv;
 
     RsAssert(pxEfcp);
     RsAssert(pxDtpCfg);
@@ -182,20 +179,20 @@ bool_t xDtpReceive(dtp_t *pxDtp, du_t *pxDu)
 {
     seqNum_t xSeqNum;
     seqNum_t xLWE;
-    bool_t xRtxCtrl = false;
-    seqNum_t xMaxSduGap;
-    struct efcp_t *pxEfcp = 0;
+    /*bool_t xRtxCtrl = false;*/
+    /*seqNum_t xMaxSduGap;*/
+    /*struct efcp_t *pxEfcp = 0;*/
 
     RsAssert(pxDtp);
     RsAssert(pxDu);
 
     LOGI(TAG_DTP, "DTP receive started...");
 
-    pxEfcp = pxDtp->pxEfcp;
+    /*pxEfcp = pxDtp->pxEfcp;*/
 
     xLWE = pxDtp->xDtpStateVector.xRcvLeftWindowEdge;
 
-    xMaxSduGap = pxDtp->xDtpCfg.xMaxSduGap;
+    /*xMaxSduGap = pxDtp->xDtpCfg.xMaxSduGap;*/
 
     xSeqNum = PCI_GET(pxDu, PCI_SEQ_NO);
 
@@ -257,7 +254,7 @@ bool_t xDtpReceive(dtp_t *pxDtp, du_t *pxDu)
 
 bool_t xDtpDestroy(dtp_t *pxDtp)
 {
-    dtcp_t *pxDtcp = NULL;
+    /*dtcp_t *pxDtcp = NULL;*/
 
     RsAssert(pxDtp);
 

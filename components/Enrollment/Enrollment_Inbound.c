@@ -135,9 +135,7 @@ void *xEnrollmentInboundProcess(void *pvArg) {
 
     fail:
 
-    { rsErrInfo_t *pxErrInfo = NULL;
-
-        if (xErrorGet()) {
+    {   if (xErrorGet()) {
             vErrorLog(TAG_ENROLLMENT, "Inbound Enrollment Process");
             vErrorClear();
         }

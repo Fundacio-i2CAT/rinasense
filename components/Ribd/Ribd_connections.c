@@ -54,7 +54,6 @@ rsMemErr_t xRibConnectionAdd(Ribd_t *pxRibd, rname_t *pxSrc, rname_t *pxDst, por
 appConnection_t *pxRibConnectionFind(Ribd_t *pxRibd, portId_t unPort)
 {
     num_t x = 0;
-    appConnection_t *pxAppConnection;
 
     RsAssert(pxRibd);
 

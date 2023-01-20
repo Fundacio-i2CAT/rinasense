@@ -349,7 +349,6 @@ rsErr_t xRibNormalIncoming(Ribd_t *pxRibd,
                            messageCdap_t *pxDecodeCdap,
                            portId_t unPort)
 {
-    bool_t ret = true;
     appConnection_t *pxAppCon;
     rsErr_t xStatus;
 
@@ -400,7 +399,6 @@ rsErr_t xRibNormalIncoming(Ribd_t *pxRibd,
 
     default:
         LOGE(TAG_RIB, "Unhandled CDAP message type: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
-        ret = false;
         break;
     }
 
@@ -419,7 +417,6 @@ rsErr_t prvRibNormalOutgoing(Ribd_t *pxRibd,
 {
     serObjectValue_t xSerVal = {0};
     RINAStackEvent_t xEv;
-    rsErr_t xStatus;
     du_t *pxDu;
 
     LOGI(TAG_RIB, "Sending the CDAP Message to the RMT");
@@ -512,8 +509,6 @@ rsErr_t xRibCommonInit(Ribd_t *pxRibd)
 
 rsErr_t xRibNormalInit(Ribd_t *pxRibd)
 {
-    size_t unSz;
-
     pxRibd->fnRibInput = &xRibNormalIncoming;
     pxRibd->fnRibOutput = &prvRibNormalOutgoing;
     pxRibd->xDoLock = true;

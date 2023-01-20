@@ -66,12 +66,7 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif,
                                                     string_t pcLocalApp,
                                                     uint8_t Flags)
 {
-    rname_t *xDn, *xAppn, *xDan;
     registerApplicationHandle_t *xRegAppRequest;
-    RINAStackEvent_t xStackAppRegistrationEvent = {
-        .eEventType = eStackAppRegistrationEvent,
-        .xData.PV = NULL
-    };
 
     xRegAppRequest = pvRsMemAlloc(sizeof(registerApplicationHandle_t));
     if (!xRegAppRequest) {
@@ -261,7 +256,6 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
 bool_t RINA_flowStatus(portId_t xAppPortId)
 {
     struct ipcpInstance_t *pxIpcp;
-    bool_t xStatus;
 
     RsAssert((pxIpcp = pxIpcManagerFindByType(&xIpcManager, eNormal)));
 
@@ -271,10 +265,6 @@ bool_t RINA_flowStatus(portId_t xAppPortId)
 bool_t prvConnect(flowAllocator_t *pxFA, flowAllocateHandle_t *pxFlowAllocateRequest)
 {
     bool_t xResult = 0;
-    RINAStackEvent_t xStackFlowAllocateEvent = {
-        .eEventType = eStackFlowAllocateEvent,
-        .xData.PV = NULL
-    };
 
     if (pxFlowAllocateRequest == NULL) {
         LOGE(TAG_RINA, "No flow request passed");
@@ -399,9 +389,8 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
 size_t RINA_flow_write(portId_t unPort, void *pvBuffer, size_t uxTotalDataLength)
 {
     netbuf_t *pxNb;
-    void *pvCopyDest;
     struct RsTimeOut xTimeOut;
-    useconds_t xTimeToWait, xTimeDiff;
+    useconds_t xTimeToWait;
     RINAStackEvent_t xTxEvent = {
         .eEventType = eRinaTxEvent,
         .xData.PV = NULL
@@ -479,7 +468,6 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
     bool_t xTimed = false;
     struct RsTimeOut xTimeOut;
     int32_t lDataLength;
-    size_t uxPayloadLength, unIdx;
 
     /* Validate if the flow is valid, if the xPortId is working status
        CONNECTED */
@@ -540,7 +528,6 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
             pthread_mutex_unlock(&mux);
 
             lDataLength = unNetBufTotalSize(pxNb);
-            unIdx = 0;
 
             unNetBufRead(pxNb, pvBuffer, 0, lDataLength);
             vNetBufFree(pxNb);

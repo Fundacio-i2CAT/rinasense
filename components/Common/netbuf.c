@@ -291,7 +291,7 @@ size_t unNetBufRead(netbuf_t *pxNb, void *pvBuffer, size_t unRdOff, size_t unSzB
 
 void vNetBufAppend(netbuf_t *pxNbLeft, netbuf_t *pxNbRight)
 {
-    netbuf_t *pxNbLeftLast = NULL, *pxNbPrev;
+    netbuf_t *pxNbLeftLast = NULL;
 
     RsAssert(!pxNbLeft->xFreed);
 

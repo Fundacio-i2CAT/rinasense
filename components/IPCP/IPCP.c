@@ -41,11 +41,6 @@ static bool_t xIPCPTaskInitialised = false;
  * down (connected, not connected) respectively. */
 static bool_t xNetworkUp = false;
 
-/** @brief Used to ensure network down events cannot be missed when they cannot be
- * posted to the network event queue because the network event queue is already
- * full. */
-static volatile bool_t xNetworkDownEventPending = false;
-
 /** @brief Stores the handle of the task that handles the stack.  The handle is used
  * (indirectly) by some utility function to determine if the utility function is
  * being called by a task (in which case it is ok to block) or by the IPCP task
@@ -98,7 +93,9 @@ static void prvIPCPTimerStart(IPCPTimer_t *pxTimer, useconds_t xTimeUS);
 
 static bool_t prvIPCPTimerCheck(IPCPTimer_t *pxTimer);
 
+#if 0
 static void prvIPCPTimerReload(IPCPTimer_t *pxTimer, useconds_t xTimeUS);
+#endif
 
 /*
  * Returns true if the IP task has been created and is initialised.  Otherwise
@@ -146,10 +143,8 @@ bool_t xIPCPTaskReady(void)
 static void *prvIPCPTask(void *pvParameters)
 {
     RINAStackEvent_t xEv;
-    struct timespec xNextIPCPSleep;
     flowAllocateHandle_t *pxFlowAllocateHandle;
     useconds_t xSleepTimeUS;
-    Ribd_t xRibd;
 
     /* Just to prevent compiler warnings about unused parameters. */
     (void)pvParameters;
@@ -655,6 +650,7 @@ static void prvIPCPTimerStart(IPCPTimer_t *pxTimer, useconds_t xTimeUS)
 }
 /*-----------------------------------------------------------*/
 
+#if 0
 /**
  * @brief Sets the reload time of an IP timer and restarts it.
  *
@@ -666,6 +662,7 @@ static void prvIPCPTimerReload(IPCPTimer_t *pxTimer, useconds_t xTimeUS)
     pxTimer->ulReloadTimeUS = xTimeUS;
     prvIPCPTimerStart(pxTimer, xTimeUS);
 }
+#endif
 
 /*-----------------------------------------------------------*/
 /**

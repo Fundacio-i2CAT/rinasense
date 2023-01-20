@@ -44,6 +44,7 @@ struct normalFlow_t
 
 /* REVIEWED/REFACTORED CODE STARTS HERE */
 
+#if 0
 static struct normalFlow_t *prvFindFlowCepid(struct ipcpInstanceData_t *pxData, cepId_t xCepId)
 {
     struct normalFlow_t *pxFlow;
@@ -71,6 +72,7 @@ static struct normalFlow_t *prvFindFlowCepid(struct ipcpInstanceData_t *pxData, 
 
     return NULL;
 }
+#endif
 
 static struct normalFlow_t *prvNormalFindFlow(struct ipcpInstanceData_t *pxData,
                                               portId_t xPortId)
@@ -120,8 +122,6 @@ cepId_t xNormalConnectionCreateRequest(struct ipcpInstance_t *pxIpcp,
                                        dtcpConfig_t *pxDtcpCfg)
 {
     cepId_t xCepId;
-    struct normalFlow_t *pxFlow;
-    struct cepIdsEntry_t *pxCepEntry;
 
     RsAssert(pxIpcp);
     RsAssert(pxEfcpc);
@@ -264,6 +264,7 @@ bool_t xNormalDuWrite(struct ipcpInstance_t *pxIpcp,
     return true;
 }
 
+#if 0
 static bool_t xNormalConnectionDestroy(struct ipcpInstanceData_t *pxData, cepId_t xSrcCepId)
 {
     struct normalFlow_t *pxFlow;
@@ -299,6 +300,7 @@ static bool_t xNormalConnectionDestroy(struct ipcpInstanceData_t *pxData, cepId_
 
     return true;
 }
+#endif
 
 /**
  * @brief Flow binding the N-1 Instance and the Normal IPCP by the
@@ -486,8 +488,6 @@ bool_t xNormalConnectionModify(struct ipcpInstance_t *pxIpcp,
                                address_t xSrc,
                                address_t xDst)
 {
-    struct efcpContainer_t *pxEfcpContainer;
-
     if (!xEfcpConnectionModify(&pxIpcp->pxData->xEfcpContainer, xCepId, xSrc, xDst))
         return false;
 
@@ -616,12 +616,10 @@ xNormalConnectionCreateRequest(pxNormalInstance->pxData, xPortId,
 #endif
 
 
+#if 0
 static bool_t prvRemoveCepIdFromFlow(struct normalFlow_t *pxFlow,
                                      cepId_t xCepId)
 {
-#if 0
-        
-
         ESP_LOGI(TAG_IPCPNORMAL, "Finding a Flow in the normal IPCP list");
 
         struct normalFlow_t *pxFlow;
@@ -679,9 +677,9 @@ static bool_t prvRemoveCepIdFromFlow(struct normalFlow_t *pxFlow,
                 }
         }
         return -1;
-#endif
         return false;
 }
+#endif
 
 static struct ipcpInstanceOps_t xNormalInstanceOps = {
     .flowAllocateRequest = NULL,
@@ -736,9 +734,6 @@ struct ipcpInstance_t *pxNormalCreate(ipcProcessId_t unIpcpId)
 {
     struct ipcpInstance_t *pxIpcp;
     struct ipcpInstanceData_t *pxData;
-    struct rmt_t *pxRmt;
-    struct efcpContainer_t *pxEfcp;
-    flowAllocator_t *pxFA;
 
     pxIpcp = pvRsMemCAlloc(1, sizeof(struct ipcpInstance_t));
     pxData = pvRsMemCAlloc(1, sizeof(struct ipcpInstanceData_t));

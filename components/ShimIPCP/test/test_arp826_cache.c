@@ -29,7 +29,7 @@ RS_TEST_CASE_TEARDOWN(test_arp826_cache) {}
 RS_TEST_CASE(ARPCacheAddRemove, "[arp]")
 {
     gpa_t *gpa1, *gpa2;
-    gha_t *gha1, *gha2;
+    gha_t *gha1;
     string_t addr1 = "1|2|3|4";
     string_t addr2 = "2|3|4|5";
     eARPLookupResult_t r;

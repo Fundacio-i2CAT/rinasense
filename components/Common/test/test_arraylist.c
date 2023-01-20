@@ -35,7 +35,6 @@ void AddIntegersAndCheck(arraylist_t *pxLst)
 RS_TEST_CASE(ArrayListSimple, "[arraylist]")
 {
     arraylist_t xLst;
-    int i1 = 1, i2 = 2, i3 = 3;
 
     TEST_ASSERT(!ERR_CHK_MEM(xArrayListInit(&xLst, sizeof(int), 10, NULL)));
     AddIntegersAndCheck(&xLst);
@@ -44,7 +43,6 @@ RS_TEST_CASE(ArrayListSimple, "[arraylist]")
 RS_TEST_CASE(ArrayListResize, "[arraylist]")
 {
     arraylist_t xLst;
-    int i1 = 1, i2 = 2, i3 = 3;
 
     TEST_ASSERT(!ERR_CHK_MEM(xArrayListInit(&xLst, sizeof(int), 1, NULL)));
     AddIntegersAndCheck(&xLst);
@@ -53,7 +51,6 @@ RS_TEST_CASE(ArrayListResize, "[arraylist]")
 RS_TEST_CASE(ArrayListResizePool, "[arraylist]")
 {
     arraylist_t xLst;
-    int i1 = 1, i2 = 2, i3 = 3;
     rsrcPoolP_t xPool;
 
     TEST_ASSERT((xPool = pxRsrcNewVarPool("ArrayListResizePool", 0)));
