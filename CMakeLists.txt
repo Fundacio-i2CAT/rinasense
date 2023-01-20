@@ -29,7 +29,7 @@ if("${TARGET_TYPE}" STREQUAL "" OR "${TARGET_TYPE}" STREQUAL "freertos_idf")
 else()
   if(${TARGET_TYPE} STREQUAL "arduino_esp32")
     # This really needs to be set before the call to project()
-    set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_LIST_DIR}/Arduino-CMake-Toolchain/Arduino-toolchain.cmake)
+    set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_LIST_DIR}/external/Arduino-CMake-Toolchain/Arduino-toolchain.cmake)
   endif()
 
   project(RINA_sensor)
@@ -175,6 +175,6 @@ else()
 
     # We do not want the 'install()' function to work at all anymore.
     rs_disable_install()
-    add_subdirectory(unity)
+    add_subdirectory(external/unity)
   endif()
 endif()
