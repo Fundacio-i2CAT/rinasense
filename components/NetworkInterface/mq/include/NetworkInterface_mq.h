@@ -15,4 +15,6 @@ long xMqNetworkInterfaceOutputCount();
 /* Flush the output queue. */
 void xMqNetworkInterfaceOutputDiscard();
 
+void xMqNetworkInterfaceSetHandler(void (*fn)(struct ipcpInstance_t *pxSelf, netbuf_t *pxNb));
+
 #endif // _NETWORK_INTERFACE_MQ

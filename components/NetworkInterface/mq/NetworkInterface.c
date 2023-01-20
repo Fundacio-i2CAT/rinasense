@@ -43,6 +43,8 @@ static char sMac[MAC2STR_MIN_BUFSZ] = { 0 };
 static char sInQueueName[QUEUE_NAME_MIN_BUFSZ] = { 0 };
 static char sOutQueueName[QUEUE_NAME_MIN_BUFSZ] = { 0 };
 
+rsrcPoolP_t xNbPool;
+
 static struct mq_attr mqInitAttr = {
     .mq_flags = 0,
     .mq_maxmsg = 6,
@@ -50,11 +52,12 @@ static struct mq_attr mqInitAttr = {
     .mq_curmsgs = 0
 };
 
+void (*fnHandler)(struct ipcpInstance_t *pxSelf, netbuf_t *pxNb);
+
 struct ipcpInstance_t *pxSelf;
 
 /* Test API */
 
-#ifdef ESP_PLATFORM
 pthread_t xNotifyThreadID;
 
 void *xNotifyThread() {
@@ -93,7 +96,6 @@ void vCreateNotifyThread() {
 
     pthread_attr_destroy(&attr);
 }
-#endif
 
 long xMqNetworkInterfaceOutputCount()
 {
@@ -153,42 +155,24 @@ bool_t xMqNetworkInterfaceWriteInput(string_t data, size_t sz)
     return true;
 }
 
-/* Event handler */
-
-#ifndef ESP_PLATFORM
-static void event_handler(union sigval sv)
+void xMqNetworkInterfaceSetHandler(void (*fn)(struct ipcpInstance_t *pxSelf, netbuf_t *pxNb))
 {
-    struct mq_attr mqattr;
-    char *buf;
-
-    if (mq_getattr(mqIn, &mqattr) < 0)
-        LOGE(TAG_WIFI, "Failed to get size inbound packet");
-
-    buf = pvRsMemAlloc(mqattr.mq_msgsize);
-
-    if (mq_receive(mqIn, buf, mqattr.mq_msgsize, NULL) < 0)
-        LOGE(TAG_WIFI, "Failed to read inbound packet");
-
-    LOGD(TAG_WIFI, "Received %lu bytes for the RINA stack", mqattr.mq_msgsize);
-
-    if (!xNetworkInterfaceInput(buf, mqattr.mq_msgsize, NULL))
-        LOGE(TAG_WIFI, "RX processing failed");
-
-    vRsMemFree(buf);
+    fnHandler = fn;
 }
-#endif // ESP_PLATFORM
 
 /* Public interface */
 
-bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev)
+bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev, rsrcPoolP_t xPool)
 {
-    RsAssert(pxS);
-
     pxSelf = pxS;
+    xNbPool = xPool;
 
     /* Save the MAC address to use as queue names. */
     if (pxPhyDev)
         mac2str(pxPhyDev, sMac, sizeof(sMac));
+
+    /* Set the default handler to go through the IPCP */
+    xMqNetworkInterfaceSetHandler(&vShimHandleEthernetPacket);
 
     return true;
 }
@@ -207,10 +191,6 @@ void prvFormatQueueName(bool_t isIn, const char *sMac, char *pxBuf, const size_t
 
 bool_t xNetworkInterfaceConnect(void)
 {
-#ifndef ESP_PLATFORM
-    struct sigevent se;
-#endif
-
     prvFormatQueueName(true, sMac, sInQueueName, sizeof(sInQueueName));
     prvFormatQueueName(false, sMac, sOutQueueName, sizeof(sOutQueueName));
 
@@ -230,29 +210,7 @@ bool_t xNetworkInterfaceConnect(void)
         goto err;
     }
 
-#ifdef ESP_PLATFORM
-    /* mq_notify isn't support on ESP32 so we'll create a thread to do
-     * the same job. */
     vCreateNotifyThread();
-#else
-    /* Use mq_notify on POSIX because it's certainly better tested
-     * than xCreateNotifyThread. */
-
-#ifndef NDEBUG
-    memset(&se, 0, sizeof(se));
-#endif
-
-    se.sigev_notify = SIGEV_THREAD;
-    se.sigev_notify_function = event_handler;
-    se.sigev_notify_attributes = NULL;
-    se.sigev_value.sival_ptr = &mqIn;
-
-    /* Get notified of INCOMING messages. */
-    if (mq_notify(mqIn, &se) == (mqd_t)-1) {
-        LOGE(TAG_WIFI, "Failed to setup notification for incoming messages");
-        goto err;
-    }
-#endif // ESP_PLATFORM
 
     LOGI(TAG_WIFI, "MQ-NetworkInterface initialized");
 
@@ -304,13 +262,14 @@ bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
     netbuf_t *pxNbFrame;
 
-    if (!(pxNbFrame = pxNetBufNew(pxSelf->pxData->pxNbPool, NB_ETH_HDR, buffer, len, NETBUF_FREE_NORMAL))) {
+    if (!(pxNbFrame = pxNetBufNew(xNbPool, NB_ETH_HDR, buffer, len, NETBUF_FREE_NORMAL))) {
         LOGE(TAG_WIFI, "Failed to allocate netbuf for incoming message");
         vRsMemFree(buffer);
         return false;
     }
 
-    vShimHandleEthernetPacket(pxSelf, pxNbFrame);
+    if (fnHandler)
+        fnHandler(pxSelf, pxNbFrame);
 
     return true;
 }

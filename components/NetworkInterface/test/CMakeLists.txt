@@ -1,8 +1,4 @@
-if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
-  idf_component_register(SRC_DIRS "."
-    INCLUDE_DIRS "."
-    REQUIRES unity Common mock_IPCP)
-else()
+if("$ENV{TARGET_TYPE}" STREQUAL "linux" OR "${TARGET}" STREQUAL "linux")
   add_executable(test_networkinterface_io "${CMAKE_CURRENT_LIST_DIR}/test_networkinterface_io.c")
   target_include_directories(test_networkinterface_io PUBLIC
     ${mock_IPCP_INCLUDES}

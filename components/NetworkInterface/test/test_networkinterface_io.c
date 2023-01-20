@@ -16,20 +16,28 @@
 #include "unity.h"
 #include "common/unity_fixups.h"
 
-const MACAddress_t mac = {
+MACAddress_t mac = {
     {1, 2, 3, 4, 5, 6}
 };
 
+rsrcPoolP_t xPool;
 
+netbuf_t *pxNb;
+
+void mqHandler(struct ipcpInstance_t *pxItsNull, netbuf_t *px)
+{
+    pxNb = px;
+}
 
 RS_TEST_CASE_SETUP(test_networkinterface_io) {
     TEST_ASSERT(xMockIPCPInit());
-    TEST_ASSERT(xNetworkInterfaceInitialise(NULL, NULL));
+    TEST_ASSERT((xPool = xNetBufNewPool("test_networkinterface_io")));
+    TEST_ASSERT(xNetworkInterfaceInitialise(NULL, &mac, xPool));
     TEST_ASSERT(xNetworkInterfaceConnect());
 
-    TEST_ASSERT((xPool = xNetBufNewPool("test_networkinterface_io")));
+    xMqNetworkInterfaceSetHandler(&mqHandler);
 
-    sleep(1);
+    usleep(200000);
 }
 
 RS_TEST_CASE_TEARDOWN(test_networkinterface_io) {
@@ -42,13 +50,18 @@ RS_TEST_CASE_TEARDOWN(test_networkinterface_io) {
 RS_TEST_CASE(MqInterfaceRead, "[mq]")
 {
     char dataIn[1500] = "12345";
+    char dataOut[1500];
     RINAStackEvent_t *ev;
 
     RS_TEST_CASE_BEGIN(test_networkinterface_io);
 
-    TEST_ASSERT((xMqNetworkInterfaceWriteInput(dataIn, sizeof(dataIn))));
-    TEST_ASSERT((ev = pxMockGetLastSentEvent()) != NULL);
-    TEST_ASSERT(ev->eEventType == eNetworkRxEvent);
+    xMqNetworkInterfaceWriteInput(dataIn, sizeof(dataIn));
+
+    usleep(2000000);
+
+    TEST_ASSERT(pxNb != NULL);
+    TEST_ASSERT(unNetBufRead(pxNb, dataOut, 0, sizeof(dataOut)) > 0);
+    TEST_ASSERT(memcmp(dataIn, dataOut, strlen(dataIn)) == 0);
 
     RS_TEST_CASE_END(test_networkinterface_io);
 }
@@ -66,7 +79,7 @@ RS_TEST_CASE(MqInterfaceWrite, "[mq]")
     xMqNetworkInterfaceOutputDiscard();
 
     TEST_ASSERT((pxNb = pxNetBufNew(xPool, NB_UNKNOWN, (buffer_t)dataIn, sizeof(dataIn), NETBUF_FREE_DONT)));
-    TEST_ASSERT(xNetworkInterfaceOutput(pxNb))
+    TEST_ASSERT(xNetworkInterfaceOutput(pxNb));
     TEST_ASSERT(xMqNetworkInterfaceReadOutput(dataOut, sizeof(dataOut), NULL) > 0);
     TEST_ASSERT(dataOut[3] == dataIn[3]);
 
@@ -76,9 +89,9 @@ RS_TEST_CASE(MqInterfaceWrite, "[mq]")
 #ifndef TEST_CASE
 int main()
 {
-    UNITY_BEGIN();
+    RS_SUITE_BEGIN();
     RS_RUN_TEST(MqInterfaceWrite);
     RS_RUN_TEST(MqInterfaceRead);
-    exit(UNITY_END());
+    RS_SUITE_END();
 }
 #endif

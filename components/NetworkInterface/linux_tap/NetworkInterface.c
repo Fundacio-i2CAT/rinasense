@@ -84,6 +84,8 @@ const MACAddress_t *pxMacAddr;
  * it to the shim when we receive packets. */
 struct ipcpInstance_t *pxSelf;
 
+rsrcPoolP_t xNbPool;
+
 bool_t prvLinuxGetMac(string_t sTapName, MACAddress_t *pxMac)
 {
     int fd = -1;
@@ -479,7 +481,7 @@ struct iovec *prvNetBufToIovec(netbuf_t *pxNb) {
 
 /* Public interface */
 
-bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev)
+bool_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev, rsrcPoolP_t xNbPool)
 {
     pxSelf = pxS;
 
@@ -670,7 +672,7 @@ bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
     memcpy(pvFrame, buffer, len);
 
-    if (!(pxNbFrame = pxNetBufNew(pxSelf->pxData->pxNbPool, NB_ETH_HDR, pvFrame, len, NETBUF_FREE_NORMAL))) {
+    if (!(pxNbFrame = pxNetBufNew(xNbPool, NB_ETH_HDR, pvFrame, len, NETBUF_FREE_NORMAL))) {
         LOGE(TAG_WIFI, "Failed to allocate netbuf for incoming message");
         vRsMemFree(pvFrame);
         return false;

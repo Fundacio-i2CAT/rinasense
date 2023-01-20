@@ -32,8 +32,8 @@ else()
       "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
       "${CMAKE_SOURCE_DIR}/components/NetworkInterface/mq/include"
 
-      # TEST_DIR
-      # "${CMAKE_SOURCE_DIR}/components/NetworkInterface/test"
+      TEST_DIR
+      "${CMAKE_SOURCE_DIR}/components/NetworkInterface/test"
 
       REQUIRES
       Common configRINA IPCP Rmt

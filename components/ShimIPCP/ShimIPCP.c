@@ -327,7 +327,7 @@ static eFrameProcessingResult_t prvShimHandleRinaFrame(struct ipcpInstance_t *px
 bool_t xShimStart(struct ipcpInstance_t *pxSelf)
 {
     /* Initialization of the network interface. */
-	if (xNetworkInterfaceInitialise(pxSelf, &pxSelf->pxData->xPhyDev)) {
+	if (xNetworkInterfaceInitialise(pxSelf, &pxSelf->pxData->xPhyDev, pxSelf->pxData->pxNbPool)) {
 
 		/* Initialize ARP Cache */
 		if (!xARPInit(&pxSelf->pxData->xARP)) {

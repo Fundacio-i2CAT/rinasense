@@ -66,6 +66,8 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb);
  * it to the shim when we receive packets. */
 struct ipcpInstance_t *pxSelf;
 
+rsrcPoolP_t xNbPool;
+
 // NetworkBufferDescriptor_t * pxNetworkBuffer;
 
 static void event_handler(void *arg, esp_event_base_t event_base,
@@ -115,10 +117,12 @@ static void event_handler(void *arg, esp_event_base_t event_base,
  *  Mac address variable in the ShimIPCP.h
  *  Return a Boolean pdTrue or pdFalse
  * */
-BaseType_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev)
+BaseType_t xNetworkInterfaceInitialise(struct ipcpInstance_t *pxS, MACAddress_t *pxPhyDev, rsrcPoolP_t xPool)
 {
-    pxSelf = pxS;
     stringbuf_t pcMac[MAC2STR_MIN_BUFSZ];
+
+    pxSelf = pxS;
+    xNbPool = xPool;
 
     /* This is supposed to only returns an error if the argument is an
      * invalid address. */
@@ -339,7 +343,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
         return ESP_OK;
     }
 
-    if (!(pxNbFrame = pxNetBufNew(pxSelf->pxData->pxNbPool, NB_ETH_HDR, buffer, len, &vNetBufFreeESP32))) {
+    if (!(pxNbFrame = pxNetBufNew(xNbPool, NB_ETH_HDR, buffer, len, &vNetBufFreeESP32))) {
         LOGE(TAG_WIFI, "Failed to allocate netbuf for incoming message");
         return ESP_OK;
     }
