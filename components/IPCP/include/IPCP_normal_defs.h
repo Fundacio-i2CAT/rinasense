@@ -5,6 +5,12 @@
 #include "common/rina_name.h"
 #include "common/list.h"
 
+#include "FlowAllocator_api.h"
+#include "FlowAllocator_defs.h"
+#include "Ribd_api.h"
+#include "Enrollment_api.h"
+#include "efcpStructures.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,15 +24,31 @@ typedef enum eNormal_Flow_State
     ePORT_STATE_DISABLED
 } eNormalFlowState_t;
 
+#ifndef IPCP_INSTANCE_DATA_TYPE
+#define IPCP_INSTANCE_DATA_TYPE "normal"
+
+/**
+ * This is the instance data for the NORMAL IPC.
+ */
 struct ipcpInstanceData_t
 {
-    /* FIXME: add missing needed attributes */
+#ifndef NDEBUG
+    /* Used to assert on the type of instance data we're address is
+     * correct. */
+    uint8_t unInstanceDataType;
+#endif
+
+    /* Pool */
+    rsrcPoolP_t xPciPool;
+
+    /* IPCP instance interface. */
+    struct ipcpInstance_t *pxIpcp;
 
     /* IPCP Instance's Name */
-    name_t *pxName;
+    rname_t xName;
 
     /* IPCP Instance's DIF Name */
-    name_t *pxDifName;
+    rname_t xDifName;
 
     /* IPCP Instance's List of Flows created */
     RsList_t xFlowsList;
@@ -35,10 +57,19 @@ struct ipcpInstanceData_t
     // struct kfa *            kfa;
 
     /* Efcp Container asociated at the IPCP Instance */
-    struct efcpContainer_t *pxEfcpc;
+    struct efcpContainer_t xEfcpContainer;
 
     /* RMT asociated at the IPCP Instance */
-    struct rmt_t *pxRmt;
+    struct rmt_t xRmt;
+
+    /* Enrollment component */
+    Enrollment_t xEnrollment;
+
+    /* Flow allocator associated to the IPCP instance. */
+    flowAllocator_t xFA;
+
+    /* RIB object */
+    Ribd_t xRibd;
 
     /* SDUP asociated at the IPCP Instance */
     // struct sdup *           sdup;
@@ -47,6 +78,10 @@ struct ipcpInstanceData_t
 
     // ipcManager_t *pxIpcManager;
 };
+
+#else
+#error An #include mishap happened: IPCP_INSTANCE_DATA_TYPE is already defined!
+#endif
 
 #ifdef __cplusplus
 }

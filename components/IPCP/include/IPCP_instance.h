@@ -33,8 +33,8 @@ struct ipcpInstanceData_t;
 
 typedef enum TYPE_IPCP_INSTANCE
 {
-    eShimWiFi = 0,
-    eNormal
+    eShimWiFi = 1,
+    eNormal = 2
 
 } ipcpInstanceType_t;
 
@@ -56,61 +56,73 @@ struct ipcpInstance_t
 /* Operations available in an IPCP*/
 struct ipcpInstanceOps_t
 {
-    bool_t (*flowAllocateRequest)(struct ipcpInstanceData_t *pxData,
-                                      name_t *pxSource,
-                                      name_t *pxDest,
-                                      // struct flowSpec_t *    		pxFlowSpec,
-                                      portId_t xId);
-    bool_t (*flowAllocateResponse)(struct ipcpInstanceData_t *pxData,
-                                       portId_t xPortId
-                                       /*int                         Result*/);
-    bool_t (*flowDeallocate)(struct ipcpInstanceData_t *pxData,
-                                 portId_t xId);
+    /* Lifecycle functions. */
 
-    bool_t (*applicationRegister)(struct ipcpInstanceData_t *pxData,
-                                      name_t *pxSource,
-                                      name_t *pxDafName);
-    bool_t (*applicationUnregister)(struct ipcpInstanceData_t *pxData,
-                                        const name_t *pxSource);
+    bool_t (*start)(struct ipcpInstance_t *pxIpcp);
 
-    bool_t (*assignToDif)(struct ipcpInstanceData_t *pxData,
-                              const name_t *pxDifName,
-                              const string_t *type
-                              /*dif_config * config*/);
+    bool_t (*stop)(struct ipcpInstance_t *pxIpcp);
 
-    bool_t (*updateDifConfig)(struct ipcpInstanceData_t *data
-                                  /*const struct dif_config *   configuration*/);
+    bool_t (*enable)(struct ipcpInstance_t *pxIpcp);
+
+    bool_t (*disable)(struct ipcpInstance_t *pxIpcp);
+
+    /* Protocol functions */
+
+    bool_t (*flowAllocateRequest)(struct ipcpInstance_t *pxIpcp,
+                                  rname_t *pxSource,
+                                  rname_t *pxDest,
+                                  // struct flowSpec_t *    		pxFlowSpec,
+                                  portId_t xId);
+    bool_t (*flowAllocateResponse)(struct ipcpInstance_t *pxIpcp,
+                                   portId_t xPortId
+                                   /*int                         Result*/);
+    bool_t (*flowDeallocate)(struct ipcpInstance_t *pxIpcp,
+                             portId_t xId);
+
+    bool_t (*applicationRegister)(struct ipcpInstance_t *pxIpcp,
+                                  const rname_t *pxSource,
+                                  const rname_t *pxDafName);
+
+    bool_t (*applicationUnregister)(struct ipcpInstance_t *pxIpcp,
+                                    const rname_t *pxSource);
+
+    bool_t (*assignToDif)(struct ipcpInstance_t *pxIpcp,
+                          rname_t *pxDifName,
+                          const string_t *type
+                          /*dif_config * config*/);
+
+    bool_t (*updateDifConfig)(struct ipcpInstance_t *pxIpcp
+                              /*const struct dif_config *   configuration*/);
 
     /* Takes the ownership of the passed SDU */
-    bool_t (*duWrite)(struct ipcpInstanceData_t *pxData,
-                          portId_t xId,
-                          struct du_t *pxDu,
-                          bool_t uxBlocking);
+    bool_t (*duWrite)(struct ipcpInstance_t *pxIpcp,
+                      portId_t xId,
+                      du_t *pxDu,
+                      bool_t uxBlocking);
 
-    cepId_t (*connectionCreate)(struct efcpContainer_t *pxEfcpc,
-                                // struct ipcpInstance_t *      pxUserIpcp,
+    cepId_t (*connectionCreate)(struct ipcpInstance_t *pxIpcp,
+                                struct efcpContainer_t *pxEfcpc,
                                 portId_t xPortId,
                                 address_t xSource,
                                 address_t xDest,
                                 qosId_t xQosId,
                                 dtpConfig_t *dtp_config,
-                                struct dtcpConfig_t *dtcp_config);
+                                dtcpConfig_t *dtcp_config);
 
-    bool_t (*connectionUpdate)(struct ipcpInstanceData_t *pxData,
-                                   portId_t xPortId,
-                                   cepId_t xSrcId,
-                                   cepId_t xDstId);
+    bool_t (*connectionUpdate)(struct ipcpInstance_t *pxIpcp,
+                               portId_t xPortId,
+                               cepId_t xSrcId,
+                               cepId_t xDstId);
 
-    bool_t (*connectionModify)(struct ipcpInstanceData_t *pxData,
-                                   cepId_t xSrcCepId,
-                                   address_t xSrcAddress,
-                                   address_t xDstAddress);
+    bool_t (*connectionModify)(struct ipcpInstance_t *pxIpcp,
+                               cepId_t xSrcCepId,
+                               address_t xSrcAddress,
+                               address_t xDstAddress);
 
-    bool_t (*connectionDestroy)(struct ipcpInstanceData_t *pxData,
-                                    cepId_t xSrcId);
+    bool_t (*connectionDestroy)(struct ipcpInstance_t *pxIpcp,
+                                cepId_t xSrcId);
 
-    cepId_t (*connectionCreateArrived)(struct ipcpInstanceData_t *pxData,
-                                       struct ipcpInstance_t *pxUserIpcp,
+    cepId_t (*connectionCreateArrived)(struct ipcpInstance_t *pxIpcp,
                                        portId_t xPortId,
                                        address_t xSource,
                                        address_t xDest,
@@ -120,38 +132,40 @@ struct ipcpInstanceOps_t
                                        struct dtcp_config *        dtcp_config*/
     );
 
-    bool_t (*flowPrebind)(struct ipcpInstanceData_t *pxData,
+    bool_t (*flowPrebind)(struct ipcpInstance_t *pxIpcp,
                           flowAllocateHandle_t *pxFlowHandle);
 
-    bool_t (*flowBindingIpcp)(struct ipcpInstanceData_t *pxUserData,
-                                  portId_t xPortId,
-                                  struct ipcpInstance_t *xN1Ipcp);
+    bool_t (*flowBindingIpcp)(struct ipcpInstance_t *pxIpcp,
+                              portId_t xPortId,
+                              struct ipcpInstance_t *pxN1Ipcp);
 
-    bool_t (*flowUnbindingIpcp)(struct ipcpInstanceData_t *pxUserData,
+    bool_t (*flowUnbindingIpcp)(struct ipcpInstance_t *pxIpcp,
+                                portId_t xPortId);
+
+    bool_t (*flowUnbindingUserIpcp)(struct ipcpInstance_t *pxIpcp,
                                     portId_t xPortId);
-    bool_t (*flowUnbindingUserIpcp)(struct ipcpInstanceData_t *pxUserData,
-                                        portId_t xPortId);
-    bool_t (*nm1FlowStateChange)(struct ipcpInstanceData_t *pxData,
+
+    bool_t (*nm1FlowStateChange)(struct ipcpInstance_t *pxIpcp,
                                      portId_t xPortId, bool_t up);
 
-    bool_t (*duEnqueue)(struct ipcpInstanceData_t *pxData,
-                            portId_t xId,
-                            struct du_t *pxDu);
+    bool_t (*duEnqueue)(struct ipcpInstance_t *pxIpcp,
+                        portId_t xId,
+                        du_t *pxDu);
 
     /* Takes the ownership of the passed sdu */
-    bool_t (*mgmtDuWrite)(struct ipcpInstanceData_t *pxData,
-                              portId_t xPortId,
-                              struct du_t *pxDu);
+    bool_t (*mgmtDuWrite)(struct ipcpInstance_t *pxIpcp,
+                          portId_t xPortId,
+                          du_t *pxDu);
 
     /* Takes the ownership of the passed sdu */
-    bool_t (*mgmtDuPost)(struct ipcpInstanceData_t *pxData,
-                             portId_t xPortId,
-                             struct du_t *xDu);
+    bool_t (*mgmtDuPost)(struct ipcpInstance_t *pxIpcp,
+                         portId_t xPortId,
+                         du_t *xDu);
 
-    bool_t (*pffAdd)(struct ipcpInstanceData_t *pxData
+    bool_t (*pffAdd)(struct ipcpInstance_t *pxIpcp
                          /*struct mod_pff_entry	  * pxEntry*/);
 
-    bool_t (*pffRemove)(struct ipcpInstanceData_t *pxData
+    bool_t (*pffRemove)(struct ipcpInstance_t *pxIpcp
                             /*struct mod_pff_entry	  * pxEntry*/);
 
     /*int (* pff_dump)(struct ipcp_instance_data * data,
@@ -170,8 +184,8 @@ struct ipcpInstanceOps_t
                       uint32_t                    scope,
                       const string_t *            filter);*/
 
-    const name_t *(*ipcpName)(struct ipcpInstanceData_t *pxData);
-    const name_t *(*difName)(struct ipcpInstanceData_t *pxData);
+    const rname_t *(*ipcpName)(struct ipcpInstance_t *pxIpcp);
+    const rname_t *(*difName)(struct ipcpInstance_t *pxIpcp);
     /*ipc_process_id_t (* ipcp_id)(ipcpInstanceData_t * pxData);
 
     int (* set_policy_set_param)(struct ipcp_instance_data * data,
@@ -186,8 +200,8 @@ struct ipcpInstanceOps_t
                     struct sdup_crypto_state * state,
                         port_id_t 	   port_id);*/
 
-    bool_t (*enableWrite)(struct ipcpInstanceData_t *pxData, portId_t xId);
-    bool_t (*disableWrite)(struct ipcpInstanceData_t *pxData, portId_t xId);
+    bool_t (*enableWrite)(struct ipcpInstance_t *pxData, portId_t xId);
+    bool_t (*disableWrite)(struct ipcpInstance_t *pxIpcp, portId_t xId);
 
     /*
      * Start using new address after first timeout, deprecate old

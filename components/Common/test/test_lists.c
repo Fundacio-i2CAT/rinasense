@@ -1,4 +1,5 @@
 #include <stdio.h>
+
 #include "portability/port.h"
 #include "common/list.h"
 
@@ -27,6 +28,29 @@ void addBogusItems(RsList_t *lst)
     vRsListInitItem(&(i2.item), &i2);
     vRsListInsert(lst, &i1.item);
     vRsListInsert(lst, &i2.item);
+}
+
+void addBogusDynamicItems(RsList_t *lst)
+{
+    struct item *i1, *i2, *i3;
+
+    vRsListInit(lst);
+
+    RsAssert((i1 = pvRsMemAlloc(sizeof(struct item))));
+    RsAssert((i2 = pvRsMemAlloc(sizeof(struct item))));
+    RsAssert((i3 = pvRsMemAlloc(sizeof(struct item))));
+
+    i1->n = 1;
+    i2->n = 3;
+    i3->n = 100;
+
+    vRsListInitItem(&(i1->item), i1);
+    vRsListInitItem(&(i2->item), i2);
+    vRsListInitItem(&(i3->item), i3);
+
+    vRsListInsert(lst, &i1->item);
+    vRsListInsert(lst, &i2->item);
+    vRsListInsert(lst, &i3->item);
 }
 
 /* Test simple allocation removals. */
@@ -126,6 +150,51 @@ RS_TEST_CASE(ListIteration, "[list]")
     RS_TEST_CASE_END(test_lists);
 }
 
+RS_TEST_CASE(ListIterationRemove, "[list]")
+{
+    RsList_t lst;
+    struct item *pos;
+    RsListItem_t *pItem, *pNextItem;
+    int n = 0;
+
+    RS_TEST_CASE_BEGIN(test_lists);
+
+    addBogusDynamicItems(&lst);
+
+    pItem = pxRsListGetFirst(&lst);
+
+    /* A safe way to free all dynamic items in a list. */
+
+    while (pItem != NULL) {
+        pos = pxRsListGetItemOwner(pItem);
+        n += pos->n;
+        pNextItem = pxRsListGetNext(pItem);
+        vRsListRemove(pItem);
+        vRsMemFree(pos);
+        pItem = pNextItem;
+    }
+
+    TEST_ASSERT(n == 104);
+
+    RS_TEST_CASE_END(test_lists);
+}
+
+RS_TEST_CASE(ListGetHeadOwner, "[list]")
+{
+    RsList_t lst;
+
+    RS_TEST_CASE_BEGIN(test_lists);
+
+    addBogusItems(&lst);
+
+    TEST_ASSERT(pxRsListGetHeadOwner(&lst));
+    TEST_ASSERT(pxRsListGetHeadOwner(&lst) == &i1);
+    vRsListRemove(&i1.item);
+    TEST_ASSERT(pxRsListGetHeadOwner(&lst) == &i2);
+
+    RS_TEST_CASE_END(test_lists);
+}
+
 RS_TEST_CASE(ListIsContainedWithin, "[list]")
 {
     RsList_t lst;
@@ -147,6 +216,8 @@ int main() {
     RS_RUN_TEST(ListBasics);
     RS_RUN_TEST(ListInsertEnd);
     RS_RUN_TEST(ListIteration);
+    RS_RUN_TEST(ListGetHeadOwner);
+    RS_RUN_TEST(ListIterationRemove);
     RS_RUN_TEST(ListIsContainedWithin);
     return UNITY_END();
 }

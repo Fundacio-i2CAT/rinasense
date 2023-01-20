@@ -1,25 +1,20 @@
-
-
 #include "efcpStructures.h"
 
-struct connection_t * pxConnectionCreate(void)
+connection_t * pxConnectionCreate(void)
 {
-        struct connection_t * pxTmp;
+    connection_t * pxTmp;
 
-        pxTmp = pvRsMemAlloc(sizeof(*pxTmp));
-        if (!pxTmp)
-                return NULL;
+    pxTmp = pvRsMemAlloc(sizeof(*pxTmp));
+    if (!pxTmp)
+        return NULL;
 
-        return pxTmp;
+    return pxTmp;
 }
 
-
-
-
-bool_t xConnectionDestroy(struct connection_t * pxConn)
+bool_t xConnectionDestroy(connection_t * pxConn)
 {
-        if (!pxConn)
-                return false;
-        vRsMemFree(pxConn);
-        return true;
+    if (!pxConn)
+        return false;
+    vRsMemFree(pxConn);
+    return true;
 }

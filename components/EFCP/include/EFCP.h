@@ -10,16 +10,23 @@
 #include "pci.h"
 #include "du.h"
 #include "efcpStructures.h"
+#include "FlowAllocator_api.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-bool_t xEfcpEnqueue(struct efcp_t * pxEfcp, portId_t xPort, struct du_t * pxDu);
-bool_t xEfcpContainerReceive( struct efcpContainer_t * pxContainer, cepId_t xCepId, struct du_t * pxDu);
-bool_t xEfcpReceive(struct efcp_t * pxEfcp,  struct du_t *  pxDu);
-struct efcpContainer_t * pxEfcpContainerCreate(void);
-bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, struct du_t *pxDu);
+#define TAG_EFCP "[EFCP]"
+
+bool_t xEfcpContainerInit(struct efcpContainer_t *pxEfcpContainer, rsrcPoolP_t xPciPool);
+
+bool_t xEfcpEnqueue(struct efcp_t * pxEfcp, portId_t xPort, du_t *pxDu);
+
+bool_t xEfcpContainerReceive( struct efcpContainer_t * pxContainer, cepId_t xCepId, du_t *pxDu);
+
+bool_t xEfcpReceive(struct efcp_t * pxEfcp, du_t *pxDu);
+
+bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, du_t *pxDu);
 
 bool_t xEfcpConnectionDestroy(struct efcpContainer_t * pxContainer, cepId_t xId);
 
@@ -35,7 +42,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               cepId_t xSrcCepId,
                               cepId_t xDstCepId,
                               dtpConfig_t *pxDtpCfg,
-                              struct dtcpConfig_t *pxDtcpCfg);
+                              dtcpConfig_t *pxDtcpCfg);
 
 bool_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,
                              cepId_t xCepId,

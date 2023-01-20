@@ -9,5 +9,5 @@ message neighbor_t{   //carries information about a neighbor
         optional string aename = 3 [(nanopb).max_size = 20];
         optional string aeinstance = 4 [(nanopb).max_size = 20];
         optional uint64 address = 5;
-	repeated string supportingDifs = 6 [(nanopb).max_size = 20, (nanopb).max_count = 1];
+	repeated string supportingDifs = 6 [(nanopb).max_size = 20];
 }

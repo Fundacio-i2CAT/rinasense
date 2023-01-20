@@ -6,6 +6,8 @@
 
 #include "common/num_mgr.h"
 #include "common/rina_ids.h"
+#include "common/macros.h"
+#include "common/rsrc.h"
 #include "portability/port.h"
 
 #include "EFCP.h"
@@ -15,14 +17,14 @@
 #include "efcpStructures.h"
 #include "dtp.h"
 #include "connection.h"
-#include "configSensor.h"
 #include "IPCP_instance.h"
+#include "IPCP_normal_defs.h"
 #include "rina_common_port.h"
 #include "FlowAllocator_api.h"
 #include "configRINA.h"
 
 /* CHeck if a Connection is ok*/
-static bool_t is_candidate_connection_ok(const struct connection_t *pxConnection);
+static bool_t is_candidate_connection_ok(const connection_t *pxConnection);
 
 /* Create and instance of efcp*/
 static struct efcp_t *pxEfcpCreate(void);
@@ -31,31 +33,29 @@ static struct efcp_t *pxEfcpCreate(void);
 static bool_t xEfcpDestroy(struct efcp_t *pxInstance);
 
 /* Receive DU from a Rmt into the EFCP instance*/
-bool_t xEfcpReceive(struct efcp_t *pxEfcp, struct du_t *pxDu);
+bool_t xEfcpReceive(struct efcp_t *pxEfcp, du_t *pxDu);
 
 /* Write DU from Application into a EFCP instance*/
-static bool_t xEfcpWrite(struct efcp_t *pxEfcp, struct du_t *pxDu);
+static bool_t xEfcpWrite(struct efcp_t *pxEfcp, du_t *pxDu);
 
 /* ----- Container ----- */
-/* Create an EFCP container */
-struct efcpContainer_t *pxEfcpContainerCreate(void);
 
 /* Destroy an EFCP Container */
 bool_t xEfcpContainerDestroy(struct efcpContainer_t *pxContainer);
 
 /* Receive DU from Rmt into the EFCPContainer */
-bool_t xEfcpContainerReceive(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, struct du_t *pxDu);
+bool_t xEfcpContainerReceive(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, du_t *pxDu);
 
 /* Write a du from User App into a Container */
-bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, struct du_t *pxDu);
+bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, du_t *pxDu);
 
 /* ----- EFCP MAP ------*/
 
 /** @brief The IMAP table.
  * Array of imap Rows. The type fcpImapRow_t has been set at efcpStructures.h */
-static efcpImapRow_t xEfcpImapTable[EFCP_IMAP_ENTRIES];
+static efcpImapRow_t xEfcpImapTable[CFG_EFCP_IMAP_ENTRIES];
 
-bool_t xEfcpImapCreate(void);
+bool_t xEfcpImapCreate();
 
 bool_t xEfcpImapDestroy(void);
 
@@ -65,11 +65,90 @@ bool_t xEfcpImapAdd(cepId_t xCepId, struct efcp_t *pxEfcp);
 
 bool_t xEfcpImapRemove(cepId_t xCepId);
 
-bool_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, struct du_t *pxDu);
+bool_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, du_t *pxDu);
+
+/* Reviewed code starts here */
+
+bool_t xEfcpContainerInit(struct efcpContainer_t *pxEfcpContainer, rsrcPoolP_t xPciPool)
+{
+    pxEfcpContainer->pxCidm = pxNumMgrCreate(MAX_CEP_ID);
+
+    if (!xEfcpImapCreate() || pxEfcpContainer->pxCidm == NULL) {
+        LOGE(TAG_EFCP, "Failed to init EFCP container instances");
+        /*vEfcpContainerFini(pxEfcpContainer);*/
+        return false;
+    }
+
+    pxEfcpContainer->xPciPool = xPciPool;
+
+    LOGI(TAG_EFCP, "EFCP initialized successfully");
+
+    return true;
+}
+
+static struct efcp_t *pxEfcpCreate(void)
+{
+    struct efcp_t *pxEfcpInstance;
+
+    if (!(pxEfcpInstance = pvRsMemAlloc(sizeof(*pxEfcpInstance)))) {
+        LOGE(TAG_EFCP, "Failed to allocate memory for EFCP instance");
+        return NULL;
+    }
+
+    pxEfcpInstance->xState = eEfcpAllocated;
+    pxEfcpInstance->pxDelim = NULL;
+
+    LOGI(TAG_EFCP, "EFCP Instance %pK initialized successfully", pxEfcpInstance);
+
+    return pxEfcpInstance;
+}
+
+bool_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, du_t *pxDu)
+{
+    struct ipcpInstanceData_t *pxIpcpData;
+
+    if (!pxEfcp) {
+        LOGE(TAG_EFCP, "Flow is being deallocated, dropping SDU");
+        return false;
+    }
+
+    pxIpcpData = IPCP_DATA_FROM_EFCP_CONTAINER(pxEfcp->pxEfcpContainer);
+
+    /* FIXME: Packet reassembly code removed. See IRATI kernel code
+     * for this. */
+
+    if (!xFlowAllocatorDuPost(&pxIpcpData->xFA, xPort, pxDu)) {
+        LOGE(TAG_EFCP, "Upper ipcp could not enqueue sdu to port: %d", xPort);
+        return false;
+    }
+
+    return true;
+}
+
+bool_t xEfcpReceive(struct efcp_t *pxEfcp, du_t *pxDu)
+{
+    pduType_t xPduType;
+
+    xPduType = PCI_GET(pxDu, xType);
+
+    /* Verify the type of PDU*/
+    if (pdu_type_is_control(xPduType)) {
+        LOGW(TAG_EFCP, "Control packet received but not handled (yet)");
+        return true;
+    }
+
+    if (!xDtpReceive(pxEfcp->pxDtp, pxDu)) {
+        LOGE(TAG_EFCP, "DTP cannot receive this PDU");
+        return false;
+    }
+
+    return true;
+}
+
 
 /* --------- CODE ----------*/
 
-static bool_t is_candidate_connection_ok(const struct connection_t *pxConnection)
+static bool_t is_candidate_connection_ok(const connection_t *pxConnection)
 {
         /* FIXME: Add checks for policy params */
 
@@ -79,24 +158,6 @@ static bool_t is_candidate_connection_ok(const struct connection_t *pxConnection
                 return false;
 
         return true;
-}
-
-static struct efcp_t *pxEfcpCreate(void)
-{
-        struct efcp_t *pxEfcpInstance;
-
-        pxEfcpInstance = pvRsMemAlloc(sizeof(*pxEfcpInstance));
-
-        if (!pxEfcpInstance)
-                return NULL;
-
-        pxEfcpInstance->xState = eEfcpAllocated;
-
-        pxEfcpInstance->pxDelim = NULL;
-
-        LOGI(TAG_EFCP, "EFCP Instance %pK initialized successfully", pxEfcpInstance);
-
-        return pxEfcpInstance;
 }
 
 static bool_t xEfcpDestroy(struct efcp_t *pxInstance)
@@ -110,7 +171,7 @@ static bool_t xEfcpDestroy(struct efcp_t *pxInstance)
         if (pxInstance->pxUserIpcp)
         {
                 pxInstance->pxUserIpcp->pxOps->flowUnbindingIpcp(
-                    pxInstance->pxUserIpcp->pxData,
+                    pxInstance->pxUserIpcp,
                     pxInstance->pxConnection->xPortId);
         }
 
@@ -155,38 +216,7 @@ static bool_t xEfcpDestroy(struct efcp_t *pxInstance)
         return true;
 }
 
-bool_t xEfcpReceive(struct efcp_t *pxEfcp, struct du_t *pxDu)
-{
-        pduType_t xPduType;
-
-        xPduType = pxDu->pxPci->xType;
-
-        /* Verify the type of PDU*/
-        if (pdu_type_is_control(xPduType))
-        {
-                if (!pxEfcp->pxDtp || !pxEfcp->pxDtp->pxDtcp)
-                {
-                        LOGE(TAG_EFCP, "No DTCP instance available");
-                        xDuDestroy(pxDu);
-                        return false;
-                }
-
-                /* if (dtcp_common_rcv_control(pxEfcp->pxDtp.>pxDtcp, pxDu))
-                        return pdFALSE;*/
-
-                return true;
-        }
-
-        if (!xDtpReceive(pxEfcp->pxDtp, pxDu))
-        {
-                LOGE(TAG_EFCP, "DTP cannot receive this PDU");
-                return false;
-        }
-
-        return true;
-}
-
-static bool_t xEfcpWrite(struct efcp_t *pxEfcp, struct du_t *pxDu)
+static bool_t xEfcpWrite(struct efcp_t *pxEfcp, du_t *pxDu)
 {
         // struct delim_ps *delim_ps = NULL;
         // struct du_list_item *next_du = NULL;
@@ -230,32 +260,6 @@ static bool_t xEfcpWrite(struct efcp_t *pxEfcp, struct du_t *pxDu)
         return true;
 }
 
-struct efcpContainer_t *pxEfcpContainerCreate(void)
-{
-        struct efcpContainer_t *pxEfcpContainer;
-
-        pxEfcpContainer = pvRsMemAlloc(sizeof(*pxEfcpContainer));
-
-        if (!pxEfcpContainer)
-        {
-                LOGE(TAG_EFCP, "Failed to allocate memory for EFCP container object");
-                return NULL;
-        }
-
-        pxEfcpContainer->pxCidm = pxNumMgrCreate(MAX_CEP_ID);
-
-        if (!xEfcpImapCreate() || pxEfcpContainer->pxCidm == NULL)
-        {
-                LOGE(TAG_EFCP, "Failed to init EFCP container instances");
-                xEfcpContainerDestroy(pxEfcpContainer);
-                return NULL;
-        }
-
-        LOGI(TAG_EFCP, "EFCP container instance %p created", pxEfcpContainer);
-
-        return pxEfcpContainer;
-}
-
 bool_t xEfcpContainerDestroy(struct efcpContainer_t *pxEfcpContainer)
 {
         if (!pxEfcpContainer)
@@ -278,7 +282,7 @@ bool_t xEfcpContainerDestroy(struct efcpContainer_t *pxEfcpContainer)
         return true;
 }
 
-bool_t xEfcpContainerReceive(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, struct du_t *pxDu)
+bool_t xEfcpContainerReceive(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, du_t *pxDu)
 {
 
         struct efcp_t *pxEfcp;
@@ -288,7 +292,6 @@ bool_t xEfcpContainerReceive(struct efcpContainer_t *pxEfcpContainer, cepId_t xC
         if (!is_cep_id_ok(xCepId))
         {
                 LOGE(TAG_EFCP, "Bad cep-id, cannot write into container");
-                xDuDestroy(pxDu);
                 return false;
         }
 
@@ -298,25 +301,23 @@ bool_t xEfcpContainerReceive(struct efcpContainer_t *pxEfcpContainer, cepId_t xC
                 // spin_unlock_bh(&container->lock);
                 LOGE(TAG_EFCP, "Cannot find the requested instance cep-id: %d",
                      xCepId);
-                xDuDestroy(pxDu);
                 return false;
         }
         if (pxEfcp->xState == eEfcpDeallocated)
         {
-                // spin_unlock_bh(&container->lock);
-                xDuDestroy(pxDu);
                 LOGI(TAG_EFCP, "EFCP already deallocated");
                 return true;
         }
 
         // atomic_inc(&efcp->pending_ops);
 
-        xPduType = pxDu->pxPci->xType; // Check this
+        //xPduType = pxDu->pxPci->xType; // Check this
+        xPduType = PCI_GET(pxDu, xType);
         if (xPduType == PDU_TYPE_DT && pxEfcp->pxConnection->xDestinationCepId != CEP_ID_WRONG)
         {
                 /* Check that the destination cep-id is set to avoid races,
                  * otherwise set it*/
-                pxEfcp->pxConnection->xDestinationCepId = pxDu->pxPci->connectionId_t.xDestination;
+            pxEfcp->pxConnection->xDestinationCepId = PCI_GET(pxDu, PCI_CONN_DST_ID);
         }
 
         // spin_unlock_bh(&container->lock);
@@ -337,7 +338,7 @@ bool_t xEfcpContainerReceive(struct efcpContainer_t *pxEfcpContainer, cepId_t xC
         return ret;
 }
 
-bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, struct du_t *pxDu)
+bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCepId, du_t *pxDu)
 {
         struct efcp_t *pxEfcp;
         bool_t ret;
@@ -345,24 +346,20 @@ bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCep
         if (!is_cep_id_ok(xCepId))
         {
                 LOGE(TAG_EFCP, "Bad cep-id, cannot write into container");
-                xDuDestroy(pxDu);
                 return false;
         }
 
-        pxDu->pxCfg = pxEfcpContainer->pxConfig;
+        //pxDu->pxCfg = pxEfcpContainer->pxConfig;
 
         pxEfcp = pxEfcpImapFind(xCepId);
         if (!pxEfcp)
         {
 
                 LOGE(TAG_EFCP, "There is no EFCP bound to this cep-id %d", xCepId);
-                xDuDestroy(pxDu);
                 return false;
         }
         if (pxEfcp->xState == eEfcpDeallocated)
         {
-
-                xDuDestroy(pxDu);
                 LOGE(TAG_EFCP, "EFCP already deallocated");
                 return false;
         }
@@ -370,56 +367,6 @@ bool_t xEfcpContainerWrite(struct efcpContainer_t *pxEfcpContainer, cepId_t xCep
         ret = xEfcpWrite(pxEfcp, pxDu);
 
         return ret;
-}
-
-bool_t xEfcpEnqueue(struct efcp_t *pxEfcp, portId_t xPort, struct du_t *pxDu)
-{
-        // struct delim_ps * delim_ps = NULL;
-        // struct du_list_item * next_du = NULL;
-
-        if (!pxEfcp)
-        {
-                LOGE(TAG_EFCP, "Flow is being deallocated, dropping SDU");
-                xDuDestroy(pxDu);
-                return false;
-        }
-
-        /* Reassembly goes here */
-#if 0
-        if (pxEfcp->pxDelim) {
-		delim_ps = container_of(rcu_dereference(efcp->delim->base.ps),
-						        struct delim_ps,
-						        base);
-
-		if (delim_ps->delim_process_udf(delim_ps, pxDu,
-						pxEfcp->pxDelim->rx_dus)) {
-			LOGE( TAG_EFCP,"Error processing EFCP UDF by delimiting");
-			du_list_clear(efcp->delim->rx_dus, true);
-			return false;
-		}
-
-	        list_for_each_entry(next_du, &(efcp->delim->rx_dus->dus),
-	        		    next) {
-	                if (efcp->user_ipcp->ops->du_enqueue(efcp->user_ipcp->data,
-	                                                     port,
-	                                                     next_du->du)) {
-	                        LOGE( TAG_EFCP,"Upper ipcp could not enqueue sdu to port: %d", port);
-	                        return false;
-	                }
-	        }
-
-	        du_list_clear(efcp->delim->rx_dus, false);
-
-		return true;
-        }
-#endif
-        if (!xFlowAllocatorDuPost(xPort, pxDu))
-        {
-                LOGE(TAG_EFCP, "Upper ipcp could not enqueue sdu to port: %d", xPort);
-                return false;
-        }
-
-        return true;
 }
 
 bool_t xEfcpConnectionModify(struct efcpContainer_t *pxContainer,
@@ -585,14 +532,13 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               cepId_t xSrcCepId,
                               cepId_t xDstCepId,
                               dtpConfig_t *pxDtpCfg,
-                              struct dtcpConfig_t *pxDtcpCfg)
+                              dtcpConfig_t *pxDtcpCfg)
 {
         LOGE(TAG_EFCP, "xEfcpConnectionCreate");
 
         struct efcp_t *pxEfcp;
-        struct connection_t *pxConnection = NULL;
+        connection_t *pxConnection = NULL;
         cepId_t xCepId;
-        struct dtcp_t *pxDtcp;
         // struct cwq *        cwq;
         // struct rtxq *       rtxq;
         // uint_t              mfps, mfss;
@@ -608,7 +554,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         }
 
         LOGE(TAG_EFCP, "xEfcpConnectionCreate: ConnectionCreate");
-#ifdef __FREERTOS__
+#ifdef ESP_PLATFORM
         size_t Test = xPortGetFreeHeapSize();
         LOGE(TAG_EFCP, "Memory size:%d", (int)Test);
 #endif
@@ -625,7 +571,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         pxConnection->xQosId = xQosId;
         pxConnection->xSourceCepId = xSrcCepId;
         pxConnection->xDestinationCepId = xDstCepId;
-        pxConnection->xSourceAddress = LOCAL_ADDRESS;
+        pxConnection->xSourceAddress = CFG_LOCAL_ADDRESS;
 
         LOGE(TAG_EFCP, "xEfcpConnectionCreate: EfcpCreate");
         pxEfcp = pxEfcpCreate();
@@ -651,7 +597,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         pxEfcp->pxEfcpContainer = pxEfcpContainer;
         pxConnection->xSourceCepId = xCepId;
 
-        if (!is_candidate_connection_ok((const struct connection_t *)pxConnection))
+        if (!is_candidate_connection_ok((const connection_t *)pxConnection))
         {
                 LOGE(TAG_EFCP, "Bogus connection passed, bailing out");
                 xEfcpDestroy(pxEfcp);
@@ -699,7 +645,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                 return CEP_ID_WRONG;
         }
 
-        pxDtcp = NULL;
+        /*pxDtcp = NULL;*/
 
 #if 0
         rcu_read_lock();
@@ -817,7 +763,7 @@ bool_t xEfcpImapCreate(void)
         xNullImapRow.ucValid = 0;
 
         int i;
-        for (i = 0; i < EFCP_IMAP_ENTRIES; i++)
+        for (i = 0; i < CFG_EFCP_IMAP_ENTRIES; i++)
         {
                 xEfcpImapTable[i] = xNullImapRow;
         }
@@ -840,7 +786,7 @@ struct efcp_t *pxEfcpImapFind(cepId_t xCepIdKey)
 
         xEfcpFounded = pvRsMemAlloc(sizeof(struct efcp_t *));
 
-        for (x = 0; x < EFCP_IMAP_ENTRIES; x++) // lookup in the MAP for the EFCP Instance based on cepIdKey
+        for (x = 0; x < CFG_EFCP_IMAP_ENTRIES; x++) // lookup in the MAP for the EFCP Instance based on cepIdKey
         {
 
                 if (xEfcpImapTable[x].xCepIdKey == xCepIdKey)
@@ -869,7 +815,7 @@ bool_t xEfcpImapAdd(cepId_t xCepId, struct efcp_t *pxEfcp)
         xImapEntry.xCepIdKey = xCepId;
         xImapEntry.xEfcpValue = pxEfcp;
 
-        for (x = 0; x < EFCP_IMAP_ENTRIES; x++)
+        for (x = 0; x < CFG_EFCP_IMAP_ENTRIES; x++)
         {
                 xEfcpImapTable[x].xCepIdKey = xImapEntry.xCepIdKey;
                 xEfcpImapTable[x].xEfcpValue = xImapEntry.xEfcpValue;
@@ -884,7 +830,7 @@ bool_t xEfcpImapAdd(cepId_t xCepId, struct efcp_t *pxEfcp)
 bool_t xEfcpImapRemove(cepId_t xCepId)
 {
         int x;
-        for (x = 0; x < EFCP_IMAP_ENTRIES; x++)
+        for (x = 0; x < CFG_EFCP_IMAP_ENTRIES; x++)
         {
                 if (xEfcpImapTable[x].xCepIdKey == xCepId)
                 {

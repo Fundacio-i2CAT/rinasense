@@ -14,9 +14,9 @@
 extern "C" {
 #endif
 
-struct connection_t *  pxConnectionCreate(void);
+connection_t *  pxConnectionCreate(void);
 
-bool_t xConnectionDestroy(struct connection_t * pxConn);
+bool_t xConnectionDestroy(connection_t * pxConn);
 
 #ifdef __cplusplus
 }

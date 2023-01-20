@@ -1,9 +1,10 @@
 #ifndef COMPONENTS_RMT_INCLUDE_RMT_H_
 #define COMPONENTS_RMT_INCLUDE_RMT_H_
 
+#include "common/list.h"
+
 #include "du.h"
 #include "efcpStructures.h"
-#include "IPCP_instance.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,7 +48,7 @@ typedef struct xRMT_N1_PORT
      spinlock_t		lock;*/
 
     /*Port Id from Shim*/
-    portId_t xPortId;
+    portId_t unPort;
 
     /* Shim Instance*/
     struct ipcpInstance_t *pxN1Ipcp;
@@ -56,7 +57,7 @@ typedef struct xRMT_N1_PORT
     eFlowState_t eState;
 
     /*Data Unit Pending to send*/
-    struct du_t *pxPendingDu;
+    du_t *pxPendingDu;
 
     /*N1 Port Statistics */
     n1PortStats_t xStats;
@@ -66,6 +67,8 @@ typedef struct xRMT_N1_PORT
 
     /*???*/
     void *pvRmtPsQueues;
+
+    RsListItem_t xPortItem;
 
 } rmtN1Port_t;
 
@@ -90,8 +93,10 @@ struct rmt_t
     struct efcpContainer_t *pxEfcpc;
 
     /* N-1 */
-    rmtN1Port_t *pxN1Port;
     struct rmt_Config_t *pxRmtCfg;
+
+    /* Ports */
+    RsList_t xPorts;
 };
 
 typedef struct xPORT_TABLE_ENTRY
@@ -100,16 +105,27 @@ typedef struct xPORT_TABLE_ENTRY
 
 } portTableEntry_t;
 
-pci_t *vCastPointerTo_pci_t(void *pvArgument);
-bool_t xRmtSend(struct rmt_t *pxRmtInstance, struct du_t *pxDu);
-struct rmt_t *pxRmtCreate(struct efcpContainer_t *pxEfcpc);
-bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, struct ipcpInstance_t *pxN1Ipcp);
+bool_t xRmtInit(struct rmt_t *pxRmt);
+
+void vRmtFini(struct rmt_t *pxRmt);
+
+bool_t xRmtSend(struct rmt_t *pxRmtInstance, du_t *pxDu);
+
+bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance,
+                      portId_t xId,
+                      struct ipcpInstance_t *pxN1Ipcp);
+
 bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
                       portId_t xPortId,
-                      struct du_t *pxDu);
+                      du_t *pxDu);
 
-bool_t xRmtReceive(struct ipcpInstanceData_t *pxRmt, struct du_t *pxDu, portId_t xFrom);
-bool_t xRmtAddressAdd(struct rmt_t *pxInstance, address_t xAddress);
+bool_t xRmtReceive(struct rmt_t *pxRmt,
+                   struct efcpContainer_t *pxEfcp,
+                   du_t *pxDu,
+                   portId_t xFrom);
+
+bool_t xRmtAddressAdd(struct rmt_t *pxRmt,
+                      address_t xAddress);
 
 #ifdef __cplusplus
 }

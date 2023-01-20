@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "portability/port.h"
 #include "common/rina_name.h"
 
 #include "unity.h"
@@ -9,84 +10,90 @@
 RS_TEST_CASE_SETUP(test_rina_name) {}
 RS_TEST_CASE_TEARDOWN(test_rina_name) {}
 
-/* Tests plain string duplication. */
-RS_TEST_CASE(StringDup, "[rina_name]")
-{
-    const string_t s1 = "hello";
-    string_t s2, s3;
-
-    RS_TEST_CASE_BEGIN(test_rina_name);
-
-    TEST_ASSERT(xRstringDup(s1, &s2));
-    TEST_ASSERT(strcmp(s1, s2) == 0);
-
-    TEST_ASSERT(xRstringDup(s1, &s3));
-    TEST_ASSERT(strcmp(s1, s3) == 0);
-    TEST_ASSERT(s1 != s3);
-
-    vRsMemFree(s2);
-    vRsMemFree(s3);
-
-    RS_TEST_CASE_END(test_rina_name);
-}
-
 /* Test that RinaNameFromString breaks down a name in all its
  * component. */
 RS_TEST_CASE(RinaNameBreakdown, "[rina_name]")
 {
-    name_t n1;
+    rname_t *n1;
 
     RS_TEST_CASE_BEGIN(test_rina_name);
 
-    TEST_ASSERT(xRinaNameFromString("e1|e2|e3|e4", &n1));
-    TEST_ASSERT(strcmp(n1.pcProcessName, "e1") == 0);
-    TEST_ASSERT(strcmp(n1.pcProcessInstance, "e2") == 0);
-    TEST_ASSERT(strcmp(n1.pcEntityName, "e3") == 0);
-    TEST_ASSERT(strcmp(n1.pcEntityInstance, "e4") == 0);
-    vRstrNameFini(&n1);
-
-    TEST_ASSERT(xRinaNameFromString("e1|e2|e3|", &n1));
-    TEST_ASSERT(strcmp(n1.pcProcessName, "e1") == 0);
-    TEST_ASSERT(strcmp(n1.pcProcessInstance, "e2") == 0);
-    TEST_ASSERT(strcmp(n1.pcEntityName, "e3") == 0);
-    TEST_ASSERT(strcmp(n1.pcEntityInstance, "") == 0);
-    vRstrNameFini(&n1);
-
-    TEST_ASSERT(xRinaNameFromString("e1|e2|e3", &n1));
-    TEST_ASSERT(strcmp(n1.pcProcessName, "e1") == 0);
-    TEST_ASSERT(strcmp(n1.pcProcessInstance, "e2") == 0);
-    TEST_ASSERT(strcmp(n1.pcEntityName, "e3") == 0);
-    TEST_ASSERT(strcmp(n1.pcEntityInstance, "") == 0);
-    vRstrNameFini(&n1);
-
-    RS_TEST_CASE_END(test_rina_name);
-}
-
-RS_TEST_CASE(RinaNameFromString, "[rina_name]")
-{
-    name_t *n1;
-
-    RS_TEST_CASE_BEGIN(test_rina_name);
-
-    TEST_ASSERT((n1 = pxRStrNameCreate()) != NULL);
-    TEST_ASSERT((n1 = xRINANameInitFrom(n1, "e1", "e2", "e3", "e4")) != NULL);
+    TEST_ASSERT(n1 = pxNameNewFromString("e1/e2/e3/e4"));
     TEST_ASSERT(strcmp(n1->pcProcessName, "e1") == 0);
     TEST_ASSERT(strcmp(n1->pcProcessInstance, "e2") == 0);
     TEST_ASSERT(strcmp(n1->pcEntityName, "e3") == 0);
     TEST_ASSERT(strcmp(n1->pcEntityInstance, "e4") == 0);
-    vRstrNameDestroy(n1);
+    vNameFree(n1);
+
+    TEST_ASSERT(n1 = pxNameNewFromString("e1/e2/e3/"));
+    TEST_ASSERT(strcmp(n1->pcProcessName, "e1") == 0);
+    TEST_ASSERT(strcmp(n1->pcProcessInstance, "e2") == 0);
+    TEST_ASSERT(strcmp(n1->pcEntityName, "e3") == 0);
+    TEST_ASSERT(strcmp(n1->pcEntityInstance, "") == 0);
+    vNameFree(n1);
+
+    TEST_ASSERT(n1 = pxNameNewFromString("e1/e2/e3"));
+    TEST_ASSERT(strcmp(n1->pcProcessName, "e1") == 0);
+    TEST_ASSERT(strcmp(n1->pcProcessInstance, "e2") == 0);
+    TEST_ASSERT(strcmp(n1->pcEntityName, "e3") == 0);
+    TEST_ASSERT(strcmp(n1->pcEntityInstance, "") == 0);
+    vNameFree(n1);
 
     RS_TEST_CASE_END(test_rina_name);
 }
 
-RS_TEST_CASE(RinaStringToName, "[rina_name]")
+RS_TEST_CASE(RinaNameNewFromParts, "[rina_name]")
 {
-    name_t *n1;
+    rname_t *n1;
 
     RS_TEST_CASE_BEGIN(test_rina_name);
 
-    TEST_ASSERT((n1 = xRINAstringToName("e1|e2|e3|e4")) != NULL);
-    vRstrNameDestroy(n1);
+    TEST_ASSERT((n1 = pxNameNewFromParts("e1", "e2", "e3", "e4")) != NULL);
+    TEST_ASSERT(strcmp(n1->pcProcessName, "e1") == 0);
+    TEST_ASSERT(strcmp(n1->pcProcessInstance, "e2") == 0);
+    TEST_ASSERT(strcmp(n1->pcEntityName, "e3") == 0);
+    TEST_ASSERT(strcmp(n1->pcEntityInstance, "e4") == 0);
+    vNameFree(n1);
+
+    RS_TEST_CASE_END(test_rina_name);
+}
+
+RS_TEST_CASE(RinaNameToString, "[rina_name]")
+{
+    rname_t *n1, n2;
+    char bbuf[255] = {0}, sbuf[5] = {0};
+    string_t s;
+    size_t sz;
+
+    RS_TEST_CASE_BEGIN(test_rina_name);
+
+    TEST_ASSERT((n1 = pxNameNewFromParts("e1", "e2", "e3", "e4")));
+    vNameToStringBuf(n1, bbuf, sizeof(bbuf));
+    TEST_ASSERT(strcmp(bbuf, "e1/e2/e3/e4") == 0);
+    vNameToStringBuf(n1, sbuf, sizeof(sbuf));
+    TEST_ASSERT(strcmp(sbuf, "e1/e") == 0);
+    vNameFree(n1);
+
+    TEST_ASSERT((n1 = pxNameNewFromParts("longpart", "", "", "")));
+    vNameToStringBuf(n1, bbuf, sizeof(bbuf));
+    TEST_ASSERT(strcmp(bbuf, "longpart///") == 0);
+    vNameToStringBuf(n1, sbuf, sizeof(sbuf));
+    TEST_ASSERT(strcmp(sbuf, "long") == 0);
+    vNameFree(n1);
+
+    TEST_ASSERT((n1 = pxNameNewFromString("ue1.mobile.DIF/1//")));
+    TEST_ASSERT((s = pcNameToString(n1)));
+    TEST_ASSERT((sz = strlen(s)) == 18);
+    TEST_ASSERT(strcmp(s, "ue1.mobile.DIF/1//") == 0);
+    vRsMemFree(s);
+    vNameFree(n1);
+
+    TEST_ASSERT(!ERR_CHK(xNameAssignFromPartsDup(&n2, "ue1.mobile.DIF", "1", "", "")));
+    TEST_ASSERT(s = pcNameToString(&n2));
+    TEST_ASSERT((sz = strlen(s)) == 18);
+    TEST_ASSERT(strcmp(s, "ue1.mobile.DIF/1//") == 0);
+    vRsMemFree(s);
+    vNameFree(&n2);
 
     RS_TEST_CASE_END(test_rina_name);
 }
@@ -94,10 +101,9 @@ RS_TEST_CASE(RinaStringToName, "[rina_name]")
 #ifndef TEST_CASE
 int main() {
     RS_SUITE_BEGIN();
-    RS_RUN_TEST(StringDup);
     RS_RUN_TEST(RinaNameBreakdown);
-    RS_RUN_TEST(RinaNameFromString);
-    RS_RUN_TEST(RinaStringToName);
+    RS_RUN_TEST(RinaNameNewFromParts);
+    RS_RUN_TEST(RinaNameToString);
     RS_SUITE_END();
 }
 #endif

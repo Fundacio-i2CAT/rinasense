@@ -10,50 +10,38 @@ ESP32 hardware platform, using RINA over WiFi and RINA over Bluetooth.
 This RINA library will be interoperable with IRATI, a RINA implementation
 for Linux Operating Systems (https://github.com/IRATI/stack).
 
-## 2. Development workflow
-This project has the following branches:
+### 1.1 Platform support
 
-* **master**: contains the most up to date stable code, may not contain features 
-that have been developed and are merged in *dev* but are yet not stable enough.
+#### FreeRTOS + ESP32
 
-* **dev**: contains all finished and tested features. When the dev branch is 
-considered enough, it can be merged into *master*.
+This code supports the ESP-IDF build system to build applications
+directly for the ESP32
 
-* **feature dev branches**: each feature is developed in a dedicated branch, and 
-merged into *dev* when they are ready.
+#### Arduino
 
-To develop a new feature or a fix for a bug, the workflow is the following (as a 
-prerequisite you must fork the main rinasense repo):
+Arduino support on ESP32 is based on Espress IDF platform but linking
+the project as an Arduino projects opens the door to the code
+eventually being used in the Arduino IDE with other Arduino
+libraries. The code build for Arduino is roughly the same than what is
+in the FreeRTOS + ESP32 port.
 
-1. Create an issue summarising the work to be done (https://github.com/Fundacio-i2CAT/rinasense/issues/new/choose). 
-Assign it to someone and add one or more labels.
+#### Linux
 
-2. Create a new branch from the *dev* branch. The branch name must follow this 
-conventions: <issue number>-<one_or_more_descriptive_words>
+The Linux build supports receiving ethernet packets through a virtual
+Tap interface created for that purpose. See README.Linux.md for
+information how to use the Linux build.
 
-3. Start developing the feature. Pull from *dev* as required to avoid merge 
-conflicts later. Once the feature is developed, create a pull request to merge
-the branch into *dev*.
+## 2. What's working?
 
-4. Once the pull request has been accepted and merged into *dev*, remove the 
-specific development branch.
+Not much! From the demo tree, beside all the effort spent on making
+sure that the 3 targets work, a lot has been done to improve and
+simplify the CDAP connection and the enrollment process. The code that
+was written to support DTP packets remains present but has not seen
+much love in the last weeks to month of development so it's likely
+that trying to open an application flow is going to cause som
+problem. Unlike the original prototype, this branch supports incoming
+enrollment only. This means that the enrollment process has to be
+triggered another host running IRATI.
 
-## 3. Naming Conventions
-This project follows the FREERTOS naming conventions:
-* **variables**:
-    - Variables of type uint32_t are prefixed ul, where the 'u' denotes 'unsigned' and the 'l' denotes 'long'.
-    - Variables of type uint16_t are prefixed us, where the 'u' denotes 'unsigned' and the 's' denotes 'short'.
-    - Variables of type uint8_t are prefixed uc, where the 'u' denotes 'unsigned' and the 'c' denotes 'char'.
-    - Variables of non stdint types are prefixed x. Examples include BaseType_t and TickType_t, which are portable layer defined typedefs for the type that is the natural or most efficient type for the architecture, and the type used to hold the RTOS tick count, respectively.
-    - Variables of type size_t are prefixed ux.
-    - Enumerated variables are prefixed e
-    - Pointers have an additional p prefixed, for example, a pointer to a uint16_t will have prefix pus.
-    - variables of type char * are only permitted to hold pointers to ASCII strings and are prefixed pc.
-* **Functions**:
-    - File scope static (private) functions are prefixed with prv. 
-    - API functions are prefixed with their return type, as per the convention defined for variables with the addition of the prefix v for void.
-    - API function names start with the name of the file in which they are defined. For example vTaskDelete is defined in tasks.c, and has a void return type.
-* **Macros**:
-    - Macros are prefixed with the file in which they are defined. The pre-fix is lower case. For example, configUSE_PREEMPTION is defined in FreeRTOSConfig.h.
-    - Other than the prefix, macros are written in all upper case, and use an underscore to separate words.
-
+A few memory leaks remain but they are few and far between and are not
+the cause of immediate worry.

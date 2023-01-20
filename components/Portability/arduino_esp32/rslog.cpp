@@ -1,4 +1,5 @@
 #include <HardwareSerial.h>
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -6,9 +7,21 @@
 
 #include "portability/rslog.h"
 
+pthread_mutex_t xLogMutex;
+
+stringbuf_t pcLogBuf[256] = {0};
+
 void vRsLogInit()
 {
     Serial.begin(115200);
+
+    pthread_mutexattr_t xLogMutexAttr;
+
+    pthread_mutexattr_init(&xLogMutexAttr);
+    RsAssert(pthread_mutexattr_settype(&xLogMutexAttr, PTHREAD_MUTEX_RECURSIVE) == 0);
+    RsAssert(pthread_mutex_init(&xLogMutex, &xLogMutexAttr) == 0);
+
+    pthread_mutexattr_destroy(&xLogMutexAttr);
 }
 
 void vRsLogSetLevel(const string_t pcTagName, RsLogLevel_t eLogLevel)
@@ -26,12 +39,13 @@ void vRsLogWrite(RsLogLevel_t level, const char* tag, const char* format, ...)
 
 void vRsLogWritev(RsLogLevel_t level, const char* tag, const char* format, va_list args)
 {
-    char buf[512] = {0};
     int n;
 
-    vsnprintf(buf, sizeof(buf), format, args);
+    LOG_LOCK();
+    vsnprintf(pcLogBuf, sizeof(pcLogBuf), format, args);
 
-    Serial.print(buf);
+    Serial.print(pcLogBuf);
     Serial.print("\r");
+    LOG_UNLOCK();
 }
 

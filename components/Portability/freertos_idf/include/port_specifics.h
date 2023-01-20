@@ -7,4 +7,6 @@
 #include "freertos_rsassert.h"
 #include "freertos_rsnet.h"
 
+#include "posix_rssem.h"
+
 #endif // _PORT_FREERTOS_IDF_SPECIFICS_PORT_H

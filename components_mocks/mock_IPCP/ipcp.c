@@ -42,20 +42,6 @@ bool_t xSendEventStructToIPCPTask(const RINAStackEvent_t *pxEvent,
                                   struct timespec *uxTimeout)
 #endif
 {
-    pthread_mutex_lock(&evLock);
-
-    RsAssert(pxEvent->eEventType == eNetworkRxEvent ||
-             pxEvent->eEventType == eNetworkTxEvent);
-
-    sentEvent.eEventType = pxEvent->eEventType;
-    sentEvent.xData.PV = pxEvent->xData.PV;
-
-    LOGD(TAG_MOCK_IPCP, "Sending event: %d", pxEvent->eEventType);
-
-    sem_post(&evSem);
-
-    pthread_mutex_unlock(&evLock);
-
     return true;
 }
 

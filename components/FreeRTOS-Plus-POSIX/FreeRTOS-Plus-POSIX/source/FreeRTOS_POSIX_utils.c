@@ -31,10 +31,10 @@
 /* C standard library includes. */
 #include <stddef.h>
 #include <limits.h>
+#include <errno.h>
 
 /* FreeRTOS+POSIX includes. */
 #include "FreeRTOS_POSIX.h"
-#include "FreeRTOS_POSIX/errno.h"
 #include "FreeRTOS_POSIX/utils.h"
 
 /*-----------------------------------------------------------*/

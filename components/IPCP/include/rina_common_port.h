@@ -10,6 +10,7 @@
 #include "portability/port.h"
 #include "common/rina_ids.h"
 #include "common/list.h"
+#include "common/queue.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,66 +29,66 @@ typedef struct xQUEUE_FIFO
 
 struct ipcpInstance_t;
 struct ipcpInstanceData_t;
-struct du_t;
 
-struct flowSpec_t
+typedef struct
 {
-        /* This structure defines the characteristics of a flow */
+    /* This structure defines the characteristics of a flow */
 
-        /* Average bandwidth in bytes/s */
-        uint32_t ulAverageBandwidth;
+    /* Average bandwidth in bytes/s */
+    uint32_t ulAverageBandwidth;
 
-        /* Average bandwidth in SDUs/s */
-        uint32_t ulAverageSduBandwidth;
+    /* Average bandwidth in SDUs/s */
+    uint32_t ulAverageSduBandwidth;
 
-        /*
-         * In milliseconds, indicates the maximum delay allowed in this
-         * flow. A value of 0 indicates 'do not care'
-         */
-        uint32_t ulDelay;
-        /*
-         * In milliseconds, indicates the maximum jitter allowed
-         * in this flow. A value of 0 indicates 'do not care'
-         */
-        uint32_t ulJitter;
+    /*
+     * In milliseconds, indicates the maximum delay allowed in this
+     * flow. A value of 0 indicates 'do not care'
+     */
+    uint32_t ulDelay;
+    /*
+     * In milliseconds, indicates the maximum jitter allowed
+     * in this flow. A value of 0 indicates 'do not care'
+     */
+    uint32_t ulJitter;
 
-        /*
-         * Indicates the maximum packet loss (loss/10000) allowed in this
-         * flow. A value of loss >=10000 indicates 'do not care'
-         */
-        uint16_t usLoss;
+    /*
+     * Indicates the maximum packet loss (loss/10000) allowed in this
+     * flow. A value of loss >=10000 indicates 'do not care'
+     */
+    uint16_t usLoss;
 
-        /*
-         * Indicates the maximum gap allowed among SDUs, a gap of N
-         * SDUs is considered the same as all SDUs delivered.
-         * A value of -1 indicates 'Any'
-         */
-        int32_t ulMaxAllowableGap;
+    /*
+     * Indicates the maximum gap allowed among SDUs, a gap of N
+     * SDUs is considered the same as all SDUs delivered.
+     * A value of -1 indicates 'Any'
+     */
+    int32_t ulMaxAllowableGap;
 
-        /*
-         * The maximum SDU size for the flow. May influence the choice
-         * of the DIF where the flow will be created.
-         */
-        uint32_t ulMaxSduSize;
+    /*
+     * The maximum SDU size for the flow. May influence the choice
+     * of the DIF where the flow will be created.
+     */
+    uint32_t ulMaxSduSize;
 
-        /* Indicates if SDUs have to be delivered in order */
-        bool_t xOrderedDelivery;
+    /* Indicates if SDUs have to be delivered in order */
+    bool_t xOrderedDelivery;
 
-        /* Indicates if partial delivery of SDUs is allowed or not */
-        bool_t xPartialDelivery;
+    /* Indicates if partial delivery of SDUs is allowed or not */
+    bool_t xPartialDelivery;
 
-        /* In milliseconds */
-        uint32_t ulPeakBandwidthDuration;
+    /* In milliseconds */
+    uint32_t ulPeakBandwidthDuration;
 
-        /* In milliseconds */
-        uint32_t ulPeakSduBandwidthDuration;
+    /* In milliseconds */
+    uint32_t ulPeakSduBandwidthDuration;
 
-        /* A value of 0 indicates 'do not care' */
-        uint32_t ulUndetectedBitErrorRate;
+    /* A value of 0 indicates 'do not care' */
+    uint32_t ulUndetectedBitErrorRate;
 
-        /* Preserve message boundaries */
-        bool_t xMsgBoundaries;
-};
+    /* Preserve message boundaries */
+    bool_t xMsgBoundaries;
+
+} flowSpec_t;
 
 /* The structure is useful when the Data Transfers value are variable
  * when it is required to change the PCI fields. Now it is config by
@@ -177,7 +178,7 @@ typedef struct xDTP_CONFIG
         seqNum_t xMaxSduGap;
 
         /* Describes a policy */
-        policy_t *pxDtpPolicySet;
+        policy_t xDtpPolicySet;
 } dtpConfig_t;
 
 /* Represents the configuration of the EFCP */
@@ -206,7 +207,7 @@ typedef struct xAUTH_POLICY
 
 } authPolicy_t;
 
-typedef struct xCONNECTION_ID
+typedef struct
 {
         qosId_t xQosId;       /**< QoS Id  3 + 1 = 4 */
         cepId_t xDestination; /**< Cep Id Dest 4 + 1 = 5 */

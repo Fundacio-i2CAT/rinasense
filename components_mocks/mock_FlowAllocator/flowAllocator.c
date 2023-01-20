@@ -2,45 +2,53 @@
 
 #include "RINA_API_flows.h"
 #include "EFCP.h"
-#include "Ribd.h"
+#include "RibObject.h"
 
 #ifdef ESP_PLATFORM
-void mock_FlowAllocator_vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc,
+void mock_FlowAllocator_vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
                                                   portId_t xPortId,
-                                                  flowAllocateHandle_t *pxFlowRequest,
-                                                  struct ipcpInstanceData_t *pxIpcpData)
+                                                  flowAllocateHandle_t *pxFlowRequest)
 #else
-void vFlowAllocatorFlowRequest(struct efcpContainer_t *pxEfcpc,
+void vFlowAllocatorFlowRequest(flowAllocator_t *pxFA,
                                portId_t xPortId,
-                               flowAllocateHandle_t *pxFlowRequest,
-                               struct ipcpInstanceData_t *pxIpcpData)
+                               flowAllocateHandle_t *pxFlowRequest)
 #endif
 {
 }
 
 #ifdef ESP_PLATFORM
-bool_t mock_FlowAllocator_xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue,
+bool_t mock_FlowAllocator_xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData,
+                                                      serObjectValue_t *pxSerObjValue,
                                                       int result)
 #else
-bool_t xFlowAllocatorHandleCreateR(serObjectValue_t *pxSerObjValue, int result)
+bool_t xFlowAllocatorHandleCreateR(struct ipcpInstanceData_t *pxData,
+                                   serObjectValue_t *pxSerObjValue, int result)
 #endif
 {
     return true;
 }
 
 #ifdef ESP_PLATFORM
-bool_t mock_FlowAllocator_xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
+bool_t mock_FlowAllocator_xFlowAllocatorDuPost(flowAllocator_t *pxFA,
+                                               portId_t xAppPortId,
+                                               du_t *pxDu)
 #else
-bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
+bool_t xFlowAllocatorDuPost(flowAllocator_t *pxFA,
+                            portId_t xAppPortId,
+                            du_t *pxDu)
 #endif
 {
     return true;
 }
 
 #ifdef ESP_PLATFORM
-bool_t mock_FlowAllocator_xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id)
+bool_t mock_FlowAllocator_xFlowAllocatorHandleDelete(ribObject_t *pxThis,
+                                                     appConnection_t *pxAppCon,
+                                                     messageCdap_t *pxMsg)
 #else
-bool_t xFlowAllocatorHandleDelete(struct ribObject_t *pxRibObject, int invoke_id)
+bool_t xFlowAllocatorHandleDelete(ribObject_t *pxThis,
+                                  appConnection_t *pxAppCon,
+                                  messageCdap_t *pxMsg)
 #endif
 {
     return true;

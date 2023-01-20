@@ -1,26 +1,23 @@
-
-/*Application Level Configurations?
- * Shim_wifi name
- * Shim_wifi type (AP-STA)
- * Shim_wifi address
- */
-
-// Include FreeRTOS
-
 #ifndef SHIM_IPCP_H__INCLUDED
 #define SHIM_IPCP_H__INCLUDED
 
 #include "common/rina_ids.h"
 #include "common/rina_gpha.h"
+#include "common/simple_queue.h"
 
 #include "ARP826.h"
 #include "ARP826_defs.h"
 #include "du.h"
 #include "rina_common_port.h"
+#include "IpcManager.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define IPCP_INSTANCE_DATA_ETHERNET_SHIM 0xA
+
+#define TAG_SHIM "[Wifi]"
 
 /* Flow states */
 typedef enum xFLOW_STATES
@@ -35,14 +32,14 @@ typedef enum xFLOW_STATES
 
 typedef struct xSHIM_WIFI_FLOW
 {
-	/* Harward Destination Address (MAC)*/
-	gha_t *pxDestHa;
+	/* Hardware destination Address (MAC)*/
+	const gha_t *pxDestHa;
 
 	/* Protocol Destination Address (Address RINA)*/
-	gpa_t *pxDestPa;
+	const gpa_t *pxDestPa;
 
 	/* Port Id of???*/
-	portId_t xPortId;
+	portId_t unPort;
 
 	/* State of the PortId */
 	ePortidState_t ePortIdState;
@@ -51,84 +48,22 @@ typedef struct xSHIM_WIFI_FLOW
 	struct ipcpInstance * pxUserIpcp;
 
 	/* Maybe this is not needed*/
-	rfifo_t *pxSduQueue;
+	RsSimpleQueue_t xSduQueue;
 
 	/* Flow item to register in the List of Shim WiFi Flows */
-	RsListItem_t		xFlowItem;
+	RsListItem_t xFlowItem;
 } shimFlow_t;
 
-bool_t xShimEnrollToDIF( MACAddress_t * pxPhyDev );
-
-/*-------------------------------------------*/
-/* FlowAllocateRequest (naming-info). Naming-info about the destination.
- * Primitive invoked by a source application to request a new flow:
- * - Check if there is a flow estabished (eALLOCATED), or a flow pending between the
- * source and destination application (ePENDING),
- * - If stated is eNULL then RINA_xARPMapping is called.
- * */
-bool_t xShimFlowAllocateRequest(struct ipcpInstanceData_t *pxData,
-                                name_t *pxSourceInfo,
-                                name_t *pxDestinationInfo,
-                                portId_t xPortId);
-
-
-bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData, portId_t xPortId);
-
-/*-------------------------------------------*/
-/* FlowDeallocate.
- * Primitive invoked by the application to discard all state regarding this flow.
- * - Port_id change to eNULL.
- * */
-bool_t xShimFlowDeallocate(struct ipcpInstanceData_t * pxData, portId_t xId);
-
-/*-------------------------------------------*/
-/* applicationRegister (naming-info)
- * Primitive invoked before all other functions:
- * - Transform the naming-info structure into a single string (application-name)
- * separated by "/": ProcessName/ProcessInstance/EntityName/EntityInstance
- * - Call the RINA_ARPAdd API to map the application Name to the Hardware Address
- * in the cache ARP. (Update LocalAddressProtocol and LocalAddressMAC)
- * Return a pdTrue if Success or pdFalse Failure.
- * */
-
-bool_t xShimApplicationRegister(struct ipcpInstanceData_t *pxData,
-                                name_t * pxAppName,
-								name_t * pxDafName);
-
-/*-------------------------------------------*/
-/* applicationUnregister (naming-info)
- * Primitive invoked before all other functions:
- * - Transform the naming-info into a single string (application-name)
- * separated by "/": ProcessName/ProcessInstance/EntityName/EntityInstance
- * - Call the RINA_ARPRemove API to remove the ARP
- * in the cache ARP.
- * Return a pdTrue if Success or pdFalse Failure.
- * */
-bool_t xShimApplicationUnregister(struct ipcpInstanceData_t *pxData, const name_t * pxName);
-
-/*-------------------------------------------*/
-/* Write (SDUs)
- * Primitive invoked by application to send SDUs.
- * - Create an Ethernet frame (802.11) using the Network Buffer Descriptor.
- * - Then put the Ethernet frame into the NetworkBufferDescriptor related to
- * Wifi layer.
- * */
-void vShimWrite(void);
-
-/*-------------------------------------------*/
-/* Read (SDUs)
- * Primitive invoked by application to read SDUs.
- *
- * */
-void vShimRead(void);
-
-bool_t xShimWiFiInit(struct ipcpInstance_t *pxShimWiFiInstance);
+bool_t xShimEnrollToDIF(struct ipcpInstanceData_t *pxData);
 
 struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId);
 
-bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_t *pxDu, bool_t uxBlocking);
+bool_t xShimSDURead(struct ipcpInstanceData_t *pxData,
+                    portId_t xId,
+                    du_t *pxDu);
 
-EthernetHeader_t *vCastConstPointerTo_EthernetHeader_t(const void *pvArgument);
+void vShimHandleEthernetPacket(struct ipcpInstance_t *pxSelf,
+                               netbuf_t *pxNb);
 
 #ifdef __cplusplus
 }

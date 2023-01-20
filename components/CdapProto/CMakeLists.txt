@@ -10,7 +10,8 @@ set(srcs
   "pb_decode.c"
   "pb_encode.c"
   "EnrollmentInformationMessage.pb.c"
-  "NeighborMessage.pb.c")
+  "NeighborMessage.pb.c"
+  "NeighborArrayMessage.pb.c")
 
 idf_component_register(
   SRCS ${srcs}

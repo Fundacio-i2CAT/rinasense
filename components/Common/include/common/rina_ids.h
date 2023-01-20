@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+typedef int32_t invokeId_t;
+
 typedef uint32_t portId_t;
 
 typedef uint32_t seqNum_t;

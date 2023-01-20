@@ -18,4 +18,14 @@ else()
     NAME test_rib
     COMMAND "./test_rib"
   )
+
+  add_executable(test_cdap_message "${CMAKE_CURRENT_LIST_DIR}/test_cdap_message.c")
+  target_link_libraries(test_cdap_message
+    ${RIBD_DEPS}
+  )
+
+  add_test(
+    NAME test_cdap_message
+    COMMAND "./test_cdap_message"
+  )
 endif()

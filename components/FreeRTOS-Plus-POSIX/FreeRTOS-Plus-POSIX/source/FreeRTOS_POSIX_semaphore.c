@@ -37,7 +37,6 @@
 
 /* FreeRTOS+POSIX includes. */
 #include "FreeRTOS_POSIX.h"
-#include "FreeRTOS_POSIX/errno.h"
 #include "FreeRTOS_POSIX/semaphore.h"
 #include "FreeRTOS_POSIX/utils.h"
 
@@ -198,6 +197,8 @@ int sem_timedwait( sem_t * sem,
         {
             iStatus = 0;
         }
+
+        Atomic_Increment_u32( ( uint32_t * ) &pxSem->value );
     }
 
     return iStatus;

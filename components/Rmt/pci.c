@@ -9,7 +9,6 @@
 #include <stdio.h>
 
 #include "rmt.h"
-#include "configSensor.h"
 #include "du.h"
 
 #include "efcpStructures.h"
@@ -60,16 +59,16 @@ bool_t xPciIsOk(const pci_t *pxPci)
 
 void vPciPrint(const pci_t * pxPciTmp)
 {
-	LOGE(TAG_RINA, "Printing PCI");
-	LOGE(TAG_RINA, "Type: %02x", pxPciTmp->xType);
-	LOGE(TAG_RINA, "PDU len: %04x", pxPciTmp->xPduLen);
-	LOGE(TAG_RINA, "PDU Address Source: %02x", pxPciTmp->xSource);
-	LOGE(TAG_RINA, "PDU Address Destination: %02x", pxPciTmp->xDestination);
-	LOGE(TAG_RINA, "CEP destination: %02x",pxPciTmp->connectionId_t.xDestination);
-	LOGE(TAG_RINA, "CEP source: %02x",pxPciTmp->connectionId_t.xSource);
-	LOGE(TAG_RINA, "QoSid: %02x",pxPciTmp->connectionId_t.xQosId);
-	LOGE(TAG_RINA, "PDU Flag : %02x",pxPciTmp->xFlags);
-	LOGE(TAG_RINA, "Version: %02x",pxPciTmp->ucVersion);
+	LOGE(TAG_RMT, "Printing PCI");
+	LOGE(TAG_RMT, "Type: %02x", pxPciTmp->xType);
+	LOGE(TAG_RMT, "PDU len: %04x", pxPciTmp->xPduLen);
+	LOGE(TAG_RMT, "PDU Address Source: %02x", pxPciTmp->xSource);
+	LOGE(TAG_RMT, "PDU Address Destination: %02x", pxPciTmp->xDestination);
+	LOGE(TAG_RMT, "CEP destination: %02x",pxPciTmp->connectionId_t.xDestination);
+	LOGE(TAG_RMT, "CEP source: %02x",pxPciTmp->connectionId_t.xSource);
+	LOGE(TAG_RMT, "QoSid: %02x",pxPciTmp->connectionId_t.xQosId);
+	LOGE(TAG_RMT, "PDU Flag : %02x",pxPciTmp->xFlags);
+	LOGE(TAG_RMT, "Version: %02x",pxPciTmp->ucVersion);
 }
 
 #if 0

@@ -1,6 +1,7 @@
 #ifndef COMMON_RINA_NAME_H
 #define COMMON_RINA_NAME_H
 
+#include "common/error.h"
 #include "portability/port.h"
 
 #ifdef __cplusplus
@@ -9,41 +10,46 @@ extern "C" {
 
 typedef struct xName_info
 {
-	string_t pcProcessName;  		/*> Process Name*/
-	string_t pcProcessInstance;		/*> Process Instance*/
-	string_t pcEntityName;			/*> Entity Name*/
-	string_t pcEntityInstance;		/*> Entity Instance*/
-} name_t;
+    size_t unPostLn;
 
-name_t *xRINANameInitFrom(name_t *pxDst,
-                          const string_t process_name,
-                          const string_t process_instance,
-                          const string_t entity_name,
-                          const string_t entity_instance);
+    string_t pcProcessName;
+    string_t pcProcessInstance;
+    string_t pcEntityName;
+    string_t pcEntityInstance;
 
-void vRstrNameFini(name_t *n);
+    void *pxFree;
+} rname_t;
 
-void vRstrNameFree(name_t *xName);
+rname_t *pxNameNewFromString(const string_t pcNmStr);
 
-name_t *pxRStrNameCreate(void);
+rname_t *pxNameNewFromParts(string_t pcProcessName,
+                            string_t pcProcessInstance,
+                            string_t pcEntityName,
+                            string_t pcEntityInstance);
 
-name_t *pxRstrNameDup(const name_t *pxSrc);
+void vNameFree(rname_t *pxNm);
 
-void vRstrNameDestroy(name_t *pxName);
+void vNameAssignFromPartsStatic(rname_t *pxDst,
+                                string_t pcProcessName,
+                                string_t pcProcessInstance,
+                                string_t pcEntityName,
+                                string_t pcEntityInstance);
 
-bool_t xRstringDup(const string_t pxSrc, string_t *pxDst);
+rsMemErr_t xNameAssignFromPartsDup(rname_t *pxDst,
+                                   string_t pcProcessName,
+                                   string_t pcProcessInstance,
+                                   string_t pcEntityName,
+                                   string_t pcEntityInstance);
 
-name_t *xRinaNameCreate(void);
+rsMemErr_t xNameAssignFromString(rname_t *pxDst, const string_t pxNmStr);
 
-bool_t xRinaNameFromString(const string_t pcString, name_t * xName);
+void vNameAssignStatic(rname_t *pxDst, const rname_t *pxSrc);
 
-void xRinaNameFree(name_t *xName);
+rsMemErr_t xNameAssignDup(rname_t *pxDst, const rname_t *pxSrc);
 
-bool_t xRINAStringDup(const char *pcSrc, char *pcDst);
+string_t pcNameToString(const rname_t *pxDst);
 
-name_t *xRINAstringToName(const string_t pxInput);
-
-string_t pcNameToString(const name_t *n);
+void vNameToStringBuf(const rname_t *pxDst, string_t pcBuf, size_t unSzBuf);
 
 #ifdef __cplusplus
 }

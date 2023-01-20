@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#include "configSensor.h"
 #include "portability/port.h"
+#include "configRINA.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,10 +12,15 @@ extern "C" {
 
 #define MAC2STR_MIN_BUFSZ 18
 
+#define ETH_P_RINA     0xD1F0
+#define ETH_P_RINA_ARP 0x4305
+
+#define MAC_ADDRESS_LENGTH_BYTES 6
+
 //Structure MAC ADDRESS
 typedef struct xMAC_ADDRESS
 {
-	uint8_t ucBytes[ MAC_ADDRESS_LENGTH_BYTES ]; /**< Byte array of the MAC address */
+	uint8_t ucBytes[MAC_ADDRESS_LENGTH_BYTES]; /**< Byte array of the MAC address */
 } MACAddress_t;
 
 //enum MAC Address
@@ -24,6 +29,8 @@ typedef enum {
 } eGHAType_t;
 
 void mac2str(const MACAddress_t *, string_t, const size_t);
+
+bool_t xIsBroadcastMac(const MACAddress_t *pxMac);
 
 #ifdef __cplusplus
 }

@@ -1,12 +1,18 @@
 #ifndef _PORTABILITY_RS_LOG_H
 #define _PORTABILITY_RS_LOG_H
 
+#include <pthread.h>
 #include <stdarg.h>
+#include <stdint.h>
+#include <unistd.h>
+
 #include "portability/port.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern pthread_mutex_t xLogMutex;
 
 #ifndef RS_LOG_LOCAL_LEVEL
 #define RS_LOG_LOCAL_LEVEL  200 //CONFIG_LOG_MAXIMUM_LEVEL
@@ -31,8 +37,11 @@ extern "C" {
 #define _RS_LOG_COLOR_D
 #define _RS_LOG_COLOR_V
 
-#define     LOG_FORMAT(letter, format)      LOG_COLOR_ ## letter #letter " %s: " format LOG_RESET_COLOR "\n"
-#define _RS_LOG_FORMAT(letter, format)  _RS_LOG_COLOR_ ## letter #letter " %s: " format _RS_LOG_RESET_COLOR "\n"
+#ifdef RS_LOG_SHOW_THREAD_ID
+#define _RS_LOG_FORMAT(letter, format) _RS_LOG_COLOR_ ## letter #letter " %u %s: " format _RS_LOG_RESET_COLOR "\n"
+#else
+#define _RS_LOG_FORMAT(letter, format) _RS_LOG_COLOR_ ## letter #letter " %s: " format _RS_LOG_RESET_COLOR "\n"
+#endif
 
 typedef enum {
     LOG_NONE = 0,   /*!< No log output */
@@ -52,25 +61,38 @@ typedef enum {
     case LOG_INFO:  vRsLogWrite(LOG_INFO,  tag, _RS_LOG_FORMAT(I, format), tag, ##__VA_ARGS__); break; \
     case LOG_DEBUG: vRsLogWrite(LOG_DEBUG, tag, _RS_LOG_FORMAT(D, format), tag, ##__VA_ARGS__); break; \
     default:                                                            \
-    vRsLogWrite(LOG_VERBOSE, tag, _RS_LOG_FORMAT(V, format), tag, ##__VA_ARGS__); \
+        vRsLogWrite(LOG_VERBOSE, tag, _RS_LOG_FORMAT(V, format), tag, ##__VA_ARGS__); \
     }} while(0)
 
+#ifdef RS_LOG_SHOW_THREAD_ID
 #define _RS_LOG_LEVEL_LOCAL(level, tag, format, ...) \
-    do {                                                                \
-        if ( RS_LOG_LOCAL_LEVEL >= level ) _RS_LOG_LEVEL(level, tag, format, ##__VA_ARGS__); \
+    do {                                                \
+        uint32_t __tid = unRsGetCurrentThreadID();      \
+        if ( RS_LOG_LOCAL_LEVEL >= level )                              \
+            _RS_LOG_LEVEL(level, tag, format, __tid, ##__VA_ARGS__);    \
     } while(0)
+#else
+#define _RS_LOG_LEVEL_LOCAL(level, tag, format, ...) \
+    do {                                                \
+        if ( RS_LOG_LOCAL_LEVEL >= level )                              \
+            _RS_LOG_LEVEL(level, tag, format, ##__VA_ARGS__);    \
+    } while(0)
+#endif
 
-void vRsLogWrite(RsLogLevel_t, const char*, const char*, ...) __attribute__ ((format (printf, 3, 4)));
+void vRsLogWrite(RsLogLevel_t, const char *sTag, const char *sFmt, ...) __attribute__ ((format (printf, 3, 4)));
 
-void vRsLogWritev(RsLogLevel_t, const char*, const char*, va_list args);
+void vRsLogWritev(RsLogLevel_t, const char *sTag, const char *sFmt, va_list args);
 
 /* Public interface to use */
 
-#define LOGE( tag, format, ... ) _RS_LOG_LEVEL_LOCAL(LOG_ERROR,   tag, format, ##__VA_ARGS__)
-#define LOGW( tag, format, ... ) _RS_LOG_LEVEL_LOCAL(LOG_WARN,    tag, format, ##__VA_ARGS__)
-#define LOGI( tag, format, ... ) _RS_LOG_LEVEL_LOCAL(LOG_INFO,    tag, format, ##__VA_ARGS__)
-#define LOGD( tag, format, ... ) _RS_LOG_LEVEL_LOCAL(LOG_DEBUG,   tag, format, ##__VA_ARGS__)
-#define LOGV( tag, format, ... ) _RS_LOG_LEVEL_LOCAL(LOG_VERBOSE, tag, format, ##__VA_ARGS__)
+#define LOG_LOCK()   pthread_mutex_lock(&xLogMutex)
+#define LOG_UNLOCK() pthread_mutex_unlock(&xLogMutex)
+
+#define LOGE(tag, format, ...) _RS_LOG_LEVEL_LOCAL(LOG_ERROR,   tag, format, ##__VA_ARGS__)
+#define LOGW(tag, format, ...) _RS_LOG_LEVEL_LOCAL(LOG_WARN,    tag, format, ##__VA_ARGS__)
+#define LOGI(tag, format, ...) _RS_LOG_LEVEL_LOCAL(LOG_INFO,    tag, format, ##__VA_ARGS__)
+#define LOGD(tag, format, ...) _RS_LOG_LEVEL_LOCAL(LOG_DEBUG,   tag, format, ##__VA_ARGS__)
+#define LOGV(tag, format, ...) _RS_LOG_LEVEL_LOCAL(LOG_VERBOSE, tag, format, ##__VA_ARGS__)
 
 /* To be called once at the start of the program to initialize the
  * logging system. */

@@ -15,6 +15,8 @@
 extern "C" {
 #endif
 
+#define TAG_RINA "[RINA_API]"
+
 struct appRegistration_t
 {
     string_t pcNameDIF;
@@ -42,9 +44,9 @@ typedef struct xREGISTER_APPLICATION_HANDLE
     uint32_t xDestPort;
     ipcProcessId_t xSrcIpcpId;
     ipcProcessId_t xDestIpcpId;
-    name_t *pxAppName;
-    name_t *pxDafName;
-    name_t *pxDifName;
+    rname_t xAppName;
+    rname_t xDafName;
+    rname_t xDifName;
 
 } registerApplicationHandle_t;
 
@@ -78,6 +80,8 @@ bool_t RINA_flow_close(portId_t xPortId);
 //void vRINA_WeakUpUser(flowAllocateHandle_t *pxFlowAllocateResponse);
 
 void vRINA_WakeUpFlowRequest(flowAllocateHandle_t *pxFlowAllocateResponse, int nNewBits);
+
+void RINA_Init(void);
 
 #ifdef __cplusplus
 }

@@ -5,9 +5,13 @@
 extern "C" {
 #endif
 
-void *pvRsMemAlloc( size_t );
+void *pvRsMemCAlloc(size_t unNb, size_t unSz);
 
-void vRsMemFree( void * );
+void *pvRsMemAlloc(size_t unSz);
+
+void *pvRsMemRealloc(void *px, size_t unSz);
+
+void vRsMemFree(void *px);
 
 #ifdef __cplusplus
 }
