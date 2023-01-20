@@ -35,6 +35,9 @@ void app_main(void)
 {
 
     nvs_flash_init();
+    vRsLogInit();
+    esp_log_level_set("*", ESP_LOG_VERBOSE);
+
     /*
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());

@@ -12,6 +12,7 @@
 
 #include "unity.h"
 #include "IPCP_api.h"
+#include "RINA_API.h"
 #include "soc/rtc_wdt.h"
 
 void app_main(void)
@@ -21,6 +22,6 @@ void app_main(void)
 
     /* FIXME: I'm not sure this should be initialized here but I found
        out it's easier for the moment. */
-    RINA_IPCPInit();
+    //RINA_Init();
     unity_run_menu();
 }

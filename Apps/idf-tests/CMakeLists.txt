@@ -5,12 +5,12 @@ if(NOT $ENV{IDF_PATH} STREQUAL "")
 
   set(TEST_COMPONENTS
     "ARP826"
-    "BufferManagement"
     "Common"
     "Portability"
     "ShimIPCP"
     "Ribd"
     "IPCP"
+    "SerDes"
     "NetworkInterface"
     CACHE STRING "List of components to test")
 
@@ -23,8 +23,8 @@ if(NOT $ENV{IDF_PATH} STREQUAL "")
   set(TARGET_TYPE $ENV{TARGET_TYPE})
 
   set(EXTRA_COMPONENT_DIRS
-    "../components/"
-    "../components_mocks/")
+    "../../components/"
+    "../../components_mocks/")
 
   set(ENV{USE_MOCKS} "true")
   set(ENV{NETWORKINTERFACE_MODULE} "mq")

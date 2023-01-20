@@ -119,8 +119,6 @@ else()
     target_include_directories(RINA PUBLIC ${shared_library_includes})
     target_link_arduino_libraries(RINA PRIVATE core)
 
-    add_subdirectory(test_arduino)
-
   elseif(${TARGET_TYPE} STREQUAL "linux")
     #
     # Linux/POSIX
@@ -174,8 +172,6 @@ else()
 
     install(TARGETS RINA)
     install(FILES ${public_headers} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/RINA)
-
-    add_subdirectory(test_linux)
 
     # We do not want the 'install()' function to work at all anymore.
     rs_disable_install()
