@@ -80,15 +80,3 @@ artefacts along with a correct module description.
 
 https://arduino.github.io/arduino-cli/0.27/library-specification/
 
-## Long term goals
-
-For this code to run on a plain Arduino board that
-doesn't, we would need to figure out how to support POSIX
-threads. This is currently provided by the ESP32 runtime but also
-supported by FreeRTOS+POSIX, which replicates the POSIX thread API
-using FreeRTOS tasks. Seeing that there is at least [one version of
-FreeRTOS](https://github.com/feilipu/Arduino_FreeRTOS_Library/tree/master/src)
-that was built to work on top of the Arduino environment, it is not
-unreasonable to think we could get FreeRTOS+POSIX running.
-
-

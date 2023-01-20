@@ -1,0 +1,68 @@
+Frame 9: 70 bytes on wire (560 bits), 70 bytes captured (560 bits) on interface lan, id 0
+Ethernet II, Src: PcsCompu_ec:61:56 (08:00:27:ec:61:56), Dst: Broadcast (ff:ff:ff:ff:ff:ff)
+    Destination: Broadcast (ff:ff:ff:ff:ff:ff)
+    Source: PcsCompu_ec:61:56 (08:00:27:ec:61:56)
+    Type: Unknown (0x4305)
+RINA ARP
+    Hardware Type: 0x0001
+    Protocol Type: 0xd1f0
+    Hardware Address Length: 6
+    Protocol Address Length: 18
+    Operation: ARP_REQUEST
+    Sender Hardware Address: PcsCompu_ec:61:56 (08:00:27:ec:61:56)
+    Sender Protocol Address: rs2.mobile.DIF/1//
+    Target Hardware Address: Broadcast (ff:ff:ff:ff:ff:ff)
+    Target Protocol Address: mobile.DIF///
+
+
+Frame 10: 70 bytes on wire (560 bits), 70 bytes captured (560 bits) on interface lan, id 0
+Ethernet II, Src: PcsCompu_d9:0b:50 (08:00:27:d9:0b:50), Dst: PcsCompu_ec:61:56 (08:00:27:ec:61:56)
+    Destination: PcsCompu_ec:61:56 (08:00:27:ec:61:56)
+    Source: PcsCompu_d9:0b:50 (08:00:27:d9:0b:50)
+    Type: Unknown (0x4305)
+RINA ARP
+    Hardware Type: 0x0001
+    Protocol Type: 0xd1f0
+    Hardware Address Length: 6
+    Protocol Address Length: 18
+    Operation: ARP_REPLY
+    Sender Hardware Address: PcsCompu_d9:0b:50 (08:00:27:d9:0b:50)x
+    Sender Protocol Address: mobile.DIF///
+    Target Hardware Address: PcsCompu_ec:61:56 (08:00:27:ec:61:56)
+    Target Protocol Address: rs2.mobile.DIF/1//
+
+
+=============
+
+Frame 5: 70 bytes on wire (560 bits), 70 bytes captured (560 bits) on interface lan, id 0
+Ethernet II, Src: PcsCompu_d9:0b:50 (08:00:27:d9:0b:50), Dst: Broadcast (ff:ff:ff:ff:ff:ff)
+    Destination: Broadcast (ff:ff:ff:ff:ff:ff)
+    Source: PcsCompu_d9:0b:50 (08:00:27:d9:0b:50)
+    Type: Unknown (0x4305)
+RINA ARP
+    Hardware Type: 0x0001
+    Protocol Type: 0xd1f0
+    Hardware Address Length: 6
+    Protocol Address Length: 18
+    Operation: ARP_REQUEST
+    Sender Hardware Address: PcsCompu_d9:0b:50 (08:00:27:d9:0b:50)
+    Sender Protocol Address: rs1.mobile.DIF/1//
+    Target Hardware Address: Broadcast (ff:ff:ff:ff:ff:ff)
+    Target Protocol Address: mobile.DIF///
+
+Frame 6: 72 bytes on wire (576 bits), 72 bytes captured (576 bits) on interface lan, id 0
+Ethernet II, Src: MS-NLB-PhysServer-17_34:09:79:2a (02:11:34:09:79:2a), Dst: PcsCompu_d9:0b:50 (08:00:27:d9:0b:50)
+    Destination: PcsCompu_d9:0b:50 (08:00:27:d9:0b:50)
+    Source: MS-NLB-PhysServer-17_34:09:79:2a (02:11:34:09:79:2a)
+    Type: Unknown (0x4305)
+RINA ARP
+    Hardware Type: 0x0001
+    Protocol Type: 0xd1f0
+    Hardware Address Length: 6
+    Protocol Address Length: 18
+    Operation: ARP_REPLY
+    Sender Hardware Address: PcsCompu_d9:0b:50 (08:00:27:d9:0b:50)
+    Sender Protocol Address: mobile.DIF///
+    Target Hardware Address: MS-NLB-PhysServer-17_34:09:79:2a (02:11:34:09:79:2a)
+    Target Protocol Address: rs1.mobile.DIF/1//
+
