@@ -179,6 +179,7 @@ static void *prvIPCPTask(void *pvParameters)
         /* Wait until there is something to do. If the following call exits
          * due to a time out rather than a message being received, set a
          * 'NoEvent' value. */
+        //LOGI(TAG_IPCPMANAGER, "Sleeping for %lu usecond(s)", xSleepTimeUS);
         if (ERR_CHK(xRsQueueReceiveTimed(&xNetworkEventQueue, (void *)&xEv, xSleepTimeUS)))
             xEv.eEventType = eNoEvent;
 
@@ -490,10 +491,10 @@ eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEth
     // Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
     if (usFrameType == ETH_P_RINA_ARP || usFrameType == ETH_P_RINA) {
         eReturn = eProcessBuffer;
-        LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: ACCEPTED", usFrameType);
+        LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %04X: ACCEPTED", usFrameType);
     }
     else
-        LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: REJECTED", usFrameType);
+        LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %04X: REJECTED", usFrameType);
 
     return eReturn;
 }
