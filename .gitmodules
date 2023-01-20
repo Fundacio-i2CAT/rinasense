@@ -1,6 +1,6 @@
 [submodule "unity"]
-	path = unity
+	path = external/unity
 	url = https://github.com/ThrowTheSwitch/Unity.git
 [submodule "Arduino-CMake-Toolchain"]
-	path = Arduino-CMake-Toolchain
+	path = external/Arduino-CMake-Toolchain
 	url = https://github.com/a9183756-gh/Arduino-CMake-Toolchain.git
