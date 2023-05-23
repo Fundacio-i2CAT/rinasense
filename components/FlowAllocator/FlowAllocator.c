@@ -194,6 +194,7 @@ void vFlowAllocatorFlowRequest(
     portId_t xAppPortId,
     flowAllocateHandle_t *pxFlowRequest)
 {
+    LOGD(TAG_FA, "Handling the Flow Allocation Request");
 
     flow_t *pxFlow;
     neighborInfo_t *pxNeighbor;
@@ -231,13 +232,13 @@ void vFlowAllocatorFlowRequest(
 
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
     pxNeighbor = pxEnrollmentFindNeighbor(pcNeighbor);
-    if (!pxNeighbor) {
+    if (!pxNeighbor)
+    {
         LOGE(TAG_FA, "No neighbor found");
-        return;
+        pxFlow->xRemoteAddress = 0;
     }
 
     pxFlow->xRemoteAddress = pxNeighbor->xNeighborAddress;
-
     pxFlow->xSourcePortId = xAppPortId;
 
     if (pxFlow->xRemoteAddress == 0)
