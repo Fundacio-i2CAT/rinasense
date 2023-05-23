@@ -418,7 +418,7 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 					  struct du_t *pxDu)
 {
 
-	LOGI(TAG_RMT, "xRmtSendPortId");
+	LOGI(TAG_RMT, "Processing DU to be send");
 
 	rmtN1Port_t *pxN1Port;
 	// rmtPs_t *ps;//???
@@ -492,6 +492,7 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 
 		// n1_port_unlock(n1_port);
 		LOGI(TAG_RMT, "PDU ready to be sent, no need to enqueue");
+		LOGI(TAG_RMT, "RmtInstance: %p", pxRmtInstance);
 		ret = xRmtN1PortWriteDu(pxRmtInstance, pxN1Port, pxDu);
 		/*FIXME LB: This is just horrible, needs to be rethinked */
 		// N1_port_lock(n1_port);
