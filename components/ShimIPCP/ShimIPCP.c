@@ -218,8 +218,8 @@ bool_t xShimFlowAllocateRequest(struct ipcpInstanceData_t *pxData,
 
 		// Register the flow in a list or in the Flow allocator
 		LOGI(TAG_SHIM, "Created Flow: %p, portID: %d, portState: %d", pxFlow, pxFlow->xPortId, pxFlow->ePortIdState);
-        vRsListInitItem(&pxFlow->xFlowItem, pxFlow);
-        vRsListInsert(&pxData->xFlowsList, &pxFlow->xFlowItem);
+		vRsListInitItem(&pxFlow->xFlowItem, pxFlow);
+		vRsListInsert(&pxData->xFlowsList, &pxFlow->xFlowItem);
 
 		pxFlow->pxSduQueue = prvShimCreateQueue();
 		if (!pxFlow->pxSduQueue)
@@ -263,9 +263,8 @@ bool_t xShimFlowAllocateResponse(struct ipcpInstanceData_t *pxShimInstanceData,
 
 {
 	RINAStackEvent_t xEnrollEvent = {
-        .eEventType = eShimFlowAllocatedEvent,
-        .xData.PV = NULL
-    };
+		.eEventType = eShimFlowAllocatedEvent,
+		.xData.PV = NULL};
 	shimFlow_t *pxFlow;
 	struct ipcpInstance_t *pxShimIpcp;
 
@@ -592,13 +591,14 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 	shimFlow_t *pxFlow;
 	RsListItem_t *pxListItem;
 
-    RsAssert(pxData);
+	RsAssert(pxData);
 
 	pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
-    if (!pxFlow) {
-        LOGE(TAG_SHIM, "Failed to allocate memory for flow");
-        return NULL;
-    }
+	if (!pxFlow)
+	{
+		LOGE(TAG_SHIM, "Failed to allocate memory for flow");
+		return NULL;
+	}
 
 #if 0
     /* FIXME: Is this validation at all necessary? */
@@ -615,11 +615,11 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 	}
 
 	/* Find a way to iterate in the list and compare the addesss*/
-    pxListItem = pxRsListGetFirst(&pxData->xFlowsList);
+	pxListItem = pxRsListGetFirst(&pxData->xFlowsList);
 
 	while (pxListItem != NULL)
 	{
-        pxFlow = (shimFlow_t *)pxRsListGetItemOwner(pxListItem);
+		pxFlow = (shimFlow_t *)pxRsListGetItemOwner(pxListItem);
 
 		if (pxFlow)
 		{
@@ -630,7 +630,7 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 			}
 		}
 
-        pxListItem = pxRsListGetNext(pxListItem);
+		pxListItem = pxRsListGetNext(pxListItem);
 	}
 
 	LOGI(TAG_SHIM, "Flow not found");
@@ -646,11 +646,11 @@ static shimFlow_t *prvShimFindFlow(struct ipcpInstanceData_t *pxData)
 	pxFlow = pvRsMemAlloc(sizeof(*pxFlow));
 
 	/* Find a way to iterate in the list and compare the addesss*/
-    pxListItem = pxRsListGetFirst(&pxData->xFlowsList);
+	pxListItem = pxRsListGetFirst(&pxData->xFlowsList);
 
 	while (pxListItem != NULL)
 	{
-        pxFlow = (shimFlow_t *)pxRsListGetItemOwner(pxListItem);
+		pxFlow = (shimFlow_t *)pxRsListGetItemOwner(pxListItem);
 
 		if (pxFlow)
 		{
@@ -717,7 +717,7 @@ static bool_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData,
 				flow->port_id);
 	}*/
 	// Check this
-	LOGI(TAG_SHIM, "Shim-WiFi unbinded port: %u", xFlow->xPortId);
+	LOGI(TAG_SHIM, "Shim-WiFi unbinded port: %lu", xFlow->xPortId);
 	if (prvShimFlowDestroy(xData, xFlow))
 	{
 		LOGE(TAG_SHIM, "Failed to destroy Shim-WiFi flow");
@@ -752,9 +752,8 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 	size_t uxHeadLen, uxLength;
 	struct timespec ts;
 	RINAStackEvent_t xTxEvent = {
-        .eEventType = eNetworkTxEvent,
-        .xData.PV = NULL
-    };
+		.eEventType = eNetworkTxEvent,
+		.xData.PV = NULL};
 	unsigned char *pucArpPtr;
 
 	LOGI(TAG_SHIM, "SDU write received");
@@ -921,10 +920,11 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 	MACAddress_t *pxPhyDev;
 
 	pxPhyDev = pvRsMemAlloc(sizeof(*pxPhyDev));
-    if (!pxPhyDev) {
-        LOGE(TAG_WIFI, "Failed to allocate memory for WiFi shim instance");
-        return NULL;
-    }
+	if (!pxPhyDev)
+	{
+		LOGE(TAG_WIFI, "Failed to allocate memory for WiFi shim instance");
+		return NULL;
+	}
 
 	pxPhyDev->ucBytes[0] = 0x00;
 	pxPhyDev->ucBytes[1] = 0x00;
@@ -935,11 +935,13 @@ struct ipcpInstance_t *pxShimWiFiCreate(ipcProcessId_t xIpcpId)
 
 	/* Create an instance */
 	pxInst = pvRsMemAlloc(sizeof(*pxInst));
-	if (!pxInst) return NULL;
+	if (!pxInst)
+		return NULL;
 
 	/* Create Data instance and Flow Specifications*/
 	pxInstData = pvRsMemAlloc(sizeof(*pxInstData));
-    if (!pxInstData) return NULL;
+	if (!pxInstData)
+		return NULL;
 
 	pxInst->pxData = pxInstData;
 
@@ -1005,18 +1007,18 @@ bool_t xShimWiFiInit(struct ipcpInstance_t *pxShimWiFiInstance)
 
 	LOGI(TAG_SHIM, "Wifi shim initialization");
 	RINAStackEvent_t xEnrollEvent = {
-        .eEventType = eShimEnrolledEvent,
-        .xData.PV = NULL
-    };
+		.eEventType = eShimEnrolledEvent,
+		.xData.PV = NULL};
 
-	if (!xShimEnrollToDIF(pxShimWiFiInstance->pxData->pxPhyDev)) {
+	if (!xShimEnrollToDIF(pxShimWiFiInstance->pxData->pxPhyDev))
+	{
 		LOGE(TAG_SHIM, "Wifi shim instance can't enroll to DIF");
-        return false;
-    }
+		return false;
+	}
 	else
 	{
 		xEnrollEvent.xData.PV = (void *)(pxShimWiFiInstance->pxData->pxPhyDev);
 		xSendEventStructToIPCPTask(&xEnrollEvent, 50 * 1000);
-        return true;
+		return true;
 	}
 }

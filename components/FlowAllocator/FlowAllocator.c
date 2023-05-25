@@ -255,6 +255,7 @@ void vFlowAllocatorFlowRequest(
                                                   LOCAL_ADDRESS, pxFlow->xRemoteAddress, pxFlow->pxQosSpec->xQosId,
                                                   pxFlow->pxDtpConfig, pxFlow->pxDtcpConfig);
 
+    LOGD(TAG_FA, "CepId Created:%d", xCepSourceId);
     if (xCepSourceId == 0)
     {
         LOGE(TAG_FA, "CepId was not create properly");
@@ -280,7 +281,7 @@ void vFlowAllocatorFlowRequest(
     pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
 
     char flowObj[24];
-    sprintf(flowObj, "/fa/flows/key=%d-%d", pxFlow->xSourceAddress, pxFlow->xSourcePortId);
+    sprintf(flowObj, "/fa/flows/key=%lu-%lu", pxFlow->xSourceAddress, pxFlow->xSourcePortId);
 
     if (!pxRibCreateObject(flowObj, -1, "Flow", "Flow", FLOW))
     {
@@ -402,13 +403,13 @@ bool_t xFlowAllocatorDuPost(portId_t xAppPortId, struct du_t *pxDu)
         return false;
     }
 
-    LOGE(TAG_FA, "Posting DU to port-id %d ", xAppPortId);
+    LOGE(TAG_FA, "Posting DU to port-id %lu ", xAppPortId);
 
     pxNetworkBuffer = pxDu->pxNetworkBuffer;
 
     if (pxFlowAllocatorInstance->eFaiState != eFAI_ALLOCATED)
     {
-        LOGE(TAG_FA, "Flow with port-id %d is not allocated", xAppPortId);
+        LOGE(TAG_FA, "Flow with port-id %lu is not allocated", xAppPortId);
         xDuDestroy(pxDu);
         return false;
     }

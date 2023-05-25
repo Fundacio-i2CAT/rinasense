@@ -331,6 +331,7 @@ bool_t prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
     /* FIXME: Maybe do a prebind? */
     if (xResult)
     {
+        LOGD(TAG_RINA, "Sending Flow Allocate Request");
         vFlowAllocatorFlowRequest(pxFlowAllocateRequest->xPortId, pxFlowAllocateRequest);
 
         pxFlowAllocateRequest->usTimeout = 1U;
@@ -533,7 +534,7 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
     // Validate if the flow is valid, if the xPortId is working status CONNECTED
     if (!RINA_flowStatus(xPortId))
     {
-        LOGE(TAG_RINA, "No flow for port ID: %u", xPortId);
+        LOGE(TAG_RINA, "No flow for port ID: %lu", xPortId);
         return 0;
     }
     else

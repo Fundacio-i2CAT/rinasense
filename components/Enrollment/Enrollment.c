@@ -426,7 +426,7 @@ bool_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
         if (!xRibdSendResponse(pxEnrRibObj->ucObjClass, pxEnrRibObj->ucObjName, pxEnrRibObj->ulObjInst,
                                0, NULL, M_STOP_R, invokeId, xN1Port, NULL))
         {
-                LOGE(TAG_ENROLLMENT, "Failed to sent M_STOP_R via n-1 port: %d", xN1Port);
+                LOGE(TAG_ENROLLMENT, "Failed to sent M_STOP_R via n-1 port: %lu", xN1Port);
                 return false;
         }
 
@@ -465,7 +465,7 @@ bool_t xEnrollmentHandleOperationalStart(struct ribObject_t *pxOperRibObj,
         if (!xRibdSendResponse(pxOperRibObj->ucObjClass, pxOperRibObj->ucObjName, pxOperRibObj->ulObjInst,
                                0, NULL, M_START_R, invokeId, xN1Port, pxSerObjValue))
         {
-                LOGE(TAG_ENROLLMENT, "Failed to sent M_STAR_R via n-1 port: %d", xN1Port);
+                LOGE(TAG_ENROLLMENT, "Failed to sent M_STAR_R via n-1 port: %lu", xN1Port);
                 return false;
         }
 

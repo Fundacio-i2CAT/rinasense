@@ -18,7 +18,7 @@
 #include "esp_wifi.h"
 #include "esp_system.h"
 #include "esp_event.h"
-#include "esp_log.h"
+
 #include "nvs_flash.h"
 
 #define TAG_APP "[PING-APP]"
@@ -76,15 +76,15 @@ void app_main(void)
     memset(bufferTx, 'x', (size_t)PING_SIZE);
     memset(bufferTx + PING_SIZE, '\0', 1);
 
-    ESP_LOGI(TAG_APP, "Pinging %s with %d bytes of data: ", SERVER, strlen(bufferTx));
+    LOGI(TAG_APP, "Pinging %s with %d bytes of data: ", SERVER, strlen(bufferTx));
 
     vTaskDelay(2000);
 
-    ESP_LOGD(TAG_APP, "----------- Requesting a Flow ----- ");
+    LOGD(TAG_APP, "----------- Requesting a Flow ----- ");
 
     xAppPortId = RINA_flow_alloc(DIF, CLIENT, SERVER, xFlowSpec, Flags);
 
-    ESP_LOGI(TAG_APP, "Flow Allocated at Port id: %d ", xAppPortId);
+    LOGI(TAG_APP, "Flow Allocated at Port id: %lu ", xAppPortId);
 
     // vTaskDelay(100);
 
@@ -92,7 +92,7 @@ void app_main(void)
 
     if (xAppPortId != -1)
     {
-        ESP_LOGI(TAG_APP, "Pinging %s with %d bytes of data: ", SERVER, strlen(bufferTx));
+        LOGI(TAG_APP, "Pinging %s with %d bytes of data: ", SERVER, strlen(bufferTx));
         while (i < NUMBER_OF_PINGS)
         {
 
@@ -102,11 +102,11 @@ void app_main(void)
 
             if (uxTxBytes == 0)
             {
-                ESP_LOGE(TAG_APP, "Error to send Data");
+                LOGE(TAG_APP, "Error to send Data");
                 break;
             }
 
-            ESP_LOGD(TAG_APP, "Sended: %d", uxTxBytes);
+            LOGD(TAG_APP, "Sended: %d", uxTxBytes);
 
             uxRxBytes = 0;
 
@@ -118,7 +118,7 @@ void app_main(void)
 
                 if (uxRxBytes == 0)
                 {
-                    ESP_LOGE(TAG_APP, "It was an error receiving the buffer");
+                    LOGE(TAG_APP, "It was an error receiving the buffer");
                     break;
                 }
                 if (uxRxBytes > 0)
@@ -128,12 +128,12 @@ void app_main(void)
 
                     // ESP_LOGD(TAG_APP, "%d bytes from server: rtt = %.3f ms\n", uxRxBytes, ns);
                     // ESP_LOGI(TAG_APP, "%d bytes from server: rtt = %d ms", uxRxBytes, time_delta / 1000);
-                    ESP_LOGI(TAG_APP, "%d bytes from server: rtt = %.3f ms", uxRxBytes, (float)time_delta / 1000);
+                    LOGI(TAG_APP, "%li bytes from server: rtt = %.3f ms", uxRxBytes, (float)time_delta / 1000);
                     RTT[i] = time_delta;
                 }
                 else
                 {
-                    ESP_LOGI(TAG_APP, "Request time out");
+                    LOGI(TAG_APP, "Request time out");
                     RTT[i] = 0;
                 }
             }
@@ -173,10 +173,10 @@ void app_main(void)
     if (received > 0)
         average = (sum / received);
 
-    ESP_LOGI(TAG_APP, "Ping Statistics to for %s:", SERVER);
-    ESP_LOGI(TAG_APP, "     Packets: send = %d, received = %d , timeout = %d", NUMBER_OF_PINGS, received, NUMBER_OF_PINGS - received);
-    ESP_LOGI(TAG_APP, "Approximate round trip times in milliseconds: ");
-    ESP_LOGI(TAG_APP, "     Minimum = %.3f ms , Maximum = %.3f ms, Average = %.3f ms ", (float)min / 1000, (float)max / 1000, average / 1000);
+    LOGI(TAG_APP, "Ping Statistics to for %s:", SERVER);
+    LOGI(TAG_APP, "     Packets: send = %d, received = %d , timeout = %d", NUMBER_OF_PINGS, received, NUMBER_OF_PINGS - received);
+    LOGI(TAG_APP, "Approximate round trip times in milliseconds: ");
+    LOGI(TAG_APP, "     Minimum = %.3f ms , Maximum = %.3f ms, Average = %.3f ms ", (float)min / 1000, (float)max / 1000, average / 1000);
     // ESP_LOGI(TAG_APP, "     Througput = %f bps\n", result);
 
     /* if (RINA_flow_close(xAppPortId))
