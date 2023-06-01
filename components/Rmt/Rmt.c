@@ -379,7 +379,6 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 
 	LOGI(TAG_RMT, "Gonna send SDU to port-id %u", pxN1Port->xPortId);
 	ret = pxN1Port->pxN1Ipcp->pxOps->duWrite(pxN1Port->pxN1Ipcp->pxData, pxN1Port->xPortId, pxDu, false);
-	LOGI(TAG_RMT, "xRmtN1PortWriteDu ret:%d", ret);
 
 	if (!ret)
 		return false;

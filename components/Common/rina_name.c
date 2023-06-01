@@ -92,7 +92,7 @@ void vRstrNameFree(name_t *xName)
         vRsMemFree(xName);
 }
 
-//BaseType_t xRinaNameFromString(const char * pcString, name_t *xName);
+// BaseType_t xRinaNameFromString(const char * pcString, name_t *xName);
 
 char *pcRstrDup(const char *s)
 {
@@ -103,9 +103,9 @@ char *pcRstrDup(const char *s)
                 return NULL;
 
         len = strlen(s) + 1;
-        LOGE(TAG_RINA_NAME, "Len RstrDup: %zu", len);
+        LOGD(TAG_RINA_NAME, "Len RstrDup: %zu", len);
         buf = pvRsMemAlloc(len);
-        memset(buf,0,len);
+        memset(buf, 0, len);
         if (buf)
                 memcpy(buf, s, len);
 
@@ -131,7 +131,7 @@ bool_t xRstringDup(const string_t pxSrc, string_t *pxDst)
                 if (!*pxDst)
                 {
                         LOGE(TAG_RINA_NAME, "Cannot duplicate source string "
-                                           "in kernel-space");
+                                            "in kernel-space");
                         return false;
                 }
         }
@@ -143,7 +143,6 @@ bool_t xRstringDup(const string_t pxSrc, string_t *pxDst)
 
         return true;
 }
-
 
 bool_t xRstrNameCpy(const name_t *pxSrc, name_t *pxDst)
 {
@@ -157,10 +156,7 @@ bool_t xRstrNameCpy(const name_t *pxSrc, name_t *pxDst)
         // ASSERT(name_is_initialized(pxDst));
 
         /* We rely on short-boolean evaluation ... :-) */
-        if (xRstringDup(pxSrc->pcProcessName, &pxDst->pcProcessName)
-            || xRstringDup(pxSrc->pcProcessInstance, &pxDst->pcProcessInstance)
-            || xRstringDup(pxSrc->pcEntityName, &pxDst->pcEntityName)
-            || xRstringDup(pxSrc->pcEntityInstance, &pxDst->pcEntityInstance))
+        if (xRstringDup(pxSrc->pcProcessName, &pxDst->pcProcessName) || xRstringDup(pxSrc->pcProcessInstance, &pxDst->pcProcessInstance) || xRstringDup(pxSrc->pcEntityName, &pxDst->pcEntityName) || xRstringDup(pxSrc->pcEntityInstance, &pxDst->pcEntityInstance))
         {
                 vRstrNameFini(pxDst);
                 return false;
@@ -203,17 +199,17 @@ name_t *xRINAstringToName(const string_t pxInput)
 {
         name_t *pxName;
 
-        char * tmp1 = NULL;
-        char * tmp_pn = NULL;
-        char * tmp_pi = NULL;
-        char * tmp_en = NULL;
-        char * tmp_ei = NULL;
+        char *tmp1 = NULL;
+        char *tmp_pn = NULL;
+        char *tmp_pi = NULL;
+        char *tmp_en = NULL;
+        char *tmp_ei = NULL;
 
         LOGE(TAG_RINA_NAME, "pxInput: %s", pxInput);
 
         if (pxInput)
         {
-                char * tmp2;
+                char *tmp2;
 
                 xRstringDup(pxInput, &tmp1);
                 if (!tmp1)
@@ -253,7 +249,7 @@ name_t *xRINAstringToName(const string_t pxInput)
 
 bool_t xRinaNameFromString(const string_t pcString, name_t *pxName)
 {
-        LOGE(TAG_RINA, "Calling: %s", __func__);
+        LOGD(TAG_RINA, "Calling: %s", __func__);
 
         char *apn, *api, *aen, *aei;
         char *strc = pcRstrDup(pcString);
@@ -281,10 +277,10 @@ bool_t xRinaNameFromString(const string_t pcString, name_t *pxName)
         pxName->pcEntityName = (aen && strlen(aen)) ? pcRstrDup(aen) : pcRstrDup("");
         pxName->pcEntityInstance = (aei && strlen(aei)) ? pcRstrDup(aei) : pcRstrDup("");
 
-        LOGE(TAG_FA, "RinaNameFromString - pcProcessName: %s", pxName->pcProcessName);
-        LOGE(TAG_FA, "RinaNameFromString - pcProcessInstance: %s", pxName->pcProcessInstance);
-        LOGE(TAG_FA, "RinaNameFromString - pcEntityName: %s", pxName->pcEntityName);
-        LOGE(TAG_FA, "RinaNameFromString - pcEntityInstance: %s", pxName->pcEntityInstance);
+        LOGD(TAG_FA, "RinaNameFromString - pcProcessName: %s", pxName->pcProcessName);
+        LOGD(TAG_FA, "RinaNameFromString - pcProcessInstance: %s", pxName->pcProcessInstance);
+        LOGD(TAG_FA, "RinaNameFromString - pcEntityName: %s", pxName->pcEntityName);
+        LOGD(TAG_FA, "RinaNameFromString - pcEntityInstance: %s", pxName->pcEntityInstance);
 
         if ((apn && strlen(apn) && !pxName->pcProcessName) ||
             (api && strlen(api) && !pxName->pcProcessInstance) ||
@@ -327,52 +323,48 @@ name_t *pxRstrNameDup(const name_t *pxSrc)
 
 string_t pcNameToString(const name_t *n)
 {
-    char *         tmp;
-    size_t         size;
-    const string_t none = "";
-    size_t         none_len = strlen(none);
+        char *tmp;
+        size_t size;
+        const string_t none = "";
+        size_t none_len = strlen(none);
 
-    if (!n)
-        return NULL;
+        if (!n)
+                return NULL;
 
-    size  = 0;
+        size = 0;
 
-    size += (n->pcProcessName                 ?
-             strlen(n->pcProcessName)     : none_len);
-    size += strlen(DELIMITER);
+        size += (n->pcProcessName ? strlen(n->pcProcessName) : none_len);
+        size += strlen(DELIMITER);
 
-    size += (n->pcProcessInstance             ?
-             strlen(n->pcProcessInstance) : none_len);
-    size += strlen(DELIMITER);
+        size += (n->pcProcessInstance ? strlen(n->pcProcessInstance) : none_len);
+        size += strlen(DELIMITER);
 
-    size += (n->pcEntityName                  ?
-             strlen(n->pcEntityName)      : none_len);
-    size += strlen(DELIMITER);
+        size += (n->pcEntityName ? strlen(n->pcEntityName) : none_len);
+        size += strlen(DELIMITER);
 
-    size += (n->pcEntityInstance              ?
-             strlen(n->pcEntityInstance)  : none_len);
-    size += strlen(DELIMITER);
+        size += (n->pcEntityInstance ? strlen(n->pcEntityInstance) : none_len);
+        size += strlen(DELIMITER);
 
-    tmp = pvRsMemAlloc(size);
-    memset(tmp, 0, sizeof(*tmp));
+        tmp = pvRsMemAlloc(size);
+        memset(tmp, 0, sizeof(*tmp));
 
-    if (!tmp)
-        return NULL;
+        if (!tmp)
+                return NULL;
 
-    if (snprintf(tmp, size,
-                 "%s%s%s%s%s%s%s",
-                 (n->pcProcessName     ? n->pcProcessName     : none),
-                 DELIMITER,
-                 (n->pcProcessInstance ? n->pcProcessInstance : none),
-                 DELIMITER,
-                 (n->pcEntityName      ? n->pcEntityName      : none),
-                 DELIMITER,
-                 (n->pcEntityInstance  ? n->pcEntityInstance  : none)) !=
-        (int)(size - 1)) {
-        vRsMemFree(tmp);
-        return NULL;
-    }
+        if (snprintf(tmp, size,
+                     "%s%s%s%s%s%s%s",
+                     (n->pcProcessName ? n->pcProcessName : none),
+                     DELIMITER,
+                     (n->pcProcessInstance ? n->pcProcessInstance : none),
+                     DELIMITER,
+                     (n->pcEntityName ? n->pcEntityName : none),
+                     DELIMITER,
+                     (n->pcEntityInstance ? n->pcEntityInstance : none)) !=
+            (int)(size - 1))
+        {
+                vRsMemFree(tmp);
+                return NULL;
+        }
 
-    return tmp;
+        return tmp;
 }
-

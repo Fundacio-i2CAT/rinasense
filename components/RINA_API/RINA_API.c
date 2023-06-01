@@ -326,13 +326,20 @@ bool_t prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
     }
     xResult = xRINA_bind(pxFlowAllocateRequest);
 
-    LOGE(TAG_RINA, "xresult=%d", xResult);
-
     /* FIXME: Maybe do a prebind? */
     if (xResult)
     {
         LOGD(TAG_RINA, "Sending Flow Allocate Request");
-        vFlowAllocatorFlowRequest(pxFlowAllocateRequest->xPortId, pxFlowAllocateRequest);
+
+        /*This must be changed: The idea is that the main task receives the request to allocate
+        the Flow and the send it to the FlowAllocator module.*/
+        xStackFlowAllocateEvent.xData.PV = (void *)pxFlowAllocateRequest;
+
+        if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, (TickType_t)portMAX_DELAY) == pdFAIL)
+        {
+            /* Failed to wake-up the RINA-task, no use to wait for it */
+            return -1;
+        }
 
         pxFlowAllocateRequest->usTimeout = 1U;
 
@@ -423,7 +430,7 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
             prvWaitForBit(&pxFlowAllocateRequest->xEventCond,
                           &pxFlowAllocateRequest->xEventMutex,
                           &pxFlowAllocateRequest->nEventBits,
-                          eFLOW_BOUND,
+                          eFLOW_ACCEPT,
                           true);
         }
     }

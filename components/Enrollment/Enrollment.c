@@ -45,25 +45,25 @@ neighborInfo_t *pxEnrollmentFindNeighbor(string_t pcRemoteApName)
         neighborInfo_t *pxNeighbor;
         pxNeighbor = pvRsMemAlloc(sizeof(*pxNeighbor));
 
-        LOGI(TAG_ENROLLMENT, "Looking for '%s'", pcRemoteApName);
+        LOGD(TAG_ENROLLMENT, "Looking for '%s'", pcRemoteApName);
         for (x = 0; x < NEIGHBOR_TABLE_SIZE; x++)
 
         {
                 if (xNeighborsTable[x].xValid == true)
                 {
                         pxNeighbor = xNeighborsTable[x].pxNeighborInfo;
-                        LOGI(TAG_ENROLLMENT, "Neighbor checking '%p'", pxNeighbor);
-                        LOGI(TAG_ENROLLMENT, "Comparing '%s' - '%s'", pxNeighbor->pcApName, pcRemoteApName);
+                        LOGD(TAG_ENROLLMENT, "Neighbor checking '%p'", pxNeighbor);
+                        LOGD(TAG_ENROLLMENT, "Comparing '%s' - '%s'", pxNeighbor->pcApName, pcRemoteApName);
                         if (!strcmp(pxNeighbor->pcApName, pcRemoteApName))
                         {
-                                LOGI(TAG_ENROLLMENT, "Neighbor founded '%p'", pxNeighbor);
+                                LOGD(TAG_ENROLLMENT, "Neighbor founded '%p'", pxNeighbor);
 
                                 return pxNeighbor;
                                 break;
                         }
                 }
         }
-        LOGI(TAG_ENROLLMENT, "Neighbor not founded");
+        LOGD(TAG_ENROLLMENT, "Neighbor not founded");
 
         return NULL;
 }
@@ -90,7 +90,7 @@ address_t xEnrollmentGetNeighborAddress(string_t pcRemoteApName)
                         LOGI(TAG_ENROLLMENT, "Comparing '%s' - '%s'", pxNeighbor->pcApName, pcRemoteApName);
                         if (!strcmp(pxNeighbor->pcApName, pcRemoteApName))
                         {
-                                LOGI(TAG_ENROLLMENT, "Neighbor founded '%p'", pxNeighbor);
+                                LOGD(TAG_ENROLLMENT, "Neighbor founded '%p'", pxNeighbor);
 
                                 return pxNeighbor->xNeighborAddress;
                                 break;
@@ -403,7 +403,7 @@ bool_t xEnrollmentHandleStop(struct ribObject_t *pxEnrRibObj,
                              int invokeId,
                              portId_t xN1Port)
 {
-        LOGI(TAG_ENROLLMENT, "Handling a M_STOP CDAP Message");
+        LOGD(TAG_ENROLLMENT, "Handling a M_STOP CDAP Message");
         neighborInfo_t *pxNeighborInfo = NULL;
         enrollmentMessage_t *pxEnrollmentMsg;
 
@@ -443,11 +443,11 @@ bool_t xEnrollmentHandleOperationalStart(struct ribObject_t *pxOperRibObj,
                                          int invokeId,
                                          portId_t xN1Port)
 {
-        LOGE(TAG_ENROLLMENT, "EnrollmentHandle OperationalStart");
+
         neighborMessage_t *pxNeighborMsg;
         neighborInfo_t *pxNeighborInfo = NULL;
 
-        LOGE(TAG_ENROLLMENT, "Looking Neighbor");
+        LOGD(TAG_ENROLLMENT, "Looking for a neighbor");
         pxNeighborInfo = pxEnrollmentFindNeighbor(pcRemoteApName);
 
         pxNeighborMsg = pvRsMemAlloc(sizeof(*pxNeighborMsg));

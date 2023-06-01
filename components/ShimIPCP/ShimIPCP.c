@@ -610,7 +610,7 @@ static shimFlow_t *prvShimFindFlowByPortId(struct ipcpInstanceData_t *pxData, po
 #endif
 	if (!unRsListLength(&pxData->xFlowsList))
 	{
-		LOGE(TAG_SHIM, "Flow list is empty");
+		LOGI(TAG_SHIM, "Flow list is empty");
 		return NULL;
 	}
 
@@ -856,7 +856,7 @@ bool_t xShimSDUWrite(struct ipcpInstanceData_t *pxData, portId_t xId, struct du_
 		return false;
 	}
 
-	LOGE(TAG_SHIM, "Data sent to the IPCP TAsk");
+	LOGI(TAG_SHIM, "Data sent to the IPCP TAsk");
 
 	return true;
 }

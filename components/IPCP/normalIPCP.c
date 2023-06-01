@@ -126,7 +126,7 @@ bool_t xNormalDuWrite(struct ipcpInstanceData_t *pxData,
                       portId_t xAppPortId,
                       NetworkBufferDescriptor_t *pxNetworkBuffer)
 {
-        LOGI(TAG_IPCPNORMAL, "Writing Data into the IPCP Normal");
+        LOGD(TAG_IPCPNORMAL, "Writing Data into the IPCP Normal");
         struct du_t *pxDu;
         struct normalFlow_t *pxFlow;
 
@@ -288,54 +288,6 @@ bool_t xNormalFlowBinding(struct ipcpInstanceData_t *pxUserData,
                           struct ipcpInstance_t *pxN1Ipcp)
 {
         return xRmtN1PortBind(pxUserData->pxRmt, xPid, pxN1Ipcp);
-}
-
-bool_t xNormalTest(struct ipcpInstance_t *pxNormalInstance, struct ipcpInstance_t *pxN1Ipcp)
-{
-        LOGI(TAG_IPCPNORMAL, "Test");
-
-        portId_t xId = 1;
-
-        /* Data User */
-        struct du_t *testDu;
-        NetworkBufferDescriptor_t *pxNetworkBuffer;
-        size_t xBufferSize;
-
-        /* String to send*/
-        char *ucStringTest = "Temperature:22";
-
-        /*Getting the buffer Descriptor*/
-        xBufferSize = strlen(ucStringTest);
-        pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, 1000); // sizeof length DataUser packet.
-
-        LOGI(TAG_IPCPNORMAL, "BufferSize DU: %zu", xBufferSize);
-
-        /*Copy the string to the Buffer Network*/
-        memcpy(pxNetworkBuffer->pucEthernetBuffer, ucStringTest, xBufferSize);
-
-        pxNetworkBuffer->xDataLength = xBufferSize;
-
-        // ESP_LOGI(TAG_IPCPNORMALNORMAL, "Size of NetworkBuffer: %d",pxNetworkBuffer->xDataLength);
-        /*Integrate the buffer to the Du structure*/
-        testDu = pvRsMemAlloc(sizeof(*testDu));
-        testDu->pxNetworkBuffer = pxNetworkBuffer;
-        LOGI(TAG_IPCPNORMAL, "Du Filled");
-
-        LOGI(TAG_IPCPNORMAL, "Normal Instance: %p", pxNormalInstance);
-
-        /*if (xNormalFlowBinding(pxNormalInstance->pxData, xId, pxN1Ipcp))
-        {
-                ESP_LOGI(TAG_IPCPNORMAL, "FlowBinding");
-        }*/
-
-        /*Call to Normalwrite function to send data*/
-        if (xNormalDuWrite(pxNormalInstance->pxData, xId, testDu->pxNetworkBuffer))
-        {
-                LOGI(TAG_IPCPNORMAL, "Wrote packet on the shimWiFi");
-                return true;
-        }
-
-        return false;
 }
 
 static bool_t pvNormalAssignToDif(struct ipcpInstanceData_t *pxData, name_t *pxDifName)
@@ -820,7 +772,7 @@ static struct normalFlow_t *prvFindFlowCepid(cepId_t xCepId)
 
         if (unRsListLength(&(pxIpcpData->xFlowsList)) == 0)
         {
-                LOGE(TAG_IPCPNORMAL, "Flow list is empty");
+                LOGI(TAG_IPCPNORMAL, "Flow list is empty");
                 return NULL;
         }
 

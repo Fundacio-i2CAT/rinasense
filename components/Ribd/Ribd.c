@@ -795,42 +795,42 @@ xRibdConnectToIpcp(struct ipcpInstanceData_t *pxIpcpData, name_t *pxSource, name
 
 void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
 {
-    LOGE(TAG_RIB, "CDAP MESSAGE");
-    LOGE(TAG_RIB, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
-    LOGE(TAG_RIB, "Invoke Id: %d ", pxDecodeCdap->invokeID);
-    LOGE(TAG_RIB, "Version: %lld", pxDecodeCdap->version);
+    LOGD(TAG_RIB, "---- CDAP MESSAGE ----");
+    LOGD(TAG_RIB, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
+    LOGD(TAG_RIB, "Invoke Id: %d ", pxDecodeCdap->invokeID);
+    LOGD(TAG_RIB, "Version: %lld", pxDecodeCdap->version);
     if (pxDecodeCdap->pxAuthPolicy->pcName != NULL)
     {
-        LOGE(TAG_RIB, "AuthPolicy Name: %s", pxDecodeCdap->pxAuthPolicy->pcName);
+        LOGD(TAG_RIB, "AuthPolicy Name: %s", pxDecodeCdap->pxAuthPolicy->pcName);
     }
     if (pxDecodeCdap->pxAuthPolicy->pcVersion != NULL)
     {
-        LOGE(TAG_RIB, "AuthPolicy version: %s", pxDecodeCdap->pxAuthPolicy->pcVersion);
+        LOGD(TAG_RIB, "AuthPolicy version: %s", pxDecodeCdap->pxAuthPolicy->pcVersion);
     }
 
-    LOGE(TAG_RIB, "Source AEI: %s", pxDecodeCdap->pxSourceInfo->pcEntityInstance);
-    LOGE(TAG_RIB, "Source AEN: %s", pxDecodeCdap->pxSourceInfo->pcEntityName);
-    LOGE(TAG_RIB, "Source API: %s", pxDecodeCdap->pxSourceInfo->pcProcessInstance);
-    LOGE(TAG_RIB, "Source APN: %s", pxDecodeCdap->pxSourceInfo->pcProcessName);
-    LOGE(TAG_RIB, "Dest AEI: %s", pxDecodeCdap->pxDestinationInfo->pcEntityInstance);
-    LOGE(TAG_RIB, "Dest AEN: %s", pxDecodeCdap->pxDestinationInfo->pcEntityName);
-    LOGE(TAG_RIB, "Dest API: %s", pxDecodeCdap->pxDestinationInfo->pcProcessInstance);
-    LOGE(TAG_RIB, "Dest APN: %s", pxDecodeCdap->pxDestinationInfo->pcProcessName);
-    LOGE(TAG_RIB, "Result: %d", pxDecodeCdap->result);
+    LOGD(TAG_RIB, "Source AEI: %s", pxDecodeCdap->pxSourceInfo->pcEntityInstance);
+    LOGD(TAG_RIB, "Source AEN: %s", pxDecodeCdap->pxSourceInfo->pcEntityName);
+    LOGD(TAG_RIB, "Source API: %s", pxDecodeCdap->pxSourceInfo->pcProcessInstance);
+    LOGD(TAG_RIB, "Source APN: %s", pxDecodeCdap->pxSourceInfo->pcProcessName);
+    LOGD(TAG_RIB, "Dest AEI: %s", pxDecodeCdap->pxDestinationInfo->pcEntityInstance);
+    LOGD(TAG_RIB, "Dest AEN: %s", pxDecodeCdap->pxDestinationInfo->pcEntityName);
+    LOGD(TAG_RIB, "Dest API: %s", pxDecodeCdap->pxDestinationInfo->pcProcessInstance);
+    LOGD(TAG_RIB, "Dest APN: %s", pxDecodeCdap->pxDestinationInfo->pcProcessName);
+    LOGD(TAG_RIB, "Result: %d", pxDecodeCdap->result);
 
     // configASSERT(pxDecodeCdap->xObjName == NULL);
 
     if (pxDecodeCdap->pcObjName)
     {
-        LOGE(TAG_RIB, "ObjectName:%s", pxDecodeCdap->pcObjName);
+        LOGD(TAG_RIB, "ObjectName:%s", pxDecodeCdap->pcObjName);
     }
     if (!pxDecodeCdap->objInst)
     {
-        LOGE(TAG_RIB, "ObjectInstance:%d", (int)pxDecodeCdap->objInst);
+        LOGD(TAG_RIB, "ObjectInstance:%d", (int)pxDecodeCdap->objInst);
     }
     if (pxDecodeCdap->pcObjClass != NULL)
     {
-        LOGE(TAG_RIB, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
+        LOGD(TAG_RIB, "ObjectClass:%s", pxDecodeCdap->pcObjClass);
     }
 }
 
