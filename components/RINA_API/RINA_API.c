@@ -63,11 +63,11 @@ struct appRegistration_t *RINA_application_register(string_t pcNameDif,
     registerApplicationHandle_t *xRegAppRequest;
     RINAStackEvent_t xStackAppRegistrationEvent = {
         .eEventType = eStackAppRegistrationEvent,
-        .xData.PV = NULL
-    };
+        .xData.PV = NULL};
 
     xRegAppRequest = pvRsMemAlloc(sizeof(registerApplicationHandle_t));
-    if (!xRegAppRequest) {
+    if (!xRegAppRequest)
+    {
         LOGE(TAG_RINA, "Failed to allocate memory for registration handle");
         return NULL;
     }
@@ -125,7 +125,8 @@ bool_t xRINA_bind(flowAllocateHandle_t *pxFlowRequest)
 {
     RINAStackEvent_t xBindEvent;
 
-    if (!pxFlowRequest) {
+    if (!pxFlowRequest)
+    {
         LOGE(TAG_RINA, "No flow Request");
         return false;
     }
@@ -136,7 +137,8 @@ bool_t xRINA_bind(flowAllocateHandle_t *pxFlowRequest)
     if (xSendEventStructToIPCPTask(&xBindEvent, 0) == false)
         /* Failed to wake-up the IPCP-task, no use to wait for it */
         return false;
-    else {
+    else
+    {
         prvWaitForBit(&pxFlowRequest->xEventCond,
                       &pxFlowRequest->xEventMutex,
                       &pxFlowRequest->nEventBits,
@@ -176,23 +178,27 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
     flowAllocateHandle_t *pxFlowAllocateRequest = NULL;
 
     pxFlowSpecTmp = pvRsMemAlloc(sizeof(*pxFlowSpecTmp));
-    if (!pxFlowSpecTmp) {
+    if (!pxFlowSpecTmp)
+    {
         LOGE(TAG_RINA, "Failed to allocate memory for flow specifications");
         goto err;
     }
 
     pxFlowAllocateRequest = pvRsMemAlloc(sizeof(*pxFlowAllocateRequest));
-    if (!pxFlowAllocateRequest) {
+    if (!pxFlowAllocateRequest)
+    {
         LOGE(TAG_RINA, "Failed to allocate memory for flow request");
         goto err;
     }
 
-    if (pthread_cond_init(&pxFlowAllocateRequest->xEventCond, NULL) != 0) {
+    if (pthread_cond_init(&pxFlowAllocateRequest->xEventCond, NULL) != 0)
+    {
         LOGE(TAG_RINA, "Failed to initialize thread condition signal");
         goto err;
     }
 
-    if (pthread_mutex_init(&pxFlowAllocateRequest->xEventMutex, NULL) != 0) {
+    if (pthread_mutex_init(&pxFlowAllocateRequest->xEventMutex, NULL) != 0)
+    {
         LOGE(TAG_RINA, "Failed to initialize thread condition signal");
         pthread_cond_destroy(&pxFlowAllocateRequest->xEventCond);
         goto err;
@@ -210,19 +216,23 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
     pxLocalName = pxRStrNameCreate();
     pxRemoteName = pxRStrNameCreate();
 
-    if (!pxDIFName || !pxLocalName || !pxRemoteName) {
+    if (!pxDIFName || !pxLocalName || !pxRemoteName)
+    {
         LOGE(TAG_RINA, "Rina Names were not created properly");
         goto err;
     }
-    if (!xRinaNameFromString(pcNameDIF, pxDIFName)) {
+    if (!xRinaNameFromString(pcNameDIF, pxDIFName))
+    {
         LOGE(TAG_RINA, "No possible to convert String to Rina Name");
         goto err;
     }
-    if (!pcLocalApp || !xRinaNameFromString(pcLocalApp, pxLocalName)) {
+    if (!pcLocalApp || !xRinaNameFromString(pcLocalApp, pxLocalName))
+    {
         LOGE(TAG_RINA, "LocalName incorrect");
         goto err;
     }
-    if (!pcRemoteApp || !xRinaNameFromString(pcRemoteApp, pxRemoteName)) {
+    if (!pcRemoteApp || !xRinaNameFromString(pcRemoteApp, pxRemoteName))
+    {
         LOGE(TAG_RINA, "RemoteName incorrect");
         goto err;
     }
@@ -233,7 +243,8 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
 
     /*Struct Data to sent attached into the event*/
 
-    if (pxFlowAllocateRequest != NULL) {
+    if (pxFlowAllocateRequest != NULL)
+    {
         pxFlowAllocateRequest->xReceiveBlockTime = FLOW_DEFAULT_RECEIVE_BLOCK_TIME;
         pxFlowAllocateRequest->xSendBlockTime = FLOW_DEFAULT_SEND_BLOCK_TIME;
 
@@ -245,7 +256,8 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
 
         vRsListInit(&pxFlowAllocateRequest->xListWaitingPackets);
 
-        if (!xFlowSpec) {
+        if (!xFlowSpec)
+        {
             pxFlowAllocateRequest->pxFspec->ulAverageBandwidth = 0;
             pxFlowAllocateRequest->pxFspec->ulAverageSduBandwidth = 0;
             pxFlowAllocateRequest->pxFspec->ulDelay = 0;
@@ -256,7 +268,9 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
             pxFlowAllocateRequest->pxFspec->ulUndetectedBitErrorRate = 0;
             pxFlowAllocateRequest->pxFspec->xPartialDelivery = true;
             pxFlowAllocateRequest->pxFspec->xMsgBoundaries = false;
-        } else {
+        }
+        else
+        {
             pxFlowAllocateRequest->pxFspec->ulAverageBandwidth = xFlowSpec->avg_bandwidth;
             pxFlowAllocateRequest->pxFspec->ulAverageSduBandwidth = 0;
             pxFlowAllocateRequest->pxFspec->ulDelay = xFlowSpec->max_delay;
@@ -272,7 +286,7 @@ static flowAllocateHandle_t *prvRINACreateFlowRequest(string_t pcNameDIF,
 
     return pxFlowAllocateRequest;
 
-    err:
+err:
     if (pxFlowAllocateRequest)
         vRsMemFree(pxFlowAllocateRequest);
     if (pxFlowSpecTmp)
@@ -297,27 +311,40 @@ bool_t prvConnect(flowAllocateHandle_t *pxFlowAllocateRequest)
     bool_t xResult = 0;
     RINAStackEvent_t xStackFlowAllocateEvent = {
         .eEventType = eStackFlowAllocateEvent,
-        .xData.PV = NULL
-    };
+        .xData.PV = NULL};
 
-    if (pxFlowAllocateRequest == NULL) {
+    if (pxFlowAllocateRequest == NULL)
+    {
         LOGE(TAG_RINA, "No flow request passed");
         xResult = false;
     }
     /* Check if the flow is already allocated */
-    else if (RINA_flowStatus(pxFlowAllocateRequest->xPortId) == 1) {
+    else if (RINA_flowStatus(pxFlowAllocateRequest->xPortId) == 1)
+    {
         LOGE(TAG_RINA, "There is a flow allocated for port ID: %d", pxFlowAllocateRequest->xPortId);
         xResult = false;
     }
     xResult = xRINA_bind(pxFlowAllocateRequest);
 
     /* FIXME: Maybe do a prebind? */
-    if (xResult) {
-        vFlowAllocatorFlowRequest(pxFlowAllocateRequest->xPortId, pxFlowAllocateRequest);
+    if (xResult)
+    {
+        LOGD(TAG_RINA, "Sending Flow Allocate Request");
+
+        /*This must be changed: The idea is that the main task receives the request to allocate
+        the Flow and the send it to the FlowAllocator module.*/
+        xStackFlowAllocateEvent.xData.PV = (void *)pxFlowAllocateRequest;
+
+        if (xSendEventStructToIPCPTask(&xStackFlowAllocateEvent, (TickType_t)portMAX_DELAY) == pdFAIL)
+        {
+            /* Failed to wake-up the RINA-task, no use to wait for it */
+            return -1;
+        }
 
         pxFlowAllocateRequest->usTimeout = 1U;
 
-        if (xSendEventToIPCPTask(eFATimerEvent) != true) {
+        if (xSendEventToIPCPTask(eFATimerEvent) != true)
+        {
             LOGE(TAG_RINA, "Error sending timer event to IPCP");
             xResult = false;
         }
@@ -351,19 +378,24 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
 
     xResult = prvConnect(pxFlowAllocateRequest);
 
-    if (xResult == 0) {
-        for (;;) {
-            if (!xTimed) {
+    if (xResult == 0)
+    {
+        for (;;)
+        {
+            if (!xTimed)
+            {
                 xRemainingTime = pxFlowAllocateRequest->xReceiveBlockTime;
 
-                if (xRemainingTime == 0) {
+                if (xRemainingTime == 0)
+                {
                     xResult = PORT_ID_WRONG;
                     break;
                 }
 
                 xTimed = true;
 
-                if (xRsTimeSetTimeOut(&xTimeOut)) {
+                if (xRsTimeSetTimeOut(&xTimeOut))
+                {
                     LOGE(TAG_RINA, "Error initializing timeout object");
                     xResult = PORT_ID_WRONG;
                 }
@@ -372,19 +404,22 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
             LOGI(TAG_RINA, "Checking Flow Status");
             xResult = RINA_flowStatus(pxFlowAllocateRequest->xPortId);
 
-            if (xResult) {
+            if (xResult)
+            {
                 xResult = 0;
                 break;
             }
 
-            if (xRsTimeCheckTimeOut(&xTimeOut, &xRemainingTime) != false) {
+            if (xRsTimeCheckTimeOut(&xTimeOut, &xRemainingTime) != false)
+            {
                 LOGE(TAG_RINA, "Error checking for flow allocation timeout expiration");
                 xResult = PORT_ID_WRONG;
                 break;
             }
 
             /* Is the timeout expired? */
-            if (xRemainingTime == 0) {
+            if (xRemainingTime == 0)
+            {
                 LOGE(TAG_RINA, "Flow allocation timed out");
                 xResult = PORT_ID_WRONG;
                 break;
@@ -395,7 +430,7 @@ portId_t RINA_flow_alloc(string_t pcNameDIF,
             prvWaitForBit(&pxFlowAllocateRequest->xEventCond,
                           &pxFlowAllocateRequest->xEventMutex,
                           &pxFlowAllocateRequest->nEventBits,
-                          eFLOW_BOUND,
+                          eFLOW_ACCEPT,
                           true);
         }
     }
@@ -413,8 +448,7 @@ size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
     useconds_t xTimeToWait, xTimeDiff;
     RINAStackEvent_t xStackTxEvent = {
         .eEventType = eStackTxEvent,
-        .xData.PV = NULL
-    };
+        .xData.PV = NULL};
 
     /* Check that DataLength is not longer than MAX_SDU_SIZE. We
      * don't know yet WHAT to do if this is not true so make sure we
@@ -424,20 +458,23 @@ size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
     /*Check if the Flow is active*/
     xTimeToWait = 250 * 1000;
 
-    if (!xRsTimeSetTimeOut(&xTimeOut)) {
+    if (!xRsTimeSetTimeOut(&xTimeOut))
+    {
         LOGE(TAG_RINA, "xRsTimeSetTimeOut failed");
         return 0;
     }
 
     pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(uxTotalDataLength, xTimeToWait);
 
-    if (pxNetworkBuffer != NULL) {
+    if (pxNetworkBuffer != NULL)
+    {
         pvCopyDest = (void *)pxNetworkBuffer->pucEthernetBuffer;
         (void)memcpy(pvCopyDest, pvBuffer, uxTotalDataLength);
 
         /* This will update xTimeToWait with whatever is left to
            wait. */
-        if (!xRsTimeCheckTimeOut(&xTimeOut, &xTimeToWait)) {
+        if (!xRsTimeCheckTimeOut(&xTimeOut, &xTimeToWait))
+        {
             LOGE(TAG_RINA, "Error checking timeout expiration");
             return 0;
         }
@@ -450,12 +487,14 @@ size_t RINA_flow_write(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
 
         if (xSendEventStructToIPCPTask(&xStackTxEvent, xTimeToWait))
             return uxTotalDataLength;
-        else {
+        else
+        {
             vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
             return 0;
         }
     }
-    else {
+    else
+    {
         LOGE(TAG_RINA, "Error allocating network buffer for writing");
         return 0;
     }
@@ -473,12 +512,15 @@ bool_t RINA_close(portId_t xAppPortId)
 
     if (!is_port_id_ok(xAppPortId))
         xResult = false;
-    else {
-        if (!xSendEventStructToIPCPTask(&xDeallocateEvent, 0)) {
+    else
+    {
+        if (!xSendEventStructToIPCPTask(&xDeallocateEvent, 0))
+        {
             LOGI(TAG_RINA, "RINA Deallocate Flow: failed");
             xResult = false;
         }
-        else xResult = true;
+        else
+            xResult = true;
     }
 
     return xResult;
@@ -497,19 +539,24 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
     size_t uxPayloadLength;
 
     // Validate if the flow is valid, if the xPortId is working status CONNECTED
-    if (!RINA_flowStatus(xPortId)) {
+    if (!RINA_flowStatus(xPortId))
+    {
         LOGE(TAG_RINA, "No flow for port ID: %u", xPortId);
         return 0;
-    } else {
+    }
+    else
+    {
         // find the flow handle associated to the xPortId.
         pxFlowHandle = pxFAFindFlowHandle(xPortId);
         xPacketCount = unRsListLength(&(pxFlowHandle->xListWaitingPackets));
 
         LOGD(TAG_RINA, "Numbers of packet in the queue to read: %zu", xPacketCount);
 
-        while (xPacketCount == 0) {
+        while (xPacketCount == 0)
+        {
 
-            if (xTimed == false) {
+            if (xTimed == false)
+            {
                 /* Check to see if the flow is non blocking on the first
                  * iteration.  */
                 xRemainingTime = pxFlowHandle->xReceiveBlockTime;
@@ -521,7 +568,8 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
 #error Not sure how to handle this size of __LONG_WIDTH__
 #endif
 
-                if (xRemainingTime == 0) {
+                if (xRemainingTime == 0)
+                {
                     /* Check for the interrupt flag. */
 #if __LONG_WIDTH__ == 32
                     LOGD(TAG_RINA, "xRemainingTime: %lu", xRemainingTime);
@@ -537,7 +585,8 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
                 xTimed = true;
 
                 /* Fetch the current time. */
-                if (!xRsTimeSetTimeOut(&xTimeOut)) {
+                if (!xRsTimeSetTimeOut(&xTimeOut))
+                {
                     LOGE(TAG_RINA, "Error initializing timeout object");
                     break;
                 }
@@ -554,7 +603,8 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
             if (xPacketCount != 0)
                 break;
 
-            if (!xRsTimeCheckTimeOut(&xTimeOut, &xRemainingTime)) {
+            if (!xRsTimeCheckTimeOut(&xTimeOut, &xRemainingTime))
+            {
                 LOGE(TAG_RINA, "Error checking write timeout expiration");
                 return 0;
             }
@@ -567,7 +617,8 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
 #endif
         }
 
-        if (xPacketCount != 0) {
+        if (xPacketCount != 0)
+        {
             pthread_mutex_lock(&mux);
             {
                 /* The owner of the list item is the network buffer. */
@@ -583,7 +634,8 @@ int32_t RINA_flow_read(portId_t xPortId, void *pvBuffer, size_t uxTotalDataLengt
             (void)memcpy(pvBuffer, (const void *)pxNetworkBuffer->pucDataBuffer, (size_t)lDataLength);
             vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
         }
-        else {
+        else
+        {
             LOGE(TAG_RINA, "Timeout reading from flow");
             lDataLength = -1;
         }

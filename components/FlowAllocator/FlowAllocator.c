@@ -194,6 +194,7 @@ void vFlowAllocatorFlowRequest(
     portId_t xAppPortId,
     flowAllocateHandle_t *pxFlowRequest)
 {
+    LOGD(TAG_FA, "Handling the Flow Allocation Request");
 
     flow_t *pxFlow;
     neighborInfo_t *pxNeighbor;
@@ -231,13 +232,13 @@ void vFlowAllocatorFlowRequest(
 
     /* Request to DFT the Next Hop, at the moment request to EnrollmmentTask */
     pxNeighbor = pxEnrollmentFindNeighbor(pcNeighbor);
-    if (!pxNeighbor) {
+    if (!pxNeighbor)
+    {
         LOGE(TAG_FA, "No neighbor found");
-        return;
+        pxFlow->xRemoteAddress = 0;
     }
 
     pxFlow->xRemoteAddress = pxNeighbor->xNeighborAddress;
-
     pxFlow->xSourcePortId = xAppPortId;
 
     if (pxFlow->xRemoteAddress == 0)
@@ -254,6 +255,7 @@ void vFlowAllocatorFlowRequest(
                                                   LOCAL_ADDRESS, pxFlow->xRemoteAddress, pxFlow->pxQosSpec->xQosId,
                                                   pxFlow->pxDtpConfig, pxFlow->pxDtcpConfig);
 
+    LOGD(TAG_FA, "CepId Created:%d", xCepSourceId);
     if (xCepSourceId == 0)
     {
         LOGE(TAG_FA, "CepId was not create properly");
@@ -279,7 +281,7 @@ void vFlowAllocatorFlowRequest(
     pxObjVal = pxSerdesMsgFlowEncode(pxFlow);
 
     char flowObj[24];
-    sprintf(flowObj, "/fa/flows/key=%d-%d", pxFlow->xSourceAddress, pxFlow->xSourcePortId);
+    sprintf(flowObj, "/fa/flows/key=%d-%u", pxFlow->xSourceAddress, pxFlow->xSourcePortId);
 
     if (!pxRibCreateObject(flowObj, -1, "Flow", "Flow", FLOW))
     {

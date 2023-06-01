@@ -119,7 +119,7 @@ bool_t xRmtN1PortBind(struct rmt_t *pxRmtInstance, portId_t xId, struct ipcpInst
 
 	xPortIdTable[0].pxPortN1 = pxTmp;
 
-	LOGI(TAG_RMT, "Added send queue to rmt instance %pK for port-id %d", pxRmtInstance, xId);
+	LOGI(TAG_RMT, "Added send queue to rmt instance %pK for port-id %u", pxRmtInstance, xId);
 
 	/*Associate the DIF name with the SDUP configuration, SDUP will not be used for the moment*/
 
@@ -249,7 +249,7 @@ static bool_t xRmtProcessDtPdu(struct rmt_t *pxRmt, portId_t xPortId, struct du_
 
 bool_t xRmtReceive(struct ipcpInstanceData_t *pxData, struct du_t *pxDu, portId_t xFrom)
 {
-	LOGD(TAG_RMT, "RMT has received a RINA packet from the port %d", xFrom);
+	LOGD(TAG_RMT, "RMT has received a RINA packet from the port %u", xFrom);
 
 	pduType_t xPduType;
 	address_t xDstAddr;
@@ -265,7 +265,7 @@ bool_t xRmtReceive(struct ipcpInstanceData_t *pxData, struct du_t *pxDu, portId_
 	}
 	if (!is_port_id_ok(xFrom))
 	{
-		LOGE(TAG_RMT, "Wrong port-id %d", xFrom);
+		LOGE(TAG_RMT, "Wrong port-id %u", xFrom);
 		xDuDestroy(pxDu);
 		return false;
 	}
@@ -377,9 +377,8 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 
 	bool_t ret;
 
-	LOGI(TAG_RMT, "Gonna send SDU to port-id %d", pxN1Port->xPortId);
+	LOGI(TAG_RMT, "Gonna send SDU to port-id %u", pxN1Port->xPortId);
 	ret = pxN1Port->pxN1Ipcp->pxOps->duWrite(pxN1Port->pxN1Ipcp->pxData, pxN1Port->xPortId, pxDu, false);
-	LOGI(TAG_RMT, "xRmtN1PortWriteDu ret:%d", ret);
 
 	if (!ret)
 		return false;
@@ -389,7 +388,7 @@ static bool_t xRmtN1PortWriteDu(struct rmt_t *pxRmt,
 		// n1_port_lock(n1_port);
 		if (pxN1Port->pxPendingDu)
 		{
-			LOGE(TAG_RMT, "Already a pending SDU present for port %d",
+			LOGE(TAG_RMT, "Already a pending SDU present for port %u",
 				 pxN1Port->xPortId);
 			xDuDestroy(pxN1Port->pxPendingDu);
 			pxN1Port->xStats.plen--;
@@ -418,7 +417,7 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 					  struct du_t *pxDu)
 {
 
-	LOGI(TAG_RMT, "xRmtSendPortId");
+	LOGI(TAG_RMT, "Processing DU to be send");
 
 	rmtN1Port_t *pxN1Port;
 	// rmtPs_t *ps;//???
@@ -492,6 +491,7 @@ bool_t xRmtSendPortId(struct rmt_t *pxRmtInstance,
 
 		// n1_port_unlock(n1_port);
 		LOGI(TAG_RMT, "PDU ready to be sent, no need to enqueue");
+		LOGI(TAG_RMT, "RmtInstance: %p", pxRmtInstance);
 		ret = xRmtN1PortWriteDu(pxRmtInstance, pxN1Port, pxDu);
 		/*FIXME LB: This is just horrible, needs to be rethinked */
 		// N1_port_lock(n1_port);
@@ -558,7 +558,7 @@ bool_t xRmtSend(struct rmt_t *pxRmtInstance,
 #endif
 
 	if (xRmtSendPortId(pxRmtInstance, pxRmtInstance->pxN1Port->xPortId, pxDu))
-		LOGE(TAG_RMT, "Failed to send a PDU to port-id %d", pxRmtInstance->pxN1Port->xPortId);
+		LOGE(TAG_RMT, "Failed to send a PDU to port-id %u", pxRmtInstance->pxN1Port->xPortId);
 	return true;
 }
 

@@ -32,20 +32,20 @@ dtpSv_t *pxDtpStateVectorInit(void)
         pxDtpSv->stats.rx_pdus = 0;               // ok
         pxDtpSv->stats.rx_bytes = 0;
         // ok
-        pxDtpSv->xRexmsnCtrl = false;      // ok
-        pxDtpSv->xRateBased = false;       // ok
-        pxDtpSv->xWindowBased = false;     // ok
-        pxDtpSv->xDrfRequired = true;      // ok
-        pxDtpSv->xRateFulfiled = false;    // ok
+        pxDtpSv->xRexmsnCtrl = false;        // ok
+        pxDtpSv->xRateBased = false;         // ok
+        pxDtpSv->xWindowBased = false;       // ok
+        pxDtpSv->xDrfRequired = true;        // ok
+        pxDtpSv->xRateFulfiled = false;      // ok
         pxDtpSv->xMaxFlowPduSize = UINT_MAX; // ok
         pxDtpSv->xMaxFlowSduSize = UINT_MAX; // ok
         //.MPL                  = 1000,
         //.R                    = 100,
         //.A                    = 0,
         //.tr                   = 0,
-        pxDtpSv->xRcvLeftWindowEdge = 0;  // ok
-        pxDtpSv->xWindowClosed = false; // ok
-        pxDtpSv->xDrfFlag = true;       // ok
+        pxDtpSv->xRcvLeftWindowEdge = 0; // ok
+        pxDtpSv->xWindowClosed = false;  // ok
+        pxDtpSv->xDrfFlag = true;        // ok
 
         return pxDtpSv;
 }
@@ -57,7 +57,7 @@ bool_t xDtpPduSend(struct dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu)
         struct efcpContainer_t *pxEfcpContainer;
         cepId_t destCepId;
 
-        LOGI(TAG_DTP, "xDtpPduSend");
+        LOGD(TAG_DTP, "Calling: %s", __func__);
         /* Remote flow case */
         if (pxDu->pxPci->xSource != pxDu->pxPci->xDestination)
         {
@@ -96,7 +96,7 @@ bool_t xDtpPduSend(struct dtp_t *pxDtp, struct rmt_t *pxRmt, struct du_t *pxDu)
 
 bool_t xDtpWrite(struct dtp_t *pxDtpInstance, struct du_t *pxDu)
 {
-        LOGI(TAG_DTP, "xDtpWrite");
+        LOGD(TAG_DTP, "Calling: %s", __func__);
         dtcp_t *pxDtcp;
         struct du_t *pxTempDu;
         struct dtp_ps *ps;
@@ -135,7 +135,7 @@ bool_t xDtpWrite(struct dtp_t *pxDtpInstance, struct du_t *pxDu)
         sbytes = xDuLen(pxDu);
         sbytes = pxDu->pxNetworkBuffer->xDataLength;
 
-        LOGI(TAG_DTP, "Calling DUEncap");
+        LOGD(TAG_DTP, "Calling DUEncap");
         LOGI(TAG_DTP, "Sbytes: %d", sbytes);
         if (!xDuEncap(pxDu, PDU_TYPE_DT))
         {
@@ -157,19 +157,19 @@ bool_t xDtpWrite(struct dtp_t *pxDtpInstance, struct du_t *pxDu)
         pxDu->pxPci->xType = PDU_TYPE_DT;
         pxDu->pxPci->xPduLen = pxDu->pxNetworkBuffer->xDataLength;
         pxDu->pxPci->xSequenceNumber = xCsn;
-#if 0
-        LOGI(TAG_DTP, "------------ PCI DT-----------");
-        LOGI(TAG_DTP, "PCI Version: 0x%04x", pxDu->pxPci->ucVersion);
-        LOGI(TAG_DTP, "PCI SourceAddress: 0x%04x", pxDu->pxPci->xSource);
-        LOGI(TAG_DTP, "PCI DestinationAddress: 0x%04x", pxDu->pxPci->xDestination);
-        LOGI(TAG_DTP, "PCI QoS: 0x%04x", pxDu->pxPci->connectionId_t.xQosId);
-        LOGI(TAG_DTP, "PCI CEP Source: 0x%04x", pxDu->pxPci->connectionId_t.xSource);
-        LOGI(TAG_DTP, "PCI CEP Destination: 0x%04x", pxDu->pxPci->connectionId_t.xDestination);
-        LOGI(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
-        LOGI(TAG_DTP, "PCI Type: 0x%04x", pxDu->pxPci->xType);
-        LOGI(TAG_DTP, "PCI SequenceNumber: 0x%08x", pxDu->pxPci->xSequenceNumber);
-        LOGI(TAG_DTP, "PCI xPDULEN: 0x%04x", pxDu->pxPci->xPduLen);
-#endif
+
+        LOGD(TAG_DTP, "------------ PCI DT-----------");
+        LOGD(TAG_DTP, "PCI Version: 0x%04x", pxDu->pxPci->ucVersion);
+        LOGD(TAG_DTP, "PCI SourceAddress: 0x%04x", pxDu->pxPci->xSource);
+        LOGD(TAG_DTP, "PCI DestinationAddress: 0x%04x", pxDu->pxPci->xDestination);
+        LOGD(TAG_DTP, "PCI QoS: 0x%04x", pxDu->pxPci->connectionId_t.xQosId);
+        LOGD(TAG_DTP, "PCI CEP Source: 0x%04x", pxDu->pxPci->connectionId_t.xSource);
+        LOGD(TAG_DTP, "PCI CEP Destination: 0x%04x", pxDu->pxPci->connectionId_t.xDestination);
+        LOGD(TAG_DTP, "PCI FLAG: 0x%04x", pxDu->pxPci->xFlags);
+        LOGD(TAG_DTP, "PCI Type: 0x%04x", pxDu->pxPci->xType);
+        LOGD(TAG_DTP, "PCI SequenceNumber: 0x%08x", pxDu->pxPci->xSequenceNumber);
+        LOGD(TAG_DTP, "PCI xPDULEN: 0x%04x", pxDu->pxPci->xPduLen);
+
         if (!xPciIsOk(pxDu->pxPci))
         {
                 LOGE(TAG_DTP, "PCI is not ok");

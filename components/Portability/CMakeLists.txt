@@ -11,9 +11,9 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
     "freertos_idf/rslog.c"
     "posix/posix_rsqueue.c"
     "posix/posix_rstime.c"
+
     INCLUDE_DIRS ${Portability_INCLUDES}
     REQUIRES FreeRTOS-Plus-POSIX)
 else()
   include(${CMAKE_CURRENT_LIST_DIR}/${TARGET_TYPE}/CMakeLists.txt)
 endif()
-

@@ -14,7 +14,7 @@
 #include "freertos/event_groups.h"
 
 /* RINA Components includes. */
-//#include "ARP826.h"
+// #include "ARP826.h"
 #include "ShimIPCP.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
@@ -36,7 +36,7 @@
 #include "netif/wlanif.h"
 #include "esp_private/wifi.h"
 
-//#include "nvs_flash.h"
+// #include "nvs_flash.h"
 
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
@@ -183,7 +183,7 @@ BaseType_t xNetworkInterfaceConnect(void)
 										   pdFALSE,
 										   pdFALSE,
 										   portMAX_DELAY);
-    LOGD(TAG_WIFI, "xEventGroupWaitBits returned...");
+	LOGD(TAG_WIFI, "xEventGroupWaitBits returned...");
 
 	/* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
 	 * happened. */
@@ -194,14 +194,14 @@ BaseType_t xNetworkInterfaceConnect(void)
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		LOGI(TAG_WIFI, "OK");
 		LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s",
-             ESP_WIFI_SSID, ESP_WIFI_PASS);
+			 ESP_WIFI_SSID, ESP_WIFI_PASS);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 		xInterfaceState = INTERFACE_UP;
 	}
 	else if (bits & WIFI_FAIL_BIT)
 	{
 		LOGI(TAG_WIFI, "Failed to connect to SSID:%s, password:%s",
-             ESP_WIFI_SSID, ESP_WIFI_PASS);
+			 ESP_WIFI_SSID, ESP_WIFI_PASS);
 		xInterfaceState = INTERFACE_DOWN;
 	}
 	else
@@ -271,6 +271,7 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuf
 	if (xReleaseAfterSend == pdTRUE)
 	{
 		// ESP_LOGE(TAG_WIFI, "Releasing Buffer interface WiFi after send");
+
 		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 	}
 
@@ -295,7 +296,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(0);
 	struct timespec ts;
-  
+
 	RINAStackEvent_t xRxEvent = {
 		.eEventType = eNetworkRxEvent,
 		.xData.PV = NULL};
@@ -306,7 +307,6 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 		esp_wifi_internal_free_rx_buffer(eb);
 		return ESP_OK;
 	}
-
 
 	if (!rstime_waitmsec(&ts, 250))
 		return ESP_FAIL;
@@ -329,7 +329,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 		if (xSendEventStructToIPCPTask(&xRxEvent, xDescriptorWaitTime) == pdFAIL)
 		{
-		    LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
+			LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
 			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 			return ESP_FAIL;
 		}
