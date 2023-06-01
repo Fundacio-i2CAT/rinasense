@@ -13,6 +13,7 @@
 #include "ARP826_defs.h"
 #include "BufferManagement.h"
 #include "rina_buffers.h"
+#include "Common/rsrc.h"
 
 /* The obtained network buffer must be large enough to hold a packet that might
  * replace the packet that was requested to be sent. */
@@ -36,6 +37,7 @@
 STATIC_ASSERT(ipconfigETHERNET_MINIMUM_PACKET_BYTES <= baMINIMAL_BUFFER_SIZE);
 #endif
 
+#ifdef OLD
 /* A list of free (available) NetworkBufferDescriptor_t structures. */
 static RsList_t xFreeBuffersList;
 
@@ -48,6 +50,9 @@ static size_t uxMinimumFreeNetworkBuffers;
  * when the xFreeBuffersList is filled (as all the buffers are free when the system
  * is booted). */
 static NetworkBufferDescriptor_t xNetworkBufferDescriptors[NUM_NETWORK_BUFFER_DESCRIPTORS];
+#endif // OLD
+rsrcPoolP_t xNetworkBufferDescriptorPool;   // static pool contains all free or in-use NBDesc's
+rsrcPoolP_t xNetworkBufferPool;             // var pool contains in-use network data buffers
 
 /* This constant is defined as false to let FreeRTOS_TCP_IP.c know that the
  * network buffers have a variable size: resizing may be necessary */
@@ -78,6 +83,8 @@ bool_t xNetworkBuffersInitialise( void )
     {
         #if ( SUPPORT_STATIC_ALLOCATION == 1 )
             {
+                // TODO: statically declare rsrc bufferdesc and buffer pools here,
+                // point pool pointers to them.  FIX: API to init them is currently private
                 static StaticSemaphore_t xNetworkBufferSemaphoreBuffer;
                 xNetworkBufferSemaphore = xSemaphoreCreateCountingStatic(
                     NUM_NETWORK_BUFFER_DESCRIPTORS,
@@ -92,6 +99,7 @@ bool_t xNetworkBuffersInitialise( void )
 
 
         if ( semInitReturn == 0 ) {
+#ifdef OLD
             vRsListInit( &xFreeBuffersList );
 
             /* Initialise all the network buffers.  No storage is allocated to
@@ -108,6 +116,15 @@ bool_t xNetworkBuffersInitialise( void )
             }
 
             uxMinimumFreeNetworkBuffers = NUM_NETWORK_BUFFER_DESCRIPTORS;
+#endif // OLD
+            // Allocate Pools for Buffer Descriptors and Buffers
+            xNetworkBufferDescriptorPool = pxRsrcNewPool ("NetBufDesc", sizeof (NetworkBufferDescriptor_t),
+            NUM_NETWORK_BUFFER_DESCRIPTORS, 0, 0);
+            // NOTE: we limit max# buffers to max# of descriptors + 1, which can happen
+            // when resizing. Trying to exceed that limit will abort()
+            xNetworkBufferPool = pxRsrcNewVarPool ("NetBuf", NUM_NETWORK_BUFFER_DESCRIPTORS + 1);
+            // Set helper routines to clear/set/print the Descriptors and Buffers here:
+            eRsrcClearResOnAlloc = rsrcCLEAR_ON_BOTH; // for now: fill NULLs and zeros before&after alloc
         }
     }
 
@@ -126,9 +143,14 @@ bool_t xNetworkBuffersInitialise( void )
 
     return xReturn;
 }
-/*-----------------------------------------------------------*/
 
+/*-----------------------------------------------------------*/
 uint8_t *pucGetNetworkBuffer(size_t *pxRequestedSizeBytes)
+{
+    return pucGetNetworkBufferFor ("oldcode", pxRequestedSizeBytes);
+}
+
+uint8_t * pucGetNetworkBufferFor (const char *name, size_t *pxRequestedSizeBytes)
 {
     uint8_t *pucEthernetBuffer;
     size_t xSize = *pxRequestedSizeBytes;
@@ -152,7 +174,10 @@ uint8_t *pucGetNetworkBuffer(size_t *pxRequestedSizeBytes)
     /* Allocate a buffer large enough to store the requested Ethernet frame size
      * and a pointer to a network buffer structure (hence the addition of
      * ipBUFFER_PADDING bytes). */
+#ifdef OLD
     pucEthernetBuffer = ( uint8_t * ) pvRsMemAlloc( xSize + BUFFER_PADDING );
+#endif // OLD
+    pucEthernetBuffer = ( uint8_t * ) pxRsrcVarAlloc (xNetworkBufferPool, name, xSize + BUFFER_PADDING);
 
 #ifndef NDEBUG
     /* Zero the buffer to facilitate debugging. */
@@ -169,6 +194,7 @@ uint8_t *pucGetNetworkBuffer(size_t *pxRequestedSizeBytes)
 
     return pucEthernetBuffer;
 }
+
 /*-----------------------------------------------------------*/
 
 void vReleaseNetworkBuffer(uint8_t *pucEthernetBuffer)
@@ -180,16 +206,25 @@ void vReleaseNetworkBuffer(uint8_t *pucEthernetBuffer)
     {
         pucEthernetBuffer -= BUFFER_PADDING;
         //vPortFree( ( void * ) pucEthernetBuffer );
+#ifdef OLD
         vRsMemFree( ( void * ) pucEthernetBuffer );
+#endif // OLD
+        vRsrcFree ( ( void * ) pucEthernetBuffer );
     }
 }
 /*-----------------------------------------------------------*/
-
 NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedSizeBytes,
                                                               useconds_t xTimeOutUS )
 {
+    return pxGetNetworkBufferWithDescriptorFor ("oldcode", xRequestedSizeBytes, xTimeOutUS );                                         
+}
+
+NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptorFor (const char *name,
+                                                             size_t xRequestedSizeBytes,
+                                                             useconds_t xTimeOutUS )
+{
     NetworkBufferDescriptor_t *pxReturn = NULL;
-    size_t uxCount;
+//   size_t uxCount;
     struct timespec ts;
     bool_t semOk;
 
@@ -208,7 +243,7 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
 
     } else {
         /* No timeout? Just try to grab the semaphore. */
-        semOk = sem_trywait( &xNetworkBufferSemaphore ) == 0;
+        semOk = ( sem_trywait( &xNetworkBufferSemaphore ) == 0 );
     }
 
     /* If there is a semaphore available, there is a network buffer available. */
@@ -217,14 +252,19 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
         /* Protect the structure as it is accessed from tasks and interrupts. */
         pthread_mutex_lock( &mutex );
         {
+#ifdef OLD
             pxReturn = pxRsListGetItemOwner( pxRsListGetFirst( &xFreeBuffersList ) );
             vRsListRemove( &( pxReturn->xBufferListItem ) );
             uxCount = unRsListLength( &xFreeBuffersList );
+#endif // OLD
+            pxReturn = pxRsrcAlloc ( xNetworkBufferDescriptorPool, name);
         }
         pthread_mutex_unlock( &mutex );
 
+#ifdef OLD
         if (uxMinimumFreeNetworkBuffers > uxCount)
             uxMinimumFreeNetworkBuffers = uxCount;
+#endif // OLD
 
         /* Allocate storage of exactly the requested size to the buffer. */
         if( xRequestedSizeBytes > 0U ) {
@@ -244,8 +284,11 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
 
             /* Extra space is obtained so a pointer to the network buffer can
              * be stored at the beginning of the buffer. */
+#ifdef OLD
             pxReturn->pucEthernetBuffer = ( uint8_t * ) pvRsMemAlloc(xRequestedSizeBytes + BUFFER_PADDING );
-
+#endif // OLD
+            pxReturn->pucEthernetBuffer = ( uint8_t * ) pxRsrcVarAlloc (xNetworkBufferPool,
+                        name, xRequestedSizeBytes + BUFFER_PADDING );
 #ifndef NDEBUG
             /* Zero the buffer to facilitate debugging. */
             memset(pxReturn->pucEthernetBuffer, 0, xRequestedSizeBytes + BUFFER_PADDING);
@@ -283,21 +326,24 @@ NetworkBufferDescriptor_t * pxGetNetworkBufferWithDescriptor( size_t xRequestedS
             /* FIXME: ?? what we do there ??
              * A descriptor is being returned without an associated buffer being
              * allocated. */
+            pxReturn->pucEthernetBuffer = NULL;
             LOGE(TAG_NETBUFFER, "Got a descriptor without a buffer...");
         }
     }
 
+#ifdef OLD
     if (pxReturn != NULL)
         LOGD(TAG_NETBUFFER, "Free descriptor Count: %u", (unsigned int)uxCount);
     else
         LOGD(TAG_NETBUFFER, "pxGetNetworkBufferWithDescriptor returned NULL");
-
+#endif
     return pxReturn;
 }
 /*-----------------------------------------------------------*/
 
 void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 {
+#ifdef OLD
     bool_t xAlreadyInFreeList;
 
     /* Ensure the buffer is returned to the list of free buffers before the
@@ -305,24 +351,31 @@ void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetwo
      * storage allocated to the buffer payload.  THIS FILE SHOULD NOT BE USED
      * IF THE PROJECT INCLUDES A MEMORY ALLOCATOR THAT WILL FRAGMENT THE HEAP
      * MEMORY.  For example, heap_2 must not be used, heap_4 can be used. */
-    vReleaseNetworkBuffer(pxNetworkBuffer->pucEthernetBuffer);
+#endif // OLD
+    vReleaseNetworkBuffer(pxNetworkBuffer->pucEthernetBuffer); // NOTE: may be NULL, that's ok
     pxNetworkBuffer->pucEthernetBuffer = NULL;
     pxNetworkBuffer->xDataLength = 0U;
 
     pthread_mutex_lock( &mutex );
     {
+#ifdef OLD
         xAlreadyInFreeList = xRsListIsContainedWithin( &xFreeBuffersList, &( pxNetworkBuffer->xBufferListItem ));
 
         if( !xAlreadyInFreeList )
             vRsListInsertEnd( &xFreeBuffersList, &( pxNetworkBuffer->xBufferListItem ) );
+#endif // OLD
+        vRsrcFree (pxNetworkBuffer);    // DOUBLE-RELEASE IS FATAL, will abort(), don't do it any more
     }
     pthread_mutex_unlock( &mutex );
 
+#ifdef OLD
     /*
      * Update the network state machine, unless the program fails to release its 'xNetworkBufferSemaphore'.
      * The program should only try to release its semaphore if 'xListItemAlreadyInFreeList' is false.
      */
     if( !xAlreadyInFreeList && sem_post( &xNetworkBufferSemaphore ) == 0 )
+#endif // OLD
+    sem_post( &xNetworkBufferSemaphore );
         LOGD(TAG_NETBUFFER, "Successfully released buffer");
 }
 /*-----------------------------------------------------------*/
@@ -332,18 +385,31 @@ void vReleaseNetworkBufferAndDescriptor(NetworkBufferDescriptor_t *const pxNetwo
  */
 size_t uxGetNumberOfFreeNetworkBuffers( void )
 {
+#ifdef OLD
     return unRsListLength( &xFreeBuffersList );
+#endif // OLD
+    return xNetworkBufferDescriptorPool->uiNumFree;
 }
 /*-----------------------------------------------------------*/
 
 size_t uxGetMinimumFreeNetworkBuffers( void )
 {
+#ifdef OLD
     return uxMinimumFreeNetworkBuffers;
+#endif // OLD
+    return xNetworkBufferDescriptorPool->uiLowWater;
 }
 /*-----------------------------------------------------------*/
 
-NetworkBufferDescriptor_t *pxResizeNetworkBufferWithDescriptor(NetworkBufferDescriptor_t *pxNetworkBuffer,
+NetworkBufferDescriptor_t * pxResizeNetworkBufferWithDescriptor(NetworkBufferDescriptor_t *pxNetworkBuffer,
                                                                size_t xNewSizeBytes)
+{
+    return pxResizeNetworkBufferWithDescriptorFor ("oldcode", pxNetworkBuffer, xNewSizeBytes);
+}
+
+NetworkBufferDescriptor_t * pxResizeNetworkBufferWithDescriptorFor (const char *name,
+                                                                NetworkBufferDescriptor_t *pxNetworkBuffer,
+                                                                size_t xNewSizeBytes)
 {
     size_t xOriginalLength;
     uint8_t *pucBuffer;
@@ -351,7 +417,7 @@ NetworkBufferDescriptor_t *pxResizeNetworkBufferWithDescriptor(NetworkBufferDesc
     xOriginalLength = pxNetworkBuffer->xDataLength + BUFFER_PADDING;
     xNewSizeBytes = xNewSizeBytes + BUFFER_PADDING;
 
-    pucBuffer = pucGetNetworkBuffer(&(xNewSizeBytes));
+    pucBuffer = pucGetNetworkBufferFor (name, &(xNewSizeBytes));
 
     if (pucBuffer == NULL)
     {
