@@ -84,7 +84,7 @@ void app_main(void)
 
     xAppPortId = RINA_flow_alloc(DIF, CLIENT, SERVER, xFlowSpec, Flags);
 
-    LOGI(TAG_APP, "Flow Allocated at Port id: %lu ", xAppPortId);
+    LOGI(TAG_APP, "Flow Allocated at Port id: %u ", xAppPortId);
 
     // vTaskDelay(100);
 
@@ -128,7 +128,7 @@ void app_main(void)
 
                     // ESP_LOGD(TAG_APP, "%d bytes from server: rtt = %.3f ms\n", uxRxBytes, ns);
                     // ESP_LOGI(TAG_APP, "%d bytes from server: rtt = %d ms", uxRxBytes, time_delta / 1000);
-                    LOGI(TAG_APP, "%li bytes from server: rtt = %.3f ms", uxRxBytes, (float)time_delta / 1000);
+                    LOGI(TAG_APP, "%i bytes from server: rtt = %.3f ms", uxRxBytes, (float)time_delta / 1000);
                     RTT[i] = time_delta;
                 }
                 else

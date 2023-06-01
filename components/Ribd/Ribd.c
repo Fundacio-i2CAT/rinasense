@@ -137,7 +137,7 @@ void vRibdAddAppConnectionEntry(appConnection_t *pxAppConnectionToAdd, portId_t 
             xAppConnectionTable[x].pxAppConnection = pxAppConnectionToAdd;
             xAppConnectionTable[x].xN1portId = xPortId;
             xAppConnectionTable[x].xValid = pdTRUE;
-            LOGD(TAG_RIB, "AppConnection Entry successful: %p,id:%lu", pxAppConnectionToAdd, xPortId);
+            LOGD(TAG_RIB, "AppConnection Entry successful: %p,id:%u", pxAppConnectionToAdd, xPortId);
 
             break;
         }
@@ -578,7 +578,7 @@ messageCdap_t *prvRibdDecodeCDAP(uint8_t *pucBuffer, size_t xMessageLength)
 
 appConnection_t *pxRibdFindAppConnection(portId_t xPortId)
 {
-    LOGD(TAG_RIB, "Looking for an active connection in the port id %lu", xPortId);
+    LOGD(TAG_RIB, "Looking for an active connection in the port id %u", xPortId);
     BaseType_t x = 0;
     appConnection_t *pxAppConnection;
     pxAppConnection = pvRsMemAlloc(sizeof(*pxAppConnection));
@@ -797,7 +797,7 @@ void vRibdPrintCdapMessage(messageCdap_t *pxDecodeCdap)
 {
     LOGE(TAG_RIB, "CDAP MESSAGE");
     LOGE(TAG_RIB, "opCode: %s", opcodeNamesTable[pxDecodeCdap->eOpCode]);
-    LOGE(TAG_RIB, "Invoke Id: %ld ", pxDecodeCdap->invokeID);
+    LOGE(TAG_RIB, "Invoke Id: %d ", pxDecodeCdap->invokeID);
     LOGE(TAG_RIB, "Version: %lld", pxDecodeCdap->version);
     if (pxDecodeCdap->pxAuthPolicy->pcName != NULL)
     {

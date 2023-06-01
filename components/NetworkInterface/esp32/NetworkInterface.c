@@ -273,7 +273,6 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuf
 		// ESP_LOGE(TAG_WIFI, "Releasing Buffer interface WiFi after send");
 
 		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-		pxNetworkBuffer->xBufferListItem.pvOwner
 	}
 
 	return ret == ESP_OK ? pdTRUE : pdFALSE;
@@ -297,7 +296,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(0);
 	struct timespec ts;
-  
+
 	RINAStackEvent_t xRxEvent = {
 		.eEventType = eNetworkRxEvent,
 		.xData.PV = NULL};
@@ -308,7 +307,6 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 		esp_wifi_internal_free_rx_buffer(eb);
 		return ESP_OK;
 	}
-
 
 	if (!rstime_waitmsec(&ts, 250))
 		return ESP_FAIL;

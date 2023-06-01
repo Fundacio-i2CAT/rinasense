@@ -717,7 +717,7 @@ static bool_t prvShimUnbindDestroyFlow(struct ipcpInstanceData_t *xData,
 				flow->port_id);
 	}*/
 	// Check this
-	LOGI(TAG_SHIM, "Shim-WiFi unbinded port: %lu", xFlow->xPortId);
+	LOGI(TAG_SHIM, "Shim-WiFi unbinded port: %u", xFlow->xPortId);
 	if (prvShimFlowDestroy(xData, xFlow))
 	{
 		LOGE(TAG_SHIM, "Failed to destroy Shim-WiFi flow");
