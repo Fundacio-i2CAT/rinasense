@@ -587,7 +587,7 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
                               dtpConfig_t *pxDtpCfg,
                               struct dtcpConfig_t *pxDtcpCfg)
 {
-        LOGE(TAG_EFCP, "xEfcpConnectionCreate");
+        LOGD(TAG_EFCP, "Creating an EFCP connetion...");
 
         struct efcp_t *pxEfcp;
         struct connection_t *pxConnection = NULL;
@@ -602,12 +602,12 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         // struct rttq *       rttq;
         // struct delim * delim;
 
-        if (!pxEfcpContainer) {
-                LOGE(TAG_EFCP,"Bogus container passed, bailing out");
+        if (!pxEfcpContainer)
+        {
+                LOGE(TAG_EFCP, "Bogus container passed, bailing out");
                 return CEP_ID_WRONG;
         }
 
-        LOGE(TAG_EFCP, "xEfcpConnectionCreate: ConnectionCreate");
 #ifdef __FREERTOS__
         size_t Test = xPortGetFreeHeapSize();
         LOGE(TAG_EFCP, "Memory size:%d", (int)Test);
@@ -627,7 +627,6 @@ cepId_t xEfcpConnectionCreate(struct efcpContainer_t *pxEfcpContainer,
         pxConnection->xDestinationCepId = xDstCepId;
         pxConnection->xSourceAddress = LOCAL_ADDRESS;
 
-        LOGE(TAG_EFCP, "xEfcpConnectionCreate: EfcpCreate");
         pxEfcp = pxEfcpCreate();
 
         if (!pxEfcp)

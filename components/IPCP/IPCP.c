@@ -29,6 +29,7 @@
 #include "Enrollment.h"
 #include "Enrollment_api.h"
 #include "FlowAllocator.h"
+#include "FlowAllocator_api.h"
 #include "rina_buffers.h"
 #include "rina_common_port.h"
 #include "RINA_API.h"
@@ -325,6 +326,15 @@ static void *prvIPCPTask(void *pvParameters)
             break;
 
         case eSendMgmtEvent:
+
+            break;
+
+        case eStackFlowAllocateEvent:
+
+            /*Call the FlowAllocator module to handle the FARequest sended by the User APP*/
+            LOGI(TAG_IPCPMANAGER, "Flow Allocate event received");
+            pxFlowAllocateHandle = ((flowAllocateHandle_t *)xReceivedEvent.xData.PV);
+            vFlowAllocatorFlowRequest(pxFlowAllocateHandle->xPortId, pxFlowAllocateHandle);
 
             break;
 
