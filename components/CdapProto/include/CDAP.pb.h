@@ -155,10 +155,7 @@ extern "C"
     }
 #define rina_messages_authPolicy_t_init_default \
     {                                           \
-        false, "", 0, {""},                     \
-        {                                       \
-            {NULL}, NULL                        \
-        }                                       \
+        false, "", 0, {""}, { {NULL}, NULL }    \
     }
 #define rina_messages_CDAPMessage_init_default                                                                                                                                                                                                                                                                                                                               \
     {                                                                                                                                                                                                                                                                                                                                                                        \
@@ -180,10 +177,7 @@ extern "C"
     }
 #define rina_messages_authPolicy_t_init_zero \
     {                                        \
-        false, "", 0, {""},                  \
-        {                                    \
-            {NULL}, NULL                     \
-        }                                    \
+        false, "", 0, {""}, { {NULL}, NULL } \
     }
 #define rina_messages_CDAPMessage_init_zero                                                                                                                                                                                                                                                                                                                            \
     {                                                                                                                                                                                                                                                                                                                                                                  \

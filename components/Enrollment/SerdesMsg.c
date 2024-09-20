@@ -356,7 +356,8 @@ serObjectValue_t *pxSerdesMsgFlowEncode(flow_t *pxMsg)
     message.dtpConfig.dtcpPresent = pxMsg->pxDtpConfig->xDtcpPresent;
     message.dtpConfig.has_dtcpPresent = true;
 
-    if (!(pxSerValue = pvRsMemAlloc(sizeof(rina_messages_Flow) + sizeof(serObjectValue_t)))) {
+    if (!(pxSerValue = pvRsMemAlloc(sizeof(rina_messages_Flow) + sizeof(serObjectValue_t))))
+    {
         LOGE(TAG_ENROLLMENT, "Out of memory for flow data encoding");
         return NULL;
     }
@@ -427,39 +428,39 @@ static flow_t *prvSerdesMsgDecodeFlow(rina_messages_Flow message)
 
 void prvPrintDecodeFlow(rina_messages_Flow message)
 {
-    LOGI(TAG_RIB, "--------Flow Message--------");
+    LOGD(TAG_RIB, "--------Flow Message--------");
 
     if (message.has_destinationAddress)
-        LOGI(TAG_RIB, "Destination Address:"ULONG_FMT, message.destinationAddress);
+        LOGD(TAG_RIB, "Destination Address:" ULONG_FMT, message.destinationAddress);
 
-    LOGI(TAG_RIB, "Destination PN:%s", message.destinationNamingInfo.applicationProcessName);
+    LOGD(TAG_RIB, "Destination PN:%s", message.destinationNamingInfo.applicationProcessName);
     if (message.destinationNamingInfo.has_applicationEntityName)
-        LOGI(TAG_RIB, "Destination EN:%s", message.destinationNamingInfo.applicationEntityName);
+        LOGD(TAG_RIB, "Destination EN:%s", message.destinationNamingInfo.applicationEntityName);
     if (message.destinationNamingInfo.has_applicationEntityInstance)
-        LOGI(TAG_RIB, "Destination EI:%s", message.destinationNamingInfo.applicationEntityInstance);
+        LOGD(TAG_RIB, "Destination EI:%s", message.destinationNamingInfo.applicationEntityInstance);
     if (message.destinationNamingInfo.has_applicationProcessInstance)
-        LOGI(TAG_RIB, "Destination PI:%s", message.destinationNamingInfo.applicationProcessInstance);
+        LOGD(TAG_RIB, "Destination PI:%s", message.destinationNamingInfo.applicationProcessInstance);
     if (message.has_destinationPortId)
-        LOGI(TAG_RIB, "Destination PortId:"ULONG_FMT, message.destinationPortId);
+        LOGD(TAG_RIB, "Destination PortId:" ULONG_FMT, message.destinationPortId);
 
-    LOGI(TAG_RIB, "Source Address:"ULONG_FMT, message.sourceAddress);
+    LOGD(TAG_RIB, "Source Address:" ULONG_FMT, message.sourceAddress);
 
-    LOGI(TAG_RIB, "Source PN:%s", message.sourceNamingInfo.applicationProcessName);
+    LOGD(TAG_RIB, "Source PN:%s", message.sourceNamingInfo.applicationProcessName);
     if (message.sourceNamingInfo.has_applicationEntityName)
-        LOGI(TAG_RIB, "Source EN:%s", message.sourceNamingInfo.applicationEntityName);
+        LOGD(TAG_RIB, "Source EN:%s", message.sourceNamingInfo.applicationEntityName);
     if (message.sourceNamingInfo.has_applicationEntityInstance)
-        LOGI(TAG_RIB, "Source EI:%s", message.sourceNamingInfo.applicationEntityInstance);
+        LOGD(TAG_RIB, "Source EI:%s", message.sourceNamingInfo.applicationEntityInstance);
     if (message.sourceNamingInfo.has_applicationProcessInstance)
-        LOGI(TAG_RIB, "Source PI:%s", message.sourceNamingInfo.applicationProcessInstance);
+        LOGD(TAG_RIB, "Source PI:%s", message.sourceNamingInfo.applicationProcessInstance);
 
-    LOGI(TAG_RIB, "Source PortId:"ULONG_FMT, message.sourcePortId);
+    LOGD(TAG_RIB, "Source PortId:" ULONG_FMT, message.sourcePortId);
 
     if (message.connectionIds->has_destinationCEPId)
-        LOGI(TAG_RIB, "Connection Dest Cep Id:%d", (int)message.connectionIds->destinationCEPId);
+        LOGD(TAG_RIB, "Connection Dest Cep Id:%d", (int)message.connectionIds->destinationCEPId);
     if (message.connectionIds->has_sourceCEPId)
-        LOGI(TAG_RIB, "Connection Src Cep Id:%d", (int)message.connectionIds->sourceCEPId);
+        LOGD(TAG_RIB, "Connection Src Cep Id:%d", (int)message.connectionIds->sourceCEPId);
     if (message.connectionIds->has_qosId)
-        LOGI(TAG_RIB, "Connection QoS Id:%d", (int)message.connectionIds->qosId);
+        LOGD(TAG_RIB, "Connection QoS Id:%d", (int)message.connectionIds->qosId);
 }
 
 flow_t *pxSerdesMsgDecodeFlow(uint8_t *pucBuffer, size_t xMessageLength)
