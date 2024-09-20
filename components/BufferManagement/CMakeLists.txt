@@ -1,7 +1,6 @@
 set(requirements
   ShimIPCP
   NetworkInterface
-  ARP826
   Portability
   Common
 )
@@ -13,9 +12,7 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
 endif()
 
 idf_component_register(
-  SRCS         "BufferManagement.c"
+  SRCS "BufferManagement.c"
   INCLUDE_DIRS "include"
-  REQUIRES     ${requirements}
+  REQUIRES ${requirements}
 )
-
-

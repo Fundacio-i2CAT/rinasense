@@ -14,7 +14,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 if("${TARGET_TYPE}" STREQUAL "" OR "${TARGET_TYPE}" STREQUAL "freertos_idf")
   if(NOT "$ENV{IDF_PATH}" STREQUAL "")
     # Set a default target type.
-
     set(TARGET_TYPE "freertos_idf")
     set(ENV{TARGET_TYPE} "freertos_idf")
 
@@ -39,13 +38,11 @@ else()
   # This is the entry point for all platform support building through
   # CMake and GCC.
   #
-
   include(lib.common)
   include(lib.${TARGET_TYPE})
 
   # Declares which components needs to be built in the shared library.
   set(shared_library_components
-    ARP826
     BufferManagement
     CdapProto
     Common
@@ -96,7 +93,6 @@ else()
   #
   # Target specific code starts here.
   #
-
   if(${TARGET_TYPE} STREQUAL "arduino_esp32")
     #
     # ESP32 + Arduino!
@@ -128,7 +124,6 @@ else()
     #
     # Linux/POSIX
     #
-
     include(CTest)
     include(GNUInstallDirs)
 
