@@ -22,7 +22,7 @@
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
 #include "RINA_API_flows.h"
-#include "ShimIPCP.h"
+#include "Shim.h"
 #include "IPCP_normal_defs.h"
 #include "IPCP_normal_api.h"
 #include "IpcManager.h"

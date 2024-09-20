@@ -20,7 +20,7 @@
 #include "IPCP_normal_api.h"
 #include "efcpStructures.h"
 #include "du.h"
-#include "ShimIPCP.h"
+#include "Shim.h"
 #include "EFCP.h"
 #include "RINA_API_flows.h"
 #include "FlowAllocator_api.h"
@@ -114,7 +114,6 @@ static struct ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t 
     return NULL;
 }
 
-
 void vIcpManagerEnrollmentFlowRequest(struct ipcpInstance_t *pxShimInstance, portId_t xN1PortId, name_t *pxIPCPName)
 {
     /*This should be proposed by the Flow Allocator?*/
@@ -143,7 +142,8 @@ void vIpcManagerRINAPackettHandler(struct ipcpInstanceData_t *pxData, NetworkBuf
 
     pxMessagePDU = pvRsMemAlloc(sizeof(*pxMessagePDU));
 
-    if (!pxMessagePDU) {
+    if (!pxMessagePDU)
+    {
         LOGE(TAG_IPCPMANAGER, "pxMessagePDU was not allocated");
         return;
     }

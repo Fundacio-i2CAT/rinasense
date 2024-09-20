@@ -2,13 +2,12 @@ cmake_minimum_required(VERSION 3.16)
 
 if(NOT $ENV{IDF_PATH} STREQUAL "")
   # The IDF has its own version of Unity and its own way to use it.
-
   set(TEST_COMPONENTS
     "ARP826"
     "BufferManagement"
     "Common"
     "Portability"
-    "ShimIPCP"
+    "Shim"
     "Ribd"
     "IPCP"
     "NetworkInterface"
@@ -43,4 +42,3 @@ if(NOT $ENV{IDF_PATH} STREQUAL "")
 else()
   message(FATAL "This CMakeLists.txt file is to use with the ESP IDF only!")
 endif()
-
