@@ -1,5 +1,5 @@
-#ifndef _NETWORK_INTERFACE_H
-#define _NETWORK_INTERFACE_H
+#ifndef _COMPONENTS_SHIM_NETWORK_INTERFACE_INCLUDE_NETWORK_INTERFACE_H
+#define _COMPONENTS_SHIM_NETWORK_INTERFACE_INCLUDE_NETWORK_INTERFACE_H
 
 #include "portability/port.h"
 #include "common/rina_gpha.h"
@@ -8,12 +8,13 @@
 #include "BufferManagement.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
-    //#include "ShimIPCP.h"
+    // #include "ShimIPCP.h"
 
     /* INTERNAL API FUNCTIONS. */
     bool_t xNetworkInterfaceInitialise(MACAddress_t *phyDev);

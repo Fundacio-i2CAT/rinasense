@@ -14,26 +14,33 @@
 #include "freertos/event_groups.h"
 
 /* RINA Components includes. */
-// #include "ARP826.h"
-#include "ShimIPCP.h"
+#include "Arp826.h"
+// #include "ShimIPCP.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
 #include "configRINA.h"
 #include "configSensor.h"
+#include "common/mac.h"
 
 #include "IPCP.h" //temporal
 #include "IPCP_api.h"
 #include "IPCP_events.h"
 
 /* ESP includes.*/
-#include "esp_wifi.h"
+
+#include <esp_wifi.h>
 #if ESP_IDF_VERSION_MAJOR > 4
 #include "esp_mac.h"
 #endif
 #include "esp_event.h"
 #include "esp_system.h"
 #include "esp_event_base.h"
+#if ESP_IDF_VERSION_MAJOR > 5
 #include "netif/wlanif.h"
+#endif
+#if ESP_IDF_VERSION < 5
+#include "lwip/esp_netif_net_stack.h"
+#endif
 #include "esp_private/wifi.h"
 
 // #include "nvs_flash.h"
@@ -225,7 +232,7 @@ BaseType_t xNetworkInterfaceConnect(void)
 			// Function from Shim_IPCP to update Source MACAddress.
 			// vARPUpdateMACAddress(ucMACAddress, pxPhyDev); //Maybe change the method name.
 			xMACAdrInitialized = pdTRUE;
-			// ESP_LOGI(TAG_WIFI,"MACAddressRINA updated");
+			// LOGI(TAG_WIFI,"MACAddressRINA updated");
 		}
 
 		return pdTRUE;
@@ -240,6 +247,7 @@ BaseType_t xNetworkInterfaceConnect(void)
 BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
 								   BaseType_t xReleaseAfterSend)
 {
+	LOGE(TAG_WIFI, "Interface called");
 	if ((pxNetworkBuffer == NULL) || (pxNetworkBuffer->pucEthernetBuffer == NULL) || (pxNetworkBuffer->xDataLength == 0))
 	{
 		LOGE(TAG_WIFI, "Invalid parameters");
@@ -270,7 +278,7 @@ BaseType_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuf
 
 	if (xReleaseAfterSend == pdTRUE)
 	{
-		// ESP_LOGE(TAG_WIFI, "Releasing Buffer interface WiFi after send");
+		// LOGE(TAG_WIFI, "Releasing Buffer interface WiFi after send");
 
 		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 	}
@@ -313,7 +321,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, &ts);
 
-	// ESP_LOGE(TAG_WIFI,"xNetworkInterfaceInput Taking buffer to copy wifidriver buffer");
+	// LOGE(TAG_WIFI,"xNetworkInterfaceInput Taking buffer to copy wifidriver buffer");
 
 	if (pxNetworkBuffer != NULL)
 	{
@@ -325,7 +333,7 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
 		xRxEvent.xData.PV = (void *)pxNetworkBuffer;
 
-		// ESP_LOGE(TAG_RINA, "pucEthernetBuffer and len: %p, %d", pxNetworkBuffer->pucEthernetBuffer, len);
+		// LOGE(TAG_RINA, "pucEthernetBuffer and len: %p, %d", pxNetworkBuffer->pucEthernetBuffer, len);
 
 		if (xSendEventStructToIPCPTask(&xRxEvent, xDescriptorWaitTime) == pdFAIL)
 		{
