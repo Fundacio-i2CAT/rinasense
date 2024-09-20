@@ -28,32 +28,33 @@ static mqd_t mqOut;
 #define QUEUE_NAME_MIN_BUFSZ MAC2STR_MIN_BUFSZ + 6
 
 /* MAC address. */
-static char sMac[MAC2STR_MIN_BUFSZ] = { 0 };
+static char sMac[MAC2STR_MIN_BUFSZ] = {0};
 
 /* Queue names */
-static char sInQueueName[QUEUE_NAME_MIN_BUFSZ] = { 0 };
-static char sOutQueueName[QUEUE_NAME_MIN_BUFSZ] = { 0 };
+static char sInQueueName[QUEUE_NAME_MIN_BUFSZ] = {0};
+static char sOutQueueName[QUEUE_NAME_MIN_BUFSZ] = {0};
 
 static struct mq_attr mqInitAttr = {
     .mq_flags = 0,
     .mq_maxmsg = 6,
     .mq_msgsize = 1500,
-    .mq_curmsgs = 0
-};
+    .mq_curmsgs = 0};
 
 /* Test API */
 
 #ifdef ESP_PLATFORM
 pthread_t xNotifyThreadID;
 
-void *xNotifyThread() {
+void *xNotifyThread()
+{
     struct mq_attr mqattr;
     char *buf;
 
     if (mq_getattr(mqIn, &mqattr) < 0)
         LOGE(TAG_WIFI, "Failed to get size inbound packet");
 
-    while (true) {
+    while (true)
+    {
         buf = pvRsMemAlloc(mqattr.mq_msgsize);
 
         if (mq_receive(mqIn, buf, mqattr.mq_msgsize, NULL) < 0)
@@ -68,7 +69,8 @@ void *xNotifyThread() {
     }
 }
 
-void vCreateNotifyThread() {
+void vCreateNotifyThread()
+{
     pthread_attr_t attr;
 
     /* We're running on a tiny ESP32 device so we'll skimp on the
@@ -107,7 +109,8 @@ bool_t xMqNetworkInterfaceReadOutput(string_t data, size_t sz, ssize_t *pnBytesR
 {
     ssize_t n;
 
-    if ((n = mq_receive(mqOut, data, sz, NULL)) == -1) {
+    if ((n = mq_receive(mqOut, data, sz, NULL)) == -1)
+    {
         LOGE(TAG_WIFI, "xMqNetworkInterfaceReadOutput failed (errno: %d)", errno);
         return false;
     }
@@ -120,7 +123,8 @@ bool_t xMqNetworkInterfaceReadOutput(string_t data, size_t sz, ssize_t *pnBytesR
 /*
  * Remove all the messages waiting in the outgoing queue.
  */
-void xMqNetworkInterfaceOutputDiscard() {
+void xMqNetworkInterfaceOutputDiscard()
+{
     long n;
     char *psBuf;
 
@@ -177,7 +181,8 @@ bool_t xNetworkInterfaceInitialise(MACAddress_t *pxPhyDev)
 }
 
 /* Format the queue name according to $MAC-[IN|OUT] */
-void prvFormatQueueName(bool_t isIn, const char *sMac, char *pxBuf, const size_t nBufSz) {
+void prvFormatQueueName(bool_t isIn, const char *sMac, char *pxBuf, const size_t nBufSz)
+{
     const char fmt[] = "/%s-%s";
 
     RsAssert(nBufSz >= QUEUE_NAME_MIN_BUFSZ);
@@ -200,7 +205,8 @@ bool_t xNetworkInterfaceConnect(void)
     LOGI(TAG_WIFI, "Creating IN queue: %s", sInQueueName);
 
     mqIn = mq_open(sInQueueName, O_RDWR | O_CREAT, 0644, &mqInitAttr);
-    if (mqIn == (mqd_t)-1) {
+    if (mqIn == (mqd_t)-1)
+    {
         LOGE(TAG_WIFI, "Failed to create inbound queue");
         goto err;
     }
@@ -208,7 +214,8 @@ bool_t xNetworkInterfaceConnect(void)
     LOGI(TAG_WIFI, "Creating OUT queue: %s", sOutQueueName);
 
     mqOut = mq_open(sOutQueueName, O_RDWR | O_CREAT, 0644, &mqInitAttr);
-    if (mqOut == (mqd_t)-1) {
+    if (mqOut == (mqd_t)-1)
+    {
         LOGE(TAG_WIFI, "Failed to create outbound queue");
         goto err;
     }
@@ -231,7 +238,8 @@ bool_t xNetworkInterfaceConnect(void)
     se.sigev_value.sival_ptr = &mqIn;
 
     /* Get notified of INCOMING messages. */
-    if (mq_notify(mqIn, &se) == (mqd_t)-1) {
+    if (mq_notify(mqIn, &se) == (mqd_t)-1)
+    {
         LOGE(TAG_WIFI, "Failed to setup notification for incoming messages");
         goto err;
     }
@@ -241,7 +249,7 @@ bool_t xNetworkInterfaceConnect(void)
 
     return true;
 
-    err:
+err:
     if (mqIn != (mqd_t)-1)
         mq_close(mqIn);
     if (mqOut != (mqd_t)-1)
@@ -254,11 +262,13 @@ bool_t xNetworkInterfaceDisconnect(void)
 {
     int r1 = 0, r2 = 0;
 
-    if (mqIn != (mqd_t)-1) {
+    if (mqIn != (mqd_t)-1)
+    {
         r1 = mq_close(mqIn);
         mq_unlink(sInQueueName);
     }
-    if (mqOut != (mqd_t)-1) {
+    if (mqOut != (mqd_t)-1)
+    {
         r2 = mq_close(mqOut);
         mq_unlink(sOutQueueName);
     }
@@ -273,7 +283,8 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
                                bool_t xReleaseAfterSend)
 {
     if (mq_send(mqOut, (const char *)pxNetworkBuffer->pucEthernetBuffer,
-                pxNetworkBuffer->xDataLength, 0) != 0) {
+                pxNetworkBuffer->xDataLength, 0) != 0)
+    {
         LOGE(TAG_WIFI, "Error writing %zu bytes to network interface (errno: %d)",
              pxNetworkBuffer->xDataLength, errno);
         return false;
@@ -286,37 +297,37 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
 
 bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
-	NetworkBufferDescriptor_t *pxNetworkBuffer;
-	RINAStackEvent_t xRxEvent;
+    NetworkBufferDescriptor_t *pxNetworkBuffer;
+    RINAStackEvent_t xRxEvent;
 
-	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, 0);
+    pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, 0);
     xRxEvent.eEventType = eNetworkRxEvent;
 
-	if (pxNetworkBuffer != NULL)
-	{
-		/* Set the packet size, in case a larger buffer was returned. */
-		pxNetworkBuffer->xDataLength = len;
+    if (pxNetworkBuffer != NULL)
+    {
+        /* Set the packet size, in case a larger buffer was returned. */
+        pxNetworkBuffer->xDataLength = len;
 
-		/* Copy the packet data. */
-		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
-		xRxEvent.xData.PV = (void *)pxNetworkBuffer;
+        /* Copy the packet data. */
+        memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
+        xRxEvent.xData.PV = (void *)pxNetworkBuffer;
 
-		if (xSendEventStructToIPCPTask(&xRxEvent, 0) == false)
-		{
-			LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
-			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-			return false;
-		}
+        if (xSendEventStructToShimIPCPTask(&xRxEvent, 0) == false)
+        {
+            LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
+            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+            return false;
+        }
 
         return true;
-	}
+    }
 
-	else
-	{
-		LOGE(TAG_WIFI, "Failed to get buffer descriptor");
-		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-		return false;
-	}
+    else
+    {
+        LOGE(TAG_WIFI, "Failed to get buffer descriptor");
+        vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+        return false;
+    }
 }
 
 void vNetworkNotifyIFDown()

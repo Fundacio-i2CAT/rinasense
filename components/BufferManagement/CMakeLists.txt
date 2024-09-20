@@ -1,6 +1,5 @@
 set(requirements
   ShimIPCP
-  NetworkInterface
   Portability
   Common
 )

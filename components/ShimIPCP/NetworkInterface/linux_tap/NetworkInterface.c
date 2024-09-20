@@ -20,21 +20,21 @@
 #include "common/rina_gpha.h"
 
 #include "ARP826_defs.h"
-#include "IPCP_api.h"
-#include "IPCP_events.h"
+#include "wifi_IPCP.h"
+#include "wifi_IPCP_events.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
 
-
-struct ReadThreadParams {
+struct ReadThreadParams
+{
     int nTapFD;
     int nPipe;
 };
 
 /* The MTU of a TAP device is always 1500. */
-#define TAP_MTU    1500
+#define TAP_MTU 1500
 
-#define CLONE_DEV  "/dev/net/tun"
+#define CLONE_DEV "/dev/net/tun"
 
 /* The 2 following functions are part of the original ESP32
  * NetworkInterface API, but not in the header file. This keeps them
@@ -78,15 +78,19 @@ bool_t prvLinuxGetMac(string_t sTapName, MACAddress_t *pxMac)
 
     snprintf(sIfaceMacPath, PATH_MAX, sIfaceMacFmt, sTapName);
 
-    if ((fd = open(sIfaceMacPath, O_RDONLY)) < 0) {
+    if ((fd = open(sIfaceMacPath, O_RDONLY)) < 0)
+    {
         LOGE(TAG_WIFI, "Unable to open MAC address file: %s", sIfaceMacPath);
         return false;
     }
 
-    if (read(fd, sMac, sizeof(sMac)) < 0) {
+    if (read(fd, sMac, sizeof(sMac)) < 0)
+    {
         LOGE(TAG_WIFI, "Read error reading MAC address!");
         goto err;
-    } else {
+    }
+    else
+    {
         sMac[17] = '\0';
         n = sscanf(sMac, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
                    &(pxMac->ucBytes[0]), &(pxMac->ucBytes[1]),
@@ -99,7 +103,7 @@ bool_t prvLinuxGetMac(string_t sTapName, MACAddress_t *pxMac)
     close(fd);
     return true;
 
-    err:
+err:
     if (fd > 0)
         close(fd);
 
@@ -117,11 +121,12 @@ bool_t prvLinuxTapOpen(string_t sTapName, int *pnFD)
 
     memset(&ifr, 0, sizeof(ifr));
 
-    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;   /* IFF_TUN or IFF_TAP, plus maybe IFF_NO_PI */
+    ifr.ifr_flags = IFF_TAP | IFF_NO_PI; /* IFF_TUN or IFF_TAP, plus maybe IFF_NO_PI */
     strncpy(ifr.ifr_name, sTapName, IFNAMSIZ);
 
     /* Try to create the device */
-    if ((err = ioctl(fd, TUNSETIFF, (void *)&ifr)) < 0) {
+    if ((err = ioctl(fd, TUNSETIFF, (void *)&ifr)) < 0)
+    {
         close(fd);
         return false;
     }
@@ -143,15 +148,16 @@ bool_t prvLinuxTapGetFlags(string_t sTapName, int *pFD, int *pnFlags)
 
     /* Get the flags that are set */
     nFD = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
-    if (nFD < 0 )
+    if (nFD < 0)
         return false;
 
     /* Put the name of the device we want to peek. */
     strncpy(ifr.ifr_name, sTapName, IFNAMSIZ);
 
     /* Get the interface flags first. */
-    err = ioctl(nFD, SIOCGIFFLAGS, (void*)&ifr);
-    if (err < 0) {
+    err = ioctl(nFD, SIOCGIFFLAGS, (void *)&ifr);
+    if (err < 0)
+    {
         close(nFD);
         return false;
     }
@@ -177,7 +183,7 @@ bool_t prvLinuxTapSetFlags(string_t sTapName, int nFD, int nFlags)
     ifr.ifr_flags = nFlags;
     strncpy(ifr.ifr_name, sTapName, IFNAMSIZ);
 
-    err = ioctl(nFD, SIOCSIFFLAGS, (void*) &ifr);
+    err = ioctl(nFD, SIOCSIFFLAGS, (void *)&ifr);
     if (err < 0)
         return err;
 
@@ -233,20 +239,25 @@ void *prvLinuxTapReadThread(void *pvParams)
 
     LOGI(TAG_WIFI, "Read thread on device %s STARTED", LINUX_TAP_DEVICE);
 
-    while (1) {
+    while (1)
+    {
         nPoll = poll(pfds, 2, 0);
 
-        if (pfds[0].revents & POLLIN) {
+        if (pfds[0].revents & POLLIN)
+        {
             ssize_t count = read(nTapFD, buffer, sizeof(buffer));
 
             /* Hang ups are not normal here. */
-            if (count < 0 || count == 0) break;
+            if (count < 0 || count == 0)
+                break;
 
             /* Otherwise, this is an actual packet and send it up the
                stack. */
-            else xNetworkInterfaceInput(buffer, count, NULL);
+            else
+                xNetworkInterfaceInput(buffer, count, NULL);
         }
-        else if (pfds[1].revents & POLLIN) {
+        else if (pfds[1].revents & POLLIN)
+        {
             /* The interface is down, just leave. The management
              * functions will deal with restarting the thread. */
             LOGD(TAG_WIFI, "Read thread found device %s is DOWN", LINUX_TAP_DEVICE);
@@ -292,7 +303,8 @@ void prvLinuxTapParseNewLinkMsg(struct nlmsghdr *pxNewLinkMsg)
 
     /* We obviously only care about the interface we were
        configured to work with. */
-    if (strcmp(cIfNam, LINUX_TAP_DEVICE) == 0) {
+    if (strcmp(cIfNam, LINUX_TAP_DEVICE) == 0)
+    {
         pthread_mutex_lock(&xIffDataMutex);
 
         /* Check if we have a status transition */
@@ -333,30 +345,35 @@ void *prvLinuxTapMonitorThread(void *pNothing)
 
     nMonitorFD = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 
-    if (nMonitorFD < 0) {
+    if (nMonitorFD < 0)
+    {
         LOGE(TAG_WIFI, "Failed to open netlink socket");
         return NULL;
     }
 
-    if (bind(nMonitorFD, (struct sockaddr *)&xLocalAddr, sizeof(xLocalAddr)) < 0) {
+    if (bind(nMonitorFD, (struct sockaddr *)&xLocalAddr, sizeof(xLocalAddr)) < 0)
+    {
         LOGE(TAG_WIFI, "Failed to bind() to netlink socket");
         close(nMonitorFD);
         return NULL;
     }
 
-    while (1) {
+    while (1)
+    {
         /* Receiving netlink socket data */
         if (nRecv == 0)
             nRecv = recv(nMonitorFD, buf, sizeof(buf), 0);
 
-        if (nRecv < 0) {
+        if (nRecv < 0)
+        {
             LOGE(TAG_WIFI, "Read error on netlink socket (errno: %d)", errno);
             goto err;
         }
 
         pxMsg = (struct nlmsghdr *)buf;
 
-        for (; NLMSG_OK(pxMsg, nRecv); pxMsg = NLMSG_NEXT(pxMsg, nRecv)) {
+        for (; NLMSG_OK(pxMsg, nRecv); pxMsg = NLMSG_NEXT(pxMsg, nRecv))
+        {
 
             /* This means we are done reading netlink messages */
             if (pxMsg->nlmsg_type == NLMSG_DONE)
@@ -368,7 +385,7 @@ void *prvLinuxTapMonitorThread(void *pNothing)
         }
     }
 
-    err:
+err:
     LOGE(TAG_WIFI, "Interface monitoring thread EXITED! (This is not a normal situation)");
     return NULL;
 }
@@ -386,7 +403,8 @@ bool_t prvLinuxTapStartReadThread(int *pnTapFD)
     /* Make the pipe and the TAP FD non-blocking so that we can use
        poll(). */
     if (fcntl(nTapFD, F_SETFD, O_NONBLOCK) < 0 ||
-        fcntl(nPipe[0], F_SETFD, O_NONBLOCK) < 0) {
+        fcntl(nPipe[0], F_SETFD, O_NONBLOCK) < 0)
+    {
         LOGE(TAG_WIFI, "Error setting up FDs for the thread");
 
         close(nPipe[0]);
@@ -436,11 +454,11 @@ bool_t prvLinuxTapStartMonitorThread()
 
 static inline void prvGenRandomEth(uint8_t *pAddr)
 {
-    for(int i = 0; i < 6; i++)
+    for (int i = 0; i < 6; i++)
         pAddr[i] = (uint8_t)(rand() % CHAR_MAX);
 
-    pAddr[0] &= 0xfe;	/* clear multicast bit */
-    pAddr[0] |= 0x02;	/* set local assignment bit (IEEE802) */
+    pAddr[0] &= 0xfe; /* clear multicast bit */
+    pAddr[0] |= 0x02; /* set local assignment bit (IEEE802) */
 }
 
 bool_t xNetworkInterfaceInitialise(MACAddress_t *pxPhyDev)
@@ -449,14 +467,16 @@ bool_t xNetworkInterfaceInitialise(MACAddress_t *pxPhyDev)
     /* If we're in create mode, return an error if the TAP device
      * we're asked to create already exists. */
 
-    if (prvLinuxTapGetFlags(LINUX_TAP_DEVICE, NULL, NULL)) {
+    if (prvLinuxTapGetFlags(LINUX_TAP_DEVICE, NULL, NULL))
+    {
         LOGE(TAG_WIFI, "Device %s already exists but we were asked to create it", LINUX_TAP_DEVICE);
         return false;
     }
 #endif
 
     /* Otherwise, just open it. */
-    if (!prvLinuxTapOpen(LINUX_TAP_DEVICE, &nTapFD)) {
+    if (!prvLinuxTapOpen(LINUX_TAP_DEVICE, &nTapFD))
+    {
         LOGE(TAG_WIFI, "Failed to open TAP device %s", LINUX_TAP_DEVICE);
         return false;
     }
@@ -479,23 +499,28 @@ bool_t xNetworkInterfaceConnect(void)
 {
     /* Put UP the device if management is enabled. */
 #if LINUX_TAP_MANAGE == true
-    if (!prvLinuxTapUp(TAP_DEVICE)) {
+    if (!prvLinuxTapUp(TAP_DEVICE))
+    {
         LOGE(TAG_WIFI, "Failed to bring device %s UP", LINUX_TAP_DEVICE);
         return false;
     }
-    else LOGI(TAG_WIFI, "Device %s is now UP", LINUX_TAP_DEVICE);
+    else
+        LOGI(TAG_WIFI, "Device %s is now UP", LINUX_TAP_DEVICE);
 #endif
 
     /* Start the read thread only if the device is up. */
-    if (prvLinuxTapCheckFlags(LINUX_TAP_DEVICE, IFF_UP)) {
+    if (prvLinuxTapCheckFlags(LINUX_TAP_DEVICE, IFF_UP))
+    {
 
         /* Spin up the thread that will do the blocking read for packets on
          * the TAP device. */
-        if (!prvLinuxTapStartReadThread(&nTapFD)) {
+        if (!prvLinuxTapStartReadThread(&nTapFD))
+        {
             LOGE(TAG_WIFI, "Failed to spin up read thread on device %s", LINUX_TAP_DEVICE);
             return false;
         }
-        else LOGI(TAG_WIFI, "Thread reading on device %s is running", LINUX_TAP_DEVICE);
+        else
+            LOGI(TAG_WIFI, "Thread reading on device %s is running", LINUX_TAP_DEVICE);
     }
     else
         LOGW(TAG_WIFI, "Device %s is DOWN, not starting read thread.", LINUX_TAP_DEVICE);
@@ -510,11 +535,13 @@ bool_t xNetworkInterfaceDisconnect(void)
     /* Take down and dispose of the tap device if we were configured
      * to do so automatically. */
 #if LINUX_TAP_MANAGE == true
-    if (!prvLinuxTapDown(TAP_DEVICE)) {
+    if (!prvLinuxTapDown(TAP_DEVICE))
+    {
         LOGE(TAG_WIFI, "Failed to take device %s DOWN", LINUX_TAP_DEVICE);
         return false;
     }
-    else LOGI(TAG_WIFI, "Device %s is now DOWN", LINUX_TAP_DEVICE);
+    else
+        LOGI(TAG_WIFI, "Device %s is now DOWN", LINUX_TAP_DEVICE);
 #endif
 
     xIsInterfaceConnected = false;
@@ -530,16 +557,19 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
     size_t unWriteSzLeft = pxNetworkBuffer->xDataLength;
     size_t unLastWriteSz = 0;
 
-    if (!prvLinuxTapCheckFlags(LINUX_TAP_DEVICE, IFF_UP)) {
+    if (!prvLinuxTapCheckFlags(LINUX_TAP_DEVICE, IFF_UP))
+    {
         LOGE(TAG_WIFI, "Writing %zu bytes on interface %s failed, interface is DOWN",
              pxNetworkBuffer->xDataLength, LINUX_TAP_DEVICE);
         return false;
     }
 
-    do {
+    do
+    {
         nWriteSz = write(nTapFD, pxNetworkBuffer->pucEthernetBuffer + unLastWriteSz, unWriteSzLeft);
 
-        if (nWriteSz < 0) {
+        if (nWriteSz < 0)
+        {
             LOGD(TAG_WIFI, "Write error (errno: %d)", errno);
             return false;
         }
@@ -557,34 +587,36 @@ bool_t xNetworkInterfaceOutput(NetworkBufferDescriptor_t *const pxNetworkBuffer,
  * frame has arrived. */
 bool_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
-	NetworkBufferDescriptor_t *pxNetworkBuffer;
-	RINAStackEvent_t xRxEvent = {
+    NetworkBufferDescriptor_t *pxNetworkBuffer;
+    RINAStackEvent_t xRxEvent = {
         .eEventType = eNetworkRxEvent,
-        .xData.PV = NULL
-    };
+        .xData.PV = NULL};
 
-	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
-		return true;
+    if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
+        return true;
 
     pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(len, 250 * 1000);
 
-	if (pxNetworkBuffer != NULL) {
-		/* Set the packet size, in case a larger buffer was returned. */
-		pxNetworkBuffer->xEthernetDataLength = len;
+    if (pxNetworkBuffer != NULL)
+    {
+        /* Set the packet size, in case a larger buffer was returned. */
+        pxNetworkBuffer->xEthernetDataLength = len;
 
-		/* Copy the packet data. */
-		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
-		xRxEvent.xData.PV = (void *)pxNetworkBuffer;
+        /* Copy the packet data. */
+        memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
+        xRxEvent.xData.PV = (void *)pxNetworkBuffer;
 
-		if (!xSendEventStructToIPCPTask(&xRxEvent, 250 * 1000)) {
-			LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
-			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
-			return false;
-		}
+        if (!xSendEventStructToShimIPCPTask(&xRxEvent, 250 * 1000))
+        {
+            LOGE(TAG_WIFI, "Failed to enqueue packet to network stack %p, len %d", buffer, len);
+            vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+            return false;
+        }
 
-		return true;
-	}
-	else {
+        return true;
+    }
+    else
+    {
         LOGE(TAG_WIFI, "Failed to get buffer descriptor");
         vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
         return false;
