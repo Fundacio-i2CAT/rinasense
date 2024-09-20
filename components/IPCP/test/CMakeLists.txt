@@ -1,7 +1,7 @@
 if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
   idf_component_register(SRC_DIRS "."
     INCLUDE_DIRS "."
-    REQUIRES unity Common Portability FlowAllocator BufferManagement EFCP ShimIPCP)
+    REQUIRES unity Common Portability FlowAllocator BufferManagement EFCP Shim)
 else()
   add_executable(test_ipcp "${CMAKE_CURRENT_LIST_DIR}/test_ipcp.c")
   target_link_libraries(test_ipcp

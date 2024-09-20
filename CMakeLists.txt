@@ -56,7 +56,7 @@ else()
     Ribd
     RINA_API
     Rmt
-    ShimIPCP)
+    Shim)
 
   # Common warnings and options.
   add_compile_options(

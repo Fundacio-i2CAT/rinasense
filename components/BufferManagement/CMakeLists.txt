@@ -1,5 +1,5 @@
 set(requirements
-  ShimIPCP
+  Shim
   Portability
   Common
 )

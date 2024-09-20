@@ -2,7 +2,7 @@
 #include "portability/port.h"
 
 #include "IpcManager.h"
-#include "ShimIPCP.h"
+#include "Shim.h"
 
 #include "unity.h"
 #include "common/unity_fixups.h"
@@ -10,7 +10,8 @@
 ipcManager_t ipcMgr;
 NumMgr_t pidm;
 
-RS_TEST_CASE_SETUP(test_shim_ipcp) {
+RS_TEST_CASE_SETUP(test_shim_ipcp)
+{
     xIpcManagerInit(&ipcMgr);
     TEST_ASSERT(xNumMgrInit(&pidm, 10));
 }
@@ -28,7 +29,7 @@ RS_TEST_CASE(ShimIpcpBasic, "[shimipcp][ipcp]")
     TEST_ASSERT((ipcp = pxIpcManagerCreateShim(&ipcMgr)) != NULL);
 
     /* We're cheating as we know the first IPCP ID is 1 here. */
-    //TEST_ASSERT((ipcp = pxIpcManagerFindInstanceById(1)) != NULL);
+    // TEST_ASSERT((ipcp = pxIpcManagerFindInstanceById(1)) != NULL);
     TEST_ASSERT(ipcp->xId == 1);
     TEST_ASSERT(ipcp->xType == eShimWiFi);
 

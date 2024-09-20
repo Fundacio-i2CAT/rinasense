@@ -6,7 +6,7 @@
 #include "common/rina_ids.h"
 #include "portability/port.h"
 
-#include "ShimIPCP.h"
+#include "Shim.h"
 #include "ARP826.h"
 #include "IPCP_instance.h"
 #include "IPCP_api.h"
