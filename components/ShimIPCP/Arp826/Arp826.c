@@ -12,9 +12,9 @@
 #include "ARP826_defs.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
-//#include "ShimIPCP.h"
+// #include "ShimIPCP.h"
 #include "configSensor.h"
-//#include "IPCP.h"
+// #include "IPCP.h"
 #include "IPCP_api.h"
 #include "IPCP_frames.h"
 #include "portability/rslog.h"
@@ -331,9 +331,10 @@ bool_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 
 	pxNetworkBuffer = pxGetNetworkBufferWithDescriptor(xBufferSize, 0);
 
-	if (pxNetworkBuffer != NULL) {
-        /* FIXME: This assignment makes no sense and the compiler
-           complains about it. */
+	if (pxNetworkBuffer != NULL)
+	{
+		/* FIXME: This assignment makes no sense and the compiler
+		   complains about it. */
 		/*pxNetworkBuffer->ulGpa = pxTpa->pucAddress; */
 
 		prvARPGeneratePacket(pxNetworkBuffer, pxSha, pxSpa, pxTpa, ARP_REQUEST);
@@ -358,6 +359,7 @@ bool_t vARPSendRequest(gpa_t *pxTpa, gpa_t *pxSpa, gha_t *pxSha)
 			if (!xSendEventStructToIPCPTask(&xSendEvent, 1000))
 			{
 				/* Failed to send the message, so release the network buffer. */
+				LOGE(TAG_ARP, "Se elimina?");
 				vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 				return false;
 			}
@@ -630,11 +632,11 @@ eFrameProcessingResult_t eARPProcessPacket(ARPPacket_t *const pxARPFrame)
 		if (eARPLookupGPA(pxTmpSpa) == eARPCacheMiss)
 		{
 #ifndef NDEBUG
-            char *psAddr;
+			char *psAddr;
 
-            RsAssert((psAddr = xGPAAddressToString(pxTmpSpa)) != NULL);
+			RsAssert((psAddr = xGPAAddressToString(pxTmpSpa)) != NULL);
 			LOGE(TAG_ARP, "Nothing found for entry %s for protocol type 0x%04X", psAddr, usPtype);
-            vRsMemFree(psAddr);
+			vRsMemFree(psAddr);
 #else
 			LOGE(TAG_ARP, "Nothing found for protocol type 0x%04X", usPtype);
 #endif
@@ -723,16 +725,16 @@ eARPLookupResult_t eARPLookupGPA(const gpa_t *pxGpaToLookup)
 	/* Loop through each entry in the ARP cache. */
 	for (x = 0; x < ARP_CACHE_ENTRIES; x++)
 	{
-        /* Skip empty entries. */
-        if (xARPCache[x].ucAge == 0)
-            continue;
+		/* Skip empty entries. */
+		if (xARPCache[x].ucAge == 0)
+			continue;
 
 #ifndef NDEBUG
-        string_t pcLoopAddr;
+		string_t pcLoopAddr;
 
-        RsAssert((pcLoopAddr = xGPAAddressToString(xARPCache[x].pxProtocolAddress)) != NULL);
+		RsAssert((pcLoopAddr = xGPAAddressToString(xARPCache[x].pxProtocolAddress)) != NULL);
 		LOGD(TAG_ARP, "eARPLookupGPA -> %s", pcLoopAddr);
-        vRsMemFree(pcLoopAddr);
+		vRsMemFree(pcLoopAddr);
 #endif
 
 		if (xGPACmp(xARPCache[x].pxProtocolAddress, pxGpaToLookup))
@@ -878,7 +880,7 @@ void vARPInitCache(void)
 	const string_t pcAd = {"\0"};
 
 	gha_t *pxTmp = pxARPCreateGHAUnknown(MAC_ADDR_802_3);
-	gpa_t *pxProtocolAddress = pxCreateGPA((uint8_t *)pcAd, 5); //¿¿is it correct check????
+	gpa_t *pxProtocolAddress = pxCreateGPA((uint8_t *)pcAd, 5); // ¿¿is it correct check????
 
 	ARPCacheRow_t xNullCacheEntry;
 
@@ -898,16 +900,16 @@ void vARPInitCache(void)
 
 void prvARPPrintCacheItem(int nIndex)
 {
-    LOGD(TAG_ARP, "Arp Entry %i: %3d - %s - %02x:%02x:%02x:%02x:%02x:%02x",
-         nIndex,
-         xARPCache[nIndex].ucAge,
-         xARPCache[nIndex].pxProtocolAddress->pucAddress,
-         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[0],
-         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[1],
-         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[2],
-         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[3],
-         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[4],
-         xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[5]);
+	LOGD(TAG_ARP, "Arp Entry %i: %3d - %s - %02x:%02x:%02x:%02x:%02x:%02x",
+		 nIndex,
+		 xARPCache[nIndex].ucAge,
+		 xARPCache[nIndex].pxProtocolAddress->pucAddress,
+		 xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[0],
+		 xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[1],
+		 xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[2],
+		 xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[3],
+		 xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[4],
+		 xARPCache[nIndex].pxMACAddress->xAddress.ucBytes[5]);
 }
 
 void vARPPrintCache(void)
@@ -917,7 +919,7 @@ void vARPPrintCache(void)
 	for (x = 0; x < ARP_CACHE_ENTRIES; x++)
 	{
 		if ((xARPCache[x].pxProtocolAddress->pucAddress != 0UL) && (xARPCache[x].ucValid != 0))
-            prvARPPrintCacheItem(x);
+			prvARPPrintCacheItem(x);
 		xCount++;
 	}
 	LOGI(TAG_ARP, "Arp has %d entries\n", xCount);
@@ -955,7 +957,7 @@ void vARPAddCacheEntry(struct rinarpHandle_t *pxHandle, uint8_t ucAge)
 			xARPCache[x].ucValid = 1;
 
 #ifndef NDEBUG
-            prvARPPrintCacheItem(x);
+			prvARPPrintCacheItem(x);
 			LOGD(TAG_ARP, "ARP Entry added successfully");
 #endif
 

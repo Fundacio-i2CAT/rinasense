@@ -7,10 +7,10 @@ if("$ENV{TARGET_TYPE}" STREQUAL "freertos_idf")
 
   idf_component_register(SRCS "${NETWORKINTERFACE_MODULE}/NetworkInterface.c"
     INCLUDE_DIRS "include" "mq/include"
-    REQUIRES Common BufferManagement ARP826 ShimIPCP configSensor FreeRTOS-Plus-POSIX)
+    REQUIRES Common BufferManagement ShimIPCP configSensor FreeRTOS-Plus-POSIX)
 else()
   rs_include_component(NetworkInterface
-    DIR       "${CMAKE_SOURCE_DIR}/components/NetworkInterface")
+    DIR "${CMAKE_SOURCE_DIR}/components/NetworkInterface")
 
   if("$ENV{TARGET_TYPE}" STREQUAL "linux" OR "${TARGET_TYPE}" STREQUAL "linux")
     rs_component(NetworkInterface_TAP
@@ -21,7 +21,7 @@ else()
       "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
 
       REQUIRES
-      Common configRINA BufferManagement ARP826 IPCP configSensor Rmt ShimIPCP
+      Common configRINA BufferManagement IPCP configSensor Rmt ShimIPCP
       EFCP Portability RINA_API)
 
     rs_component(NetworkInterface_MQ
@@ -33,7 +33,7 @@ else()
       "${CMAKE_SOURCE_DIR}/components/NetworkInterface/mq/include"
 
       REQUIRES
-      Common configRINA BufferManagement ARP826 IPCP configSensor Rmt
+      Common configRINA BufferManagement IPCP configSensor Rmt
       ShimIPCP EFCP Portability RINA_API)
 
   elseif("${TARGET_TYPE}" STREQUAL "arduino_esp32")
@@ -45,7 +45,7 @@ else()
       "${CMAKE_SOURCE_DIR}/components/NetworkInterface/include"
 
       REQUIRES
-      Common configRINA BufferManagement ARP826 IPCP configSensor Rmt
+      Common configRINA BufferManagement IPCP configSensor Rmt
       ShimIPCP EFCP Portability RINA_API)
   endif()
 endif()
