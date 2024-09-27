@@ -96,16 +96,19 @@ struct ipcpInstance_t *pxIpcManagerFindInstanceById(ipcpInstanceId_t xIpcpId)
  * @return ipcpInstance_t* pointer to the ipcp instance.
  */
 
-static struct ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
+struct ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
 {
     num_t x = 0;
 
     for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++)
     {
+        LOGE(TAG_IPCPMANAGER, "finding: %i", x);
         if (xInstanceTable[x].xActive == true)
         {
+            LOGE(TAG_IPCPMANAGER, "active");
             if (xInstanceTable[x].pxIpcpType == xType)
             {
+                LOGE(TAG_IPCPMANAGER, "type: %i", xType);
                 return xInstanceTable[x].pxIpcpInstance;
                 break;
             }
