@@ -15,7 +15,7 @@
 
 /* RINA Components includes. */
 #include "Arp826.h"
-// #include "ShimIPCP.h"
+#include "Shim.h"
 #include "BufferManagement.h"
 #include "NetworkInterface.h"
 #include "configRINA.h"
@@ -301,6 +301,7 @@ BaseType_t xNetworkInterfaceDisconnect(void)
 esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 {
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
+	EthernetHeader_t *pxEthernetHeader;
 
 	const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS(0);
 	struct timespec ts;
@@ -311,7 +312,6 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 	if (eConsiderFrameForProcessing(buffer) != eProcessBuffer)
 	{
-
 		esp_wifi_internal_free_rx_buffer(eb);
 		return ESP_OK;
 	}
@@ -331,6 +331,39 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 
 		/* Copy the packet data. */
 		memcpy(pxNetworkBuffer->pucEthernetBuffer, buffer, len);
+
+		/* We need to look into the frame data. */
+		pxEthernetHeader = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
+
+		uint8_t ucMACAddress[MAC_ADDRESS_LENGTH_BYTES];
+		esp_wifi_get_mac(ESP_IF_WIFI_STA, ucMACAddress);
+
+		if (xIsBroadcastMac(&pxEthernetHeader->xDestinationAddress))
+		{
+
+			LOGD(TAG_WIFI, "Handling broadcasted ethernet packet.");
+
+			memcpy(&pxEthernetHeader->xDestinationAddress, ucMACAddress, sizeof(MACAddress_t));
+		}
+		else
+		{
+			/* Make sure this is actually meant from us. */
+			if (memcmp(&pxEthernetHeader->xDestinationAddress,
+					   ucMACAddress, sizeof(MACAddress_t)) != 0)
+			{
+#if 0
+				stringbuf_t ucMac[MAC2STR_MIN_BUFSZ];
+				mac2str(&pxEthernetHeader->xDestinationAddress, ucMac, MAC2STR_MIN_BUFSZ);
+				LOGW(TAG_WIFI, "Dropping packet with destination %s, not for us", ucMac);
+				return ESP_OK;
+#endif
+
+				LOGW(TAG_WIFI, "Dropping ethernet packet not destined for us");
+				return ESP_OK;
+			}
+		}
+
+#if 0
 		xRxEvent.xData.PV = (void *)pxNetworkBuffer;
 
 		// LOGE(TAG_RINA, "pucEthernetBuffer and len: %p, %d", pxNetworkBuffer->pucEthernetBuffer, len);
@@ -352,6 +385,11 @@ esp_err_t xNetworkInterfaceInput(void *buffer, uint16_t len, void *eb)
 		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 		return ESP_FAIL;
 	}
+#endif
+	}
+	vShimHandleEthernetPacket(pxNetworkBuffer);
+
+	return ESP_OK;
 }
 
 void vNetworkNotifyIFDown()

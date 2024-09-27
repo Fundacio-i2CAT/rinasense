@@ -1022,3 +1022,167 @@ bool_t xShimWiFiInit(struct ipcpInstance_t *pxShimWiFiInstance)
 		return true;
 	}
 }
+
+eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer)
+{
+	eFrameProcessingResult_t eReturn = eReleaseBuffer;
+	const EthernetHeader_t *pxEthernetHeader;
+	uint16_t usFrameType;
+
+	/* Map the buffer onto Ethernet Header struct for easy access to fields. */
+	pxEthernetHeader = (EthernetHeader_t *)pucEthernetBuffer;
+
+	usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
+
+	// Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
+	if (usFrameType == ETH_P_RINA_ARP || usFrameType == ETH_P_RINA)
+	{
+		eReturn = eProcessBuffer;
+		LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: ACCEPTED", usFrameType);
+	}
+	else
+		LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: REJECTED", usFrameType);
+
+	return eReturn;
+}
+
+void vShimHandleEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
+{
+	const EthernetHeader_t *pxEthernetHeader;
+	eFrameProcessingResult_t eReturned = eFrameConsumed;
+	uint16_t usFrameType;
+	struct ipcpInstance_t *pxSelf;
+
+	RsAssert(pxNetworkBuffer != NULL);
+
+	/*Call the IpcManager to retrieve the IPCP shim WiFi instance*/
+	pxSelf = pxIpcManagerFindInstanceByType(eShimWiFi);
+
+	if (pxSelf == NULL)
+	{
+		LOGE(TAG_SHIM, "Error no instance founded");
+	}
+
+	/* Interpret the Ethernet frame. */
+	if (pxNetworkBuffer->xEthernetDataLength >= sizeof(EthernetHeader_t))
+	{
+		/* Map the buffer onto the Ethernet Header struct for easy access to the fields. */
+		pxEthernetHeader = (EthernetHeader_t *)pxNetworkBuffer->pucEthernetBuffer;
+		usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
+
+		/* Interpret the received Ethernet packet. */
+		switch (usFrameType)
+		{
+		case ETH_P_RINA_ARP:
+
+			/* The Ethernet frame contains an ARP packet. */
+			LOGI(TAG_IPCPMANAGER, "ARP Packet Received");
+
+			if (pxNetworkBuffer->xEthernetDataLength >= sizeof(ARPPacket_t))
+			{
+				/*Process the Packet ARP in case of REPLY -> eProcessBuffer, REQUEST -> eReturnEthernet to
+				 * send to the destination a REPLY (It requires more processing tasks) */
+				eReturned = eARPProcessPacket(CAST_PTR_TO_TYPE_PTR(ARPPacket_t, pxNetworkBuffer->pucEthernetBuffer));
+			}
+			else
+			{
+				/*If ARP packet is not correct estructured then release buffer*/
+				eReturned = eReleaseBuffer;
+			}
+
+			break;
+
+		case ETH_P_RINA:
+
+			LOGI(TAG_IPCPMANAGER, "RINA Packet Received");
+
+			uint8_t *ptr;
+			size_t uxRinaLength;
+			// NetworkBufferDescriptor_t *pxBuffer;
+
+			// removing Ethernet Header
+			uxRinaLength = pxNetworkBuffer->xEthernetDataLength - (size_t)14;
+
+			// ESP_LOGE(TAG_ARP, "Taking Buffer to copy the RINA PDU: ETH_P_RINA");
+			// pxBuffer = pxGetNetworkBufferWithDescriptor(xlength, (TickType_t)0U);
+
+			// Copy into the newBuffer but just the RINA PDU, and not the Ethernet Header
+			ptr = (uint8_t *)pxNetworkBuffer->pucEthernetBuffer + 14;
+
+			pxNetworkBuffer->xRinaDataLength = uxRinaLength;
+			pxNetworkBuffer->pucRinaBuffer = ptr;
+
+			// Release the buffer with the Ethernet header, it is not needed any more
+			// ESP_LOGE(TAG_ARP, "Releasing Buffer to copy the RINA PDU: ETH_P_RINA");
+			// vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+
+			// must be void function
+			vIpcManagerRINAPackettHandler(pxSelf->pxData, pxNetworkBuffer); // must change this must be managed by the shim instead to call IPCPManager
+
+			break;
+
+		default:
+			LOGE(TAG_WIFI, "No Case Ethernet Type, Drop Frame");
+			eReturned = eReleaseBuffer;
+
+			break;
+		}
+	}
+	//}
+
+	/* Perform any actions that resulted from processing the Ethernet frame. */
+	switch (eReturned)
+	{
+	case eReturnEthernetFrame:
+
+		/* The Ethernet frame will have been updated (maybe it was
+		 * an ARP request) and should be sent back to
+		 * its source. */
+		// vReturnEthernetFrame( pxNetworkBuffer, pdTRUE );
+
+		/* parameter pdTRUE: the buffer must be released once
+		 * the frame has been transmitted */
+		break;
+
+	case eFrameConsumed:
+
+		/* The frame is in use somewhere, don't release the buffer
+		 * yet. */
+		LOGI(TAG_SHIM, "Frame Consumed");
+		break;
+
+	case eReleaseBuffer:
+		// ESP_LOGI(TAG_SHIM, "Releasing Buffer: ProcessEthernet");
+		if (pxNetworkBuffer != NULL)
+		{
+			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+		}
+
+		break;
+	case eProcessBuffer:
+		/*ARP process buffer, call to ShimAllocateResponse*/
+
+		/* Finding an instance of eShimiFi and call the floww allocate Response using this instance*/
+
+		if (!pxSelf->pxOps->flowAllocateResponse(pxSelf->pxData, 1))
+		{
+			LOGE(TAG_IPCPMANAGER, "Error during the Allocation Request at Shim");
+			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+		}
+		else
+		{
+			LOGI(TAG_IPCPMANAGER, "Buffer Processed");
+			vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+		}
+
+		break;
+	default:
+
+		/* The frame is not being used anywhere, and the
+		 * NetworkBufferDescriptor_t structure containing the frame should
+		 * just be released back to the list of free buffers. */
+		// ESP_LOGI(TAG_SHIM, "Default: Releasing Buffer");
+		vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
+		break;
+	}
+}

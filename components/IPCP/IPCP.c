@@ -713,29 +713,6 @@ void prvProcessEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
     }
 }
 
-eFrameProcessingResult_t eConsiderFrameForProcessing(const uint8_t *const pucEthernetBuffer)
-{
-    eFrameProcessingResult_t eReturn = eReleaseBuffer;
-    const EthernetHeader_t *pxEthernetHeader;
-    uint16_t usFrameType;
-
-    /* Map the buffer onto Ethernet Header struct for easy access to fields. */
-    pxEthernetHeader = (EthernetHeader_t *)pucEthernetBuffer;
-
-    usFrameType = RsNtoHS(pxEthernetHeader->usFrameType);
-
-    // Just ETH_P_ARP and ETH_P_RINA Should be processed by the stack
-    if (usFrameType == ETH_P_RINA_ARP || usFrameType == ETH_P_RINA)
-    {
-        eReturn = eProcessBuffer;
-        LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: ACCEPTED", usFrameType);
-    }
-    else
-        LOGD(TAG_IPCPMANAGER, "Ethernet packet of type %xu: REJECTED", usFrameType);
-
-    return eReturn;
-}
-
 /*-----------------------------------------------------------*/
 
 /**
