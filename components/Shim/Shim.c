@@ -1117,7 +1117,7 @@ void vShimHandleEthernetPacket(NetworkBufferDescriptor_t *const pxNetworkBuffer)
 			// vReleaseNetworkBufferAndDescriptor(pxNetworkBuffer);
 
 			// must be void function
-			vIpcManagerRINAPackettHandler(pxSelf->pxData, pxNetworkBuffer); // must change
+			vIpcManagerRINAPackettHandler(pxSelf->pxData, pxNetworkBuffer); // must change this must be managed by the shim instead to call IPCPManager
 
 			break;
 

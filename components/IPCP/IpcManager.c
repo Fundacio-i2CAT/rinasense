@@ -36,6 +36,30 @@ static InstanceTableRow_t xInstanceTable[INSTANCES_IPCP_ENTRIES];
  * @param pxIpcManager object created in the IPCP TASK.
  * @return BaseType_t
  */
+
+/**
+ * @brief Add an IPCP instance into the Ipcp Instance Table.
+ *
+ * @param pxIpcpInstaceToAdd to added into the table
+ */
+void prvIpcpMngrAddInstanceEntry(struct ipcpInstance_t *pxIpcpInstaceToAdd)
+{
+    num_t x = 0;
+
+    for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++)
+    {
+        if (xInstanceTable[x].xActive == false)
+        {
+            xInstanceTable[x].pxIpcpInstance = pxIpcpInstaceToAdd;
+            xInstanceTable[x].pxIpcpType = pxIpcpInstaceToAdd->xType;
+            xInstanceTable[x].xIpcpId = pxIpcpInstaceToAdd->xId;
+            xInstanceTable[x].xActive = true;
+
+            break;
+        }
+    }
+}
+
 bool_t xIpcManagerInit(ipcManager_t *pxIpcManager)
 {
     if ((pxIpcManager->pxPidm = pxNumMgrCreate(MAX_PORT_ID)) == NULL)
@@ -102,13 +126,10 @@ struct ipcpInstance_t *pxIpcManagerFindInstanceByType(ipcpInstanceType_t xType)
 
     for (x = 0; x < INSTANCES_IPCP_ENTRIES; x++)
     {
-        LOGE(TAG_IPCPMANAGER, "finding: %i", x);
         if (xInstanceTable[x].xActive == true)
         {
-            LOGE(TAG_IPCPMANAGER, "active");
             if (xInstanceTable[x].pxIpcpType == xType)
             {
-                LOGE(TAG_IPCPMANAGER, "type: %i", xType);
                 return xInstanceTable[x].pxIpcpInstance;
                 break;
             }
@@ -165,10 +186,13 @@ struct ipcpInstance_t *pxIpcManagerCreateShim(ipcManager_t *pxIpcManager)
 {
 
     ipcProcessId_t xIpcpId;
+    struct ipcpInstance_t *pxInstance;
 
     xIpcpId = ulNumMgrAllocate(pxIpcManager->pxIpcpIdm);
 
     // add the shimInstance into the instance list.
 
-    return pxShimWiFiCreate(xIpcpId);
+    pxInstance = pxShimWiFiCreate(xIpcpId);
+    prvIpcpMngrAddInstanceEntry(pxInstance);
+    return pxInstance;
 }
