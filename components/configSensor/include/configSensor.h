@@ -53,7 +53,18 @@
 #define MAX_ARP_AGE (5)
 #define MAX_ARP_RETRANSMISSIONS (5)
 
-#define MAC_ADDRESS_LENGTH_BYTES (6)
+#define MAC_ADDRESS_LENGTH_BYTES (8) //8 for IEEE802154 standar
+
+/*********   Configure IEEE802154 Parameters  ************/
+
+#define IEEE802154_CHANNEL 19  
+
+#define IEEE802154_PANID_SOURCE 0x4242  
+
+#define IEEE802154_SHORT_ADDRESS 0x1111  
+
+#define IEEE802154_COORDINATOR 1  
+
 
 /*TAG for Debugging*/
 #define TAG_ARP "[ARP]"
